@@ -1,0 +1,767 @@
+{
+  "chrome_extension_apis": {
+    "metadata": {
+      "source": "Chrome for Developers - API Reference",
+      "url": "https://developer.chrome.com/docs/extensions/reference/api",
+      "last_updated": "2025-06-22",
+      "description": "Comprehensive list of Chrome Extension APIs with permissions, descriptions, and code examples",
+      "total_apis": 34,
+      "categories": [
+        "Browser Control",
+        "Content Scripts",
+        "Data Management",
+        "Developer Tools",
+        "Identity & Authentication",
+        "Network & Security",
+        "System Integration",
+        "User Interface",
+        "Web Platform",
+        "Extensions Management"
+      ]
+    },
+    "apis": [
+      {
+        "name": "accessibilityFeatures",
+        "namespace": "chrome.accessibilityFeatures",
+        "description": "Manage Chrome's accessibility features. This API relies on the ChromeSetting prototype of the type API for getting and setting individual accessibility features.",
+        "permissions": {
+          "required": [
+            "accessibilityFeatures.read",
+            "accessibilityFeatures.modify"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "accessibilityFeatures.read",
+              "accessibilityFeatures.modify"
+            ]
+          },
+          "notes": "accessibilityFeatures.modify does not imply accessibilityFeatures.read permission"
+        },
+        "code_example": {
+          "description": "Get and set accessibility features",
+          "code": "\n// Get the current state of screen reader\nchrome.accessibilityFeatures.screenReader.get({}, (details) => {\n  console.log('Screen reader enabled:', details.value);\n});\n\n// Enable high contrast\nchrome.accessibilityFeatures.highContrast.set({value: true}, () => {\n  console.log('High contrast enabled');\n});\n"
+        },
+        "compatibility": "Chrome 35+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "action",
+        "namespace": "chrome.action",
+        "description": "Control the extension's icon in the Google Chrome toolbar.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "action": {
+              "default_popup": "popup.html",
+              "default_title": "Click to view popup"
+            }
+          },
+          "notes": "No special permissions required, but needs action declaration in manifest"
+        },
+        "code_example": {
+          "description": "Handle action clicks and show popup",
+          "code": "\n// Handle action button clicks\nchrome.action.onClicked.addListener((tab) => {\n  chrome.scripting.executeScript({\n    target: {tabId: tab.id},\n    files: ['content.js']\n  });\n});\n\n// Set badge text\nchrome.action.setBadgeText({text: '5'});\n\n// Set badge background color\nchrome.action.setBadgeBackgroundColor({color: '#FF0000'});\n"
+        },
+        "compatibility": "Chrome 88+ MV3+",
+        "manifest_version": "3"
+      },
+      {
+        "name": "alarms",
+        "namespace": "chrome.alarms",
+        "description": "Schedule code to run periodically or at a specified time in the future.",
+        "permissions": {
+          "required": [
+            "alarms"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "alarms"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Create and handle alarms",
+          "code": "\n// Create an alarm that fires every 5 minutes\nchrome.alarms.create('reminderAlarm', {\n  delayInMinutes: 5,\n  periodInMinutes: 5\n});\n\n// Handle alarm events\nchrome.alarms.onAlarm.addListener((alarm) => {\n  if (alarm.name === 'reminderAlarm') {\n    console.log('Reminder alarm fired!');\n  }\n});\n\n// Clear all alarms\nchrome.alarms.clearAll();\n"
+        },
+        "compatibility": "Chrome 22+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "bookmarks",
+        "namespace": "chrome.bookmarks",
+        "description": "Create, organize, and otherwise manipulate bookmarks. Also see Override Pages, which you can use to create a custom Bookmark Manager page.",
+        "permissions": {
+          "required": [
+            "bookmarks"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "bookmarks"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Create and search bookmarks",
+          "code": "\n// Create a new bookmark\nchrome.bookmarks.create({\n  parentId: '1',\n  title: 'Google',\n  url: 'https://www.google.com'\n}, (bookmark) => {\n  console.log('Bookmark created:', bookmark);\n});\n\n// Search bookmarks\nchrome.bookmarks.search('Google', (results) => {\n  console.log('Found bookmarks:', results);\n});\n\n// Get bookmark tree\nchrome.bookmarks.getTree((bookmarkTreeNodes) => {\n  console.log('Bookmark tree:', bookmarkTreeNodes);\n});\n"
+        },
+        "compatibility": "Chrome 5+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "browsingData",
+        "namespace": "chrome.browsingData",
+        "description": "Remove browsing data from a user's local profile.",
+        "permissions": {
+          "required": [
+            "browsingData"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "browsingData"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Clear browsing data",
+          "code": "\n// Clear browsing data from the last hour\nchrome.browsingData.remove({\n  since: Date.now() - 3600000 // 1 hour ago\n}, {\n  cache: true,\n  cookies: true,\n  history: true\n}, () => {\n  console.log('Browsing data cleared');\n});\n\n// Clear all browsing data\nchrome.browsingData.removeCache({}, () => {\n  console.log('Cache cleared');\n});\n"
+        },
+        "compatibility": "Chrome 19+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "contextMenus",
+        "namespace": "chrome.contextMenus",
+        "description": "Add items to Google Chrome's context menu. You can choose what types of objects your context menu additions apply to, such as images, hyperlinks, and pages.",
+        "permissions": {
+          "required": [
+            "contextMenus"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "contextMenus"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Create context menu items",
+          "code": "\n// Create a context menu item\nchrome.contextMenus.create({\n  id: 'myContextMenu',\n  title: 'Search with my extension',\n  contexts: ['selection']\n});\n\n// Handle context menu clicks\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  if (info.menuItemId === 'myContextMenu') {\n    console.log('Selected text:', info.selectionText);\n    // Perform action with selected text\n  }\n});\n\n// Create nested context menu\nchrome.contextMenus.create({\n  id: 'parent',\n  title: 'My Extension',\n  contexts: ['page']\n});\n\nchrome.contextMenus.create({\n  id: 'child1',\n  parentId: 'parent',\n  title: 'Option 1',\n  contexts: ['page']\n});\n"
+        },
+        "compatibility": "Chrome 6+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "cookies",
+        "namespace": "chrome.cookies",
+        "description": "Query and modify cookies, and to be notified when they change.",
+        "permissions": {
+          "required": [
+            "cookies"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "cookies"
+            ],
+            "host_permissions": [
+              "*://*.example.com/*"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Get and set cookies",
+          "code": "\n// Get all cookies for a URL\nchrome.cookies.getAll({url: 'https://www.example.com'}, (cookies) => {\n  console.log('Cookies:', cookies);\n});\n\n// Set a cookie\nchrome.cookies.set({\n  url: 'https://www.example.com',\n  name: 'myCookie',\n  value: 'myValue'\n}, (cookie) => {\n  console.log('Cookie set:', cookie);\n});\n\n// Listen for cookie changes\nchrome.cookies.onChanged.addListener((changeInfo) => {\n  console.log('Cookie changed:', changeInfo);\n});\n"
+        },
+        "compatibility": "Chrome 6+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "downloads",
+        "namespace": "chrome.downloads",
+        "description": "Programmatically initiate, monitor, manipulate, and search for downloads.",
+        "permissions": {
+          "required": [
+            "downloads"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "downloads"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Download files and monitor progress",
+          "code": "\n// Download a file\nchrome.downloads.download({\n  url: 'https://example.com/file.pdf',\n  filename: 'downloaded-file.pdf'\n}, (downloadId) => {\n  console.log('Download started:', downloadId);\n});\n\n// Monitor download progress\nchrome.downloads.onChanged.addListener((downloadDelta) => {\n  if (downloadDelta.state && downloadDelta.state.current === 'complete') {\n    console.log('Download completed:', downloadDelta.id);\n  }\n});\n\n// Search downloads\nchrome.downloads.search({query: 'file.pdf'}, (downloads) => {\n  console.log('Found downloads:', downloads);\n});\n"
+        },
+        "compatibility": "Chrome 31+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "history",
+        "namespace": "chrome.history",
+        "description": "Interact with the browser's record of visited pages. You can add, remove, and query for URLs in the browser's history.",
+        "permissions": {
+          "required": [
+            "history"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "history"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Search and manage browser history",
+          "code": "\n// Search browser history\nchrome.history.search({text: 'google', maxResults: 10}, (historyItems) => {\n  console.log('History items:', historyItems);\n});\n\n// Add a URL to history\nchrome.history.addUrl({url: 'https://example.com'}, () => {\n  console.log('URL added to history');\n});\n\n// Delete a URL from history\nchrome.history.deleteUrl({url: 'https://example.com'}, () => {\n  console.log('URL deleted from history');\n});\n\n// Get most visited pages\nchrome.history.search({text: '', maxResults: 10}, (results) => {\n  results.sort((a, b) => b.visitCount - a.visitCount);\n  console.log('Most visited:', results.slice(0, 5));\n});\n"
+        },
+        "compatibility": "Chrome 5+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "notifications",
+        "namespace": "chrome.notifications",
+        "description": "Create rich notifications using templates and show these notifications to users in the system tray.",
+        "permissions": {
+          "required": [
+            "notifications"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "notifications"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Create and handle notifications",
+          "code": "\n// Create a basic notification\nchrome.notifications.create({\n  type: 'basic',\n  iconUrl: 'icon.png',\n  title: 'Extension Notification',\n  message: 'This is a notification from your Chrome extension.'\n}, (notificationId) => {\n  console.log('Notification created:', notificationId);\n});\n\n// Create a notification with buttons\nchrome.notifications.create({\n  type: 'basic',\n  iconUrl: 'icon.png',\n  title: 'Action Required',\n  message: 'Please choose an action:',\n  buttons: [\n    {title: 'Accept'},\n    {title: 'Decline'}\n  ]\n}, (notificationId) => {\n  console.log('Notification with buttons created:', notificationId);\n});\n\n// Handle notification clicks\nchrome.notifications.onClicked.addListener((notificationId) => {\n  console.log('Notification clicked:', notificationId);\n});\n\n// Handle button clicks\nchrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {\n  console.log('Button clicked:', buttonIndex, 'in notification:', notificationId);\n});\n"
+        },
+        "compatibility": "Chrome 28+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "runtime",
+        "namespace": "chrome.runtime",
+        "description": "Retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. You can also use this API to convert the relative path of URLs to fully-qualified URLs.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "permissions": [
+              "nativeMessaging"
+            ]
+          },
+          "notes": "Most methods don't require permissions. Only nativeMessaging methods require special permission."
+        },
+        "code_example": {
+          "description": "Message passing and extension lifecycle",
+          "code": "\n// Send message between extension components\nchrome.runtime.sendMessage({\n  action: 'getData',\n  data: 'example'\n}, (response) => {\n  console.log('Response received:', response);\n});\n\n// Listen for messages\nchrome.runtime.onMessage.addListener((request, sender, sendResponse) => {\n  if (request.action === 'getData') {\n    sendResponse({data: 'Hello from background'});\n  }\n  return true; // Keep message channel open for async response\n});\n\n// Handle extension install/update\nchrome.runtime.onInstalled.addListener((details) => {\n  if (details.reason === 'install') {\n    console.log('Extension installed');\n  } else if (details.reason === 'update') {\n    console.log('Extension updated');\n  }\n});\n\n// Get extension manifest\nconst manifest = chrome.runtime.getManifest();\nconsole.log('Extension version:', manifest.version);\n"
+        },
+        "compatibility": "Chrome 22+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "scripting",
+        "namespace": "chrome.scripting",
+        "description": "Execute script in different contexts.",
+        "permissions": {
+          "required": [
+            "scripting"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "scripting",
+              "activeTab"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Inject scripts and CSS into web pages",
+          "code": "\n// Execute script in current tab\nchrome.scripting.executeScript({\n  target: {tabId: tabId},\n  files: ['content-script.js']\n}, (results) => {\n  console.log('Script executed:', results);\n});\n\n// Execute inline script\nchrome.scripting.executeScript({\n  target: {tabId: tabId},\n  func: () => {\n    document.body.style.backgroundColor = 'lightblue';\n    return document.title;\n  }\n}, (results) => {\n  console.log('Page title:', results[0].result);\n});\n\n// Inject CSS\nchrome.scripting.insertCSS({\n  target: {tabId: tabId},\n  css: 'body { background-color: lightgreen; }'\n}, () => {\n  console.log('CSS injected');\n});\n\n// Remove CSS\nchrome.scripting.removeCSS({\n  target: {tabId: tabId},\n  css: 'body { background-color: lightgreen; }'\n}, () => {\n  console.log('CSS removed');\n});\n"
+        },
+        "compatibility": "Chrome 88+ MV3+",
+        "manifest_version": "3"
+      },
+      {
+        "name": "storage",
+        "namespace": "chrome.storage",
+        "description": "Store, retrieve, and track changes to user data.",
+        "permissions": {
+          "required": [
+            "storage"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "storage"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Store and retrieve extension data",
+          "code": "\n// Save data to storage\nchrome.storage.local.set({\n  key1: 'value1',\n  key2: {nested: 'object'}\n}, () => {\n  console.log('Data saved to storage');\n});\n\n// Get data from storage\nchrome.storage.local.get(['key1', 'key2'], (result) => {\n  console.log('Retrieved data:', result);\n});\n\n// Get all data\nchrome.storage.local.get(null, (allData) => {\n  console.log('All stored data:', allData);\n});\n\n// Listen for storage changes\nchrome.storage.onChanged.addListener((changes, namespace) => {\n  for (let key in changes) {\n    const change = changes[key];\n    console.log(`Storage key \"${key}\" changed:`, \n                `Old value: ${change.oldValue}`, \n                `New value: ${change.newValue}`);\n  }\n});\n\n// Sync storage (synchronized across devices)\nchrome.storage.sync.set({\n  preference: 'dark_mode'\n}, () => {\n  console.log('Preference saved to sync storage');\n});\n"
+        },
+        "compatibility": "Chrome 20+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "tabs",
+        "namespace": "chrome.tabs",
+        "description": "Interact with the browser's tab system. You can use this API to create, modify, and rearrange tabs in the browser.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "permissions": [
+              "tabs",
+              "activeTab"
+            ],
+            "host_permissions": [
+              "http://*/*",
+              "https://*/*"
+            ]
+          },
+          "notes": "Basic tab operations don't require permissions. 'tabs' permission needed for sensitive properties (url, title, etc.). 'activeTab' gives temporary access to current tab."
+        },
+        "code_example": {
+          "description": "Manage browser tabs",
+          "code": "\n// Create a new tab\nchrome.tabs.create({\n  url: 'https://www.example.com',\n  active: true\n}, (tab) => {\n  console.log('New tab created:', tab);\n});\n\n// Get current active tab\nchrome.tabs.query({active: true, currentWindow: true}, (tabs) => {\n  const currentTab = tabs[0];\n  console.log('Current tab:', currentTab);\n});\n\n// Update tab URL\nchrome.tabs.update(tabId, {\n  url: 'https://www.newsite.com'\n}, (tab) => {\n  console.log('Tab updated:', tab);\n});\n\n// Close tab\nchrome.tabs.remove(tabId, () => {\n  console.log('Tab closed');\n});\n\n// Listen for tab updates\nchrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {\n  if (changeInfo.status === 'complete') {\n    console.log('Tab loaded:', tab.url);\n  }\n});\n\n// Move tab to different position\nchrome.tabs.move(tabId, {index: 0}, (tab) => {\n  console.log('Tab moved to first position');\n});\n"
+        },
+        "compatibility": "Chrome 16+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "webRequest",
+        "namespace": "chrome.webRequest",
+        "description": "Observe and analyze traffic and to intercept, block, or modify requests in-flight.",
+        "permissions": {
+          "required": [
+            "webRequest"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "webRequest",
+              "webRequestBlocking"
+            ],
+            "host_permissions": [
+              "*://*.example.com/*"
+            ]
+          },
+          "notes": "webRequestBlocking permission required for blocking/modifying requests"
+        },
+        "code_example": {
+          "description": "Monitor and modify web requests",
+          "code": "\n// Listen for requests before they're sent\nchrome.webRequest.onBeforeRequest.addListener(\n  (details) => {\n    console.log('Request to:', details.url);\n\n    // Block requests to specific domains\n    if (details.url.includes('ads.example.com')) {\n      return {cancel: true};\n    }\n\n    // Redirect requests\n    if (details.url.includes('old-site.com')) {\n      return {redirectUrl: 'https://new-site.com'};\n    }\n  },\n  {urls: ['*://*/*']},\n  ['blocking']\n);\n\n// Modify request headers\nchrome.webRequest.onBeforeSendHeaders.addListener(\n  (details) => {\n    const headers = details.requestHeaders;\n    headers.push({\n      name: 'Custom-Header',\n      value: 'MyExtension'\n    });\n    return {requestHeaders: headers};\n  },\n  {urls: ['*://*/*']},\n  ['blocking', 'requestHeaders']\n);\n\n// Monitor response headers\nchrome.webRequest.onResponseStarted.addListener(\n  (details) => {\n    console.log('Response from:', details.url);\n    console.log('Status code:', details.statusCode);\n  },\n  {urls: ['*://*/*']}\n);\n"
+        },
+        "compatibility": "Chrome 17+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "windows",
+        "namespace": "chrome.windows",
+        "description": "Interact with browser windows. You can use this API to create, modify, and rearrange windows in the browser.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "permissions": []
+          },
+          "notes": "No special permissions required for basic window operations"
+        },
+        "code_example": {
+          "description": "Manage browser windows",
+          "code": "\n// Create a new window\nchrome.windows.create({\n  url: 'https://www.example.com',\n  type: 'popup',\n  width: 800,\n  height: 600\n}, (window) => {\n  console.log('New window created:', window);\n});\n\n// Get current window\nchrome.windows.getCurrent((window) => {\n  console.log('Current window:', window);\n});\n\n// Get all windows\nchrome.windows.getAll({populate: true}, (windows) => {\n  windows.forEach((window) => {\n    console.log(`Window ${window.id} has ${window.tabs.length} tabs`);\n  });\n});\n\n// Update window properties\nchrome.windows.update(windowId, {\n  focused: true,\n  width: 1000,\n  height: 800\n}, (window) => {\n  console.log('Window updated:', window);\n});\n\n// Listen for window events\nchrome.windows.onCreated.addListener((window) => {\n  console.log('Window created:', window.id);\n});\n\nchrome.windows.onRemoved.addListener((windowId) => {\n  console.log('Window removed:', windowId);\n});\n"
+        },
+        "compatibility": "Chrome 5+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "declarativeNetRequest",
+        "namespace": "chrome.declarativeNetRequest",
+        "description": "Block or modify network requests by specifying declarative rules. This lets extensions modify network requests without intercepting them and viewing their content, thus providing more privacy.",
+        "permissions": {
+          "required": [
+            "declarativeNetRequest"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "declarativeNetRequest"
+            ],
+            "host_permissions": [
+              "*://*/*"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Block and redirect requests using declarative rules",
+          "code": "\n// Define rules in rules.json\nconst rules = [\n  {\n    \"id\": 1,\n    \"priority\": 1,\n    \"action\": {\"type\": \"block\"},\n    \"condition\": {\"urlFilter\": \"*://ads.example.com/*\"}\n  },\n  {\n    \"id\": 2,\n    \"priority\": 1,\n    \"action\": {\n      \"type\": \"redirect\",\n      \"redirect\": {\"url\": \"https://safe-site.com\"}\n    },\n    \"condition\": {\"urlFilter\": \"*://malicious-site.com/*\"}\n  }\n];\n\n// Update dynamic rules\nchrome.declarativeNetRequest.updateDynamicRules({\n  addRules: rules,\n  removeRuleIds: [1, 2]\n}, () => {\n  console.log('Rules updated');\n});\n\n// Get matched rules (for debugging)\nchrome.declarativeNetRequest.onRuleMatchedDebug.addListener((info) => {\n  console.log('Rule matched:', info);\n});\n"
+        },
+        "compatibility": "Chrome 84+",
+        "manifest_version": "3"
+      },
+      {
+        "name": "identity",
+        "namespace": "chrome.identity",
+        "description": "Get OAuth2 access tokens.",
+        "permissions": {
+          "required": [
+            "identity"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "identity"
+            ],
+            "oauth2": {
+              "client_id": "your-client-id.googleusercontent.com",
+              "scopes": [
+                "https://www.googleapis.com/auth/userinfo.email"
+              ]
+            }
+          }
+        },
+        "code_example": {
+          "description": "OAuth2 authentication flow",
+          "code": "\n// Get auth token\nchrome.identity.getAuthToken({interactive: true}, (token) => {\n  if (chrome.runtime.lastError) {\n    console.error('Auth error:', chrome.runtime.lastError);\n    return;\n  }\n  console.log('Access token:', token);\n\n  // Use token to make API calls\n  fetch('https://www.googleapis.com/oauth2/v1/userinfo', {\n    headers: {\n      'Authorization': 'Bearer ' + token\n    }\n  })\n  .then(response => response.json())\n  .then(data => console.log('User info:', data));\n});\n\n// Remove cached token\nchrome.identity.removeCachedAuthToken({token: token}, () => {\n  console.log('Token removed from cache');\n});\n\n// Launch web auth flow for non-Google OAuth\nchrome.identity.launchWebAuthFlow({\n  url: 'https://provider.com/oauth/authorize?client_id=...&redirect_uri=...',\n  interactive: true\n}, (responseUrl) => {\n  // Parse response URL for auth code/token\n  console.log('Auth flow completed:', responseUrl);\n});\n"
+        },
+        "compatibility": "Chrome 29+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "management",
+        "namespace": "chrome.management",
+        "description": "Provides ways to manage installed apps and extensions.",
+        "permissions": {
+          "required": [
+            "management"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "management"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Manage installed extensions",
+          "code": "\n// Get all installed extensions\nchrome.management.getAll((extensions) => {\n  extensions.forEach((ext) => {\n    console.log(`${ext.name}: ${ext.enabled ? 'enabled' : 'disabled'}`);\n  });\n});\n\n// Get info about specific extension\nchrome.management.get('extension-id', (info) => {\n  console.log('Extension info:', info);\n});\n\n// Enable/disable extension\nchrome.management.setEnabled('extension-id', false, () => {\n  console.log('Extension disabled');\n});\n\n// Listen for extension install/uninstall\nchrome.management.onInstalled.addListener((info) => {\n  console.log('Extension installed:', info.name);\n});\n\nchrome.management.onUninstalled.addListener((id) => {\n  console.log('Extension uninstalled:', id);\n});\n\n// Uninstall extension (with user confirmation)\nchrome.management.uninstall('extension-id', {showConfirmDialog: true}, () => {\n  console.log('Extension uninstalled');\n});\n"
+        },
+        "compatibility": "Chrome 8+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "permissions",
+        "namespace": "chrome.permissions",
+        "description": "Request declared optional permissions at run time rather than install time, so users understand why the permissions are needed and grant only those that are necessary.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "optional_permissions": [
+              "tabs",
+              "bookmarks"
+            ],
+            "optional_host_permissions": [
+              "*://*/*"
+            ]
+          },
+          "notes": "No special permission required to use this API"
+        },
+        "code_example": {
+          "description": "Request optional permissions at runtime",
+          "code": "\n// Request optional permissions\nchrome.permissions.request({\n  permissions: ['tabs', 'bookmarks'],\n  origins: ['*://*.example.com/*']\n}, (granted) => {\n  if (granted) {\n    console.log('Permissions granted');\n    // Now you can use the granted permissions\n  } else {\n    console.log('Permissions denied');\n  }\n});\n\n// Check if permissions are granted\nchrome.permissions.contains({\n  permissions: ['tabs'],\n  origins: ['*://*.example.com/*']\n}, (result) => {\n  if (result) {\n    console.log('Permissions already granted');\n  } else {\n    console.log('Permissions not granted');\n  }\n});\n\n// Remove permissions\nchrome.permissions.remove({\n  permissions: ['tabs']\n}, (removed) => {\n  if (removed) {\n    console.log('Permissions removed');\n  }\n});\n\n// Listen for permission changes\nchrome.permissions.onAdded.addListener((permissions) => {\n  console.log('Permissions added:', permissions);\n});\n\nchrome.permissions.onRemoved.addListener((permissions) => {\n  console.log('Permissions removed:', permissions);\n});\n"
+        },
+        "compatibility": "Chrome 16+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "sidePanel",
+        "namespace": "chrome.sidePanel",
+        "description": "Host content in the browser's side panel alongside the main content of a webpage.",
+        "permissions": {
+          "required": [
+            "sidePanel"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "sidePanel"
+            ],
+            "side_panel": {
+              "default_path": "sidepanel.html"
+            }
+          }
+        },
+        "code_example": {
+          "description": "Manage side panel",
+          "code": "\n// Set side panel options for specific tab\nchrome.sidePanel.setOptions({\n  tabId: tabId,\n  path: 'custom-sidepanel.html',\n  enabled: true\n}, () => {\n  console.log('Side panel configured for tab');\n});\n\n// Open side panel\nchrome.sidePanel.open({tabId: tabId}, () => {\n  console.log('Side panel opened');\n});\n\n// Get panel options\nchrome.sidePanel.getOptions({tabId: tabId}, (options) => {\n  console.log('Side panel options:', options);\n});\n\n// Set panel behavior for all tabs\nchrome.sidePanel.setPanelBehavior({\n  openPanelOnActionClick: true\n}, () => {\n  console.log('Panel behavior set');\n});\n"
+        },
+        "compatibility": "Chrome 114+ MV3+",
+        "manifest_version": "3"
+      },
+      {
+        "name": "topSites",
+        "namespace": "chrome.topSites",
+        "description": "Access the top sites (i.e. most visited sites) that are displayed on the new tab page. These do not include shortcuts customized by the user.",
+        "permissions": {
+          "required": [
+            "topSites"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "topSites"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Get most visited sites",
+          "code": "\n// Get top sites\nchrome.topSites.get((mostVisitedUrls) => {\n  console.log('Top sites:');\n  mostVisitedUrls.forEach((site, index) => {\n    console.log(`${index + 1}. ${site.title}: ${site.url}`);\n  });\n});\n\n// Example of using top sites data\nchrome.topSites.get((sites) => {\n  const topSitesList = sites.map(site => ({\n    name: site.title,\n    url: site.url,\n    favicon: `chrome://favicon/${site.url}`\n  }));\n\n  // Use the data to populate a new tab page or dashboard\n  console.log('Processed top sites data:', topSitesList);\n});\n"
+        },
+        "compatibility": "Chrome 19+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "webNavigation",
+        "namespace": "chrome.webNavigation",
+        "description": "Receive notifications about the status of navigation requests in-flight.",
+        "permissions": {
+          "required": [
+            "webNavigation"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "webNavigation"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Monitor web navigation events",
+          "code": "\n// Listen for navigation start\nchrome.webNavigation.onBeforeNavigate.addListener((details) => {\n  console.log('Navigation starting to:', details.url);\n});\n\n// Listen for navigation completion\nchrome.webNavigation.onCompleted.addListener((details) => {\n  console.log('Navigation completed:', details.url);\n  if (details.frameId === 0) {\n    console.log('Main frame loaded');\n  }\n});\n\n// Listen for DOM content loaded\nchrome.webNavigation.onDOMContentLoaded.addListener((details) => {\n  console.log('DOM content loaded for:', details.url);\n});\n\n// Listen for navigation errors\nchrome.webNavigation.onErrorOccurred.addListener((details) => {\n  console.log('Navigation error:', details.error, 'for:', details.url);\n});\n\n// Listen for history state updates (for SPA navigation)\nchrome.webNavigation.onHistoryStateUpdated.addListener((details) => {\n  console.log('History state updated:', details.url);\n});\n\n// Get all frames in a tab\nchrome.webNavigation.getAllFrames({tabId: tabId}, (frames) => {\n  console.log('Frames in tab:', frames);\n});\n"
+        },
+        "compatibility": "Chrome 16+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "offscreen",
+        "namespace": "chrome.offscreen",
+        "description": "Create and manage offscreen documents.",
+        "permissions": {
+          "required": [
+            "offscreen"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "offscreen"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Create and manage offscreen documents",
+          "code": "\n// Create offscreen document\nchrome.offscreen.createDocument({\n  url: 'offscreen.html',\n  reasons: ['AUDIO_PLAYBACK'],\n  justification: 'Playing audio in background'\n}, () => {\n  console.log('Offscreen document created');\n});\n\n// Check if offscreen document exists\nchrome.offscreen.hasDocument((exists) => {\n  if (exists) {\n    console.log('Offscreen document exists');\n  } else {\n    console.log('No offscreen document');\n  }\n});\n\n// Close offscreen document\nchrome.offscreen.closeDocument(() => {\n  console.log('Offscreen document closed');\n});\n\n// Example offscreen document usage for audio\n// In offscreen.js:\nconst audio = new Audio('notification.mp3');\nchrome.runtime.onMessage.addListener((message) => {\n  if (message.action === 'playSound') {\n    audio.play();\n  }\n});\n"
+        },
+        "compatibility": "Chrome 109+ MV3+",
+        "manifest_version": "3"
+      },
+      {
+        "name": "sessions",
+        "namespace": "chrome.sessions",
+        "description": "Query and restore tabs and windows from a browsing session.",
+        "permissions": {
+          "required": [
+            "sessions"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "sessions"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Manage browser sessions",
+          "code": "\n// Get recently closed sessions\nchrome.sessions.getRecentlyClosed({maxResults: 10}, (sessions) => {\n  console.log('Recently closed sessions:', sessions);\n\n  sessions.forEach((session) => {\n    if (session.tab) {\n      console.log('Closed tab:', session.tab.title, session.tab.url);\n    } else if (session.window) {\n      console.log('Closed window with', session.window.tabs.length, 'tabs');\n    }\n  });\n});\n\n// Restore a session\nchrome.sessions.restore('session-id', (restoredSession) => {\n  console.log('Session restored:', restoredSession);\n});\n\n// Get devices (for synced sessions across devices)\nchrome.sessions.getDevices({}, (devices) => {\n  devices.forEach((device) => {\n    console.log(`Device: ${device.deviceName}`);\n    device.sessions.forEach((session) => {\n      console.log(`  Window with ${session.window.tabs.length} tabs`);\n    });\n  });\n});\n"
+        },
+        "compatibility": "Chrome 37+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "tts",
+        "namespace": "chrome.tts",
+        "description": "Play synthesized text-to-speech (TTS).",
+        "permissions": {
+          "required": [
+            "tts"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "tts"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Text-to-speech functionality",
+          "code": "\n// Speak text\nchrome.tts.speak('Hello, this is a test message', {\n  voice: 'Google US English',\n  rate: 1.0,\n  pitch: 1.0,\n  volume: 1.0\n}, () => {\n  console.log('Speech completed');\n});\n\n// Speak with event callbacks\nchrome.tts.speak('This is a longer message', {\n  onEvent: (event) => {\n    console.log('TTS Event:', event.type);\n    if (event.type === 'start') {\n      console.log('Speech started');\n    } else if (event.type === 'end') {\n      console.log('Speech ended');\n    }\n  }\n});\n\n// Get available voices\nchrome.tts.getVoices((voices) => {\n  console.log('Available voices:');\n  voices.forEach((voice) => {\n    console.log(`${voice.voiceName} (${voice.lang})`);\n  });\n});\n\n// Stop current speech\nchrome.tts.stop();\n\n// Pause speech\nchrome.tts.pause();\n\n// Resume speech\nchrome.tts.resume();\n\n// Check if speaking\nchrome.tts.isSpeaking((speaking) => {\n  console.log('Currently speaking:', speaking);\n});\n"
+        },
+        "compatibility": "Chrome 14+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "commands",
+        "namespace": "chrome.commands",
+        "description": "Add keyboard shortcuts that trigger actions in your extension, for example, an action to open the browser action or send a command to the extension.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "commands": {
+              "toggle-feature": {
+                "suggested_key": {
+                  "default": "Ctrl+Shift+Y",
+                  "mac": "Command+Shift+Y"
+                },
+                "description": "Toggle the feature"
+              }
+            }
+          },
+          "notes": "Keyboard shortcuts are defined in manifest, no special permissions needed"
+        },
+        "code_example": {
+          "description": "Handle keyboard shortcuts",
+          "code": "\n// Listen for keyboard commands\nchrome.commands.onCommand.addListener((command) => {\n  console.log('Command received:', command);\n\n  switch (command) {\n    case 'toggle-feature':\n      toggleFeature();\n      break;\n    case '_execute_action':\n      // This is the default action shortcut\n      executeDefaultAction();\n      break;\n  }\n});\n\n// Get all defined commands\nchrome.commands.getAll((commands) => {\n  commands.forEach((command) => {\n    console.log(`Command: ${command.name}`);\n    console.log(`Shortcut: ${command.shortcut || 'Not set'}`);\n    console.log(`Description: ${command.description}`);\n  });\n});\n\nfunction toggleFeature() {\n  console.log('Feature toggled via keyboard shortcut');\n  // Your feature logic here\n}\n\nfunction executeDefaultAction() {\n  console.log('Default action executed');\n  // Default action logic here\n}\n"
+        },
+        "compatibility": "Chrome 25+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "contentSettings",
+        "namespace": "chrome.contentSettings",
+        "description": "Change settings that control whether websites can use features such as cookies, JavaScript, and plugins. More generally speaking, content settings allow you to customize Chrome's behavior on a per-site basis instead of globally.",
+        "permissions": {
+          "required": [
+            "contentSettings"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "contentSettings"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Manage site-specific content settings",
+          "code": "\n// Block JavaScript for specific site\nchrome.contentSettings.javascript.set({\n  primaryPattern: 'https://example.com/*',\n  setting: 'block'\n}, () => {\n  console.log('JavaScript blocked for example.com');\n});\n\n// Allow cookies for specific site\nchrome.contentSettings.cookies.set({\n  primaryPattern: 'https://trusted-site.com/*',\n  setting: 'allow'\n}, () => {\n  console.log('Cookies allowed for trusted-site.com');\n});\n\n// Get current setting for a site\nchrome.contentSettings.javascript.get({\n  primaryUrl: 'https://example.com'\n}, (details) => {\n  console.log('JavaScript setting for example.com:', details.setting);\n});\n\n// Clear settings for a pattern\nchrome.contentSettings.javascript.clear({\n  primaryPattern: 'https://example.com/*'\n}, () => {\n  console.log('JavaScript settings cleared for example.com');\n});\n\n// Block images globally\nchrome.contentSettings.images.set({\n  primaryPattern: '<all_urls>',\n  setting: 'block'\n}, () => {\n  console.log('Images blocked globally');\n});\n"
+        },
+        "compatibility": "Chrome 16+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "devtools.inspectedWindow",
+        "namespace": "chrome.devtools.inspectedWindow",
+        "description": "Interact with the inspected window: obtain the tab ID for the inspected page, evaluate the code in the context of the inspected window, reload the page, or obtain the list of resources within the page.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "devtools_page": "devtools.html"
+          },
+          "notes": "Available only in DevTools extension pages"
+        },
+        "code_example": {
+          "description": "Interact with inspected page in DevTools",
+          "code": "\n// Get tab ID of inspected page\nconst tabId = chrome.devtools.inspectedWindow.tabId;\nconsole.log('Inspected tab ID:', tabId);\n\n// Evaluate JavaScript in inspected page\nchrome.devtools.inspectedWindow.eval(\n  'document.title',\n  (result, isException) => {\n    if (isException) {\n      console.error('Evaluation failed:', result);\n    } else {\n      console.log('Page title:', result);\n    }\n  }\n);\n\n// Evaluate with additional context\nchrome.devtools.inspectedWindow.eval(\n  'console.log(\"Hello from DevTools extension\"); $0.tagName',\n  {useContentScriptContext: true},\n  (result, isException) => {\n    if (!isException) {\n      console.log('Selected element tag:', result);\n    }\n  }\n);\n\n// Get page resources\nchrome.devtools.inspectedWindow.getResources((resources) => {\n  console.log('Page resources:');\n  resources.forEach((resource) => {\n    console.log(`${resource.type}: ${resource.url}`);\n  });\n});\n\n// Reload inspected page\nchrome.devtools.inspectedWindow.reload({\n  ignoreCache: true,\n  userAgent: 'Custom User Agent'\n});\n"
+        },
+        "compatibility": "Chrome 18+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "devtools.panels",
+        "namespace": "chrome.devtools.panels",
+        "description": "Integrate your extension into Developer Tools window UI: create your own panels, access existing panels, and add sidebars.",
+        "permissions": {
+          "required": [],
+          "manifest_example": {
+            "devtools_page": "devtools.html"
+          },
+          "notes": "Available only in DevTools extension pages"
+        },
+        "code_example": {
+          "description": "Create custom DevTools panels",
+          "code": "\n// Create a custom panel\nchrome.devtools.panels.create(\n  'My Panel',\n  'icon.png',\n  'panel.html',\n  (panel) => {\n    console.log('Custom panel created');\n\n    // Handle panel events\n    panel.onShown.addListener((window) => {\n      console.log('Panel shown');\n    });\n\n    panel.onHidden.addListener(() => {\n      console.log('Panel hidden');\n    });\n  }\n);\n\n// Add sidebar to Elements panel\nchrome.devtools.panels.elements.createSidebarPane(\n  'My Sidebar',\n  (sidebar) => {\n    console.log('Sidebar created');\n\n    // Set sidebar content\n    sidebar.setPage('sidebar.html');\n\n    // Or set as expression\n    sidebar.setExpression('$0.className');\n\n    // Or set as object\n    sidebar.setObject({\n      property1: 'value1',\n      property2: 'value2'\n    });\n  }\n);\n\n// Listen for element selection changes\nchrome.devtools.panels.elements.onSelectionChanged.addListener(() => {\n  console.log('Element selection changed');\n\n  // Update sidebar based on new selection\n  chrome.devtools.inspectedWindow.eval(\n    '$0.tagName',\n    (result) => {\n      console.log('Selected element:', result);\n    }\n  );\n});\n\n// Access themes\nconsole.log('DevTools theme:', chrome.devtools.panels.themeName);\n"
+        },
+        "compatibility": "Chrome 18+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "fontSettings",
+        "namespace": "chrome.fontSettings",
+        "description": "Manage Chrome's font settings.",
+        "permissions": {
+          "required": [
+            "fontSettings"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "fontSettings"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Manage browser font settings",
+          "code": "\n// Get current font settings\nchrome.fontSettings.getFont({\n  genericFamily: 'standard'\n}, (details) => {\n  console.log('Standard font:', details.fontId);\n  console.log('Font level:', details.levelOfControl);\n});\n\n// Set font for specific script\nchrome.fontSettings.setFont({\n  genericFamily: 'standard',\n  fontId: 'Arial',\n  script: 'Latn'\n}, () => {\n  console.log('Font set to Arial');\n});\n\n// Get font list\nchrome.fontSettings.getFontList((fonts) => {\n  console.log('Available fonts:');\n  fonts.forEach((font) => {\n    console.log(`${font.displayName} (${font.fontId})`);\n  });\n});\n\n// Get default font size\nchrome.fontSettings.getDefaultFontSize((details) => {\n  console.log('Default font size:', details.pixelSize);\n});\n\n// Set default font size\nchrome.fontSettings.setDefaultFontSize({\n  pixelSize: 16\n}, () => {\n  console.log('Default font size set to 16px');\n});\n\n// Clear font settings\nchrome.fontSettings.clearFont({\n  genericFamily: 'standard'\n}, () => {\n  console.log('Font settings cleared');\n});\n\n// Listen for font changes\nchrome.fontSettings.onFontChanged.addListener((details) => {\n  console.log('Font changed:', details);\n});\n"
+        },
+        "compatibility": "Chrome 22+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "idle",
+        "namespace": "chrome.idle",
+        "description": "Detect when the machine's idle state changes.",
+        "permissions": {
+          "required": [
+            "idle"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "idle"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Monitor system idle state",
+          "code": "\n// Query current idle state\nchrome.idle.queryState(15, (state) => {\n  console.log('Current idle state:', state);\n  // State can be: 'active', 'idle', or 'locked'\n\n  switch (state) {\n    case 'active':\n      console.log('User is active');\n      break;\n    case 'idle':\n      console.log('User is idle for 15+ seconds');\n      break;\n    case 'locked':\n      console.log('Screen is locked');\n      break;\n  }\n});\n\n// Set detection interval (15-240 seconds)\nchrome.idle.setDetectionInterval(30);\n\n// Listen for idle state changes\nchrome.idle.onStateChanged.addListener((state) => {\n  console.log('Idle state changed to:', state);\n\n  if (state === 'idle') {\n    // User became idle - maybe pause some operations\n    console.log('User went idle - pausing background tasks');\n  } else if (state === 'active') {\n    // User became active - resume operations\n    console.log('User became active - resuming background tasks');\n  }\n});\n\n// Example: Auto-save when user goes idle\nchrome.idle.onStateChanged.addListener((state) => {\n  if (state === 'idle') {\n    // Trigger auto-save\n    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {\n      chrome.tabs.sendMessage(tabs[0].id, {action: 'autoSave'});\n    });\n  }\n});\n"
+        },
+        "compatibility": "Chrome 6+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "pageCapture",
+        "namespace": "chrome.pageCapture",
+        "description": "Save a tab as MHTML.",
+        "permissions": {
+          "required": [
+            "pageCapture",
+            "activeTab"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "pageCapture",
+              "activeTab"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Capture web pages as MHTML",
+          "code": "\n// Capture current tab as MHTML\nchrome.pageCapture.saveAsMHTML({\n  tabId: tabId\n}, (mhtmlData) => {\n  if (chrome.runtime.lastError) {\n    console.error('Capture failed:', chrome.runtime.lastError);\n    return;\n  }\n\n  console.log('Page captured as MHTML');\n\n  // Create download for the MHTML file\n  const blob = new Blob([mhtmlData], {type: 'application/x-mimearchive'});\n  const url = URL.createObjectURL(blob);\n\n  chrome.downloads.download({\n    url: url,\n    filename: 'captured-page.mhtml'\n  }, (downloadId) => {\n    console.log('MHTML file download started:', downloadId);\n    URL.revokeObjectURL(url);\n  });\n});\n\n// Capture specific tab with error handling\nasync function captureTab(tabId) {\n  try {\n    return new Promise((resolve, reject) => {\n      chrome.pageCapture.saveAsMHTML({tabId}, (mhtmlData) => {\n        if (chrome.runtime.lastError) {\n          reject(chrome.runtime.lastError);\n        } else {\n          resolve(mhtmlData);\n        }\n      });\n    });\n  } catch (error) {\n    console.error('Page capture error:', error);\n  }\n}\n\n// Usage with async/await\nasync function handleCapture() {\n  const [tab] = await chrome.tabs.query({active: true, currentWindow: true});\n  const mhtmlData = await captureTab(tab.id);\n  console.log('Captured page data length:', mhtmlData.byteLength);\n}\n"
+        },
+        "compatibility": "Chrome 18+",
+        "manifest_version": "2, 3"
+      },
+      {
+        "name": "privacy",
+        "namespace": "chrome.privacy",
+        "description": "Control usage of the features in Chrome that can affect a user's privacy. This API relies on the ChromeSetting prototype of the type API for getting and setting Chrome's configuration.",
+        "permissions": {
+          "required": [
+            "privacy"
+          ],
+          "manifest_example": {
+            "permissions": [
+              "privacy"
+            ]
+          }
+        },
+        "code_example": {
+          "description": "Manage Chrome privacy settings",
+          "code": "\n// Enable/disable third-party cookies\nchrome.privacy.websites.thirdPartyCookiesAllowed.set({\n  value: false\n}, () => {\n  console.log('Third-party cookies disabled');\n});\n\n// Get current cookie setting\nchrome.privacy.websites.thirdPartyCookiesAllowed.get({}, (details) => {\n  console.log('Third-party cookies allowed:', details.value);\n  console.log('Level of control:', details.levelOfControl);\n});\n\n// Manage referrer headers\nchrome.privacy.websites.referrersEnabled.set({\n  value: false\n}, () => {\n  console.log('Referrers disabled');\n});\n\n// Control JavaScript execution\nchrome.privacy.websites.javascriptEnabled.get({}, (details) => {\n  console.log('JavaScript enabled:', details.value);\n});\n\n// Network prediction settings\nchrome.privacy.network.networkPredictionEnabled.set({\n  value: false\n}, () => {\n  console.log('Network prediction disabled');\n});\n\n// Clear browsing data on exit\nchrome.privacy.services.clearBrowsingDataOnExitEnabled.set({\n  value: true\n}, () => {\n  console.log('Clear data on exit enabled');\n});\n\n// Listen for privacy setting changes\nchrome.privacy.websites.thirdPartyCookiesAllowed.onChange.addListener(\n  (details) => {\n    console.log('Third-party cookie setting changed:', details.value);\n  }\n);\n"
+        },
+        "compatibility": "Chrome 18+",
+        "manifest_version": "2, 3"
+      }
+    ]
+  }
+}

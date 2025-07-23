@@ -5,19 +5,15 @@ import { AuthProvider } from "@/context/auth-context"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Chromie AI - Build Chrome Extensions Without Code",
-  description:
-    "Create powerful Chrome extensions using AI. No coding experience required - just describe what you want to build.",
-  keywords: "chrome extension, no-code, AI, extension builder, browser extension",
+  title: "Chromie AI - Chrome Extension Builder",
+  description: "Build Chrome extensions with AI - no coding required",
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className={inter.className}>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )
