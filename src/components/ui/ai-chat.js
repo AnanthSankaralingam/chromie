@@ -28,6 +28,16 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
     e.preventDefault()
     if (!inputMessage.trim() || isGenerating) return
 
+    // Check if we have a valid project ID
+    if (!projectId) {
+      const errorMessage = {
+        role: "assistant",
+        content: "Please wait while I set up your project, then try again.",
+      }
+      setMessages((prev) => [...prev, errorMessage])
+      return
+    }
+
     const userMessage = { role: "user", content: inputMessage }
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
@@ -39,7 +49,6 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
     }
 
     try {
-      // TODO: Replace with actual OpenAI API call
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -157,11 +166,11 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
           />
           <Button
             type="submit"
-            disabled={!inputMessage.trim() || isGenerating}
-            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+            disabled={!inputMessage.trim() || isGenerating || !projectId}
+            className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:opacity-50"
           >
             <Send className="h-4 w-4 mr-2" />
-            {isGenerating ? "Generating..." : "Send"}
+            {isGenerating ? "Generating..." : !projectId ? "Setting up project..." : "Send"}
           </Button>
         </form>
       </div>
