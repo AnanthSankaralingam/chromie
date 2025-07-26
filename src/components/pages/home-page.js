@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,13 +8,31 @@ import { Zap, Send, Paperclip, Sparkles, Edit3, Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/auth-modal"
+import AppBar from "@/components/ui/app-bar"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
+
+  const suggestions = [
+    "a password manager that auto-fills forms",
+    "a productivity tracker that blocks distracting websites",
+    "a price comparison tool for shopping sites",
+    "a dark mode toggle for any website",
+  ]
+
+  // Auto-rotate suggestions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSuggestionIndex((prev) => (prev + 1) % suggestions.length)
+    }, 3000) // Change every 3 seconds
+
+    return () => clearInterval(interval)
+  }, [suggestions.length])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -71,7 +89,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
       </div>
     )
@@ -79,75 +97,48 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
         {/* Header */}
-        <header className="border-b border-slate-700/50 px-6 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">chromie ai</span>
-            </div>
-
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/about" className="text-slate-300 hover:text-white transition-colors">
-                about us
-              </Link>
-              <Link href="/features" className="text-slate-300 hover:text-white transition-colors">
-                features
-              </Link>
-              <Link href="/docs" className="text-slate-300 hover:text-white transition-colors">
-                docs
-              </Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
-                pricing
-              </Link>
-            </nav>
-
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-3">
-                <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                  <Github className="h-5 w-5" />
-                </a>
-              </div>
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="text-slate-300">Welcome, {user?.user_metadata?.name || user?.email || 'User'}</span>
-                  <Link href="/builder">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    className="text-slate-300 hover:text-white"
-                    onClick={() => setIsAuthModalOpen(true)}
-                  >
-                    sign in
-                  </Button>
-                  <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setIsAuthModalOpen(true)}
-                  >
-                    get started
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
+        <AppBar />
 
         {/* Main Content */}
         <main className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-2xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
               what do you want to build?
             </h1>
             <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
               create powerful chrome extensions by chatting with ai.
             </p>
+
+            {/* Sliding Suggestions */}
+            {/* FIXME: Re-implement sliding suggestions with proper text display */}
+            {/*
+            <div className="mb-8 max-w-3xl mx-auto">
+              <div className="relative h-16 bg-slate-800/30 backdrop-blur-sm rounded-xl overflow-hidden">
+                <div 
+                  className="absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-in-out"
+                  style={{
+                    transform: `translateX(-${currentSuggestionIndex * 100}%)`,
+                  }}
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="w-full flex-shrink-0 px-6 text-center"
+                    >
+                      <button
+                        onClick={() => setPrompt(suggestion)}
+                        className="text-slate-300 hover:text-white transition-colors text-lg font-medium"
+                      >
+                        {suggestion}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            */}
 
             {/* Chat Input */}
             <form onSubmit={handleSubmit} className="mb-8">
@@ -190,27 +181,6 @@ export default function HomePage() {
                 </div>
               </div>
             </form>
-
-            {/* Quick Examples */}
-            <div className="mt-16 text-left max-w-2xl mx-auto">
-              <h3 className="text-lg font-semibold mb-4 text-slate-300">quick examples:</h3>
-              <div className="grid gap-3">
-                {[
-                  "a password manager that auto-fills forms",
-                  "a productivity tracker that blocks distracting websites",
-                  "a price comparison tool for shopping sites",
-                  "a dark mode toggle for any website",
-                ].map((example, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setPrompt(example)}
-                    className="text-left p-3 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 text-slate-300 hover:text-white transition-colors border border-slate-700/50 hover:border-slate-600"
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </main>
       </div>
