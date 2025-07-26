@@ -1,20 +1,22 @@
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { AuthProvider } from "@/context/auth-context"
+import { Inter } from "next/font/google";
+import "./globals.css";
+import SessionProviderClient from "@/components/SessionProviderClient";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Chromie AI - Chrome Extension Builder",
   description: "Build Chrome extensions with AI - no coding required",
-}
+};
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <SessionProviderClient>
+          {children}
+        </SessionProviderClient>
       </body>
     </html>
-  )
+  );
 }
