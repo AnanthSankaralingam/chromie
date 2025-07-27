@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import Link from "next/link"
 import {
   Zap,
   Download,
@@ -20,12 +22,12 @@ import {
 import AIChat from "@/components/ui/ai-chat"
 import TestModal from "@/components/ui/test-modal"
 import AuthModal from "@/components/ui/auth-modal"
+import AppBarBuilder from "@/components/ui/app-bar-builder"
 import { useSession } from '@/components/SessionProviderClient'
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
-  const searchParams = useSearchParams()
-  const projectId = searchParams.get("project")
+  const router = useRouter()
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [expandedFolders, setExpandedFolders] = useState({})
@@ -40,9 +42,21 @@ export default function BuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSettingUpProject, setIsSettingUpProject] = useState(false)
   const [projectSetupError, setProjectSetupError] = useState(null)
+  const [currentProjectId, setCurrentProjectId] = useState(null)
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+
+  // Helper function to get user initials
+  const getUserInitials = (user) => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase()
+    }
+    return 'U'
+  }
 
   // Check auth state and show modal if needed
   useEffect(() => {
@@ -60,16 +74,46 @@ export default function BuilderPage() {
     }
   }, [user, isLoading])
 
-  // Load project files when projectId is available
+  // Load project files when currentProjectId is available
   useEffect(() => {
-    if (projectId && user) {
+    if (currentProjectId && user) {
       loadProjectFiles()
     }
-  }, [projectId, user])
+  }, [currentProjectId, user])
+
+  // Update project info when file structure changes (after code generation)
+  useEffect(() => {
+    if (fileStructure.length > 0 && currentProjectId) {
+      // Convert file structure back to flat list for manifest parsing
+      const flattenFiles = (items) => {
+        let files = []
+        items.forEach(item => {
+          if (item.type === 'file') {
+            files.push({
+              file_path: item.fullPath,
+              content: item.content
+            })
+          } else if (item.children) {
+            files = files.concat(flattenFiles(item.children))
+          }
+        })
+        return files
+      }
+      
+      const flatFiles = flattenFiles(fileStructure)
+      const extensionInfo = extractExtensionInfo(flatFiles)
+      if (extensionInfo) {
+        updateProjectWithExtensionInfo(extensionInfo)
+      }
+    }
+  }, [fileStructure, currentProjectId])
 
   const checkAndSetupProject = async () => {
-    // If we already have a projectId in URL, we're good
-    if (projectId) {
+    // Check if we have a project ID in session storage
+    const storedProjectId = sessionStorage.getItem('chromie_current_project_id')
+    
+    if (storedProjectId) {
+      setCurrentProjectId(storedProjectId)
       setIsSettingUpProject(false)
       setProjectSetupError(null)
       return
@@ -98,12 +142,11 @@ export default function BuilderPage() {
       const projects = data.projects || []
 
       if (projects.length > 0) {
-        // User has existing projects, redirect to the most recent one
+        // User has existing projects, use the most recent one
         const mostRecentProject = projects[0] // Already ordered by created_at desc
-        console.log('Redirecting to existing project:', mostRecentProject.id)
-        window.history.replaceState({}, '', `/builder?project=${mostRecentProject.id}`)
-        // Force page reload to update projectId from search params
-        window.location.reload()
+        console.log('Using existing project:', mostRecentProject.id)
+        setCurrentProjectId(mostRecentProject.id)
+        sessionStorage.setItem('chromie_current_project_id', mostRecentProject.id)
       } else {
         // No projects exist, create a default one
         await createDefaultProject()
@@ -142,10 +185,10 @@ export default function BuilderPage() {
 
       console.log('Created new project:', newProject.id)
       
-      // Redirect to builder with the new project ID
-      window.history.replaceState({}, '', `/builder?project=${newProject.id}`)
-      // Force page reload to update projectId from search params
-      window.location.reload()
+      // Store the project ID in session storage and state
+      setCurrentProjectId(newProject.id)
+      sessionStorage.setItem('chromie_current_project_id', newProject.id)
+      setIsSettingUpProject(false)
     } catch (error) {
       console.error('Error creating default project:', error)
       setProjectSetupError('Failed to create project')
@@ -153,14 +196,55 @@ export default function BuilderPage() {
     }
   }
 
+  // Helper function to extract extension info from manifest.json
+  const extractExtensionInfo = (files) => {
+    const manifestFile = files.find(file => file.file_path === 'manifest.json')
+    if (!manifestFile) return null
+
+    try {
+      const manifest = JSON.parse(manifestFile.content)
+      return {
+        name: manifest.name || 'Chrome Extension',
+        description: manifest.description || 'A Chrome extension built with Chromie AI'
+      }
+    } catch (error) {
+      console.error('Error parsing manifest.json:', error)
+      return null
+    }
+  }
+
+  // Helper function to update project with extension info
+  const updateProjectWithExtensionInfo = async (extensionInfo) => {
+    if (!extensionInfo || !currentProjectId) return
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: extensionInfo.name,
+          description: extensionInfo.description
+        }),
+      })
+
+      if (!response.ok) {
+        console.error('Failed to update project with extension info')
+      }
+    } catch (error) {
+      console.error('Error updating project with extension info:', error)
+    }
+  }
+
   const loadProjectFiles = async () => {
-    if (!projectId) {
+    if (!currentProjectId) {
       console.error("No project ID available for loading files")
       return
     }
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/files`)
+      const response = await fetch(`/api/projects/${currentProjectId}/files`)
       
       if (!response.ok) {
         const errorData = await response.json()
@@ -174,6 +258,12 @@ export default function BuilderPage() {
       // Transform flat file list into hierarchical structure
       const transformedFiles = transformFilesToTree(files)
       setFileStructure(transformedFiles)
+
+      // Extract and update project with extension info from manifest.json
+      const extensionInfo = extractExtensionInfo(files)
+      if (extensionInfo) {
+        await updateProjectWithExtensionInfo(extensionInfo)
+      }
     } catch (error) {
       console.error("Error loading project files:", error)
     }
@@ -313,7 +403,7 @@ export default function BuilderPage() {
   }
 
   const handleTestExtension = async () => {
-    if (!projectId) {
+    if (!currentProjectId) {
       console.error("No project ID available")
       return
     }
@@ -322,7 +412,7 @@ export default function BuilderPage() {
     setIsTestModalOpen(true)
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/test`, {
+      const response = await fetch(`/api/projects/${currentProjectId}/test`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -350,7 +440,7 @@ export default function BuilderPage() {
     // Terminate session if active
     if (testSessionData?.sessionId) {
       try {
-        await fetch(`/api/projects/${projectId}/test`, {
+        await fetch(`/api/projects/${currentProjectId}/test`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -372,7 +462,7 @@ export default function BuilderPage() {
     }
   }
 
-  if (isLoading || isSettingUpProject || (!projectId && user && !projectSetupError)) {
+  if (isLoading || isSettingUpProject || (!currentProjectId && user && !projectSetupError)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
         <div className="text-center">
@@ -412,6 +502,8 @@ export default function BuilderPage() {
   // No need to check for user here - middleware handles auth protection
 
   const handleSignOut = async () => {
+    // Clear session storage on sign out
+    sessionStorage.removeItem('chromie_current_project_id')
     await supabase.auth.signOut()
     window.location.href = '/'
   }
@@ -420,49 +512,19 @@ export default function BuilderPage() {
     <>
       <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
-        <header className="border-b border-white/10 px-4 py-3 bg-black/20 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">chromie ai</span>
-              </div>
-              <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
-                extension builder assistant
-              </Badge>
-            </div>
-            <div className="flex items-center space-x-2">
-              {user && (
-                <>
-                  <span className="text-slate-300 mr-4">Welcome, {user?.user_metadata?.name || user?.email || 'User'}</span>
-                  <Button
-                    onClick={handleTestExtension}
-                    disabled={!projectId || fileStructure.length === 0 || isGenerating}
-                    className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                  >
-                    <TestTube className="h-4 w-4 mr-2" />
-                    test extension
-                  </Button>
-                  <Button onClick={handleDownloadZip} className="bg-blue-600 hover:bg-blue-700">
-                    <Download className="h-4 w-4 mr-2" />
-                    download zip
-                  </Button>
-                  <Button onClick={handleSignOut} variant="ghost" className="text-slate-400 hover:text-white">
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
+        <AppBarBuilder
+          onTestExtension={handleTestExtension}
+          onDownloadZip={handleDownloadZip}
+          onSignOut={handleSignOut}
+          isTestDisabled={!currentProjectId || fileStructure.length === 0}
+          isGenerating={isGenerating}
+        />
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-80 border-r border-white/10 flex flex-col">
             <AIChat
-              projectId={projectId}
+              projectId={currentProjectId}
               onCodeGenerated={(response) => {
                 console.log("AI generated code:", response)
                 loadProjectFiles() // Reload files after generation

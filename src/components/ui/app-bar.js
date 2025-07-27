@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Zap, Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import AuthModal from "@/components/ui/auth-modal"
@@ -11,15 +12,28 @@ export default function AppBar() {
   const { user } = useSession()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
+  // Helper function to get user initials
+  const getUserInitials = (user) => {
+    if (user?.user_metadata?.name) {
+      return user.user_metadata.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase()
+    }
+    return 'U'
+  }
+
   return (
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Zap className="h-5 w-5 text-white" />
+              <Link href="/" className="text-slate-300 hover:text-white transition-colors">
+                <Zap className="h-5 w-5 text-white" />
+              </Link>
             </div>
-            <span className="text-xl font-bold">chromie ai</span>
+            <Link href="/" className="text-xl font-bold text-white">chromie ai</Link>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8">
@@ -33,13 +47,20 @@ export default function AppBar() {
 
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                <Github className="h-5 w-5" />
-              </a>
             </div>
             {user ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-slate-300">Welcome, {user?.user_metadata?.name || user?.email || 'User'}</span>
+              <div className="flex items-center space-x-3">
+                <Link href="/profile">
+                  <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage 
+                      src={user?.user_metadata?.picture} 
+                      alt={user?.user_metadata?.name || user?.email}
+                    />
+                    <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
+                      {getUserInitials(user)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <Link href="/builder">
                   <Button className="bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
                 </Link>

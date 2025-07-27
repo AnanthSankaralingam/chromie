@@ -47,7 +47,6 @@ export default function AuthCallback() {
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
         <h2 className="text-xl font-semibold mb-2">Completing sign in...</h2>
         <p className="text-slate-400">Please wait while we set up your account.</p>
-        <p className="text-slate-500 text-sm mt-2">Attempt {attempts + 1} of {maxAttempts}</p>
       </div>
     </div>
   )
