@@ -7,7 +7,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Zap, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 
-export default function AuthModal({ isOpen, onClose }) {
+export default function AuthModal({ isOpen, onClose, redirectUrl }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
@@ -56,7 +56,7 @@ export default function AuthModal({ isOpen, onClose }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
+          redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent(redirectUrl || '/builder')}`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",

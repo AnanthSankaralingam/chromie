@@ -15,24 +15,7 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
-
-  const suggestions = [
-    "a password manager that auto-fills forms",
-    "a productivity tracker that blocks distracting websites",
-    "a price comparison tool for shopping sites",
-    "a dark mode toggle for any website",
-  ]
-
-  // Auto-rotate suggestions
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSuggestionIndex((prev) => (prev + 1) % suggestions.length)
-    }, 3000) // Change every 3 seconds
-
-    return () => clearInterval(interval)
-  }, [suggestions.length])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -110,35 +93,6 @@ export default function HomePage() {
             <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
               create powerful chrome extensions by chatting with ai.
             </p>
-
-            {/* Sliding Suggestions */}
-            {/* FIXME: Re-implement sliding suggestions with proper text display */}
-            {/*
-            <div className="mb-8 max-w-3xl mx-auto">
-              <div className="relative h-16 bg-slate-800/30 backdrop-blur-sm rounded-xl overflow-hidden">
-                <div 
-                  className="absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-in-out"
-                  style={{
-                    transform: `translateX(-${currentSuggestionIndex * 100}%)`,
-                  }}
-                >
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="w-full flex-shrink-0 px-6 text-center"
-                    >
-                      <button
-                        onClick={() => setPrompt(suggestion)}
-                        className="text-slate-300 hover:text-white transition-colors text-lg font-medium"
-                      >
-                        {suggestion}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            */}
 
             {/* Chat Input */}
             <form onSubmit={handleSubmit} className="mb-8">
