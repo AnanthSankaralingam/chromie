@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next") ?? "/auth/callback"
+  const redirect = searchParams.get("redirect") ?? "/builder"
 
   if (code) {
     const supabase = createClient()
@@ -19,8 +19,8 @@ export async function GET(request) {
 
       if (data?.session) {
         console.log('Session created successfully:', data.session.user.id)
-        // Redirect to auth callback page to establish client-side session
-        return NextResponse.redirect(`${origin}/auth/callback`)
+        // Redirect to the specified redirect URL or default to /builder
+        return NextResponse.redirect(`${origin}${redirect}`)
       } else {
         console.error('No session data returned')
         return NextResponse.redirect(`${origin}/login?error=no_session`)

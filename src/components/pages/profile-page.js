@@ -83,7 +83,7 @@ export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
     try {
-      // For now, we'll just sign out the user
+      // FIXME For now, we'll just sign out the user
       // In a production app, you'd want to implement proper account deletion
       // through a server-side API endpoint with admin privileges
       await supabase.auth.signOut()
@@ -265,9 +265,6 @@ export default function ProfilePage() {
              </CardTitle>
           </CardHeader>
           <CardContent>
-                         <p className="text-slate-300 text-sm mb-4">
-               Sign out of your account. You can sign back in anytime to access your projects.
-             </p>
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <DialogTrigger asChild>
                              <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
@@ -279,7 +276,7 @@ export default function ProfilePage() {
                 <DialogHeader>
                   <DialogTitle className="text-red-400">Delete Account</DialogTitle>
                   <DialogDescription className="text-slate-300">
-                    Are you sure you want to sign out? This will log you out of your account.
+                    Are you sure you want to sign out?
                     Your projects and data will remain safe and you can sign back in anytime.
                   </DialogDescription>
                 </DialogHeader>
