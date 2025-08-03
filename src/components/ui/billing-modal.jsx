@@ -10,12 +10,6 @@ import { Zap, X, Check, CreditCard, Mail, User } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import AuthModal from "@/components/ui/auth-modal"
 
-// Add Stripe import
-const loadStripe = async (publishableKey) => {
-  const { loadStripe: loadStripeFn } = await import('@stripe/stripe-js')
-  return loadStripeFn(publishableKey)
-}
-
 export default function BillingModal({ isOpen, onClose, selectedPlan }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -59,43 +53,11 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
       return
     }
 
-    setLoading(true)
-    setError("")
-
-    try {
-      // Create Stripe checkout session
-      const response = await fetch('/api/billing/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          plan: selectedPlan,
-          userId: user.id,
-          email: user.email
-        }),
-      })
-
-      const { sessionId, error } = await response.json()
-
-      if (error) {
-        setError(error)
-        return
-      }
-
-      // Redirect to Stripe checkout
-      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId,
-      })
-
-      if (stripeError) {
-        setError(stripeError.message)
-      }
-    } catch (err) {
-      setError("something went wrong. please try again.")
-    } finally {
-      setLoading(false)
+    // Redirect to Stripe payment URL
+    if (selectedPlan === 'starter') {
+      window.location.href = 'https://buy.stripe.com/9B614mcIN3tK0hp59I7kc00'
+    } else if (selectedPlan === 'pro') {
+      window.location.href = 'https://buy.stripe.com/7sY28q5gl0hyaW3gSq7kc01'
     }
   }
 
@@ -104,6 +66,8 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
     setSuccess(false)
     onClose()
   }
+
+
 
   if (!currentPlan) return null
 
@@ -211,18 +175,18 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
                     </Button>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     <Button 
                       onClick={handleSubmit} 
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                       disabled={loading}
                     >
-                      {loading ? 'processing...' : 'proceed to payment'}
+                      {loading ? 'redirecting...' : 'proceed to payment'}
                     </Button>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-400">
                       you'll be redirected to stripe to complete your payment
                     </p>
-                  </>
+                  </div>
                 )}
               </div>
             )}
