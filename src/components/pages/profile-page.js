@@ -13,6 +13,7 @@ import AppBar from "@/components/ui/app-bar"
 import AuthModal from "@/components/ui/auth-modal"
 import { navigateToBuilderWithProject } from "@/lib/utils"
 import React from "react"
+import TokenUsageDisplay from "@/components/ui/token-usage-display"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -334,6 +335,21 @@ export default function ProfilePage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Token Usage Section */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-3">
+              <Zap className="h-6 w-6" />
+              <span>Token Usage</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-4">
+              <TokenUsageDisplay />
+            </div>
           </CardContent>
         </Card>
 

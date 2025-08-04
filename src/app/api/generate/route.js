@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateExtensionCode } from "@/lib/openai-service"
 import { REQUEST_TYPES } from "@/lib/prompts"
+import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
 
 export async function POST(request) {
@@ -43,6 +44,36 @@ export async function POST(request) {
 
     console.log(":", prompt)
 
+    // Check user's plan and token usage limits
+    const { data: billing, error: billingError } = await supabase
+      .from('billing')
+      .select('plan')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const userPlan = billing?.plan || DEFAULT_PLAN
+    const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
+
+    // Get total tokens used by user
+    const { data: tokenUsageData } = await supabase
+      .from('token_usage')
+      .select('total_tokens')
+      .eq('user_id', user.id)
+
+    const totalTokensUsed = tokenUsageData?.reduce((sum, record) => sum + (record.total_tokens || 0), 0) || 0
+
+    console.log(`User plan: ${userPlan}, Limit: ${planLimit}, Used: ${totalTokensUsed}`)
+
+    // Check if user has exceeded their limit (unless unlimited)
+    if (planLimit !== -1 && totalTokensUsed >= planLimit) {
+      return NextResponse.json({ 
+        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions." 
+      }, { status: 403 })
+    }
+
     // Get existing files if this is an add-to-existing request
     let existingFiles = {}
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && projectId) {
@@ -66,6 +97,29 @@ export async function POST(request) {
 
     if (!result.success) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
+    }
+
+    // Record token usage in database
+    if (result.tokenUsage) {
+      const { error: tokenError } = await supabase
+        .from('token_usage')
+        .insert({
+          id: randomUUID(),
+          user_id: user.id,
+          project_id: projectId,
+          request_id: randomUUID(), // Generate a unique request ID
+          prompt_tokens: result.tokenUsage.prompt_tokens,
+          completion_tokens: result.tokenUsage.completion_tokens,
+          total_tokens: result.tokenUsage.total_tokens,
+          model: result.tokenUsage.model,
+        })
+
+      if (tokenError) {
+        console.error('Error recording token usage:', tokenError)
+        // Don't fail the request, just log the error
+      } else {
+        console.log('Token usage recorded successfully:', result.tokenUsage.total_tokens)
+      }
     }
 
     // Debug: Log auth context

@@ -65,9 +65,17 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
 
       const data = await response.json()
 
-      // If there's an explanation in the response, display it
-      if (data.explanation) {
+      let content = ""
+
+      // Handle different response scenarios
+      if (response.status === 403) {
+        content = data.error || "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
+      } else if (data.explanation) {
         content = `${data.explanation}`
+      } else if (data.error) {
+        content = `Error: ${data.error}`
+      } else {
+        content = "Code generated successfully!"
       }
 
       const assistantMessage = {
@@ -83,6 +91,11 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
       if (onCodeGenerated) {
         onCodeGenerated(data)
       }
+
+      // Refresh token usage display by triggering a page reload of the token usage component
+      // This is a simple way to refresh the token usage without complex state management
+      const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
+      window.dispatchEvent(tokenUsageEvent)
     } catch (error) {
       console.error("Error generating code:", error)
       const errorMessage = {
