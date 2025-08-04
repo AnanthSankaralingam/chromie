@@ -18,7 +18,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -93,7 +93,20 @@ export async function POST(request) {
       requestType,
       sessionId: projectId,
       existingFiles,
+      userProvidedUrl,
     })
+
+    // Handle URL prompt requirement
+    if (!result.success && result.requiresUrl) {
+      return NextResponse.json({
+        requiresUrl: true,
+        message: result.message,
+        detectedSites: result.detectedSites,
+        detectedUrls: result.detectedUrls,
+        featureRequest: result.featureRequest,
+        requestType: result.requestType
+      })
+    }
 
     if (!result.success) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
