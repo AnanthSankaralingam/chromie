@@ -164,24 +164,6 @@ export default function BrowserEmbed() {
     console.log('Displaying real Browserbase iframe:', sessionData.iframeUrl)
     return (
       <div className="h-screen bg-gray-100 flex flex-col">
-        {/* Real Session Banner */}
-        <div className="bg-green-600 text-white px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-            <span className="font-medium">🚀 Live Extension Testing</span>
-            <span className="text-green-200">Session: {sessionData.sessionId?.slice(-8)}</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <span>Look for your extension icon in the browser toolbar</span>
-            <button
-              onClick={() => window.open(sessionData.iframeUrl, '_blank')}
-              className="bg-green-700 hover:bg-green-800 px-3 py-1 rounded text-xs"
-            >
-              Open in New Tab
-            </button>
-          </div>
-        </div>
-        
         {/* Real Browserbase iframe */}
         <div className="flex-1">
           <iframe
@@ -191,19 +173,6 @@ export default function BrowserEmbed() {
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
             onLoad={() => console.log('Browserbase iframe loaded successfully')}
           />
-        </div>
-        
-        {/* Instructions Footer */}
-        <div className="bg-blue-50 border-t border-blue-200 px-4 py-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-4 text-blue-800">
-              <span>🔍 <strong>Find your extension:</strong> Look for the extension icon in the browser toolbar</span>
-              <span>🖱️ <strong>Test it:</strong> Click the icon to open the popup</span>
-            </div>
-            <div className="text-blue-600">
-              Powered by Browserbase
-            </div>
-          </div>
         </div>
       </div>
     )
@@ -262,18 +231,6 @@ export default function BrowserEmbed() {
 
   return (
     <div className="h-screen bg-white flex flex-col">
-      {/* Mock Session Banner */}
-      <div className="bg-orange-500 text-white px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-2 h-2 bg-orange-300 rounded-full"></div>
-          <span className="font-medium">📱 Demo Interface</span>
-          <span className="text-orange-200">Session: {sessionId?.slice(-8)}</span>
-        </div>
-        <div className="text-sm">
-          This is a demo. To test real extensions, click "Test Extension" and wait for the live session to load.
-        </div>
-      </div>
-
       {/* Mock Browser UI */}
       <div className="bg-gray-200 border-b">
         {/* Top toolbar */}

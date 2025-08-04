@@ -105,24 +105,12 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
             </div>
           ) : sessionData?.iframeUrl ? (
             <>
-              {/* Real Extension Notice */}
-              <div className="absolute top-2 left-2 right-2 z-20">
-                <div className="bg-green-600 text-white px-3 py-2 rounded shadow-lg flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-                    <span>🚀 Real Chrome Extension Loaded</span>
-                  </div>
-                  <span className="text-green-200">Look for your extension icon in the browser toolbar</span>
-                </div>
-              </div>
-
               {/* Loading overlay */}
               {!iframeLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mx-auto mb-3" />
-                    <p className="text-gray-600">Loading real browser environment...</p>
-                    <p className="text-sm text-gray-500 mt-2">Your extension will appear in the browser toolbar</p>
+                    <p className="text-gray-600">Loading browser environment...</p>
                   </div>
                 </div>
               )}
@@ -133,7 +121,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
                 className="w-full h-full border-0"
                 onLoad={handleIframeLoad}
                 onError={handleIframeError}
-                title="Real Chrome Browser - Extension Test Environment"
+                title="Extension Test Environment"
                 sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
               />
             </>
