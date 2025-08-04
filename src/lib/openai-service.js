@@ -48,7 +48,7 @@ function searchChromeExtensionAPI(apiName) {
 }
 
 async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null) {
-  // Mock implementation - in production this would scrape actual websites
+  // FIXME Mock implementation - in production this would scrape actual websites
   console.log("Mock scraping for:", featureRequest, userProvidedUrl)
 
   return {
@@ -149,11 +149,12 @@ export async function generateExtensionCode({
       contextMessage,
     })
 
-    // Choose the appropriate system prompt based on request type
+    // Choose the appropriate system prompt based on request type and existing files
+    const hasExistingFiles = Object.keys(existingFiles).length > 0
     const systemPrompt =
-      requestType === REQUEST_TYPES.ADD_TO_EXISTING ? ADD_TO_EXISTING_SYSTEM_PROMPT : CODEGEN_SYSTEM_PROMPT
+      (requestType === REQUEST_TYPES.ADD_TO_EXISTING || hasExistingFiles) ? ADD_TO_EXISTING_SYSTEM_PROMPT : CODEGEN_SYSTEM_PROMPT
 
-    console.log(`Using ${requestType === REQUEST_TYPES.ADD_TO_EXISTING ? "ADD_TO_EXISTING" : "CODEGEN"} system prompt`)
+    console.log(`Using ${(requestType === REQUEST_TYPES.ADD_TO_EXISTING || hasExistingFiles) ? "ADD_TO_EXISTING" : "CODEGEN"} system prompt`)
 
     // Call OpenAI for direct implementation
     const codingCompletion = await openai.chat.completions.create({
@@ -230,10 +231,18 @@ export async function generateExtensionCode({
 
     console.log("Direct code generation completed")
 
+    // Extract token usage from first completion
+    const firstUsage = codingCompletion.usage || {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    }
+
     // Handle function calls if any
     let finalResult = codingCompletion.choices[0].message
     let toolCallsMade = false
     let messages = null
+    let secondUsage = null
 
     // If there are tool calls, process them
     if (finalResult.tool_calls && finalResult.tool_calls.length > 0) {
@@ -250,8 +259,8 @@ export async function generateExtensionCode({
       // Process each tool call
       for (const toolCall of finalResult.tool_calls) {
         if (toolCall.function.name === "searchChromeExtensionAPI") {
-          console.log("Processing searchChromeExtensionAPI tool call...")
           const args = JSON.parse(toolCall.function.arguments)
+          console.log("Processing searchChromeExtensionAPI tool call for ", args.apiName)
           const apiResult = searchChromeExtensionAPI(args.apiName)
 
           // Add the tool result to messages
@@ -308,6 +317,11 @@ export async function generateExtensionCode({
         max_tokens: 15000,
       })
       finalResult = secondCompletion.choices[0].message
+      secondUsage = secondCompletion.usage || {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0
+      }
     }
 
     const implementationResult = JSON.parse(finalResult.content)
@@ -348,11 +362,22 @@ export async function generateExtensionCode({
       throw new Error("No valid extension files generated")
     }
 
+    // Calculate total token usage
+    const totalUsage = {
+      prompt_tokens: firstUsage.prompt_tokens + (secondUsage?.prompt_tokens || 0),
+      completion_tokens: firstUsage.completion_tokens + (secondUsage?.completion_tokens || 0),
+      total_tokens: firstUsage.total_tokens + (secondUsage?.total_tokens || 0),
+      model: "gpt-4o"
+    }
+
+    console.log("Token usage:", totalUsage)
+
     return {
       success: true,
       explanation: implementationResult.explanation,
       files: filesOnly,
       sessionId,
+      tokenUsage: totalUsage
     }
   } catch (error) {
     console.error("Error in code generation:", error)

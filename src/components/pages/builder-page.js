@@ -24,6 +24,7 @@ import TestModal from "@/components/ui/test-modal"
 import AuthModal from "@/components/ui/auth-modal"
 import AppBarBuilder from "@/components/ui/app-bar-builder"
 import { useSession } from '@/components/SessionProviderClient'
+import JSZip from 'jszip'
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -43,6 +44,9 @@ export default function BuilderPage() {
   const [isSettingUpProject, setIsSettingUpProject] = useState(false)
   const [projectSetupError, setProjectSetupError] = useState(null)
   const [currentProjectId, setCurrentProjectId] = useState(null)
+  const [currentProjectName, setCurrentProjectName] = useState('')
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -56,6 +60,20 @@ export default function BuilderPage() {
       return user.email[0].toUpperCase()
     }
     return 'U'
+  }
+
+  // Helper function to fetch project details
+  const fetchProjectDetails = async (projectId) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.project
+      }
+    } catch (error) {
+      console.error('Error fetching project details:', error)
+    }
+    return null
   }
 
   // Check auth state and show modal if needed
@@ -81,9 +99,21 @@ export default function BuilderPage() {
     }
   }, [currentProjectId, user])
 
+  // Clear URL parameter after project is loaded
+  useEffect(() => {
+    if (currentProjectId && !isSettingUpProject) {
+      // Clear the projectId from URL without triggering a reload
+      const url = new URL(window.location)
+      if (url.searchParams.has('projectId')) {
+        url.searchParams.delete('projectId')
+        window.history.replaceState({}, '', url.pathname)
+      }
+    }
+  }, [currentProjectId, isSettingUpProject])
+
   // Update project info when file structure changes (after code generation)
   useEffect(() => {
-    if (fileStructure.length > 0 && currentProjectId) {
+    if (fileStructure.length > 0 && currentProjectId && !isLoadingFiles) {
       // Convert file structure back to flat list for manifest parsing
       const flattenFiles = (items) => {
         let files = []
@@ -106,14 +136,38 @@ export default function BuilderPage() {
         updateProjectWithExtensionInfo(extensionInfo)
       }
     }
-  }, [fileStructure, currentProjectId])
+  }, [fileStructure, currentProjectId, isLoadingFiles])
 
   const checkAndSetupProject = async () => {
+    // Check if we have a project ID in URL state (from navigation)
+    const urlParams = new URLSearchParams(window.location.search)
+    const projectIdFromUrl = urlParams.get('projectId')
+    
     // Check if we have a project ID in session storage
     const storedProjectId = sessionStorage.getItem('chromie_current_project_id')
     
+    // Priority: URL parameter > session storage > most recent project
+    if (projectIdFromUrl) {
+      console.log('Using project ID from URL:', projectIdFromUrl)
+      setCurrentProjectId(projectIdFromUrl)
+      sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
+      // Fetch project details to get the name
+      const projectDetails = await fetchProjectDetails(projectIdFromUrl)
+      if (projectDetails) {
+        setCurrentProjectName(projectDetails.name)
+      }
+      setIsSettingUpProject(false)
+      setProjectSetupError(null)
+      return
+    }
+    
     if (storedProjectId) {
       setCurrentProjectId(storedProjectId)
+      // Fetch project details to get the name
+      const projectDetails = await fetchProjectDetails(storedProjectId)
+      if (projectDetails) {
+        setCurrentProjectName(projectDetails.name)
+      }
       setIsSettingUpProject(false)
       setProjectSetupError(null)
       return
@@ -146,6 +200,7 @@ export default function BuilderPage() {
         const mostRecentProject = projects[0] // Already ordered by created_at desc
         console.log('Using existing project:', mostRecentProject.id)
         setCurrentProjectId(mostRecentProject.id)
+        setCurrentProjectName(mostRecentProject.name)
         sessionStorage.setItem('chromie_current_project_id', mostRecentProject.id)
       } else {
         // No projects exist, create a default one
@@ -187,6 +242,7 @@ export default function BuilderPage() {
       
       // Store the project ID in session storage and state
       setCurrentProjectId(newProject.id)
+      setCurrentProjectName(newProject.name)
       sessionStorage.setItem('chromie_current_project_id', newProject.id)
       setIsSettingUpProject(false)
     } catch (error) {
@@ -231,6 +287,9 @@ export default function BuilderPage() {
 
       if (!response.ok) {
         console.error('Failed to update project with extension info')
+      } else {
+        // Update local project name
+        setCurrentProjectName(extensionInfo.name)
       }
     } catch (error) {
       console.error('Error updating project with extension info:', error)
@@ -243,6 +302,7 @@ export default function BuilderPage() {
       return
     }
 
+    setIsLoadingFiles(true)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/files`)
       
@@ -260,12 +320,24 @@ export default function BuilderPage() {
       setFileStructure(transformedFiles)
 
       // Extract and update project with extension info from manifest.json
+      // Only update if we haven't already updated this project recently
       const extensionInfo = extractExtensionInfo(files)
       if (extensionInfo) {
-        await updateProjectWithExtensionInfo(extensionInfo)
+        // Check if we need to update (avoid unnecessary updates)
+        const lastUpdateKey = `last_project_update_${currentProjectId}`
+        const lastUpdate = sessionStorage.getItem(lastUpdateKey)
+        const now = Date.now()
+        
+        // Only update if it's been more than 5 minutes since last update
+        if (!lastUpdate || (now - parseInt(lastUpdate)) > 5 * 60 * 1000) {
+          await updateProjectWithExtensionInfo(extensionInfo)
+          sessionStorage.setItem(lastUpdateKey, now.toString())
+        }
       }
     } catch (error) {
       console.error("Error loading project files:", error)
+    } finally {
+      setIsLoadingFiles(false)
     }
   }
 
@@ -331,9 +403,61 @@ export default function BuilderPage() {
     setSelectedFile(file)
   }
 
-  const handleDownloadZip = () => {
-    // TODO: Generate and download ZIP file
-    console.log("downloading zip...")
+  const handleDownloadZip = async () => {
+    if (!currentProjectId || fileStructure.length === 0) {
+      console.error("No project or files available for download")
+      return
+    }
+
+    setIsDownloading(true)
+
+    try {
+      // Create a new JSZip instance
+      const zip = new JSZip()
+
+      // Helper function to add files to zip recursively
+      const addFilesToZip = (items, zipFolder = zip) => {
+        items.forEach(item => {
+          if (item.type === "file") {
+            // Add file to zip
+            zipFolder.file(item.name, item.content)
+          } else if (item.type === "folder" && item.children) {
+            // Create folder in zip and add its contents
+            const folder = zipFolder.folder(item.name)
+            addFilesToZip(item.children, folder)
+          }
+        })
+      }
+
+      // Add all files to the zip
+      addFilesToZip(fileStructure)
+
+      // Generate the zip file
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+
+      // Create download link
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Create filename with project name
+      const safeProjectName = currentProjectName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
+      link.download = `chromie-ext-${safeProjectName}.zip`
+      
+      // Trigger download
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Clean up
+      URL.revokeObjectURL(url)
+      
+      console.log("ZIP file downloaded successfully")
+    } catch (error) {
+      console.error("Error creating ZIP file:", error)
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   const handleMouseDown = (e) => {
@@ -508,6 +632,12 @@ export default function BuilderPage() {
     window.location.href = '/'
   }
 
+  // Helper function to navigate to builder with project ID
+  const navigateToBuilderWithProject = (projectId) => {
+    // Navigate to builder with project ID in URL, then clear it
+    router.push(`/builder?projectId=${projectId}`)
+  }
+
   return (
     <>
       <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white ${!user ? 'blur-sm pointer-events-none' : ''}`}>
@@ -517,7 +647,9 @@ export default function BuilderPage() {
           onDownloadZip={handleDownloadZip}
           onSignOut={handleSignOut}
           isTestDisabled={!currentProjectId || fileStructure.length === 0}
+          isDownloadDisabled={!currentProjectId || fileStructure.length === 0}
           isGenerating={isGenerating}
+          isDownloading={isDownloading}
         />
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">

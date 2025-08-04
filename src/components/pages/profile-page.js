@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, AlertTriangle, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, AlertTriangle, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react"
 import AppBar from "@/components/ui/app-bar"
+import AuthModal from "@/components/ui/auth-modal"
+import { navigateToBuilderWithProject } from "@/lib/utils"
 import React from "react"
+import TokenUsageDisplay from "@/components/ui/token-usage-display"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -24,6 +27,7 @@ export default function ProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -169,14 +173,30 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm border-white/20">
-          <CardContent className="p-6">
-            <div className="text-center text-white">
-              <p>Please sign in to view your profile.</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <AppBar />
+        <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardContent className="p-6">
+              <div className="text-center text-white space-y-4">
+                <h2 className="text-2xl font-bold">Welcome to Your Profile</h2>
+                <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
+                <Button 
+                  onClick={() => setAuthModalOpen(true)}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  Sign In
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <AuthModal 
+          isOpen={authModalOpen} 
+          onClose={() => setAuthModalOpen(false)}
+          redirectUrl="/profile"
+        />
       </div>
     )
   }
@@ -300,7 +320,6 @@ export default function ProfilePage() {
 
                 {/* Subscription Details */}
                 <div className="text-sm text-slate-400 space-y-1">
-                  <p>Subscription ID: {billing.stripe_subscription_id}</p>
                   <p>Valid until: {formatDate(billing.valid_until)}</p>
                 </div>
               </div>
@@ -316,6 +335,21 @@ export default function ProfilePage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Token Usage Section */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-3">
+              <Zap className="h-6 w-6" />
+              <span>Token Usage</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-4">
+              <TokenUsageDisplay />
+            </div>
           </CardContent>
         </Card>
 
@@ -387,21 +421,31 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-                    {editingProject !== project.id && (
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingProject(project.id)
-                            setNewProjectName(project.name)
-                          }}
-                          className="text-slate-400 hover:text-white"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                                         {editingProject !== project.id && (
+                       <div className="flex items-center space-x-2">
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => {
+                             setEditingProject(project.id)
+                             setNewProjectName(project.name)
+                           }}
+                           className="text-slate-400 hover:text-white"
+                           title="Rename project"
+                         >
+                           <Edit className="h-4 w-4" />
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => navigateToBuilderWithProject(project.id)}
+                           className="text-blue-400 hover:text-blue-300"
+                           title="Edit project in builder"
+                         >
+                           <ExternalLink className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     )}
                   </div>
                 ))}
               </div>

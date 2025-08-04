@@ -9,11 +9,12 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hi! I'm your Chrome extension assistant. Tell me what you'd like to build or modify in your extension.",
+      content: "Hi! I'm your Chrome extension assistant. Tell me what you'd like in your extension.",
     },
   ])
   const [inputMessage, setInputMessage] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -49,6 +50,7 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
     }
 
     try {
+      console.log("Sending request with type:", hasGeneratedCode ? "add_to_existing" : "new_extension")
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -57,22 +59,43 @@ export default function AIChat({ projectId, onCodeGenerated, onGenerationStart, 
         body: JSON.stringify({
           prompt: inputMessage,
           projectId,
+          requestType: hasGeneratedCode ? "add_to_existing" : "new_extension",
         }),
       })
 
       const data = await response.json()
 
+      let content = ""
+
+      // Handle different response scenarios
+      if (response.status === 403) {
+        content = data.error || "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
+      } else if (data.explanation) {
+        content = `${data.explanation}`
+      } else if (data.error) {
+        content = `Error: ${data.error}`
+      } else {
+        content = "Code generated successfully!"
+      }
+
       const assistantMessage = {
         role: "assistant",
-        content:
-          data.message || "I've generated the code for your extension. Check the file viewer to see the changes!",
+        content,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
 
+      // Mark that code has been generated
+      setHasGeneratedCode(true)
+
       if (onCodeGenerated) {
         onCodeGenerated(data)
       }
+
+      // Refresh token usage display by triggering a page reload of the token usage component
+      // This is a simple way to refresh the token usage without complex state management
+      const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
+      window.dispatchEvent(tokenUsageEvent)
     } catch (error) {
       console.error("Error generating code:", error)
       const errorMessage = {

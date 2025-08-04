@@ -12,7 +12,9 @@ export default function AppBarBuilder({
   onDownloadZip, 
   onSignOut, 
   isTestDisabled = false,
-  isGenerating = false 
+  isDownloadDisabled = false,
+  isGenerating = false,
+  isDownloading = false
 }) {
   const { user } = useSession()
 
@@ -63,9 +65,13 @@ export default function AppBarBuilder({
                 <TestTube className="h-4 w-4 mr-2" />
                 test extension
               </Button>
-              <Button onClick={onDownloadZip} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                onClick={onDownloadZip} 
+                disabled={isDownloadDisabled || isDownloading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
                 <Download className="h-4 w-4 mr-2" />
-                download zip
+                {isDownloading ? "downloading..." : "download zip"}
               </Button>
               <Button onClick={onSignOut} variant="ghost" className="text-slate-400 hover:text-white">
                 <LogOut className="h-4 w-4" />
