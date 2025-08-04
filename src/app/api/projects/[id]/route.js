@@ -1,6 +1,39 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+export async function GET(request, { params }) {
+  const supabase = createClient()
+  const { id } = params
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    // Get project details
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id, name, description, created_at, last_used_at")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ project })
+  } catch (error) {
+    console.error("Error fetching project:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
 export async function PATCH(request, { params }) {
   const supabase = createClient()
   const { id } = params

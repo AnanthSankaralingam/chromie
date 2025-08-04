@@ -48,7 +48,7 @@ function searchChromeExtensionAPI(apiName) {
 }
 
 async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null) {
-  // Mock implementation - in production this would scrape actual websites
+  // FIXME Mock implementation - in production this would scrape actual websites
   console.log("Mock scraping for:", featureRequest, userProvidedUrl)
 
   return {
@@ -250,7 +250,7 @@ export async function generateExtensionCode({
       // Process each tool call
       for (const toolCall of finalResult.tool_calls) {
         if (toolCall.function.name === "searchChromeExtensionAPI") {
-          console.log("Processing searchChromeExtensionAPI tool call...")
+          console.log("Processing searchChromeExtensionAPI tool call for ", args.apiName)
           const args = JSON.parse(toolCall.function.arguments)
           const apiResult = searchChromeExtensionAPI(args.apiName)
 

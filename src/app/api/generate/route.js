@@ -17,7 +17,6 @@ export async function POST(request) {
   }
 
   try {
-    console.log("Generating extension code for:", request)
     const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION } = await request.json()
 
     if (!prompt) {
@@ -42,7 +41,7 @@ export async function POST(request) {
       }
     }
 
-    console.log("Generating extension code for:", prompt)
+    console.log(":", prompt)
 
     // Get existing files if this is an add-to-existing request
     let existingFiles = {}
@@ -148,7 +147,6 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: "Extension generated successfully",
       explanation: result.explanation,
       files: savedFiles,
       filesGenerated: savedFiles.length,
