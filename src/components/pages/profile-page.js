@@ -8,17 +8,22 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, AlertTriangle } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, AlertTriangle, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import AppBar from "@/components/ui/app-bar"
+import React from "react"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
   const [projects, setProjects] = useState([])
+  const [billing, setBilling] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [billingLoading, setBillingLoading] = useState(true)
   const [editingProject, setEditingProject] = useState(null)
   const [newProjectName, setNewProjectName] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState(null)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -46,9 +51,25 @@ export default function ProfilePage() {
     }
   }
 
+  // Fetch user's billing information
+  const fetchBilling = async () => {
+    try {
+      const response = await fetch('/api/billing/status')
+      if (response.ok) {
+        const data = await response.json()
+        setBilling(data.billing)
+      }
+    } catch (error) {
+      console.error('Error fetching billing:', error)
+    } finally {
+      setBillingLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (user) {
       fetchProjects()
+      fetchBilling()
     }
   }, [user])
 
@@ -79,6 +100,20 @@ export default function ProfilePage() {
     }
   }
 
+  // Handle billing actions
+  const handleBillingAction = (action, plan = null) => {
+    if (action === 'upgrade' || action === 'downgrade') {
+      setSelectedPlan(plan)
+      setBillingDialogOpen(true)
+    } else if (action === 'cancel') {
+      // Redirect to Stripe customer portal
+      window.open('/api/billing/portal', '_blank')
+    } else if (action === 'manage') {
+      // Redirect to Stripe customer portal
+      window.open('/api/billing/portal', '_blank')
+    }
+  }
+
   // Handle account deletion
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
@@ -105,6 +140,31 @@ export default function ProfilePage() {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  // Get plan display info
+  const getPlanInfo = (plan) => {
+    const plans = {
+      starter: {
+        name: 'Starter',
+        price: '$12/month',
+        color: 'bg-purple-500',
+        icon: Zap
+      },
+      pro: {
+        name: 'Pro',
+        price: '$25/month',
+        color: 'bg-blue-500',
+        icon: Crown
+      },
+      enterprise: {
+        name: 'Enterprise',
+        price: 'Contact us',
+        color: 'bg-green-500',
+        icon: Crown
+      }
+    }
+    return plans[plan] || plans.starter
   }
 
   if (!user) {
@@ -163,6 +223,99 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Billing Section */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-3">
+              <CreditCard className="h-6 w-6" />
+              <span>Billing & Subscription</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {billingLoading ? (
+              <div className="text-center py-8">
+                <div className="text-white">Loading billing information...</div>
+              </div>
+            ) : billing ? (
+              <div className="space-y-4">
+                {/* Current Plan */}
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${getPlanInfo(billing.plan).color}`}>
+                      {React.createElement(getPlanInfo(billing.plan).icon, { className: "h-5 w-5 text-white" })}
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
+                      <p className="text-slate-400 text-sm">{getPlanInfo(billing.plan).price}</p>
+                    </div>
+                  </div>
+                  <Badge 
+                    variant="secondary" 
+                    className={`${
+                      billing.status === 'active' 
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                        : billing.status === 'past_due'
+                        ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}
+                  >
+                    {billing.status === 'active' ? 'Active' : billing.status === 'past_due' ? 'Past Due' : billing.status}
+                  </Badge>
+                </div>
+
+                {/* Billing Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Button
+                    onClick={() => handleBillingAction('manage')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Billing
+                  </Button>
+                  
+                  {billing.plan === 'starter' && (
+                    <Button
+                      onClick={() => handleBillingAction('upgrade', 'pro')}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                    >
+                      <ArrowUpRight className="h-4 w-4 mr-2" />
+                      Upgrade to Pro
+                    </Button>
+                  )}
+                  
+                  {billing.plan === 'pro' && (
+                    <Button
+                      onClick={() => handleBillingAction('downgrade', 'starter')}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <ArrowDownRight className="h-4 w-4 mr-2" />
+                      Downgrade to Starter
+                    </Button>
+                  )}
+                </div>
+
+                {/* Subscription Details */}
+                <div className="text-sm text-slate-400 space-y-1">
+                  <p>Subscription ID: {billing.stripe_subscription_id}</p>
+                  <p>Valid until: {formatDate(billing.valid_until)}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-slate-300 mb-4">No active subscription found.</div>
+                <Button
+                  onClick={() => setBillingDialogOpen(true)}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  Subscribe Now
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -259,18 +412,18 @@ export default function ProfilePage() {
         {/* Danger Zone */}
         <Card className="bg-red-500/10 backdrop-blur-sm border-red-500/20">
           <CardHeader>
-                         <CardTitle className="text-red-400 flex items-center space-x-2">
-               <AlertTriangle className="h-5 w-5" />
-               <span>Account Actions</span>
-             </CardTitle>
+            <CardTitle className="text-red-400 flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Account Actions</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <DialogTrigger asChild>
-                             <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
-               <Trash2 className="h-4 w-4 mr-2" />
-               Sign Out
-             </Button>
+                <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
               </DialogTrigger>
               <DialogContent className="bg-slate-800 border-slate-700">
                 <DialogHeader>
@@ -288,20 +441,76 @@ export default function ProfilePage() {
                   >
                     Cancel
                   </Button>
-                                     <Button
-                     variant="destructive"
-                     onClick={handleDeleteAccount}
-                     disabled={isDeleting}
-                     className="bg-red-600 hover:bg-red-700"
-                   >
-                     {isDeleting ? 'Signing out...' : 'Sign Out'}
-                   </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isDeleting ? 'Signing out...' : 'Sign Out'}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </CardContent>
         </Card>
       </div>
+
+      {/* Billing Modal */}
+      <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'starter' ? 'Downgrade to Starter' : 'Choose a Plan'}
+            </DialogTitle>
+            <DialogDescription className="text-slate-300">
+              {selectedPlan === 'pro' 
+                ? 'Upgrade to Pro for more features and higher limits.'
+                : selectedPlan === 'starter'
+                ? 'Downgrade to Starter plan.'
+                : 'Select a plan that fits your needs.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedPlan && (
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${getPlanInfo(selectedPlan).color}`}>
+                    {React.createElement(getPlanInfo(selectedPlan).icon, { className: "h-5 w-5 text-white" })}
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">{getPlanInfo(selectedPlan).name}</h3>
+                    <p className="text-slate-400 text-sm">{getPlanInfo(selectedPlan).price}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setBillingDialogOpen(false)}
+              className="text-slate-300 hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedPlan === 'pro') {
+                  window.location.href = 'https://buy.stripe.com/test_7sY28q5gl0hyaW3gSq7kc01'
+                } else if (selectedPlan === 'starter') {
+                  window.location.href = 'https://buy.stripe.com/test_9B614mcIN3tK0hp59I7kc00'
+                }
+                setBillingDialogOpen(false)
+              }}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              {selectedPlan === 'pro' ? 'Upgrade Now' : selectedPlan === 'starter' ? 'Downgrade Now' : 'Continue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

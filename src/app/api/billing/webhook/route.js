@@ -9,41 +9,54 @@ const supabase = createClient(
 )
 
 export async function POST(request) {
+  console.log('Webhook received')
+  
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
+
+  console.log('Signature header:', signature ? 'Present' : 'Missing')
+  console.log('Webhook secret:', process.env.STRIPE_WEBHOOK_SECRET ? 'Present' : 'Missing')
 
   let event
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
+    console.log('Event type:', event.type)
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message)
+    console.error('Error details:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed':
+        console.log('Processing checkout.session.completed')
         await handleCheckoutSessionCompleted(event.data.object)
         break
       
       case 'customer.subscription.created':
+        console.log('Processing customer.subscription.created')
         await handleSubscriptionCreated(event.data.object)
         break
       
       case 'customer.subscription.updated':
+        console.log('Processing customer.subscription.updated')
         await handleSubscriptionUpdated(event.data.object)
         break
       
       case 'customer.subscription.deleted':
+        console.log('Processing customer.subscription.deleted')
         await handleSubscriptionDeleted(event.data.object)
         break
       
       case 'invoice.payment_succeeded':
+        console.log('Processing invoice.payment_succeeded')
         await handlePaymentSucceeded(event.data.object)
         break
       
       case 'invoice.payment_failed':
+        console.log('Processing invoice.payment_failed')
         await handlePaymentFailed(event.data.object)
         break
       
@@ -51,9 +64,11 @@ export async function POST(request) {
         console.log(`Unhandled event type: ${event.type}`)
     }
 
+    console.log('Webhook processed successfully')
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Error processing webhook:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }
@@ -92,21 +107,35 @@ async function handleSubscriptionCreated(subscription) {
     try {
       const customer = await stripe.customers.retrieve(subscription.customer)
       console.log('Customer email:', customer.email)
+      console.log('Customer ID:', customer.id)
       
       if (customer.email) {
-        // Find user by email in profiles table
+        // Find user by email in profiles table (case insensitive)
+        console.log('Searching for profile with email:', customer.email)
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('id')
-          .eq('email', customer.email)
+          .select('id, email')
+          .ilike('email', customer.email)
           .single()
         
         if (profile) {
           userId = profile.id
-          console.log('Found user:', userId)
+          console.log('Found user:', userId, 'with email:', profile.email)
         } else {
           console.log('No profile found for email:', customer.email)
+          
+          // Let's also check what profiles exist
+          const { data: allProfiles, error: listError } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .limit(5)
+          
+          if (allProfiles) {
+            console.log('Available profiles:', allProfiles.map(p => ({ id: p.id, email: p.email })))
+          }
         }
+      } else {
+        console.log('No email found for customer:', customer.id)
       }
     } catch (error) {
       console.error('Error retrieving customer:', error)

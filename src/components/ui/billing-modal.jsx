@@ -54,8 +54,10 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
     }
 
     // Redirect to Stripe payment URL
+    // FIXME test link
     if (selectedPlan === 'starter') {
-      window.location.href = 'https://buy.stripe.com/9B614mcIN3tK0hp59I7kc00'
+      window.location.href = 'https://buy.stripe.com/test_9B614mcIN3tK0hp59I7kc00'
+      // window.location.href = 'https://buy.stripe.com/9B614mcIN3tK0hp59I7kc00'
     } else if (selectedPlan === 'pro') {
       window.location.href = 'https://buy.stripe.com/7sY28q5gl0hyaW3gSq7kc01'
     }
