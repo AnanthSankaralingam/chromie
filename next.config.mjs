@@ -4,14 +4,18 @@ const nextConfig = {
     // serverActions: true, // removed as per Next.js warning
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // Changed to false for production
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Changed to false for production
   },
   images: {
-    unoptimized: true,
+    unoptimized: false, // Changed to false for production
   },
+  // Add production optimizations
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
 }
 
 export default nextConfig
