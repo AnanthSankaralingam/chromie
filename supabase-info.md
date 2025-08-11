@@ -135,3 +135,43 @@ Tracks OpenAI token usage per user and project.
 
 ---
 
+## Browserbase Integration
+
+The project now includes Browserbase integration for testing Chrome extensions in a real browser environment.
+
+### Required Environment Variables
+
+Add these to your `.env.local` file:
+
+```bash
+# Browserbase Configuration (for Chrome Extension Testing)
+# Get these from https://browserbase.com
+BROWSERBASE_API_KEY=bb_live_your_api_key_here
+BROWSERBASE_PROJECT_ID=prj_your_project_id_here
+```
+
+### How to Get Browserbase Credentials
+
+1. Go to [browserbase.com](https://browserbase.com) and create an account
+2. Create a new project in your Browserbase dashboard
+3. Copy the Project ID from your project settings
+4. Generate an API key from your account settings
+5. Add both values to your `.env.local` file
+
+### Features
+
+- **Real Browser Testing**: Test your extensions in actual Chrome browsers
+- **Live View**: Get iframe URLs to see your extension running in real-time
+- **Extension Upload**: Automatically packages and uploads your extension files
+- **Session Management**: Creates isolated browser sessions for each test
+
+### Usage
+
+When you click "Test Extension" in the builder, the app will:
+1. Package your extension files into a zip
+2. Upload to Browserbase
+3. Create a new browser session with your extension loaded
+4. Display the live browser in an iframe
+
+---
+
