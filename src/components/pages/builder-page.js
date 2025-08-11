@@ -536,7 +536,7 @@ export default function BuilderPage() {
     setIsTestModalOpen(true)
 
     try {
-      const response = await fetch(`/api/projects/${currentProjectId}/test`, {
+      const response = await fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -549,6 +549,7 @@ export default function BuilderPage() {
         throw new Error(data.error || "Failed to create test session")
       }
 
+      console.log("Session data:", data.session)
       setTestSessionData(data.session)
       console.log("Test session created:", data.session.sessionId)
     } catch (error) {
@@ -564,7 +565,7 @@ export default function BuilderPage() {
     // Terminate session if active
     if (testSessionData?.sessionId) {
       try {
-        await fetch(`/api/projects/${currentProjectId}/test`, {
+        await fetch(`/api/projects/${currentProjectId}/test-extension`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

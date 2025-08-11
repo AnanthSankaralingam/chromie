@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Zap, Download, TestTube, LogOut } from "lucide-react"
+import { Download, TestTube, LogOut } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 
 export default function AppBarBuilder({ 
@@ -35,7 +36,12 @@ export default function AppBarBuilder({
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Zap className="h-5 w-5 text-white" />
+              <Image 
+                src="/chromie-logo-1.png" 
+                alt="Chromie AI Logo" 
+                width={20} 
+                height={20}
+              />
             </div>
             <Link href="/" className="text-xl font-bold">chromie ai</Link>
           </div>

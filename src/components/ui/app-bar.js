@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Zap, Github } from "lucide-react"
+import { Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import AuthModal from "@/components/ui/auth-modal"
 import { useState } from "react"
@@ -30,7 +31,12 @@ export default function AppBar() {
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
               <Link href="/" className="text-slate-300 hover:text-white transition-colors">
-                <Zap className="h-5 w-5 text-white" />
+                <Image 
+                  src="/chromie-logo-1.png" 
+                  alt="Chromie AI Logo" 
+                  width={20} 
+                  height={20}
+                />
               </Link>
             </div>
             <Link href="/" className="text-xl font-bold text-white">chromie ai</Link>
