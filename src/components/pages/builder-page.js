@@ -47,6 +47,7 @@ export default function BuilderPage() {
   const [currentProjectName, setCurrentProjectName] = useState('')
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -99,13 +100,23 @@ export default function BuilderPage() {
     }
   }, [currentProjectId, user])
 
-  // Clear URL parameter after project is loaded
+  // Clear URL parameters after project is loaded
   useEffect(() => {
     if (currentProjectId && !isSettingUpProject) {
-      // Clear the projectId from URL without triggering a reload
+      // Clear the project and autoGenerate parameters from URL without triggering a reload
       const url = new URL(window.location)
-      if (url.searchParams.has('projectId')) {
-        url.searchParams.delete('projectId')
+      let hasChanges = false
+      
+      if (url.searchParams.has('project')) {
+        url.searchParams.delete('project')
+        hasChanges = true
+      }
+      if (url.searchParams.has('autoGenerate')) {
+        url.searchParams.delete('autoGenerate')
+        hasChanges = true
+      }
+      
+      if (hasChanges) {
         window.history.replaceState({}, '', url.pathname)
       }
     }
@@ -141,7 +152,13 @@ export default function BuilderPage() {
   const checkAndSetupProject = async () => {
     // Check if we have a project ID in URL state (from navigation)
     const urlParams = new URLSearchParams(window.location.search)
-    const projectIdFromUrl = urlParams.get('projectId')
+    const projectIdFromUrl = urlParams.get('project') // Changed from 'projectId' to 'project'
+    const autoGenerateFromUrl = urlParams.get('autoGenerate')
+    
+    // Store autoGenerate prompt if present
+    if (autoGenerateFromUrl) {
+      setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
+    }
     
     // Check if we have a project ID in session storage
     const storedProjectId = sessionStorage.getItem('chromie_current_project_id')
@@ -658,6 +675,8 @@ export default function BuilderPage() {
           <div className="w-80 border-r border-white/10 flex flex-col">
             <AIChat
               projectId={currentProjectId}
+              autoGeneratePrompt={autoGeneratePrompt}
+              onAutoGenerateComplete={() => setAutoGeneratePrompt(null)} // Clear the prompt after use
               onCodeGenerated={(response) => {
                 console.log("AI generated code:", response)
                 loadProjectFiles() // Reload files after generation

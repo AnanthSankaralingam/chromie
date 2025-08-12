@@ -43,20 +43,8 @@ export default function HomePage() {
 
       const { project } = await response.json()
 
-      // Generate extension code
-      await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt,
-          projectId: project.id,
-        }),
-      })
-
-      // Redirect to builder
-      router.push(`/builder?project=${project.id}`)
+      // Redirect to builder immediately with the prompt to auto-generate
+      router.push(`/builder?project=${project.id}&autoGenerate=${encodeURIComponent(prompt)}`)
     } catch (error) {
       console.error("Error generating extension:", error)
     } finally {

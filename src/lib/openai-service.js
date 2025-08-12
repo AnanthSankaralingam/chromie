@@ -47,47 +47,60 @@ function searchChromeExtensionAPI(apiName) {
   }
 }
 
-async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null) {
-  // FIXME Mock implementation - in production this would scrape actual websites
-  console.log("Mock scraping for:", featureRequest, userProvidedUrl)
+// Import the real scraper implementation
+const { scrapeWebsitesForExtension: realScrapeWebsitesForExtension } = require('./webpage-scraper')
 
-  return {
-    analysis: "Mock website analysis",
-    totalSites: 1,
-    successfulScrapes: 1,
-    websites: [
-      {
-        siteName: "Example Site",
-        url: userProvidedUrl || "https://example.com",
-        title: "Example Website",
-        description: "Mock website for testing",
-        success: true,
-        source: "mock",
-        analysis: {
-          cssSelectors: {
-            recommendedSelectors: [".main-content", "#header", ".sidebar"],
-            qualityScore: 85,
-            recommendation: "Use .main-content for primary injection",
-          },
-          actionableElements: {
-            totalFound: 5,
-            types: ["button", "input", "link"],
-            elements: [
-              {
-                type: "button",
-                text: "Click me",
-                suggested_selectors: [".btn-primary", 'button[type="submit"]'],
-              },
-            ],
-          },
-          scrapeability: {
-            confidence: "high",
-            hasReliableSelectors: true,
-            hasActionableElements: true,
+async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null) {
+  // Use the real Playwright-based scraper
+  console.log("Using real scraper for:", featureRequest, userProvidedUrl)
+  
+  try {
+    const result = await realScrapeWebsitesForExtension(featureRequest, userProvidedUrl)
+    
+    // Only log completion stats if scraping was actually completed
+    if (result.requiresUrlPrompt) {
+      console.log("URL prompt required for scraping")
+    } else {
+      console.log(`Real scraping completed: ${result.successfulScrapes}/${result.totalSites} sites scraped successfully`)
+    }
+    
+    return result
+  } catch (error) {
+    console.error("Real scraping failed, falling back to basic response:", error.message)
+    
+    // Fallback response if scraping fails completely
+    return {
+      analysis: `Scraping failed: ${error.message}. Using generic selectors for extension development.`,
+      totalSites: 1,
+      successfulScrapes: 0,
+      websites: [
+        {
+          siteName: userProvidedUrl ? new URL(userProvidedUrl).hostname : "target-site",
+          url: userProvidedUrl || "https://example.com",
+          title: "Scraping Failed",
+          description: "Unable to analyze website structure. Extension will use generic selectors.",
+          success: false,
+          source: "fallback",
+          analysis: {
+            cssSelectors: {
+              recommendedSelectors: ["body", "main", ".content", "#main"],
+              qualityScore: 30,
+              recommendation: "Use generic selectors due to scraping failure",
+            },
+            actionableElements: {
+              totalFound: 0,
+              types: [],
+              elements: [],
+            },
+            scrapeability: {
+              confidence: "low",
+              hasReliableSelectors: false,
+              hasActionableElements: false,
+            },
           },
         },
-      },
-    ],
+      ],
+    }
   }
 }
 
@@ -113,6 +126,7 @@ export async function generateExtensionCode({
   requestType = REQUEST_TYPES.NEW_EXTENSION,
   sessionId,
   existingFiles = {},
+  userProvidedUrl = null,
 }) {
   console.log(`Starting code generation for feature: ${featureRequest}`)
   console.log(`Request type: ${requestType}`)
@@ -272,7 +286,84 @@ export async function generateExtensionCode({
         } else if (toolCall.function.name === "scrapeWebsitesForExtension") {
           const args = JSON.parse(toolCall.function.arguments)
           console.log("Processing scrapeWebsitesForExtension tool call...")
-          const scrapingResult = await scrapeWebsitesForExtension(args.featureRequest)
+          const scrapingResult = await scrapeWebsitesForExtension(args.featureRequest, userProvidedUrl)
+
+          // Check if URL prompting is required
+          if (scrapingResult.requiresUrlPrompt) {
+            console.log('URL prompting required - pausing generation');
+            // Return a response asking the user for a URL
+            return {
+              success: false,
+              requiresUrl: true,
+              sessionId: sessionId,
+              message: scrapingResult.message,
+              detectedSites: scrapingResult.detectedSites || [],
+              detectedUrls: scrapingResult.detectedUrls || [],
+              featureRequest: featureRequest,
+              requestType: requestType,
+              // Store the current state for continuation
+              toolCallState: {
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: directPrompt }
+                ],
+                pendingToolCall: toolCall
+              }
+            };
+          }
+
+          // Only log analysis if scraping was actually completed
+          if (!scrapingResult.requiresUrlPrompt) {
+            console.log('\n🔍 ===== SCRAPING CONTENT ANALYSIS =====');
+            console.log(`📊 Summary: ${scrapingResult.successfulScrapes}/${scrapingResult.totalSites} sites scraped successfully`);
+            
+            scrapingResult.websites?.forEach((site, index) => {
+              console.log(`\n📄 WEBSITE ${index + 1}: ${site.siteName}`);
+              console.log(`🔗 URL: ${site.url}`);
+              console.log(`✅ Success: ${site.success}`);
+              console.log(`📏 Source: ${site.source}`);
+              console.log(`📝 Title: ${site.title}`);
+              console.log(`📄 Description: ${site.description?.substring(0, 100)}...`);
+              
+              if (site.success && site.analysis) {
+                console.log(`\n🎯 CSS SELECTORS FOUND:`);
+                console.log(`   - Recommended: [${site.analysis.cssSelectors.recommendedSelectors?.slice(0, 8).join(', ') || 'none'}]`);
+                console.log(`   - Generic fallbacks: [${site.analysis.cssSelectors.genericSelectors?.slice(0, 5).join(', ') || 'none'}]`);
+                console.log(`   - Quality score: ${site.analysis.cssSelectors.qualityScore}/100`);
+                console.log(`   - Recommendation: ${site.analysis.cssSelectors.recommendation}`);
+                
+                console.log(`\n🎪 ACTIONABLE ELEMENTS:`);
+                console.log(`   - Total found: ${site.analysis.actionableElements.totalFound}`);
+                console.log(`   - Types: [${site.analysis.actionableElements.types?.join(', ') || 'none'}]`);
+                site.analysis.actionableElements.elements?.slice(0, 5).forEach((element, i) => {
+                  console.log(`   - ${i+1}. ${element.type}: "${element.text}" (confidence: ${element.confidence || 'medium'})`);
+                });
+                
+                console.log(`\n🔧 INJECTION STRATEGY:`);
+                console.log(`   - Primary method: ${site.analysis.injectionStrategy?.primaryMethod}`);
+                console.log(`   - Fallback method: ${site.analysis.injectionStrategy?.fallbackMethod}`);
+                console.log(`   - Confidence: ${site.analysis.injectionStrategy?.confidence}`);
+                console.log(`   - Mutation observer needed: ${site.analysis.injectionStrategy?.mutationObserverRequired}`);
+                
+                console.log(`\n📊 SCRAPEABILITY ASSESSMENT:`);
+                console.log(`   - Overall confidence: ${site.analysis.scrapeability.confidence}`);
+                console.log(`   - Reliable selectors: ${site.analysis.scrapeability.hasReliableSelectors}`);
+                console.log(`   - Actionable elements: ${site.analysis.scrapeability.hasActionableElements}`);
+                console.log(`   - Overlay fallback available: ${site.analysis.scrapeability.overlayFallbackAvailable}`);
+                
+                // Show original content size if available
+                if (site.originalContentLength) {
+                  console.log(`\n📏 CONTENT SIZE: ${site.originalContentLength} characters of markdown extracted`);
+                }
+              } else {
+                console.log(`\n❌ SCRAPING FAILED: ${site.description}`);
+              }
+            });
+            
+            console.log('\n🤖 SENDING TO LLM:');
+            console.log(`📤 Full scraping data object size: ${JSON.stringify(scrapingResult).length} characters`);
+            console.log('=====================================\n');
+          }
 
           // Add the tool result to messages
           messages.push({
@@ -286,6 +377,36 @@ export async function generateExtensionCode({
 
     // Only make a second API call if a tool was actually called
     if (toolCallsMade) {
+      // Log the exact content being sent to LLM
+      console.log('\n📨 ===== CONTENT SENT TO LLM =====');
+      messages.forEach((msg, index) => {
+        if (msg.role === 'tool') {
+          console.log(`\n🔧 TOOL RESPONSE ${index}:`);
+          try {
+            const toolContent = JSON.parse(msg.content);
+            if (toolContent.websites) {
+              console.log(`🌐 Website data for ${toolContent.websites.length} sites:`);
+              toolContent.websites.forEach((site, siteIndex) => {
+                console.log(`   ${siteIndex + 1}. ${site.siteName} (${site.url})`);
+                if (site.analysis) {
+                  console.log(`      - ${site.analysis.cssSelectors?.recommendedSelectors?.length || 0} CSS selectors`);
+                  console.log(`      - ${site.analysis.actionableElements?.totalFound || 0} actionable elements`);
+                  console.log(`      - Quality: ${site.analysis.cssSelectors?.qualityScore || 0}/100`);
+                }
+              });
+            }
+            console.log(`📏 Tool response size: ${msg.content.length} characters`);
+          } catch (e) {
+            console.log(`📦 Raw tool content: ${msg.content.substring(0, 200)}...`);
+          }
+        } else if (msg.role === 'system') {
+          console.log(`🤖 System prompt: ${msg.content.substring(0, 100)}...`);
+        } else if (msg.role === 'user') {
+          console.log(`👤 User prompt: ${msg.content.substring(0, 100)}...`);
+        }
+      });
+      console.log('================================\n');
+      
       // Make a second API call with the updated context
       console.log("Making second API call with tool context...")
       const secondCompletion = await openai.chat.completions.create({
