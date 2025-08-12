@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from '@/components/SessionProviderClient'
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoading, user, session } = useSession()
@@ -89,5 +89,26 @@ export default function AuthCallback() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function AuthCallbackLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+        <p className="text-slate-400">Preparing authentication...</p>
+      </div>
+    </div>
+  )
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={<AuthCallbackLoading />}>
+      <AuthCallbackContent />
+    </Suspense>
   )
 }
