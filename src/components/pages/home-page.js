@@ -53,7 +53,8 @@ export default function HomePage() {
   }
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
       handleSubmit(e)
     }
   }
