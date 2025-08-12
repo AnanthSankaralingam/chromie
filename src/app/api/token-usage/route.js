@@ -16,7 +16,7 @@ export async function GET() {
 
   try {
     // Get user's plan
-    const { data: billing, error: billingError } = await supabase
+    const { data: billing } = await supabase
       .from('billing')
       .select('plan')
       .eq('user_id', user.id)
@@ -28,30 +28,40 @@ export async function GET() {
     const userPlan = billing?.plan || DEFAULT_PLAN
     const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
 
-    // Get total tokens used by user
-    const { data: tokenUsageData, error: tokenError } = await supabase
+    // Fetch single per-user token usage with monthly reset logic
+    const { data: existingUsage, error: tokenError } = await supabase
       .from('token_usage')
-      .select('total_tokens, created_at')
+      .select('id, total_tokens, monthly_reset')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .maybeSingle()
 
     if (tokenError) {
       console.error('Error fetching token usage:', tokenError)
       return NextResponse.json({ error: "Failed to fetch token usage" }, { status: 500 })
     }
 
-    const totalTokensUsed = tokenUsageData?.reduce((sum, record) => sum + (record.total_tokens || 0), 0) || 0
+    const now = new Date()
+    const monthlyResetDate = existingUsage?.monthly_reset ? new Date(existingUsage.monthly_reset) : null
+    let resetDatePlusOneMonth = null
+    if (monthlyResetDate) {
+      resetDatePlusOneMonth = new Date(monthlyResetDate)
+      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+    }
 
-    // Calculate usage percentage (if not unlimited)
+    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
+    const totalTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
     const usagePercentage = planLimit === -1 ? 0 : Math.round((totalTokensUsed / planLimit) * 100)
+    const monthlyUsage = totalTokensUsed
 
-    // Get monthly usage (last 30 days)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    
-    const monthlyUsage = tokenUsageData?.filter(record => 
-      new Date(record.created_at) >= thirtyDaysAgo
-    ).reduce((sum, record) => sum + (record.total_tokens || 0), 0) || 0
+    // If reset is due, update the record so UI reflects fresh cycle next calls
+    if (existingUsage?.id && isResetDue) {
+      await supabase
+        .from('token_usage')
+        .update({ total_tokens: 0, monthly_reset: now.toISOString() })
+        .eq('id', existingUsage.id)
+    }
+
+    console.log(`Token usage - plan: ${userPlan}, limit: ${planLimit}, used: ${totalTokensUsed}, resetDue: ${isResetDue}`)
 
     return NextResponse.json({
       totalTokensUsed,
@@ -59,7 +69,9 @@ export async function GET() {
       usagePercentage,
       monthlyUsage,
       userPlan,
-      remainingTokens: planLimit === -1 ? 'unlimited' : Math.max(0, planLimit - totalTokensUsed)
+      remainingTokens: planLimit === -1 ? 'unlimited' : Math.max(0, planLimit - totalTokensUsed),
+      monthlyReset: monthlyResetDate ? monthlyResetDate.toISOString() : null,
+      resetDue: isResetDue,
     })
   } catch (error) {
     console.error("Error getting token usage:", error)

@@ -57,20 +57,30 @@ export async function POST(request) {
     const userPlan = billing?.plan || DEFAULT_PLAN
     const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
 
-    // Get total tokens used by user
-    const { data: tokenUsageData } = await supabase
+    // Fetch global per-user token usage with monthly reset logic
+    const { data: existingUsage } = await supabase
       .from('token_usage')
-      .select('total_tokens')
+      .select('id, total_tokens, monthly_reset, model')
       .eq('user_id', user.id)
+      .maybeSingle()
 
-    const totalTokensUsed = tokenUsageData?.reduce((sum, record) => sum + (record.total_tokens || 0), 0) || 0
+    const now = new Date()
+    const monthlyResetDate = existingUsage?.monthly_reset ? new Date(existingUsage.monthly_reset) : null
+    let resetDatePlusOneMonth = null
+    if (monthlyResetDate) {
+      resetDatePlusOneMonth = new Date(monthlyResetDate)
+      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+    }
 
-    console.log(`User plan: ${userPlan}, Limit: ${planLimit}, Used: ${totalTokensUsed}`)
+    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
+    const effectiveTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
+
+    console.log(`User plan: ${userPlan}, Limit: ${planLimit}, Used (effective): ${effectiveTokensUsed}`)
 
     // Check if user has exceeded their limit (unless unlimited)
-    if (planLimit !== -1 && totalTokensUsed >= planLimit) {
-      return NextResponse.json({ 
-        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions." 
+    if (planLimit !== -1 && effectiveTokensUsed >= planLimit) {
+      return NextResponse.json({
+        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
       }, { status: 403 })
     }
 
@@ -99,26 +109,63 @@ export async function POST(request) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
     }
 
-    // Record token usage in database
+    // Record token usage in database (global per-user, with monthly reset)
     if (result.tokenUsage) {
-      const { error: tokenError } = await supabase
-        .from('token_usage')
-        .insert({
-          id: randomUUID(),
-          user_id: user.id,
-          project_id: projectId,
-          request_id: randomUUID(), // Generate a unique request ID
-          prompt_tokens: result.tokenUsage.prompt_tokens,
-          completion_tokens: result.tokenUsage.completion_tokens,
-          total_tokens: result.tokenUsage.total_tokens,
-          model: result.tokenUsage.model,
-        })
+      const tokensThisRequest = result.tokenUsage.total_tokens || 0
+      const modelUsed = result.tokenUsage.model
 
-      if (tokenError) {
-        console.error('Error recording token usage:', tokenError)
-        // Don't fail the request, just log the error
+      // Determine new totals and monthly_reset state
+      let newTotalTokens
+      let newMonthlyReset = existingUsage?.monthly_reset
+
+      if (!existingUsage) {
+        // First-ever usage record for this user
+        newTotalTokens = tokensThisRequest
+        newMonthlyReset = now.toISOString()
+      } else if (!existingUsage.monthly_reset) {
+        // No monthly_reset set yet; set to today and continue accumulating
+        newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+        newMonthlyReset = now.toISOString()
+      } else if (isResetDue) {
+        // New monthly period started; reset total to current request
+        newTotalTokens = tokensThisRequest
+        newMonthlyReset = now.toISOString()
       } else {
-        console.log('Token usage recorded successfully:', result.tokenUsage.total_tokens)
+        // Same monthly period; accumulate
+        newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+      }
+
+      if (existingUsage?.id) {
+        const { error: updateError } = await supabase
+          .from('token_usage')
+          .update({
+            total_tokens: newTotalTokens,
+            monthly_reset: newMonthlyReset,
+            model: modelUsed,
+          })
+          .eq('id', existingUsage.id)
+
+        if (updateError) {
+          console.error('Error updating token usage:', updateError)
+        } else {
+          console.log(`Token usage updated. New total: ${newTotalTokens}`)
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('token_usage')
+          .insert({
+            id: randomUUID(),
+            user_id: user.id,
+            total_tokens: newTotalTokens,
+            model: modelUsed,
+            monthly_reset: newMonthlyReset,
+          })
+
+        if (insertError) {
+          console.error('Error inserting token usage:', insertError)
+        } else {
+          console.log(`Token usage inserted. Total: ${newTotalTokens}`)
+        }
       }
     }
 
