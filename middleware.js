@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
+  // Enforce canonical domain to avoid OAuth redirect URL mismatches
+  // Redirect all www.chromie.dev traffic to chromie.dev
+  if (request.nextUrl.hostname === 'www.chromie.dev') {
+    const url = request.nextUrl.clone()
+    url.hostname = 'chromie.dev'
+    return NextResponse.redirect(url, 308)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })

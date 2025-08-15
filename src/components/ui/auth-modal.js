@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Zap, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 
@@ -12,6 +12,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
   const [error, setError] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const { supabase } = useSession()
+
+  console.log('🔍 AuthModal render - isOpen:', isOpen, 'redirectUrl:', redirectUrl)
 
   useEffect(() => {
     // Check for auth errors in URL params when modal opens
@@ -53,20 +55,37 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
     setLoading(true)
     setError("")
     try {
+      // Prefer canonical site URL from env in production; fallback to current origin
+      const envSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+      const siteOrigin = envSiteUrl || currentOrigin
+      const redirectUrlToSend = `${siteOrigin}/api/auth/callback`
+      console.log('🔍 Debug - Redirect URL being sent to Google:', redirectUrlToSend)
+      console.log('🔍 Debug - env NEXT_PUBLIC_SITE_URL:', envSiteUrl)
+      console.log('🔍 Debug - window.location.origin:', currentOrigin)
+      console.log('🔍 Debug - redirectUrl prop:', redirectUrl)
+      console.log('🔍 Debug - About to call Supabase OAuth...')
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent(redirectUrl || '/builder')}`,
+          redirectTo: redirectUrlToSend,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
           },
         },
       })
+      
       if (error) {
+        console.error('❌ Supabase OAuth error:', error)
         setError(error.message)
+      } else {
+        console.log('✅ Supabase OAuth initiated successfully - redirecting to Google...')
+        console.log('🔍 Debug - User will be redirected to Google OAuth')
       }
     } catch (err) {
+      console.error('❌ Exception in handleGoogleAuth:', err)
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
@@ -76,6 +95,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+        <DialogTitle className="sr-only">Authentication</DialogTitle>
+        <div className="sr-only">Sign in or create an account to continue building Chrome extensions</div>
         <div className="relative">
           {/* Close button */}
           <button
