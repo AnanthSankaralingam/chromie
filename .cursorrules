@@ -3,7 +3,10 @@
 ## core principles
 - focus exclusively on core functionality for each feature request
 - avoid feature creep and unnecessary complexity
-- prioritize essential user workflows
+- prioritize essential user workflows and app security
+
+## commands
+- use syntax for windows powershell
 
 ## architecture
 - use pages router pattern
