@@ -111,34 +111,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
         {sessionStatus === "ready" && sessionData && (
           <div className="p-4 border-t border-gray-200 bg-blue-50">
             <div className="flex items-start space-x-3">
-              <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">How to test your extension:</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>Extension Icon:</strong> Look for your extension icon in the browser toolbar</li>
-                  <li>• <strong>Popup:</strong> Click the extension icon to open the popup interface</li>
-                  <li>• <strong>Content Scripts:</strong> Navigate to matching websites to see content script effects</li>
-                  <li>• <strong>Developer Tools:</strong> Right-click → Inspect → Console tab to see any errors</li>
-                </ul>
-                <div className="mt-2 flex items-center space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                    onClick={() => window.open('chrome://extensions/', '_blank')}
-                  >
-                    Open Extensions Page
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                    onClick={() => window.open(sessionData.iframeUrl, '_blank')}
-                  >
-                    Open in New Tab
-                  </Button>
-                </div>
-              </div>
+              {/* //TODO add instructions/render html */}
             </div>
           </div>
         )}
