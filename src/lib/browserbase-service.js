@@ -21,10 +21,8 @@ export class BrowserBaseService {
    */
   async createTestSession(extensionFiles = {}, projectId) {
     try {
-      console.log("Creating test session with:", { extensionFiles, projectId })
       const resolvedProjectId = projectId || this.projectId
       console.log("Resolved project ID:", resolvedProjectId)
-      console.log("API Key available:", !!this.apiKey)
       
       if (!this.apiKey) {
         throw new Error("Missing BROWSERBASE_API_KEY")
@@ -66,7 +64,8 @@ export class BrowserBaseService {
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
-      console.log("Session created:", session)
+      console.log("Session created!")
+
 
       // Fetch Live View URLs for embedding the interactive browser (retry briefly until ready)
       let liveViewLinks = null
@@ -215,18 +214,14 @@ export class BrowserBaseService {
   async terminateSession(sessionId) {
     try {
       if (!sessionId) return false
-      // Use REST API to terminate session (SDK may not expose delete)
-      const res = await fetch(`${this.baseUrl}/v1/sessions/${sessionId}`, {
-        method: "DELETE",
-        headers: {
-          "X-BB-API-Key": this.apiKey,
-        },
+      
+      // Use the existing client instance to request session release
+      await this.client.sessions.update(sessionId, {
+        status: "REQUEST_RELEASE",
+        projectId: this.projectId,
       })
-      if (!res.ok) {
-        const text = await res.text().catch(() => "")
-        console.error("Browserbase terminate failed:", res.status, text)
-        return false
-      }
+      
+      console.log("Session release requested for:", sessionId)
       return true
     } catch (error) {
       console.error("Failed to terminate session:", error)
