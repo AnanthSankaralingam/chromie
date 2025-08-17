@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useSession } from './SessionProviderClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function AuthHandler() {
+function AuthHandlerContent() {
   const { supabase, session, isLoading } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -22,4 +22,17 @@ export default function AuthHandler() {
   }, [searchParams, router])
 
   return null // This component doesn't render anything
+}
+
+// Loading fallback component
+function AuthHandlerLoading() {
+  return null // This component doesn't render anything, so no loading state needed
+}
+
+export default function AuthHandler() {
+  return (
+    <Suspense fallback={<AuthHandlerLoading />}>
+      <AuthHandlerContent />
+    </Suspense>
+  )
 }

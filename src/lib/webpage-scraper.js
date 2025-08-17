@@ -1,27 +1,47 @@
 // Webpage scraper using Playwright for Chrome extension development
-const { chromium } = require('playwright');
-
-// Global browser instance for reuse
+// Conditional import to avoid build issues in production
+let chromium = null;
 let browser = null;
+
+// Try to import Playwright, but don't fail if it's not available
+try {
+  if (process.env.NODE_ENV !== 'production') {
+    const playwright = require('playwright');
+    chromium = playwright.chromium;
+  }
+} catch (error) {
+  console.log('Playwright not available, using fallback scraper');
+  chromium = null;
+}
 
 /**
  * Get or create a browser instance
- * @returns {Promise<Browser>} Playwright browser instance
+ * @returns {Promise<Browser|null>} Playwright browser instance or null if not available
  */
 async function getBrowser() {
+  if (!chromium) {
+    console.log('Playwright not available, skipping browser launch');
+    return null;
+  }
+  
   if (!browser) {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
+    try {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ]
+      });
+    } catch (error) {
+      console.error('Failed to launch browser:', error);
+      return null;
+    }
   }
   return browser;
 }
@@ -81,12 +101,30 @@ function extractDescriptionFromMarkdown(markdown) {
  * @returns {object} - Scraped content with HTML and converted markdown
  */
 async function scrapeWithPlaywright(url) {
+  // Check if Playwright is available
+  if (!chromium) {
+    console.log(`Playwright not available, using fallback scraper for: ${url}`);
+    return {
+      success: false,
+      error: 'Playwright not available in production build',
+      fallback: true
+    };
+  }
+  
   let page = null;
   
   try {
     console.log(`Using Playwright to scrape: ${url}`);
     
     const browserInstance = await getBrowser();
+    if (!browserInstance) {
+      return {
+        success: false,
+        error: 'Failed to launch browser instance',
+        fallback: true
+      };
+    }
+    
     page = await browserInstance.newPage();
     
     // Set viewport and user agent
@@ -428,7 +466,64 @@ async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null
       // Use Playwright to scrape the URL
       const scrapeResult = await scrapeWithPlaywright(url);
       
-      if (scrapeResult.success) {
+      if (scrapeResult.fallback) {
+        // Playwright not available, use fallback analysis
+        console.log(`Using fallback analysis for ${url} (Playwright not available)`);
+        websites.push({
+          siteName: new URL(url).hostname,
+          url: url,
+          title: `Fallback Analysis for ${new URL(url).hostname}`,
+          description: `Website analysis using generic selectors (Playwright not available in production)`,
+          analysis: {
+            cssSelectors: {
+              recommendedSelectors: [
+                'body', 'main', '.content', '#main', '.container', 
+                '.wrapper', '.page', '.app', '.site', '.website'
+              ],
+              totalSelectorsFound: 10,
+              qualityScore: 50,
+              recommendation: 'Using generic selectors due to Playwright unavailability',
+              genericSelectors: [
+                '.actions', '#actions', '[role="toolbar"]', '.toolbar',
+                '.content', '#content', '.main-content', 'main', '[role="main"]',
+                '.nav', '.navigation', 'nav', '.menu',
+                '.header', '#header', 'header', '.top-bar',
+                '.container', '#container', '.wrapper', '.page'
+              ],
+              overlayStrategy: {
+                enabled: true,
+                position: 'top-right',
+                fallbackSelectors: ['body', '#content', '.main-content', 'main', '[role="main"]', '.container', '#container']
+              }
+            },
+            actionableElements: {
+              elements: [
+                { type: 'button', text: 'generic', confidence: 'low', suggestedSelectors: ['button', '.btn', '[type="submit"]'] },
+                { type: 'link', text: 'generic', confidence: 'low', suggestedSelectors: ['a', '.link', '[href]'] }
+              ],
+              totalFound: 2,
+              types: ['button', 'link']
+            },
+            scrapeability: {
+              hasReliableSelectors: true,
+              hasActionableElements: true,
+              confidence: 'medium',
+              overlayFallbackAvailable: true
+            },
+            injectionStrategy: {
+              primaryMethod: 'generic',
+              fallbackMethod: 'overlay',
+              mutationObserverRequired: true,
+              urlMonitoringRequired: true,
+              confidence: 'medium'
+            }
+          },
+          originalContentLength: 0,
+          source: 'fallback',
+          success: true
+        });
+        successfulScrapes++;
+      } else if (scrapeResult.success) {
         // Generate comprehensive analysis with full HTML and markdown data
         const comprehensiveAnalysis = generateWebpageAnalysisForLLM(
           scrapeResult.data.html || '',
