@@ -1,60 +1,19 @@
-// Webpage scraper using Playwright for Chrome extension development
-// Conditional import to avoid build issues in production
-let chromium = null;
-let browser = null;
+// Webpage scraper using Lambda function for Chrome extension development
+// 
+// Required environment variables:
+// - AWS_REGION: AWS region (default: us-east-1)
+// - AWS_ACCESS_KEY_ID: AWS access key
+// - AWS_SECRET_ACCESS_KEY: AWS secret key
+// - SCRAPER_LAMBDA_FUNCTION_NAME: Lambda function name (default: webpage-scraper)
+//
+const AWS = require('aws-sdk');
 
-// Try to import Playwright, but don't fail if it's not available
-try {
-  if (process.env.NODE_ENV !== 'production') {
-    const playwright = require('playwright');
-    chromium = playwright.chromium;
-  }
-} catch (error) {
-  console.log('Playwright not available, using fallback scraper');
-  chromium = null;
-}
-
-/**
- * Get or create a browser instance
- * @returns {Promise<Browser|null>} Playwright browser instance or null if not available
- */
-async function getBrowser() {
-  if (!chromium) {
-    console.log('Playwright not available, skipping browser launch');
-    return null;
-  }
-  
-  if (!browser) {
-    try {
-      browser = await chromium.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
-      });
-    } catch (error) {
-      console.error('Failed to launch browser:', error);
-      return null;
-    }
-  }
-  return browser;
-}
-
-/**
- * Close the browser instance
- */
-async function closeBrowser() {
-  if (browser) {
-    await browser.close();
-    browser = null;
-  }
-}
+// Configure AWS SDK
+const lambda = new AWS.Lambda({
+  region: process.env.AWS_REGION || 'us-east-1',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
 
 /**
  * Convert HTML content to markdown-like format
@@ -96,129 +55,79 @@ function extractDescriptionFromMarkdown(markdown) {
 }
 
 /**
- * Primary scraper using Playwright for HTML content
+ * Call Lambda function for web scraping
  * @param {string} url - The URL to scrape
- * @returns {object} - Scraped content with HTML and converted markdown
+ * @returns {Promise<object>} - Scraped content with HTML and converted markdown
  */
-async function scrapeWithPlaywright(url) {
-  // Check if Playwright is available
-  if (!chromium) {
-    console.log(`Playwright not available, using fallback scraper for: ${url}`);
-    return {
-      success: false,
-      error: 'Playwright not available in production build',
-      fallback: true
-    };
-  }
-  
-  let page = null;
-  
+async function scrapeWithLambda(url) {
   try {
-    console.log(`Using Playwright to scrape: ${url}`);
+    console.log(`Calling Lambda scraper for: ${url}`);
     
-    const browserInstance = await getBrowser();
-    if (!browserInstance) {
-      return {
-        success: false,
-        error: 'Failed to launch browser instance',
-        fallback: true
-      };
+    const params = {
+      FunctionName: process.env.SCRAPER_LAMBDA_FUNCTION_NAME || 'chromie-scraper-new',
+      InvocationType: 'RequestResponse',
+      Payload: JSON.stringify({
+        url: url,
+        max_pages: 2,
+        render: true
+      })
+    };
+
+    const result = await lambda.invoke(params).promise();
+    
+    if (result.StatusCode !== 200) {
+      throw new Error(`Lambda invocation failed with status: ${result.StatusCode}`);
+    }
+
+    const payload = JSON.parse(result.Payload);
+    
+    if (payload.errorMessage) {
+      throw new Error(`Lambda execution error: ${payload.errorMessage}`);
+    }
+
+    console.log(`✅ Lambda scraper completed for ${url}`);
+    
+    // Parse the body if it's a string (Lambda API Gateway format)
+    let lambdaData = payload;
+    if (payload.body && typeof payload.body === 'string') {
+      try {
+        lambdaData = JSON.parse(payload.body);
+      } catch (e) {
+        console.error('Failed to parse lambda body:', e);
+        lambdaData = payload;
+      }
     }
     
-    page = await browserInstance.newPage();
-    
-    // Set viewport and user agent
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    });
-    
-    // Navigate to the page with a timeout
-    await page.goto(url, { 
-      waitUntil: 'domcontentloaded', 
-      timeout: 30000 
-    });
-    
-    // Wait a bit for any dynamic content to load
-    await page.waitForTimeout(2000);
-    
-    // Extract HTML content
-    const html = await page.content();
-    
-    // Extract text content for markdown-like representation
-    const textContent = await page.evaluate(() => {
-      // Remove script and style elements
-      const scripts = document.querySelectorAll('script, style, noscript');
-      scripts.forEach(el => el.remove());
-      
-      // Get page title
-      const title = document.title || '';
-      
-      // Get meta description
-      const metaDesc = document.querySelector('meta[name="description"]');
-      const description = metaDesc ? metaDesc.getAttribute('content') : '';
-      
-      // Get main content
-      const body = document.body;
-      let mainContent = '';
-      
-      if (body) {
-        // Try to find main content area
-        const mainElement = body.querySelector('main, article, .content, .main, #content, #main') || body;
-        mainContent = mainElement.innerText || mainElement.textContent || '';
-      }
-      
-      return {
-        title,
-        description,
-        content: mainContent.trim()
-      };
-    });
-    
-    // Convert to markdown-like format
-    const markdown = convertToMarkdown(textContent.content, textContent.title);
-    
-    // Log what was actually extracted
-    console.log(`\n📋 ===== PLAYWRIGHT EXTRACTION RESULTS =====`);
-    console.log(`🌐 URL: ${url}`);
-    console.log(`📄 Title extracted: "${textContent.title}"`);
-    console.log(`📝 Description extracted: "${textContent.description}"`);
-    console.log(`📏 Raw HTML length: ${html.length} characters`);
-    console.log(`📄 Text content length: ${textContent.content.length} characters`);
-    console.log(`📖 Markdown length: ${markdown.length} characters`);
-    
-    // Show a preview of the extracted text content
-    console.log(`\n📖 TEXT CONTENT PREVIEW (first 300 chars):`);
-    console.log(textContent.content.substring(0, 300) + '...');
-    
-    // Show markdown structure
-    console.log(`\n📝 MARKDOWN STRUCTURE PREVIEW (first 300 chars):`);
-    console.log(markdown.substring(0, 300) + '...');
-    console.log(`==============================================\n`);
+    // Extract data from the new lambda response format
+    const pages = lambdaData.pages || [];
+    const firstPage = pages[0] || {};
     
     return {
       success: true,
       data: {
-        html: html,
-        markdown: markdown,
+        html: '', // Lambda doesn't return raw HTML
+        markdown: '', // Lambda doesn't return markdown
         metadata: {
-          title: textContent.title || extractTitleFromMarkdown(markdown),
-          description: textContent.description || extractDescriptionFromMarkdown(markdown),
+          title: firstPage.title || '',
+          description: firstPage.description || '',
           sourceURL: url
-        }
+        },
+        // Add the new lambda response data
+        lambdaData: lambdaData,
+        pages: pages,
+        topActions: firstPage.top_actions || [],
+        forms: firstPage.forms || [],
+        headings: firstPage.headings || []
       }
     };
-    
+
   } catch (error) {
-    console.error(`Playwright scraping failed for ${url}:`, error.message);
+    console.error(`Lambda scraping failed for ${url}:`, error.message);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      fallback: true
     };
-  } finally {
-    if (page) {
-      await page.close();
-    }
   }
 }
 
@@ -464,16 +373,16 @@ async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null
     
     try {
       // Use Playwright to scrape the URL
-      const scrapeResult = await scrapeWithPlaywright(url);
+      const scrapeResult = await scrapeWithLambda(url);
       
       if (scrapeResult.fallback) {
-        // Playwright not available, use fallback analysis
-        console.log(`Using fallback analysis for ${url} (Playwright not available)`);
+        // Lambda not available or failed, use fallback analysis
+        console.log(`Using fallback analysis for ${url} (Lambda scraper not available)`);
         websites.push({
           siteName: new URL(url).hostname,
           url: url,
           title: `Fallback Analysis for ${new URL(url).hostname}`,
-          description: `Website analysis using generic selectors (Playwright not available in production)`,
+          description: `Website analysis using generic selectors (Lambda scraper not available or failed)`,
           analysis: {
             cssSelectors: {
               recommendedSelectors: [
@@ -482,7 +391,7 @@ async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null
               ],
               totalSelectorsFound: 10,
               qualityScore: 50,
-              recommendation: 'Using generic selectors due to Playwright unavailability',
+              recommendation: 'Using generic selectors due to Lambda scraper unavailability',
               genericSelectors: [
                 '.actions', '#actions', '[role="toolbar"]', '.toolbar',
                 '.content', '#content', '.main-content', 'main', '[role="main"]',
@@ -540,7 +449,7 @@ async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null
           description: scrapeResult.data.metadata?.description,
           analysis: comprehensiveAnalysis,
           originalContentLength: scrapeResult.data.markdown?.length || 0,
-          source: 'playwright',
+          source: 'lambda',
           success: true
         });
         
@@ -632,7 +541,6 @@ async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null
 
 module.exports = {
   scrapeWebsitesForExtension,
-  scrapeWithPlaywright,
-  generateWebpageAnalysisForLLM,
-  closeBrowser
+  scrapeWithLambda,
+  generateWebpageAnalysisForLLM
 };
