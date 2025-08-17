@@ -60,6 +60,7 @@ function extractDescriptionFromMarkdown(markdown) {
  * @returns {Promise<object>} - Scraped content with HTML and converted markdown
  */
 async function scrapeWithLambda(url) {
+  // Lambda scraper call for scraping the webpage
   try {
     console.log(`Calling Lambda scraper for: ${url}`);
     
