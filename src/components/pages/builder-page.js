@@ -36,6 +36,7 @@ import AIChat from "@/components/ui/ai-chat"
 import TestModal from "@/components/ui/test-modal"
 import AuthModal from "@/components/ui/auth-modal"
 import AppBarBuilder from "@/components/ui/app-bar-builder"
+import MonacoEditor from "@/components/ui/monaco-editor"
 import { useSession } from '@/components/SessionProviderClient'
 import JSZip from 'jszip'
 
@@ -45,7 +46,16 @@ export default function BuilderPage() {
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [expandedFolders, setExpandedFolders] = useState({})
-  const [dividerPosition, setDividerPosition] = useState(50)
+  const [dividerPosition, setDividerPosition] = useState(() => {
+    // Load saved divider position from localStorage, default to 33.33
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('chromie_divider_position')
+      const position = saved ? parseFloat(saved) : 33.33
+      console.log('Initial divider position loaded:', position)
+      return position
+    }
+    return 33.33
+  })
   const [isDragging, setIsDragging] = useState(false)
   const [fileStructure, setFileStructure] = useState([])
   const containerRef = useRef(null)
@@ -433,7 +443,56 @@ export default function BuilderPage() {
   }
 
   const handleFileSelect = (file) => {
+    console.log('File selected:', file.name, 'Current divider position:', dividerPosition)
     setSelectedFile(file)
+  }
+
+  const handleFileSave = async (content) => {
+    if (!selectedFile || !currentProjectId) {
+      console.error('No file selected or project ID available')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}/files`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: selectedFile.fullPath,
+          content: content
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save file')
+      }
+
+      // Update the file content in the local state
+      setFileStructure(prevStructure => {
+        const updateFileInTree = (items) => {
+          return items.map(item => {
+            if (item.type === 'file' && item.fullPath === selectedFile.fullPath) {
+              return { ...item, content: content }
+            } else if (item.type === 'folder' && item.children) {
+              return { ...item, children: updateFileInTree(item.children) }
+            }
+            return item
+          })
+        }
+        return updateFileInTree(prevStructure)
+      })
+
+      // Update the selected file content
+      setSelectedFile(prev => ({ ...prev, content: content }))
+
+      console.log('File saved successfully:', selectedFile.name)
+    } catch (error) {
+      console.error('Error saving file:', error)
+      throw error
+    }
   }
 
   const handleDownloadZip = async () => {
@@ -506,8 +565,12 @@ export default function BuilderPage() {
       const rect = container.getBoundingClientRect()
       const newPosition = ((e.clientX - rect.left) / rect.width) * 100
 
-      const constrainedPosition = Math.min(Math.max(newPosition, 20), 80)
+      const constrainedPosition = Math.min(Math.max(newPosition, 25), 45)
+      console.log('Setting divider position to:', constrainedPosition)
       setDividerPosition(constrainedPosition)
+      // Save to localStorage
+      localStorage.setItem('chromie_divider_position', constrainedPosition.toString())
+      console.log('Saved to localStorage:', constrainedPosition)
     }
 
     const handleMouseUp = () => {
@@ -791,7 +854,7 @@ export default function BuilderPage() {
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
-          <div className="w-80 lg:w-80 md:w-72 sm:w-64 border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
+          <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
             <AIChat
               projectId={currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
@@ -806,7 +869,7 @@ export default function BuilderPage() {
             />
           </div>
 
-          {/* Main Content Area with Resizable Panels */}
+          {/* Main Content Area with Resizable Panels - This is the container for the resizable panels */}
           <div className="flex-1 flex" ref={containerRef}>
             {/* Project Files Panel */}
             <div className="border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up" style={{ width: `${dividerPosition}%` }}>
@@ -873,98 +936,41 @@ export default function BuilderPage() {
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-12 bg-gradient-to-b from-purple-500/30 to-blue-500/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
 
-            {/* File Editor Panel */}
-            <div className="flex flex-col bg-gradient-to-b from-slate-800/20 to-slate-900/20 animate-fade-in-up" style={{ width: `${100 - dividerPosition}%` }}>
-              <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <FileCode className="h-5 w-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Code Editor</h3>
-                  </div>
-                  {selectedFile && (
-                    <div className="flex items-center space-x-3">
-                      <Badge variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10 px-3 py-1">
-                        {selectedFile.name}
-                      </Badge>
-                      <div className="flex items-center space-x-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                          onClick={() => handleCopyFile(selectedFile)}
-                          title="Copy file content"
-                        >
-                          {copiedFile === selectedFile.name ? (
-                            <Check className="h-4 w-4 text-green-400" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                          <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
+            {/* File Editor Panel - Full IDE Style */}
+            <div className="flex flex-col bg-slate-900 border-l border-slate-700/50" style={{ width: `${100 - dividerPosition}%` }}>
+              {selectedFile ? (
+                <MonacoEditor 
+                  code={selectedFile.content}
+                  fileName={selectedFile.name}
+                  className="h-full"
+                  onSave={handleFileSave}
+                  readOnly={false}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center bg-slate-900">
+                  <div className="text-center max-w-md animate-fade-in-up">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
+                      <FileCode className="h-10 w-10 text-purple-400" />
+                    </div>
+                    <h3 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">VS Code Editor</h3>
+                    <p className="text-slate-400 mb-6 leading-relaxed">Select a file from the project tree to start coding with full IDE features</p>
+                    <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
+                        <span className="font-medium">IntelliSense</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
+                        <span className="font-medium">Syntax Highlighting</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-pulse"></div>
+                        <span className="font-medium">Auto-complete</span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex-1 p-6">
-                {selectedFile ? (
-                  <div className="h-full flex flex-col">
-                    <div className="flex-1 glass-effect rounded-xl p-6 shadow-2xl overflow-hidden hover-lift">
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
-                        <div className="flex items-center space-x-3">
-                          {getFileIcon(selectedFile.name)}
-                          <span className="font-medium text-white">{selectedFile.name}</span>
-                          <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">
-                            {selectedFile.content.split('\n').length} lines
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="flex space-x-1">
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="h-[calc(100%-60px)] overflow-auto custom-scrollbar">
-                        <pre className="text-sm text-slate-300 whitespace-pre-wrap code-editor">
-                          <code className="language-javascript">{selectedFile.content}</code>
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center max-w-md animate-fade-in-up">
-                      <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
-                        <FileCode className="h-10 w-10 text-purple-400" />
-                      </div>
-                      <h3 className="text-2xl font-semibold mb-3 gradient-text-secondary">Ready to Code</h3>
-                      <p className="text-slate-400 mb-6 leading-relaxed">Select a file from the project tree to view and edit its contents with enhanced syntax highlighting</p>
-                      <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
-                        <div className="flex items-center space-x-2 hover-lift">
-                          <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
-                          <span className="font-medium">JavaScript</span>
-                        </div>
-                        <div className="flex items-center space-x-2 hover-lift">
-                          <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
-                          <span className="font-medium">CSS</span>
-                        </div>
-                        <div className="flex items-center space-x-2 hover-lift">
-                          <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-pink-400 rounded-full animate-pulse"></div>
-                          <span className="font-medium">HTML</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
