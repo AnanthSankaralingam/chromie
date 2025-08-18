@@ -9,7 +9,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hi! I'm your Chrome extension assistant. Tell me what you'd like in your extension.",
+      content: "hi! i'm chromie, your chrome extension assistant. tell me what you'd like in your extension.",
     },
   ])
   const [inputMessage, setInputMessage] = useState("")
@@ -56,7 +56,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     if (!projectId) {
       const errorMessage = {
         role: "assistant",
-        content: "Please wait while I set up your project, then try again.",
+        content: "please wait while i set up your project, then try again.",
       }
       setMessages((prev) => [...prev, errorMessage])
       return
@@ -78,7 +78,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       // Add "generating code..." message immediately
       const generatingMessage = {
         role: "assistant",
-        content: "🚀 Generating code...",
+        content: "🚀 generating code...",
       }
       replaceOrAddMessage(generatingMessage)
       
@@ -100,7 +100,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
 
       // Handle different response scenarios
       if (response.status === 403) {
-        content = data.error || "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
+        content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping
         console.log('URL required for scraping:', data.message);
@@ -108,7 +108,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         // Replace "generating code..." with URL request message
         const urlRequestMessage = {
           role: "assistant",
-          content: "🔗 I need to analyze the specific webpage structure to build this extension effectively. Please provide the URL of the website you want the extension to work with.",
+          content: "🔗 i need to analyze the specific webpage structure to build this extension effectively. please provide the url of the website you want the extension to work with.",
         }
         
         replaceOrAddMessage(urlRequestMessage, (lastMessage) => 
@@ -122,7 +122,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       } else if (data.error) {
         content = `Error: ${data.error}`
       } else {
-        content = "Code generated successfully!"
+        content = "code generated successfully!"
       }
 
       const assistantMessage = {
@@ -157,7 +157,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       console.error("Error generating code:", error)
       const errorMessage = {
         role: "assistant",
-        content: "Sorry, I encountered an error while generating your extension. Please try again.",
+        content: "sorry, i encountered an error while generating your extension. please try again.",
       }
       
       // Replace the "generating code..." message with the error message
@@ -235,7 +235,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     if (!projectId) {
       const errorMessage = {
         role: "assistant",
-        content: "Please wait while I set up your project, then try again.",
+        content: "please wait while i set up your project, then try again.",
       }
       setMessages((prev) => [...prev, errorMessage])
       return
@@ -254,7 +254,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       // Add "generating code..." message immediately
       const generatingMessage = {
         role: "assistant",
-        content: "🚀 Generating code...",
+        content: "🚀 generating code...",
       }
       replaceOrAddMessage(generatingMessage)
       
@@ -276,7 +276,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
 
       // Handle different response scenarios
       if (response.status === 403) {
-        content = data.error || "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
+        content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping
         console.log('URL required for scraping:', data.message);
@@ -284,7 +284,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         // Replace "generating code..." with URL request message
         const urlRequestMessage = {
           role: "assistant",
-          content: "🔗 I need to analyze the specific webpage structure to build this extension effectively. Please provide the URL of the website you want the extension to work with.",
+          content: "🔗 i need to analyze the specific webpage structure to build this extension effectively. please provide the url of the website you want the extension to work with.",
         }
         
         setMessages((prev) => {
@@ -305,7 +305,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       } else if (data.error) {
         content = `Error: ${data.error}`
       } else {
-        content = "Code generated successfully!"
+        content = "code generated successfully!"
       }
 
       const assistantMessage = {
@@ -340,7 +340,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       console.error("Error during auto-generation:", error)
       const errorMessage = {
         role: "assistant",
-        content: "Sorry, I encountered an error while generating your extension. Please try again.",
+        content: "sorry, i encountered an error while generating your extension. please try again.",
       }
       
       // Replace the "generating code..." message with the error message
@@ -388,14 +388,14 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       <div class="url-prompt-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center;">
         <div class="url-prompt-container" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; color: black;">
           <div class="url-prompt-header">
-            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">🔗 URL Required for Better Results</h3>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">🔗 url required for better results</h3>
             <p style="color: #666; margin-bottom: 16px; line-height: 1.4;">${data.message}</p>
           </div>
           
           <div class="url-prompt-body">
             ${data.detectedSites && data.detectedSites.length > 0 ? `
               <div class="detected-sites" style="margin-bottom: 16px;">
-                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">Detected Sites:</h4>
+                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">detected sites:</h4>
                 <div class="site-suggestions" style="display: flex; flex-wrap: wrap; gap: 8px;">
                   ${data.detectedSites.map(site => `
                     <button class="site-suggestion-btn" data-url="https://${site}" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer; hover:background: #e5e7eb;">
@@ -408,7 +408,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
             
             ${data.detectedUrls && data.detectedUrls.length > 0 ? `
               <div class="detected-urls" style="margin-bottom: 16px;">
-                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">Detected URLs:</h4>
+                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">detected urls:</h4>
                 <div class="url-suggestions" style="display: flex; flex-wrap: wrap; gap: 8px;">
                   ${data.detectedUrls.map(url => `
                     <button class="url-suggestion-btn" data-url="${url}" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer; hover:background: #e5e7eb;">
@@ -452,7 +452,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     submitBtn.addEventListener('click', () => {
       const url = urlInput.value.trim();
       if (!url) {
-        alert('Please enter a URL or select a suggested site');
+        alert('please enter a url or select a suggested site');
         return;
       }
       
@@ -522,7 +522,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       
       const cancelMessage = {
         role: "assistant",
-        content: "URL request cancelled. Extension will be generated without specific website analysis.",
+        content: "url request cancelled. extension will be generated without specific website analysis.",
       }
       setMessages((prev) => [...prev, cancelMessage])
       setIsGenerating(false)
@@ -547,7 +547,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       // Add "generating code..." message immediately
       const generatingMessage = {
         role: "assistant",
-        content: "🚀 Generating code with real website data from " + new URL(userUrl).hostname + "...",
+        content: "🚀 generating code with real website data from " + new URL(userUrl).hostname + "...",
       }
       replaceOrAddMessage(generatingMessage)
       
@@ -568,13 +568,13 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       
       let content = ""
       if (response.status === 403) {
-        content = data.error || "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
+        content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.explanation) {
         content = `${data.explanation}`
       } else if (data.error) {
         content = `Error: ${data.error}`
       } else {
-        content = "Code generated successfully!"
+        content = "code generated successfully!"
       }
 
       const assistantMessage = {
@@ -609,7 +609,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       console.error("Error continuing generation with URL:", error)
       const errorMessage = {
         role: "assistant",
-        content: "Sorry, I encountered an error while generating your extension with the provided URL. Please try again.",
+        content: "sorry, i encountered an error while generating your extension with the provided url. please try again.",
       }
       
       // Replace the "generating code..." message with the error message
@@ -637,9 +637,9 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       <div className="p-4 border-b border-white/10">
         <h3 className="text-lg font-semibold mb-1 flex items-center">
           <Bot className="h-5 w-5 mr-2 text-purple-400" />
-          AI Assistant
+          chromie ai
         </h3>
-        <p className="text-sm text-slate-400">Ask me to modify your extension</p>
+        <p className="text-sm text-slate-400">let's build your personal assistant</p>
       </div>
 
       {/* Messages */}
@@ -681,7 +681,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
             <div className="bg-slate-700/50 border border-slate-600/50 p-3 rounded-lg">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent" />
-                <span className="text-sm text-slate-300">Generating code...</span>
+                <span className="text-sm text-slate-300">generating code...</span>
               </div>
             </div>
           </div>
@@ -696,7 +696,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe what you want to add or modify..."
+            placeholder="describe what you want to add or modify..."
             className="min-h-[80px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none"
             disabled={isGenerating}
           />
@@ -706,7 +706,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
             className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:opacity-50"
           >
             <Send className="h-4 w-4 mr-2" />
-            {isGenerating ? "Generating..." : !projectId ? "Setting up project..." : "Send"}
+            {isGenerating ? "generating..." : !projectId ? "setting up project..." : "send"}
           </Button>
         </form>
       </div>
