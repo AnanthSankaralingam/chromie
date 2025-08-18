@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
+import AuthHandler from "@/components/AuthHandler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,9 +18,11 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/chromie-logo-1.png" />
+        <meta name="google-site-verification" content="nAEDWE-ZXwUBJzvqb0DlBWsdtOX5-2xbPODlfoadkPc" />
       </head>
       <body className={inter.className}>
         <SessionProviderClient>
+          <AuthHandler />
           {children}
         </SessionProviderClient>
       </body>

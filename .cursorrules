@@ -1,0 +1,18 @@
+# nextjs no-code chrome extension builder
+
+## core principles
+- focus exclusively on core functionality for each feature request
+- avoid feature creep and unnecessary complexity
+- prioritize essential user workflows and app security
+
+## commands
+- use syntax for windows powershell
+
+## architecture
+- use pages router pattern
+- full pages go in src\components\pages
+- reusable UI components go in src\components\ui
+- create reusable UI components whenever needed
+
+## code style
+- log key information to test features as added

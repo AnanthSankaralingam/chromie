@@ -2,6 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
+  // Handle www redirect but preserve auth codes
+  if (request.nextUrl.hostname === 'www.chromie.dev') {
+    const url = request.nextUrl.clone()
+    url.hostname = 'chromie.dev'
+    
+    // Check if this is an OAuth callback with code parameter
+    const code = url.searchParams.get('code')
+    if (code) {
+      console.log('🔍 Middleware: OAuth code detected, preserving in redirect')
+    }
+    
+    return NextResponse.redirect(url, 308)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -30,20 +44,10 @@ export async function middleware(request) {
   // This will refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Skip auth logic for callback routes
-  if (request.nextUrl.pathname.startsWith('/api/auth/callback') || 
-      request.nextUrl.pathname.startsWith('/auth/callback')) {
-    return supabaseResponse
-  }
-
   // Redirect old auth pages to home or builder
-  if (request.nextUrl.pathname.startsWith('/login') || 
-      request.nextUrl.pathname.startsWith('/signup')) {
-    if (user) {
-      return NextResponse.redirect(new URL('/builder', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+  if (request.nextUrl.pathname.startsWith('/auth/signin') || 
+      request.nextUrl.pathname.startsWith('/auth/signup')) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return supabaseResponse
@@ -60,4 +64,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-} 
+}

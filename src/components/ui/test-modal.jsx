@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false }) {
-  const [iframeLoaded, setIframeLoaded] = useState(false)
   const [sessionStatus, setSessionStatus] = useState("loading")
 
   // Store session data for the embed page to access
@@ -18,22 +17,17 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   }, [sessionData])
 
   useEffect(() => {
+    console.log("TestModal received sessionData:", sessionData)
     if (isOpen && sessionData) {
-      setIframeLoaded(false)
-      setSessionStatus("loading")
+      setSessionStatus("ready")
     }
   }, [isOpen, sessionData])
 
-  const handleIframeLoad = () => {
-    setIframeLoaded(true)
-    setSessionStatus("ready")
-  }
-
-  const handleIframeError = () => {
-    setSessionStatus("error")
-  }
-
+  console.log("TestModal render - isOpen:", isOpen, "sessionData:", sessionData, "isLoading:", isLoading)
   if (!isOpen) return null
+
+  const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
+  console.log("TestModal liveUrl:", liveUrl, "sessionData keys:", sessionData ? Object.keys(sessionData) : null)
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
@@ -64,29 +58,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
           </div>
 
           <div className="flex items-center space-x-2">
-            {sessionData?.iframeUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRefresh}
-                disabled={isLoading}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-              </Button>
-            )}
-
-            {sessionData?.iframeUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open(sessionData.iframeUrl, "_blank")}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            )}
-
             <Button variant="ghost" size="sm" onClick={onClose} className="text-gray-600 hover:text-gray-900">
               <X className="h-4 w-4" />
             </Button>
@@ -95,36 +66,22 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
 
         {/* Content */}
         <div className="flex-1 relative">
-          {isLoading ? (
+          {isLoading || (isOpen && sessionData && !liveUrl) ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Setting up test environment...</h3>
-                <p className="text-gray-600">Loading your Chrome extension in BrowserBase</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Preparing live view...</h3>
+                <p className="text-gray-600">Connecting to your Browserbase session</p>
               </div>
             </div>
-          ) : sessionData?.iframeUrl ? (
-            <>
-              {/* Loading overlay */}
-              {!iframeLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mx-auto mb-3" />
-                    <p className="text-gray-600">Loading browser environment...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* BrowserBase iframe */}
-              <iframe
-                src={sessionData.iframeUrl}
-                className="w-full h-full border-0"
-                onLoad={handleIframeLoad}
-                onError={handleIframeError}
-                title="Extension Test Environment"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-              />
-            </>
+          ) : liveUrl ? (
+            <iframe
+              src={liveUrl}
+              className="absolute inset-0 w-full h-full border-0"
+              sandbox="allow-same-origin allow-scripts"
+              allow="clipboard-read; clipboard-write"
+              title="Browserbase Live View"
+            />
           ) : sessionStatus === "error" ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="text-center max-w-md">
@@ -154,34 +111,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
         {sessionStatus === "ready" && sessionData && (
           <div className="p-4 border-t border-gray-200 bg-blue-50">
             <div className="flex items-start space-x-3">
-              <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">How to test your extension:</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>Extension Icon:</strong> Look for your extension icon in the browser toolbar</li>
-                  <li>• <strong>Popup:</strong> Click the extension icon to open the popup interface</li>
-                  <li>• <strong>Content Scripts:</strong> Navigate to matching websites to see content script effects</li>
-                  <li>• <strong>Developer Tools:</strong> Right-click → Inspect → Console tab to see any errors</li>
-                </ul>
-                <div className="mt-2 flex items-center space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                    onClick={() => window.open('chrome://extensions/', '_blank')}
-                  >
-                    Open Extensions Page
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-blue-700 border-blue-300 hover:bg-blue-100"
-                    onClick={() => window.open(sessionData.iframeUrl, '_blank')}
-                  >
-                    Open in New Tab
-                  </Button>
-                </div>
-              </div>
+              {/* //TODO add instructions/render html */}
             </div>
           </div>
         )}
