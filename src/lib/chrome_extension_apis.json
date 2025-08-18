@@ -25,10 +25,6 @@
         "namespace": "chrome.accessibilityFeatures",
         "description": "Manage Chrome's accessibility features. This API relies on the ChromeSetting prototype of the type API for getting and setting individual accessibility features.",
         "permissions": {
-          "required": [
-            "accessibilityFeatures.read",
-            "accessibilityFeatures.modify"
-          ],
           "manifest_example": {
             "permissions": [
               "accessibilityFeatures.read",
@@ -40,16 +36,13 @@
         "code_example": {
           "description": "Get and set accessibility features",
           "code": "\n// Get the current state of screen reader\nchrome.accessibilityFeatures.screenReader.get({}, (details) => {\n  console.log('Screen reader enabled:', details.value);\n});\n\n// Enable high contrast\nchrome.accessibilityFeatures.highContrast.set({value: true}, () => {\n  console.log('High contrast enabled');\n});\n"
-        },
-        "compatibility": "Chrome 35+",
-        "manifest_version": "2, 3"
+        }
       },
       {
         "name": "action",
         "namespace": "chrome.action",
         "description": "Control the extension's icon in the Google Chrome toolbar.",
         "permissions": {
-          "required": [],
           "manifest_example": {
             "action": {
               "default_popup": "popup.html",
