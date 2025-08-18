@@ -4,6 +4,8 @@ import { analyzeExtensionRequirements } from "@/lib/openai-service"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
+import fs from "fs"
+import path from "path"
 
 export async function POST(request) {
   const supabase = createClient()
@@ -186,7 +188,39 @@ export async function POST(request) {
     const savedFiles = []
     const errors = []
 
-    for (const [filePath, content] of Object.entries(result.files)) {
+    // Automatically include icons folder for all extensions
+    const iconsDir = path.join(process.cwd(), 'icons')
+    const iconFiles = []
+    
+    try {
+      if (fs.existsSync(iconsDir)) {
+        const iconFilesList = fs.readdirSync(iconsDir)
+        for (const iconFile of iconFilesList) {
+          if (iconFile.endsWith('.png') || iconFile.endsWith('.ico')) {
+            const iconPath = path.join(iconsDir, iconFile)
+            const iconContent = fs.readFileSync(iconPath)
+            iconFiles.push({
+              file_path: `icons/${iconFile}`,
+              content: iconContent.toString('base64') // Store as base64 for binary files
+            })
+            console.log(`Including icon: ${iconFile} (${Math.round(iconContent.length / 1024)}KB)`)
+          }
+        }
+        console.log(`✅ Successfully included ${iconFiles.length} icon files in extension`)
+      } else {
+        console.warn('⚠️ Icons directory not found at:', iconsDir)
+      }
+    } catch (iconError) {
+      console.warn('⚠️ Could not read icons directory:', iconError.message)
+    }
+
+    // Combine generated files with icons
+    const allFiles = { ...result.files }
+    iconFiles.forEach(icon => {
+      allFiles[icon.file_path] = icon.content
+    })
+
+    for (const [filePath, content] of Object.entries(allFiles)) {
       try {
         // First, try to update existing file
         const { data: existingFile } = await supabase
