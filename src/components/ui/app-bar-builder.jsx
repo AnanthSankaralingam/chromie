@@ -36,8 +36,14 @@ export default function AppBarBuilder({
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Zap className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <Image 
+                  src="/chromie-logo-1.png" 
+                  alt="Chromie AI Logo" 
+                  width={40} 
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                 <Sparkles className="h-2.5 w-2.5 text-white" />
@@ -47,15 +53,8 @@ export default function AppBarBuilder({
               <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
                 chromie ai
               </Link>
-              <span className="text-xs text-slate-400 font-medium tracking-wide">EXTENSION BUILDER</span>
+              <span className="text-xs text-slate-400 font-medium tracking-wide">extension builder</span>
             </div>
-          </div>
-          <div className="hidden md:flex items-center space-x-3">
-            <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full opacity-60"></div>
-            <Badge variant="secondary" className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-300 border-purple-500/30 px-3 py-1 text-sm font-medium">
-              <Code2 className="h-3 w-3 mr-1.5" />
-              AI-Powered Development
-            </Badge>
           </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -68,7 +67,7 @@ export default function AppBarBuilder({
                   className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 px-4 py-2 font-medium"
                 >
                   <TestTube className="h-4 w-4 mr-2" />
-                  Test Extension
+                  test extension
                 </Button>
                 <Button 
                   onClick={onDownloadZip} 
@@ -79,10 +78,10 @@ export default function AppBarBuilder({
                   {isDownloading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      Downloading...
+                      downloading...
                     </>
                   ) : (
-                    "Download ZIP"
+                    "download zip"
                   )}
                 </Button>
               </div>

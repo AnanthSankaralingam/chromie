@@ -29,8 +29,6 @@ import {
   Search,
   Copy,
   Check,
-  Eye,
-  EyeOff,
 } from "lucide-react"
 import AIChat from "@/components/ui/ai-chat"
 import TestModal from "@/components/ui/test-modal"
@@ -73,7 +71,6 @@ export default function BuilderPage() {
   const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
   const [copiedFile, setCopiedFile] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false)
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -874,27 +871,18 @@ export default function BuilderPage() {
             {/* Project Files Panel */}
             <div className="border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up" style={{ width: `${dividerPosition}%` }}>
               <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <Layers className="h-5 w-5 text-purple-400" />
-                    <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Project Files</h3>
-                  </div>
-                  <button
-                    onClick={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
-                    title={isFileTreeCollapsed ? "Expand" : "Collapse"}
-                  >
-                    {isFileTreeCollapsed ? <Eye className="h-4 w-4 text-slate-400" /> : <EyeOff className="h-4 w-4 text-slate-400" />}
-                  </button>
+                <div className="flex items-center space-x-2 mb-3">
+                  <Layers className="h-5 w-5 text-purple-400" />
+                  <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">project files</h3>
                 </div>
-                <p className="text-sm text-slate-400 mb-3">Chrome extension structure</p>
+                <p className="text-sm text-slate-400 mb-3">chrome extension structure</p>
                 
                 {/* Search Bar */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search files..."
+                    placeholder="search files..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
@@ -902,13 +890,12 @@ export default function BuilderPage() {
                 </div>
               </div>
               
-              {!isFileTreeCollapsed && (
-                <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar">
+              <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar">
                   {isLoadingFiles ? (
                     <div className="flex flex-col items-center justify-center h-64 text-center">
                       <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-purple-500/30 border-t-purple-500 mb-4"></div>
-                      <h4 className="text-lg font-medium text-slate-400 mb-2">Loading Files</h4>
-                      <p className="text-sm text-slate-500">Fetching your project structure...</p>
+                      <h4 className="text-lg font-medium text-slate-400 mb-2">loading files</h4>
+                      <p className="text-sm text-slate-500">fetching your project structure...</p>
                     </div>
                   ) : fileStructure.length > 0 ? (
                     <div className="space-y-1">
@@ -919,12 +906,11 @@ export default function BuilderPage() {
                       <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 animate-pulse-glow">
                         <Package className="h-8 w-8 text-purple-400" />
                       </div>
-                      <h4 className="text-lg font-medium gradient-text-secondary mb-2">No Files Yet</h4>
-                      <p className="text-sm text-slate-500 max-w-48 leading-relaxed">Start by asking the AI assistant to generate your Chrome extension</p>
+                      <h4 className="text-lg font-medium gradient-text-secondary mb-2">no files yet</h4>
+                      <p className="text-sm text-slate-500 max-w-48 leading-relaxed">start by asking the ai assistant to generate your chrome extension</p>
                     </div>
                   )}
                 </div>
-              )}
             </div>
 
             {/* Resizable Divider */}
@@ -952,20 +938,20 @@ export default function BuilderPage() {
                     <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
                       <FileCode className="h-10 w-10 text-purple-400" />
                     </div>
-                    <h3 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">VS Code Editor</h3>
-                    <p className="text-slate-400 mb-6 leading-relaxed">Select a file from the project tree to start coding with full IDE features</p>
+                    <h3 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">chromie editor</h3>
+                    <p className="text-slate-400 mb-6 leading-relaxed">select a file from the project tree to start coding with full ide features</p>
                     <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">IntelliSense</span>
+                        <span className="font-medium">intellisense</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">Syntax Highlighting</span>
+                        <span className="font-medium">syntax highlighting</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">Auto-complete</span>
+                        <span className="font-medium">auto-complete</span>
                       </div>
                     </div>
                   </div>
