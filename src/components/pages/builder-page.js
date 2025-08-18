@@ -436,8 +436,26 @@ export default function BuilderPage() {
       const addFilesToZip = (items, zipFolder = zip) => {
         items.forEach(item => {
           if (item.type === "file") {
-            // Add file to zip
-            zipFolder.file(item.name, item.content)
+            // Check if this is an icon file (base64 encoded)
+            if (item.fullPath && item.fullPath.startsWith('icons/') && item.fullPath.match(/\.(png|ico)$/i)) {
+              try {
+                // Convert base64 back to binary for icon files
+                const binaryContent = atob(item.content)
+                const bytes = new Uint8Array(binaryContent.length)
+                for (let i = 0; i < binaryContent.length; i++) {
+                  bytes[i] = binaryContent.charCodeAt(i)
+                }
+                zipFolder.file(item.name, bytes)
+                console.log(`Added icon file: ${item.name}`)
+              } catch (iconError) {
+                console.warn(`Failed to process icon ${item.name}:`, iconError)
+                // Fallback to text content if base64 conversion fails
+                zipFolder.file(item.name, item.content)
+              }
+            } else {
+              // Regular text file
+              zipFolder.file(item.name, item.content)
+            }
           } else if (item.type === "folder" && item.children) {
             // Create folder in zip and add its contents
             const folder = zipFolder.folder(item.name)

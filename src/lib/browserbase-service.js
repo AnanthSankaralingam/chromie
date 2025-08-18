@@ -125,7 +125,23 @@ export class BrowserBaseService {
       const filePath = file.file_path || file.path || file.name
       if (!filePath) continue
       const content = file.content ?? ""
-      zip.file(filePath, content)
+      
+      // Check if this is an icon file (base64 encoded)
+      if (filePath.startsWith('icons/') && filePath.match(/\.(png|ico)$/i)) {
+        try {
+          // Convert base64 back to binary for icon files
+          const binaryContent = Buffer.from(content, 'base64')
+          zip.file(filePath, binaryContent)
+          console.log(`Added icon file to zip: ${filePath}`)
+        } catch (iconError) {
+          console.warn(`Failed to process icon ${filePath}:`, iconError)
+          // Fallback to text content if base64 conversion fails
+          zip.file(filePath, content)
+        }
+      } else {
+        // Regular text file
+        zip.file(filePath, content)
+      }
     }
 
     const buffer = await zip.generateAsync({ type: "nodebuffer" })
