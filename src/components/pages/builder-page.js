@@ -33,7 +33,7 @@ import {
   EyeOff,
 } from "lucide-react"
 import AIChat from "@/components/ui/ai-chat"
-import TestModal from "@/components/ui/test-modal"
+import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
 import AuthModal from "@/components/ui/auth-modal"
 import AppBarBuilder from "@/components/ui/app-bar-builder"
 import { useSession } from '@/components/SessionProviderClient'
@@ -48,6 +48,7 @@ export default function BuilderPage() {
   const [dividerPosition, setDividerPosition] = useState(50)
   const [isDragging, setIsDragging] = useState(false)
   const [fileStructure, setFileStructure] = useState([])
+  const [flatFiles, setFlatFiles] = useState([]) // Store original flat file array
   const containerRef = useRef(null)
 
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
@@ -140,30 +141,13 @@ export default function BuilderPage() {
 
   // Update project info when file structure changes (after code generation)
   useEffect(() => {
-    if (fileStructure.length > 0 && currentProjectId && !isLoadingFiles) {
-      // Convert file structure back to flat list for manifest parsing
-      const flattenFiles = (items) => {
-        let files = []
-        items.forEach(item => {
-          if (item.type === 'file') {
-            files.push({
-              file_path: item.fullPath,
-              content: item.content
-            })
-          } else if (item.children) {
-            files = files.concat(flattenFiles(item.children))
-          }
-        })
-        return files
-      }
-      
-      const flatFiles = flattenFiles(fileStructure)
+    if (flatFiles.length > 0 && currentProjectId && !isLoadingFiles) {
       const extensionInfo = extractExtensionInfo(flatFiles)
       if (extensionInfo) {
         updateProjectWithExtensionInfo(extensionInfo)
       }
     }
-  }, [fileStructure, currentProjectId, isLoadingFiles])
+  }, [flatFiles, currentProjectId, isLoadingFiles])
 
   const checkAndSetupProject = async () => {
     // Check if we have a project ID in URL state (from navigation)
@@ -348,7 +332,8 @@ export default function BuilderPage() {
       const data = await response.json()
       const files = data.files || []
 
-      // Transform flat file list into hierarchical structure
+      // Store both flat files for actions and transformed tree for display
+      setFlatFiles(files)
       const transformedFiles = transformFilesToTree(files)
       setFileStructure(transformedFiles)
 
@@ -437,7 +422,7 @@ export default function BuilderPage() {
   }
 
   const handleDownloadZip = async () => {
-    if (!currentProjectId || fileStructure.length === 0) {
+    if (!currentProjectId || flatFiles.length === 0) {
       console.error("No project or files available for download")
       return
     }
@@ -783,8 +768,8 @@ export default function BuilderPage() {
           onTestExtension={handleTestExtension}
           onDownloadZip={handleDownloadZip}
           onSignOut={handleSignOut}
-          isTestDisabled={!currentProjectId || fileStructure.length === 0}
-          isDownloadDisabled={!currentProjectId || fileStructure.length === 0}
+          isTestDisabled={!currentProjectId || flatFiles.length === 0}
+          isDownloadDisabled={!currentProjectId || flatFiles.length === 0}
           isGenerating={isGenerating}
           isDownloading={isDownloading}
         />
@@ -977,12 +962,14 @@ export default function BuilderPage() {
       />
 
       {/* Test Modal */}
-      <TestModal
+      <SideBySideTestModal
         isOpen={isTestModalOpen}
         onClose={handleCloseTestModal}
         sessionData={testSessionData}
         onRefresh={handleRefreshTest}
         isLoading={isTestLoading}
+        projectId={currentProjectId}
+        extensionFiles={flatFiles}
       />
     </>
   )
