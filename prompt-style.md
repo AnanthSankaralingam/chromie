@@ -8,18 +8,10 @@ Reasoning Phase
 Output Schema
 {
   "frontend_type": "popup | side_panel | overlay",
-  "docAPIs": {
-    "status": "success | skipped | failed",
-    "data": "documentation text or []"
-  },
-  "webPageData": {
-    "status": "success | skipped | failed",
-    "data": "raw text or structured JSON"
-  },
-  "ext_name": "string",
-  "ext_description": "string",
-  "capabilities": [list of capabilities the extension has (scraping, secure_api, storage) ]
-  ]
+  "docAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
+  "webPageData": [true/false, ["array of domains like 'youtube.com', 'twitter.com' or empty array if false"]],
+  "ext_name": "Descriptive extension name (3-5 words)",
+  "ext_description": "Clear description of what the extension does (1-2 sentences)"
 }
 
 Coding Phase
@@ -55,7 +47,6 @@ input schema:
     "other_files": "Raw text strings with proper newlines, no JSON encoding of content"
   },
   "file_creation_guidelines": "All created files must be listed in manifest.json if applicable.",
-  "security_rules": "Never hardcode API keys; always request user auth via chrome.identity if needed.",
   "final_reminder": "Prioritize overlay injection unless another type is explicitly set."
 }
 
