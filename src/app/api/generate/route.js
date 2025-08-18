@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateExtensionCode } from "@/lib/openai-service"
-import { REQUEST_TYPES } from "@/lib/prompts"
+import { analyzeExtensionRequirements } from "@/lib/openai-service"
+import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
 
@@ -18,7 +18,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -98,12 +98,12 @@ export async function POST(request) {
     }
 
     // Generate extension code using OpenAI
-    const result = await generateExtensionCode({
+    const result = await analyzeExtensionRequirements({
       featureRequest: prompt,
       requestType,
       sessionId: projectId,
       existingFiles,
-      userProvidedUrl,
+      userProvidedUrl: null, // Add this parameter for future use
     })
 
     // Handle URL prompt requirement
@@ -181,10 +181,6 @@ export async function POST(request) {
         }
       }
     }
-
-    // Debug: Log auth context
-    console.log("Auth context - User ID:", user.id)
-    console.log("Project ID:", projectId)
 
     // Save generated files to database - handle each file individually
     const savedFiles = []

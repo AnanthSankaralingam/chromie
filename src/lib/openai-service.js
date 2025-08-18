@@ -1,5 +1,12 @@
 import OpenAI from "openai"
-import { CODEGEN_SYSTEM_PROMPT, ADD_TO_EXISTING_SYSTEM_PROMPT, REQUEST_TYPES } from "./prompts"
+import { REQUEST_TYPES } from "./prompts/old-prompts"
+import { NEW_EXT_PLANNING_PROMPT } from "./prompts/planning"
+import { 
+  NEW_EXT_SIDEPANEL_PROMPT, 
+  NEW_EXT_POPUP_PROMPT, 
+  NEW_EXT_OVERLAY_PROMPT 
+} from "./prompts/new-coding"
+import { batchScrapeWebpages } from "./webpage-scraper"
 const chromeApisData = require('./chrome_extension_apis.json');
 
 const openai = new OpenAI({
@@ -40,412 +47,210 @@ function searchChromeExtensionAPI(apiName) {
     name: api.name,
     namespace: api.namespace,
     description: api.description,
-    permissions: api.permissions,
     code_example: api.code_example,
     compatibility: api.compatibility,
-    manifest_version: api.manifest_version,
   }
 }
 
-// Import the real scraper implementation
-const { scrapeWebsitesForExtension: realScrapeWebsitesForExtension } = require('./webpage-scraper')
-
-async function scrapeWebsitesForExtension(featureRequest, userProvidedUrl = null) {
-  // Use the real Playwright-based scraper
-  console.log("Using real scraper for:", featureRequest, userProvidedUrl)
+/**
+ * Generates Chrome extension code using the specified coding prompt
+ * @param {string} codingPrompt - The coding prompt to use
+ * @param {Object} replacements - Object containing placeholder replacements
+ * @returns {Promise<Object>} Generated extension code and metadata
+ */
+async function generateExtensionCode(codingPrompt, replacements) {
+  console.log("Generating extension code using coding prompt...")
   
-  try {
-    const result = await realScrapeWebsitesForExtension(featureRequest, userProvidedUrl)
-    
-    // Only log completion stats if scraping was actually completed
-    if (result.requiresUrlPrompt) {
-      console.log("URL prompt required for scraping")
-    } else {
-      console.log(`Real scraping completed: ${result.successfulScrapes}/${result.totalSites} sites scraped successfully`)
-    }
-    
-    return result
-  } catch (error) {
-    console.error("Real scraping failed, falling back to basic response:", error.message)
-    
-    // Fallback response if scraping fails completely
-    return {
-      analysis: `Scraping failed: ${error.message}. Using generic selectors for extension development.`,
-      totalSites: 1,
-      successfulScrapes: 0,
-      websites: [
-        {
-          siteName: userProvidedUrl ? new URL(userProvidedUrl).hostname : "target-site",
-          url: userProvidedUrl || "https://example.com",
-          title: "Scraping Failed",
-          description: "Unable to analyze website structure. Extension will use generic selectors.",
-          success: false,
-          source: "fallback",
-          analysis: {
-            cssSelectors: {
-              recommendedSelectors: ["body", "main", ".content", "#main"],
-              qualityScore: 30,
-              recommendation: "Use generic selectors due to scraping failure",
+  // Replace placeholders in the coding prompt
+  let finalPrompt = codingPrompt
+  for (const [placeholder, value] of Object.entries(replacements)) {
+    finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
+  }
+
+  const codingCompletion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "user", content: finalPrompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "extension_implementation",
+        schema: {
+          type: "object",
+          properties: {
+            explanation: { type: "string" },
+            "manifest.json": {
+              oneOf: [{ type: "string" }, { type: "object" }],
             },
-            actionableElements: {
-              totalFound: 0,
-              types: [],
-              elements: [],
-            },
-            scrapeability: {
-              confidence: "low",
-              hasReliableSelectors: false,
-              hasActionableElements: false,
-            },
+            "background.js": { type: "string" },
+            "content.js": { type: "string" },
+            "popup.html": { type: "string" },
+            "popup.js": { type: "string" },
+            "sidepanel.html": { type: "string" },
+            "sidepanel.js": { type: "string" },
+            "styles.css": { type: "string" },
           },
+          additionalProperties: { type: "string" },
+          required: ["explanation"],
         },
-      ],
-    }
-  }
+      },
+    },
+    temperature: 0.2,
+    max_tokens: 15000,
+  })
+
+  console.log("Code generation completed")
+  return codingCompletion
 }
 
-function buildDirectCodingPrompt({ extensionFiles, featureRequest, requestType, contextMessage }) {
-  let prompt = `${contextMessage}\n\n`
-
-  if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(extensionFiles).length > 0) {
-    prompt += `EXISTING EXTENSION FILES:\n`
-    for (const [filename, content] of Object.entries(extensionFiles)) {
-      prompt += `\n--- ${filename} ---\n${content}\n`
-    }
-    prompt += `\nEND OF EXISTING FILES\n\n`
-  }
-
-  prompt += `FEATURE REQUEST: ${featureRequest}\n\n`
-  prompt += `Please implement this feature ${requestType === REQUEST_TYPES.ADD_TO_EXISTING ? "while preserving all existing functionality" : "as a new Chrome extension"}.`
-
-  return prompt
-}
-
-export async function generateExtensionCode({
+/**
+ * Analyzes Chrome extension feature requests and creates structured implementation plans.
+ * 
+ * This function replaces the previous code generation approach with a planning-first approach
+ * that analyzes requirements before implementation. It returns a structured plan including:
+ * - Frontend type recommendation
+ * - Required Chrome APIs
+ * - Website analysis requirements  
+ * - Extension naming and description
+ * 
+ * @param {Object} params - Function parameters
+ * @param {string} params.featureRequest - User's feature request description
+ * @param {string} params.requestType - Type of request (new extension, add to existing, etc.)
+ * @param {string} params.sessionId - Session/project identifier
+ * @param {Object} params.existingFiles - Existing extension files (for add-to-existing requests)
+ * @param {string} params.userProvidedUrl - User-provided URL for website analysis
+ * @returns {Object} Requirements analysis with structured plan
+ */
+export async function analyzeExtensionRequirements({
   featureRequest,
   requestType = REQUEST_TYPES.NEW_EXTENSION,
   sessionId,
   existingFiles = {},
   userProvidedUrl = null,
 }) {
-  console.log(`Starting code generation for feature: ${featureRequest}`)
+  console.log(`Starting requirements analysis for feature: ${featureRequest}`)
   console.log(`Request type: ${requestType}`)
 
   try {
-    // Handle new vs. existing extension
-    let extensionFiles = {}
-    let contextMessage = ""
-
-    switch (requestType) {
-      case REQUEST_TYPES.NEW_EXTENSION:
-        console.log("Creating new extension from empty template...")
-        extensionFiles = {}
-        contextMessage = "Creating a new Chrome extension from scratch"
-        break
-
-      case REQUEST_TYPES.ADD_TO_EXISTING:
-        console.log("Adding to existing extension...")
-        extensionFiles = existingFiles
-        contextMessage = "Adding new features to the existing Chrome extension while preserving current functionality"
-        break
-
-      default:
-        extensionFiles = existingFiles
-        contextMessage = "Processing feature request for Chrome extension"
-        break
-    }
-
-    // Build the prompt
-    const directPrompt = buildDirectCodingPrompt({
-      extensionFiles,
-      featureRequest,
-      requestType,
-      contextMessage,
-    })
-
-    // Choose the appropriate system prompt based on request type and existing files
-    const hasExistingFiles = Object.keys(existingFiles).length > 0
-    const systemPrompt =
-      (requestType === REQUEST_TYPES.ADD_TO_EXISTING || hasExistingFiles) ? ADD_TO_EXISTING_SYSTEM_PROMPT : CODEGEN_SYSTEM_PROMPT
-
-    console.log(`Using ${(requestType === REQUEST_TYPES.ADD_TO_EXISTING || hasExistingFiles) ? "ADD_TO_EXISTING" : "CODEGEN"} system prompt`)
-
-    // Call OpenAI for direct implementation
-    const codingCompletion = await openai.chat.completions.create({
+    // First, call the planning prompt to analyze the request
+    const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
+    
+    console.log("Calling planning prompt to analyze extension requirements...")
+    
+    const planningCompletion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: directPrompt },
+        { role: "user", content: planningPrompt },
       ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "searchChromeExtensionAPI",
-            description: "Search for Chrome Extension API documentation, permissions, and code examples by API name",
-            parameters: {
-              type: "object",
-              properties: {
-                apiName: {
-                  type: "string",
-                  description:
-                    'The name of the Chrome Extension API to search for (e.g., "storage", "tabs", "notifications", "bookmarks")',
-                },
-              },
-              required: ["apiName"],
-            },
-          },
-        },
-        {
-          type: "function",
-          function: {
-            name: "scrapeWebsitesForExtension",
-            description:
-              "Scrape webpage content and structure to understand target websites for Chrome extension development",
-            parameters: {
-              type: "object",
-              properties: {
-                featureRequest: {
-                  type: "string",
-                  description:
-                    "The feature request that may contain website references or require understanding of specific webpage structures",
-                },
-              },
-              required: ["featureRequest"],
-            },
-          },
-        },
-      ],
-      tool_choice: "auto",
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "extension_implementation",
+          name: "extension_planning",
           schema: {
             type: "object",
             properties: {
-              explanation: { type: "string" },
-              "manifest.json": {
-                oneOf: [{ type: "string" }, { type: "object" }],
+              frontend_type: { 
+                type: "string", 
+                enum: ["popup", "side_panel", "overlay"] 
               },
-              "background.js": { type: "string" },
-              "content.js": { type: "string" },
-              "popup.html": { type: "string" },
-              "popup.js": { type: "string" },
-              "styles.css": { type: "string" },
+              docAPIs: { 
+                type: "array", 
+                items: { type: "string" } 
+              },
+              webPageData: { 
+                type: "array", 
+                items: { type: "string" }
+              },
+              ext_name: { type: "string" },
+              ext_description: { type: "string" }
             },
-            additionalProperties: { type: "string" },
-            required: ["explanation"],
+            required: ["frontend_type", "docAPIs", "webPageData", "ext_name", "ext_description"],
           },
         },
       },
       temperature: 0.2,
-      max_tokens: 15000,
+      max_tokens: 2000,
     })
 
-    console.log("Direct code generation completed")
+    const requirementsAnalysis = JSON.parse(planningCompletion.choices[0].message.content)
+    
+    console.log("Requirements analysis completed:", {
+      frontend_type: requirementsAnalysis.frontend_type,
+      docAPIs: requirementsAnalysis.docAPIs,
+      webPageData: requirementsAnalysis.webPageData,
+      ext_name: requirementsAnalysis.ext_name,
+      ext_description: requirementsAnalysis.ext_description
+    })
 
-    // Extract token usage from first completion
-    const firstUsage = codingCompletion.usage || {
-      prompt_tokens: 0,
-      completion_tokens: 0,
-      total_tokens: 0
-    }
-
-    // Handle function calls if any
-    let finalResult = codingCompletion.choices[0].message
-    let toolCallsMade = false
-    let messages = null
-    let secondUsage = null
-
-    // If there are tool calls, process them
-    if (finalResult.tool_calls && finalResult.tool_calls.length > 0) {
-      toolCallsMade = true
-      console.log("Processing tool calls...")
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: directPrompt },
-      ]
-
-      // Add the assistant's message with tool calls
-      messages.push(finalResult)
-
-      // Process each tool call
-      for (const toolCall of finalResult.tool_calls) {
-        if (toolCall.function.name === "searchChromeExtensionAPI") {
-          const args = JSON.parse(toolCall.function.arguments)
-          console.log("Processing searchChromeExtensionAPI tool call for ", args.apiName)
-          const apiResult = searchChromeExtensionAPI(args.apiName)
-
-          // Add the tool result to messages
-          messages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: JSON.stringify(apiResult),
-          })
-        } else if (toolCall.function.name === "scrapeWebsitesForExtension") {
-          const args = JSON.parse(toolCall.function.arguments)
-          console.log("Processing scrapeWebsitesForExtension tool call...")
-          const scrapingResult = await scrapeWebsitesForExtension(args.featureRequest, userProvidedUrl)
-
-          // Check if URL prompting is required
-          if (scrapingResult.requiresUrlPrompt) {
-            console.log('URL prompting required - pausing generation');
-            // Return a response asking the user for a URL
-            return {
-              success: false,
-              requiresUrl: true,
-              sessionId: sessionId,
-              message: scrapingResult.message,
-              detectedSites: scrapingResult.detectedSites || [],
-              detectedUrls: scrapingResult.detectedUrls || [],
-              featureRequest: featureRequest,
-              requestType: requestType,
-              // Store the current state for continuation
-              toolCallState: {
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: directPrompt }
-                ],
-                pendingToolCall: toolCall
-              }
-            };
-          }
-
-          // Only log analysis if scraping was actually completed
-          if (!scrapingResult.requiresUrlPrompt) {
-            console.log('\n🔍 ===== SCRAPING CONTENT ANALYSIS =====');
-            console.log(`📊 Summary: ${scrapingResult.successfulScrapes}/${scrapingResult.totalSites} sites scraped successfully`);
-            
-            scrapingResult.websites?.forEach((site, index) => {
-              console.log(`\n📄 WEBSITE ${index + 1}: ${site.siteName}`);
-              console.log(`🔗 URL: ${site.url}`);
-              console.log(`✅ Success: ${site.success}`);
-              console.log(`📏 Source: ${site.source}`);
-              console.log(`📝 Title: ${site.title}`);
-              console.log(`📄 Description: ${site.description?.substring(0, 100)}...`);
-              
-              if (site.success && site.analysis) {
-                console.log(`\n🎯 CSS SELECTORS FOUND:`);
-                console.log(`   - Recommended: [${site.analysis.cssSelectors.recommendedSelectors?.slice(0, 8).join(', ') || 'none'}]`);
-                console.log(`   - Generic fallbacks: [${site.analysis.cssSelectors.genericSelectors?.slice(0, 5).join(', ') || 'none'}]`);
-                console.log(`   - Quality score: ${site.analysis.cssSelectors.qualityScore}/100`);
-                console.log(`   - Recommendation: ${site.analysis.cssSelectors.recommendation}`);
-                
-                console.log(`\n🎪 ACTIONABLE ELEMENTS:`);
-                console.log(`   - Total found: ${site.analysis.actionableElements.totalFound}`);
-                console.log(`   - Types: [${site.analysis.actionableElements.types?.join(', ') || 'none'}]`);
-                site.analysis.actionableElements.elements?.slice(0, 5).forEach((element, i) => {
-                  console.log(`   - ${i+1}. ${element.type}: "${element.text}" (confidence: ${element.confidence || 'medium'})`);
-                });
-                
-                console.log(`\n🔧 INJECTION STRATEGY:`);
-                console.log(`   - Primary method: ${site.analysis.injectionStrategy?.primaryMethod}`);
-                console.log(`   - Fallback method: ${site.analysis.injectionStrategy?.fallbackMethod}`);
-                console.log(`   - Confidence: ${site.analysis.injectionStrategy?.confidence}`);
-                console.log(`   - Mutation observer needed: ${site.analysis.injectionStrategy?.mutationObserverRequired}`);
-                
-                console.log(`\n📊 SCRAPEABILITY ASSESSMENT:`);
-                console.log(`   - Overall confidence: ${site.analysis.scrapeability.confidence}`);
-                console.log(`   - Reliable selectors: ${site.analysis.scrapeability.hasReliableSelectors}`);
-                console.log(`   - Actionable elements: ${site.analysis.scrapeability.hasActionableElements}`);
-                console.log(`   - Overlay fallback available: ${site.analysis.scrapeability.overlayFallbackAvailable}`);
-                
-                // Show original content size if available
-                if (site.originalContentLength) {
-                  console.log(`\n📏 CONTENT SIZE: ${site.originalContentLength} characters of markdown extracted`);
-                }
-              } else {
-                console.log(`\n❌ SCRAPING FAILED: ${site.description}`);
-              }
-            });
-            
-            console.log('\n🤖 SENDING TO LLM:');
-            console.log(`📤 Full scraping data object size: ${JSON.stringify(scrapingResult).length} characters`);
-            console.log('=====================================\n');
-          }
-
-          // Add the tool result to messages
-          messages.push({
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: JSON.stringify(scrapingResult),
-          })
-        }
-      }
-    }
-
-    // Only make a second API call if a tool was actually called
-    if (toolCallsMade) {
-      // Log the exact content being sent to LLM
-      console.log('\n📨 ===== CONTENT SENT TO LLM =====');
-      messages.forEach((msg, index) => {
-        if (msg.role === 'tool') {
-          console.log(`\n🔧 TOOL RESPONSE ${index}:`);
-          try {
-            const toolContent = JSON.parse(msg.content);
-            if (toolContent.websites) {
-              console.log(`🌐 Website data for ${toolContent.websites.length} sites:`);
-              toolContent.websites.forEach((site, siteIndex) => {
-                console.log(`   ${siteIndex + 1}. ${site.siteName} (${site.url})`);
-                if (site.analysis) {
-                  console.log(`      - ${site.analysis.cssSelectors?.recommendedSelectors?.length || 0} CSS selectors`);
-                  console.log(`      - ${site.analysis.actionableElements?.totalFound || 0} actionable elements`);
-                  console.log(`      - Quality: ${site.analysis.cssSelectors?.qualityScore || 0}/100`);
-                }
-              });
-            }
-            console.log(`📏 Tool response size: ${msg.content.length} characters`);
-          } catch (e) {
-            console.log(`📦 Raw tool content: ${msg.content.substring(0, 200)}...`);
-          }
-        } else if (msg.role === 'system') {
-          console.log(`🤖 System prompt: ${msg.content.substring(0, 100)}...`);
-        } else if (msg.role === 'user') {
-          console.log(`👤 User prompt: ${msg.content.substring(0, 100)}...`);
-        }
-      });
-      console.log('================================\n');
+    // Step 1: Call searchChromeExtensionAPI for each of the APIs listed
+    let chromeApiDocumentation = ""
+    if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
+      console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
+      const apiDocs = []
       
-      // Make a second API call with the updated context
-      console.log("Making second API call with tool context...")
-      const secondCompletion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: messages,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "extension_implementation",
-            schema: {
-              type: "object",
-              properties: {
-                explanation: { type: "string" },
-                "manifest.json": {
-                  oneOf: [{ type: "string" }, { type: "object" }],
-                },
-                "background.js": { type: "string" },
-                "content.js": { type: "string" },
-                "popup.html": { type: "string" },
-                "popup.js": { type: "string" },
-                "styles.css": { type: "string" },
-              },
-              additionalProperties: { type: "string" },
-              required: ["explanation"],
-            },
-          },
-        },
-        temperature: 0.2,
-        max_tokens: 15000,
-      })
-      finalResult = secondCompletion.choices[0].message
-      secondUsage = secondCompletion.usage || {
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0
+      for (const apiName of requirementsAnalysis.docAPIs) {
+        const apiResult = searchChromeExtensionAPI(apiName)
+        console.log(`API result for ${apiName}:`, JSON.stringify(apiResult, null, 2))
+        if (!apiResult.error) {
+          apiDocs.push(`
+## ${apiResult.name} API
+**Namespace:** ${apiResult.namespace || 'Unknown'}
+**Description:** ${apiResult.description || 'No description available'}
+**Permissions:** ${Array.isArray(apiResult.permissions) ? apiResult.permissions.join(', ') : (apiResult.permissions || 'None required')}
+**Code Example:**
+\`\`\`javascript
+${apiResult.code_example || 'No example provided'}
+\`\`\`
+**Compatibility:** ${apiResult.compatibility || 'Chrome 88+'}
+**Manifest Version:** ${apiResult.manifest_version || 'V3'}
+          `)
+        } else {
+          apiDocs.push(`
+## ${apiName} API
+**Error:** ${apiResult.error}
+**Available APIs:** ${apiResult.available_apis?.slice(0, 10).join(', ')}...
+          `)
+        }
       }
+      
+      chromeApiDocumentation = apiDocs.join('\n\n')
+      console.log("Chrome API documentation compiled")
     }
 
-    const implementationResult = JSON.parse(finalResult.content)
+    // Step 2: Call batchScrapeWebpages for webpage analysis
+    const scrapedWebpageAnalysis = await batchScrapeWebpages(
+      requirementsAnalysis.webPageData, 
+      userProvidedUrl
+    )
+
+    // Step 3: Route to appropriate coding prompt based on frontend_type
+    let selectedCodingPrompt = ""
+    switch (requirementsAnalysis.frontend_type) {
+      case "side_panel":
+        selectedCodingPrompt = NEW_EXT_SIDEPANEL_PROMPT
+        break
+      case "popup":
+        selectedCodingPrompt = NEW_EXT_POPUP_PROMPT
+        break
+      case "overlay":
+      default:
+        selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT
+        break
+    }
+
+    // Step 4: Generate extension code using the dedicated method
+    const codingCompletion = await generateExtensionCode(selectedCodingPrompt, {
+      user_feature_request: featureRequest,
+      ext_name: requirementsAnalysis.ext_name,
+      ext_description: requirementsAnalysis.ext_description,
+      chrome_api_documentation: chromeApiDocumentation || '<!-- No Chrome APIs required -->',
+      scraped_webpage_analysis: scrapedWebpageAnalysis
+    })
+
+    console.log("Code generation completed")
+
+    const implementationResult = JSON.parse(codingCompletion.choices[0].message.content)
 
     console.log("Implementation result received:", {
       explanation: implementationResult.explanation,
@@ -485,13 +290,13 @@ export async function generateExtensionCode({
 
     // Calculate total token usage
     const totalUsage = {
-      prompt_tokens: firstUsage.prompt_tokens + (secondUsage?.prompt_tokens || 0),
-      completion_tokens: firstUsage.completion_tokens + (secondUsage?.completion_tokens || 0),
-      total_tokens: firstUsage.total_tokens + (secondUsage?.total_tokens || 0),
+      prompt_tokens: (planningCompletion.usage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
+      completion_tokens: (planningCompletion.usage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
+      total_tokens: (planningCompletion.usage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
       model: "gpt-4o"
     }
 
-    console.log("Token usage:", totalUsage)
+    console.log("Total token usage:", totalUsage)
 
     return {
       success: true,
@@ -500,8 +305,9 @@ export async function generateExtensionCode({
       sessionId,
       tokenUsage: totalUsage
     }
+
   } catch (error) {
-    console.error("Error in code generation:", error)
+    console.error("Error in requirements analysis:", error)
     throw error
   }
 }
