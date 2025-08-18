@@ -18,6 +18,19 @@ import {
   ArrowLeft,
   ArrowRight,
   LogOut,
+  FileText,
+  FileCode,
+  Image,
+  Settings,
+  Package,
+  Palette,
+  Globe,
+  Layers,
+  Search,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import AIChat from "@/components/ui/ai-chat"
 import TestModal from "@/components/ui/test-modal"
@@ -48,6 +61,9 @@ export default function BuilderPage() {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
+  const [copiedFile, setCopiedFile] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false)
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -509,34 +525,137 @@ export default function BuilderPage() {
     }
   }, [isDragging])
 
+  // Helper function to get file icon based on extension
+  const getFileIcon = (fileName) => {
+    const ext = fileName.split('.').pop()?.toLowerCase()
+    switch (ext) {
+      case 'js':
+      case 'jsx':
+      case 'ts':
+      case 'tsx':
+        return <FileCode className="h-4 w-4 text-yellow-400" />
+      case 'json':
+        return <Settings className="h-4 w-4 text-orange-400" />
+      case 'html':
+      case 'htm':
+        return <Globe className="h-4 w-4 text-red-400" />
+      case 'css':
+      case 'scss':
+      case 'sass':
+        return <Palette className="h-4 w-4 text-blue-400" />
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+      case 'svg':
+      case 'webp':
+        return <Image className="h-4 w-4 text-green-400" />
+      case 'md':
+      case 'txt':
+        return <FileText className="h-4 w-4 text-slate-400" />
+      default:
+        return <File className="h-4 w-4 text-slate-400" />
+    }
+  }
+
+  // Helper function to copy file content
+  const handleCopyFile = async (file) => {
+    try {
+      await navigator.clipboard.writeText(file.content)
+      setCopiedFile(file.name)
+      setTimeout(() => setCopiedFile(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy file content:', error)
+    }
+  }
+
+  // Filter files based on search query
+  const filterFileTree = (items, query) => {
+    if (!query) return items
+    
+    return items.filter(item => {
+      if (item.type === 'file') {
+        return item.name.toLowerCase().includes(query.toLowerCase())
+      } else if (item.type === 'folder' && item.children) {
+        const filteredChildren = filterFileTree(item.children, query)
+        return filteredChildren.length > 0 || item.name.toLowerCase().includes(query.toLowerCase())
+      }
+      return false
+    }).map(item => {
+      if (item.type === 'folder' && item.children) {
+        return {
+          ...item,
+          children: filterFileTree(item.children, query)
+        }
+      }
+      return item
+    })
+  }
+
   const renderFileTree = (items, level = 0) => {
-    return items.map((item, index) => (
-      <div key={index} style={{ marginLeft: `${level * 16}px` }}>
+    const filteredItems = filterFileTree(items, searchQuery)
+    
+    return filteredItems.map((item, index) => (
+      <div key={index} style={{ marginLeft: `${level * 20}px` }}>
         {item.type === "folder" ? (
           <div>
             <div
-              className="flex items-center py-1 px-2 hover:bg-white/10 cursor-pointer rounded"
+              className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20"
               onClick={() => toggleFolder(item.fullPath || item.name)}
             >
-              {expandedFolders[item.fullPath || item.name] ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />}
-              {expandedFolders[item.fullPath || item.name] ? (
-                <FolderOpen className="h-4 w-4 mr-2 text-blue-400" />
-              ) : (
-                <Folder className="h-4 w-4 mr-2 text-blue-400" />
+              <div className="flex items-center flex-1">
+                {expandedFolders[item.fullPath || item.name] ? 
+                  <ChevronDown className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" /> : 
+                  <ChevronRight className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" />
+                }
+                {expandedFolders[item.fullPath || item.name] ? (
+                  <FolderOpen className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
+                ) : (
+                  <Folder className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
+                )}
+                <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{item.name}</span>
+              </div>
+              {item.children && (
+                <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full">
+                  {item.children.length}
+                </span>
               )}
-              <span className="text-sm text-slate-300">{item.name}</span>
             </div>
-            {expandedFolders[item.fullPath || item.name] && item.children && <div>{renderFileTree(item.children, level + 1)}</div>}
+            {expandedFolders[item.fullPath || item.name] && item.children && (
+              <div className="mt-1">{renderFileTree(item.children, level + 1)}</div>
+            )}
           </div>
         ) : (
           <div
-            className={`flex items-center py-1 px-2 hover:bg-white/10 cursor-pointer rounded ${
-              selectedFile?.name === item.name ? "bg-white/10" : ""
+            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 ${
+              selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
             }`}
             onClick={() => handleFileSelect(item)}
           >
-            <File className="h-4 w-4 mr-2 text-slate-400" />
-            <span className="text-sm text-slate-300">{item.name}</span>
+            <div className="flex items-center flex-1">
+              {getFileIcon(item.name)}
+              <span className={`text-sm ml-3 transition-colors ${
+                selectedFile?.name === item.name ? "text-white font-medium" : "text-slate-300 group-hover:text-white"
+              }`}>
+                {item.name}
+              </span>
+            </div>
+            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCopyFile(item)
+                }}
+                className="p-1 hover:bg-white/10 rounded transition-colors"
+                title="Copy file content"
+              >
+                {copiedFile === item.name ? (
+                  <Check className="h-3 w-3 text-green-400" />
+                ) : (
+                  <Copy className="h-3 w-3 text-slate-400" />
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -671,7 +790,7 @@ export default function BuilderPage() {
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
-          <div className="w-80 border-r border-white/10 flex flex-col">
+          <div className="w-80 lg:w-80 md:w-72 sm:w-64 border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
             <AIChat
               projectId={currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
@@ -689,55 +808,159 @@ export default function BuilderPage() {
           {/* Main Content Area with Resizable Panels */}
           <div className="flex-1 flex" ref={containerRef}>
             {/* Project Files Panel */}
-            <div className="border-r border-white/10" style={{ width: `${dividerPosition}%` }}>
-              <div className="p-4 border-b border-white/10">
-                <h3 className="text-lg font-semibold mb-1">project files</h3>
-                <p className="text-sm text-slate-400">chrome extension structure</p>
+            <div className="border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up" style={{ width: `${dividerPosition}%` }}>
+              <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Layers className="h-5 w-5 text-purple-400" />
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Project Files</h3>
+                  </div>
+                  <button
+                    onClick={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
+                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                    title={isFileTreeCollapsed ? "Expand" : "Collapse"}
+                  >
+                    {isFileTreeCollapsed ? <Eye className="h-4 w-4 text-slate-400" /> : <EyeOff className="h-4 w-4 text-slate-400" />}
+                  </button>
+                </div>
+                <p className="text-sm text-slate-400 mb-3">Chrome extension structure</p>
+                
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search files..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                  />
+                </div>
               </div>
-              <div className="p-4 overflow-auto h-[calc(100%-80px)]">{renderFileTree(fileStructure)}</div>
+              
+              {!isFileTreeCollapsed && (
+                <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar">
+                  {isLoadingFiles ? (
+                    <div className="flex flex-col items-center justify-center h-64 text-center">
+                      <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-purple-500/30 border-t-purple-500 mb-4"></div>
+                      <h4 className="text-lg font-medium text-slate-400 mb-2">Loading Files</h4>
+                      <p className="text-sm text-slate-500">Fetching your project structure...</p>
+                    </div>
+                  ) : fileStructure.length > 0 ? (
+                    <div className="space-y-1">
+                      {renderFileTree(fileStructure)}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in-up">
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 animate-pulse-glow">
+                        <Package className="h-8 w-8 text-purple-400" />
+                      </div>
+                      <h4 className="text-lg font-medium gradient-text-secondary mb-2">No Files Yet</h4>
+                      <p className="text-sm text-slate-500 max-w-48 leading-relaxed">Start by asking the AI assistant to generate your Chrome extension</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Resizable Divider */}
             <div
-              className="w-1 bg-white/10 hover:bg-white/20 cursor-col-resize transition-colors relative group"
+              className="w-1 bg-gradient-to-b from-purple-500/20 to-blue-500/20 hover:from-purple-500/40 hover:to-blue-500/40 cursor-col-resize transition-all duration-300 relative group"
               onMouseDown={handleMouseDown}
             >
-              <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-white/5" />
+              <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-gradient-to-b group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-all duration-300" />
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-12 bg-gradient-to-b from-purple-500/30 to-blue-500/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
 
             {/* File Editor Panel */}
-            <div className="flex flex-col" style={{ width: `${100 - dividerPosition}%` }}>
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">file editor</h3>
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+            <div className="flex flex-col bg-gradient-to-b from-slate-800/20 to-slate-900/20 animate-fade-in-up" style={{ width: `${100 - dividerPosition}%` }}>
+              <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <FileCode className="h-5 w-5 text-blue-400" />
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">Code Editor</h3>
+                  </div>
+                  {selectedFile && (
+                    <div className="flex items-center space-x-3">
+                      <Badge variant="outline" className="border-purple-500/30 text-purple-300 bg-purple-500/10 px-3 py-1">
+                        {selectedFile.name}
+                      </Badge>
+                      <div className="flex items-center space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                          onClick={() => handleCopyFile(selectedFile)}
+                          title="Copy file content"
+                        >
+                          {copiedFile === selectedFile.name ? (
+                            <Check className="h-4 w-4 text-green-400" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-1 p-8 flex items-center justify-center">
+              <div className="flex-1 p-6">
                 {selectedFile ? (
-                  <div className="w-full h-full">
-                    <div className="mb-4">
-                      <Badge variant="outline" className="border-slate-600 text-slate-300">
-                        {selectedFile.name}
-                      </Badge>
-                    </div>
-                    <div className="bg-black/30 backdrop-blur-sm rounded-lg p-4 h-96 overflow-auto border border-white/10">
-                      <pre className="text-sm text-slate-300 whitespace-pre-wrap font-mono">{selectedFile.content}</pre>
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 glass-effect rounded-xl p-6 shadow-2xl overflow-hidden hover-lift">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                        <div className="flex items-center space-x-3">
+                          {getFileIcon(selectedFile.name)}
+                          <span className="font-medium text-white">{selectedFile.name}</span>
+                          <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">
+                            {selectedFile.content.split('\n').length} lines
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex space-x-1">
+                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-[calc(100%-60px)] overflow-auto custom-scrollbar">
+                        <pre className="text-sm text-slate-300 whitespace-pre-wrap code-editor">
+                          <code className="language-javascript">{selectedFile.content}</code>
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <File className="h-8 w-8 text-slate-500" />
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center max-w-md animate-fade-in-up">
+                      <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
+                        <FileCode className="h-10 w-10 text-purple-400" />
+                      </div>
+                      <h3 className="text-2xl font-semibold mb-3 gradient-text-secondary">Ready to Code</h3>
+                      <p className="text-slate-400 mb-6 leading-relaxed">Select a file from the project tree to view and edit its contents with enhanced syntax highlighting</p>
+                      <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
+                        <div className="flex items-center space-x-2 hover-lift">
+                          <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
+                          <span className="font-medium">JavaScript</span>
+                        </div>
+                        <div className="flex items-center space-x-2 hover-lift">
+                          <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
+                          <span className="font-medium">CSS</span>
+                        </div>
+                        <div className="flex items-center space-x-2 hover-lift">
+                          <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-pink-400 rounded-full animate-pulse"></div>
+                          <span className="font-medium">HTML</span>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold mb-2 text-slate-300">no file selected</h3>
-                    <p className="text-slate-500">select a file to view and edit its contents</p>
                   </div>
                 )}
               </div>
