@@ -73,7 +73,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">up to 20 builds per month</span>
+                      <span className="text-gray-300">25 projects per month</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
@@ -112,7 +112,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">100 builds per month</span>
+                      <span className="text-gray-300">50 projects per month</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
@@ -149,7 +149,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">unlimited builds</span>
+                      <span className="text-gray-300">unlimited projects</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
