@@ -7,7 +7,7 @@ TODOs
 4. number of projects by tier (10, 50, unlimited).
 5. delete project functionality.
 6. get rid of generic icons and use chromie icon everywhere possible. dont want robot in ai-chat too
-7. text box on home page does not expand
+7. ~text box on home page does not expand~
 8. enable editing from UI - find out how to do with minimal saves (updates to supabase)
 9. fix add_to_existing prompt
 10. test end to end
