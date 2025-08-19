@@ -46,30 +46,73 @@ export async function POST(request) {
     // First, ensure the user has a profile
     const { data: existingProfile } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, project_count")
       .eq("id", user.id)
       .single()
 
-          if (!existingProfile) {
-        console.log("Creating profile for user:", user.id)
-        // Create profile for the user
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            id: user.id,
-            name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-            email: user.email,
-            provider: user.app_metadata?.provider || 'google',
-            created_at: new Date().toISOString(),
-            last_used_at: new Date().toISOString(),
-          })
+    if (!existingProfile) {
+      console.log("Creating profile for user:", user.id)
+      // Create profile for the user
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+          email: user.email,
+          provider: user.app_metadata?.provider || 'google',
+          project_count: 0,
+          created_at: new Date().toISOString(),
+          last_used_at: new Date().toISOString(),
+        })
 
-        if (profileError) {
-          console.error("Error creating profile:", profileError)
-          return NextResponse.json({ error: "Failed to create user profile" }, { status: 500 })
-        }
-        console.log("Successfully created profile for user:", user.id)
+      if (profileError) {
+        console.error("Error creating profile:", profileError)
+        return NextResponse.json({ error: "Failed to create user profile" }, { status: 500 })
       }
+      console.log("Successfully created profile for user:", user.id)
+    }
+
+    // Get user's current plan and project count
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("project_count")
+      .eq("id", user.id)
+      .single()
+
+    const { data: billing } = await supabase
+      .from("billing")
+      .select("plan")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+
+    const currentPlan = billing?.plan || 'free'
+    const currentProjectCount = profile?.project_count || 0
+
+    // Define project limits by plan
+    const planLimits = {
+      free: 10,
+      starter: 25,
+      pro: 50
+    }
+
+    const maxProjects = planLimits[currentPlan] || 10
+
+    // Check if user has reached their project limit
+    if (currentProjectCount >= maxProjects) {
+      console.log(`User ${user.id} has reached project limit: ${currentProjectCount}/${maxProjects} on ${currentPlan} plan`)
+      return NextResponse.json({ 
+        error: "Project limit reached",
+        details: {
+          currentPlan,
+          currentProjectCount,
+          maxProjects,
+          nextPlan: currentPlan === 'free' ? 'starter' : currentPlan === 'starter' ? 'pro' : null
+        }
+      }, { status: 403 })
+    }
 
     // Now create the project
     const { data: project, error } = await supabase

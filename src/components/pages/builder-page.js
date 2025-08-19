@@ -1,105 +1,43 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import Link from "next/link"
-import {
-  Zap,
-  Download,
-  TestTube,
-  ChevronDown,
-  ChevronRight,
-  File,
-  Folder,
-  FolderOpen,
-  ArrowLeft,
-  ArrowRight,
-  LogOut,
-  FileText,
-  FileCode,
-  Image,
-  Settings,
-  Package,
-  Palette,
-  Globe,
-  Layers,
-  Search,
-  Copy,
-  Check,
-} from "lucide-react"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
 import AuthModal from "@/components/ui/auth-modal"
 import AppBarBuilder from "@/components/ui/app-bar-builder"
-import MonacoEditor from "@/components/ui/monaco-editor"
+import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
-import JSZip from 'jszip'
+import { LoadingState, ErrorState } from "@/components/ui/loading-error-states"
+import ProjectFilesPanel from "@/components/ui/project-files-panel"
+import EditorPanel from "@/components/ui/editor-panel"
+import useProjectSetup from "@/components/ui/project-setup"
+import useFileManagement from "@/components/ui/file-management"
+import useResizablePanels from "@/components/ui/resizable-panels"
+import useTestExtension from "@/components/ui/test-extension"
+import useDownloadExtension from "@/components/ui/download-extension"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
   const router = useRouter()
 
   const [selectedFile, setSelectedFile] = useState(null)
-  const [expandedFolders, setExpandedFolders] = useState({})
-  const [dividerPosition, setDividerPosition] = useState(() => {
-    // Load saved divider position from localStorage, default to 33.33
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('chromie_divider_position')
-      const position = saved ? parseFloat(saved) : 33.33
-      console.log('Initial divider position loaded:', position)
-      return position
-    }
-    return 33.33
-  })
-  const [isDragging, setIsDragging] = useState(false)
-  const [fileStructure, setFileStructure] = useState([])
-  const [flatFiles, setFlatFiles] = useState([]) // Store original flat file array
-  const containerRef = useRef(null)
-
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false)
-  const [testSessionData, setTestSessionData] = useState(null)
-  const [isTestLoading, setIsTestLoading] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isSettingUpProject, setIsSettingUpProject] = useState(false)
-  const [projectSetupError, setProjectSetupError] = useState(null)
-  const [currentProjectId, setCurrentProjectId] = useState(null)
-  const [currentProjectName, setCurrentProjectName] = useState('')
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
-  const [copiedFile, setCopiedFile] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-
-  // Auth modal state
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
-  // Helper function to get user initials
-  const getUserInitials = (user) => {
-    if (user?.user_metadata?.name) {
-      return user.user_metadata.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase()
-    }
-    return 'U'
-  }
-
-  // Helper function to fetch project details
-  const fetchProjectDetails = async (projectId) => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}`)
-      if (response.ok) {
-        const data = await response.json()
-        return data.project
-      }
-    } catch (error) {
-      console.error('Error fetching project details:', error)
-    }
-    return null
-  }
+  // Custom hooks
+  const projectSetup = useProjectSetup(user, isLoading)
+  const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
+  const testExtension = useTestExtension(projectSetup.currentProjectId)
+  
+  const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
+  const downloadExtension = useDownloadExtension(
+    projectSetup.currentProjectId, 
+    projectSetup.currentProjectName, 
+    fileManagement.fileStructure
+  )
 
   // Check auth state and show modal if needed
   useEffect(() => {
@@ -110,24 +48,9 @@ export default function BuilderPage() {
     }
   }, [isLoading, user])
 
-  // Check for project and create one if needed
-  useEffect(() => {
-    if (user && !isLoading) {
-      checkAndSetupProject()
-    }
-  }, [user, isLoading])
-
-  // Load project files when currentProjectId is available
-  useEffect(() => {
-    if (currentProjectId && user) {
-      loadProjectFiles()
-    }
-  }, [currentProjectId, user])
-
   // Clear URL parameters after project is loaded
   useEffect(() => {
-    if (currentProjectId && !isSettingUpProject) {
-      // Clear the project and autoGenerate parameters from URL without triggering a reload
+    if (projectSetup.currentProjectId && !projectSetup.isSettingUpProject) {
       const url = new URL(window.location)
       let hasChanges = false
       
@@ -144,698 +67,63 @@ export default function BuilderPage() {
         window.history.replaceState({}, '', url.pathname)
       }
     }
-  }, [currentProjectId, isSettingUpProject])
+  }, [projectSetup.currentProjectId, projectSetup.isSettingUpProject])
 
   // Update project info when file structure changes (after code generation)
   useEffect(() => {
-    if (flatFiles.length > 0 && currentProjectId && !isLoadingFiles) {
-      const extensionInfo = extractExtensionInfo(flatFiles)
+    if (fileManagement.flatFiles.length > 0 && projectSetup.currentProjectId && !fileManagement.isLoadingFiles) {
+      const extensionInfo = fileManagement.extractExtensionInfo(fileManagement.flatFiles)
       if (extensionInfo) {
-        updateProjectWithExtensionInfo(extensionInfo)
+        fileManagement.updateProjectWithExtensionInfo(extensionInfo)
       }
     }
-  }, [flatFiles, currentProjectId, isLoadingFiles])
+  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles])
 
-  const checkAndSetupProject = async () => {
-    // Check if we have a project ID in URL state (from navigation)
-    const urlParams = new URLSearchParams(window.location.search)
-    const projectIdFromUrl = urlParams.get('project') // Changed from 'projectId' to 'project'
-    const autoGenerateFromUrl = urlParams.get('autoGenerate')
-    
-    // Store autoGenerate prompt if present
-    if (autoGenerateFromUrl) {
-      setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
-    }
-    
-    // Check if we have a project ID in session storage
-    const storedProjectId = sessionStorage.getItem('chromie_current_project_id')
-    
-    // Priority: URL parameter > session storage > most recent project
-    if (projectIdFromUrl) {
-      console.log('Using project ID from URL:', projectIdFromUrl)
-      setCurrentProjectId(projectIdFromUrl)
-      sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
-      // Fetch project details to get the name
-      const projectDetails = await fetchProjectDetails(projectIdFromUrl)
-      if (projectDetails) {
-        setCurrentProjectName(projectDetails.name)
+  // Check for autoGenerate prompt in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const autoGenerateFromUrl = urlParams.get('autoGenerate')
+      if (autoGenerateFromUrl) {
+        setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
       }
-      setIsSettingUpProject(false)
-      setProjectSetupError(null)
-      return
     }
-    
-    if (storedProjectId) {
-      setCurrentProjectId(storedProjectId)
-      // Fetch project details to get the name
-      const projectDetails = await fetchProjectDetails(storedProjectId)
-      if (projectDetails) {
-        setCurrentProjectName(projectDetails.name)
-      }
-      setIsSettingUpProject(false)
-      setProjectSetupError(null)
-      return
-    }
-
-    // Prevent infinite loops - only try once
-    if (projectSetupError) {
-      return
-    }
-
-    setIsSettingUpProject(true)
-    setProjectSetupError(null)
-
-    try {
-      // Check if user has any existing projects
-      const response = await fetch('/api/projects')
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to fetch projects:', errorText)
-        setProjectSetupError('Failed to load projects')
-        setIsSettingUpProject(false)
-        return
-      }
-
-      const data = await response.json()
-      const projects = data.projects || []
-
-      if (projects.length > 0) {
-        // User has existing projects, use the most recent one
-        const mostRecentProject = projects[0] // Already ordered by created_at desc
-        console.log('Using existing project:', mostRecentProject.id)
-        setCurrentProjectId(mostRecentProject.id)
-        setCurrentProjectName(mostRecentProject.name)
-        sessionStorage.setItem('chromie_current_project_id', mostRecentProject.id)
-      } else {
-        // No projects exist, create a default one
-        await createDefaultProject()
-      }
-    } catch (error) {
-      console.error('Error checking/setting up project:', error)
-      setProjectSetupError('Failed to set up project')
-      setIsSettingUpProject(false)
-    }
-  }
-
-  const createDefaultProject = async () => {
-    try {
-      console.log('Creating default project...')
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: 'My First Extension',
-          description: 'A Chrome extension built with chromie AI'
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Failed to create default project:', errorData)
-        setProjectSetupError(`Failed to create project: ${errorData.error}`)
-        setIsSettingUpProject(false)
-        return
-      }
-
-      const data = await response.json()
-      const newProject = data.project
-
-      console.log('Created new project:', newProject.id)
-      
-      // Store the project ID in session storage and state
-      setCurrentProjectId(newProject.id)
-      setCurrentProjectName(newProject.name)
-      sessionStorage.setItem('chromie_current_project_id', newProject.id)
-      setIsSettingUpProject(false)
-    } catch (error) {
-      console.error('Error creating default project:', error)
-      setProjectSetupError('Failed to create project')
-      setIsSettingUpProject(false)
-    }
-  }
-
-  // Helper function to extract extension info from manifest.json
-  const extractExtensionInfo = (files) => {
-    const manifestFile = files.find(file => file.file_path === 'manifest.json')
-    if (!manifestFile) return null
-
-    try {
-      const manifest = JSON.parse(manifestFile.content)
-      return {
-        name: manifest.name || 'Chrome Extension',
-        description: manifest.description || 'A Chrome extension built with Chromie AI'
-      }
-    } catch (error) {
-      console.error('Error parsing manifest.json:', error)
-      return null
-    }
-  }
-
-  // Helper function to update project with extension info
-  const updateProjectWithExtensionInfo = async (extensionInfo) => {
-    if (!extensionInfo || !currentProjectId) return
-
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: extensionInfo.name,
-          description: extensionInfo.description
-        }),
-      })
-
-      if (!response.ok) {
-        console.error('Failed to update project with extension info')
-      } else {
-        // Update local project name
-        setCurrentProjectName(extensionInfo.name)
-      }
-    } catch (error) {
-      console.error('Error updating project with extension info:', error)
-    }
-  }
-
-  const loadProjectFiles = async () => {
-    if (!currentProjectId) {
-      console.error("No project ID available for loading files")
-      return
-    }
-
-    setIsLoadingFiles(true)
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/files`)
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error loading project files:", errorData.error)
-        return
-      }
-
-      const data = await response.json()
-      const files = data.files || []
-
-      // Store both flat files for actions and transformed tree for display
-      setFlatFiles(files)
-      const transformedFiles = transformFilesToTree(files)
-      setFileStructure(transformedFiles)
-
-      // Extract and update project with extension info from manifest.json
-      // Only update if we haven't already updated this project recently
-      const extensionInfo = extractExtensionInfo(files)
-      if (extensionInfo) {
-        // Check if we need to update (avoid unnecessary updates)
-        const lastUpdateKey = `last_project_update_${currentProjectId}`
-        const lastUpdate = sessionStorage.getItem(lastUpdateKey)
-        const now = Date.now()
-        
-        // Only update if it's been more than 5 minutes since last update
-        if (!lastUpdate || (now - parseInt(lastUpdate)) > 5 * 60 * 1000) {
-          await updateProjectWithExtensionInfo(extensionInfo)
-          sessionStorage.setItem(lastUpdateKey, now.toString())
-        }
-      }
-    } catch (error) {
-      console.error("Error loading project files:", error)
-    } finally {
-      setIsLoadingFiles(false)
-    }
-  }
-
-  // Helper function to transform flat file list into tree structure
-  const transformFilesToTree = (files) => {
-    const tree = {}
-    const result = []
-
-    // First, create all files and folders
-    files.forEach(file => {
-      const pathParts = file.file_path.split('/')
-      let current = tree
-
-      pathParts.forEach((part, index) => {
-        if (!current[part]) {
-          if (index === pathParts.length - 1) {
-            // This is a file
-            current[part] = {
-              name: part,
-              type: "file",
-              content: file.content,
-              fullPath: file.file_path
-            }
-                     } else {
-             // This is a folder
-             const folderPath = pathParts.slice(0, index + 1).join('/')
-             current[part] = {
-               name: part,
-               type: "folder",
-               children: {},
-               fullPath: folderPath
-             }
-           }
-        }
-        current = current[part].children || current[part]
-      })
-    })
-
-    // Convert tree structure to array format
-    const convertToArray = (obj) => {
-      return Object.values(obj).map(item => {
-        if (item.type === "folder" && item.children) {
-          return {
-            ...item,
-            children: convertToArray(item.children)
-          }
-        }
-        return item
-      })
-    }
-
-    return convertToArray(tree)
-  }
-
-  const toggleFolder = (folderPath) => {
-    setExpandedFolders((prev) => ({
-      ...prev,
-      [folderPath]: !prev[folderPath],
-    }))
-  }
+  }, [])
 
   const handleFileSelect = (file) => {
-    console.log('File selected:', file.name, 'Current divider position:', dividerPosition)
+    console.log('File selected:', file.name)
     setSelectedFile(file)
   }
 
   const handleFileSave = async (content) => {
-    if (!selectedFile || !currentProjectId) {
-      console.error('No file selected or project ID available')
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/files`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          file_path: selectedFile.fullPath,
-          content: content
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save file')
-      }
-
-      // Update the file content in the local state
-      setFileStructure(prevStructure => {
-        const updateFileInTree = (items) => {
-          return items.map(item => {
-            if (item.type === 'file' && item.fullPath === selectedFile.fullPath) {
-              return { ...item, content: content }
-            } else if (item.type === 'folder' && item.children) {
-              return { ...item, children: updateFileInTree(item.children) }
-            }
-            return item
-          })
-        }
-        return updateFileInTree(prevStructure)
-      })
-
-      // Update the selected file content
-      setSelectedFile(prev => ({ ...prev, content: content }))
-
-      console.log('File saved successfully:', selectedFile.name)
-    } catch (error) {
-      console.error('Error saving file:', error)
-      throw error
-    }
+    if (!selectedFile) return
+    await fileManagement.handleFileSave(selectedFile, content)
+    // Update the selected file content
+    setSelectedFile(prev => ({ ...prev, content: content }))
   }
-
-  const handleDownloadZip = async () => {
-    if (!currentProjectId || flatFiles.length === 0) {
-      console.error("No project or files available for download")
-      return
-    }
-
-    setIsDownloading(true)
-
-    try {
-      // Create a new JSZip instance
-      const zip = new JSZip()
-
-      // Helper function to add files to zip recursively
-      const addFilesToZip = (items, zipFolder = zip) => {
-        items.forEach(item => {
-          if (item.type === "file") {
-            // Check if this is an icon file (base64 encoded)
-            if (item.fullPath && item.fullPath.startsWith('icons/') && item.fullPath.match(/\.(png|ico)$/i)) {
-              try {
-                // Convert base64 back to binary for icon files
-                const binaryContent = atob(item.content)
-                const bytes = new Uint8Array(binaryContent.length)
-                for (let i = 0; i < binaryContent.length; i++) {
-                  bytes[i] = binaryContent.charCodeAt(i)
-                }
-                zipFolder.file(item.name, bytes)
-                console.log(`Added icon file: ${item.name}`)
-              } catch (iconError) {
-                console.warn(`Failed to process icon ${item.name}:`, iconError)
-                // Fallback to text content if base64 conversion fails
-                zipFolder.file(item.name, item.content)
-              }
-            } else {
-              // Regular text file
-              zipFolder.file(item.name, item.content)
-            }
-          } else if (item.type === "folder" && item.children) {
-            // Create folder in zip and add its contents
-            const folder = zipFolder.folder(item.name)
-            addFilesToZip(item.children, folder)
-          }
-        })
-      }
-
-      // Add all files to the zip
-      addFilesToZip(fileStructure)
-
-      // Generate the zip file
-      const zipBlob = await zip.generateAsync({ type: "blob" })
-
-      // Create download link
-      const url = URL.createObjectURL(zipBlob)
-      const link = document.createElement('a')
-      link.href = url
-      
-      // Create filename with project name
-      const safeProjectName = currentProjectName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
-      link.download = `chromie-ext-${safeProjectName}.zip`
-      
-      // Trigger download
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // Clean up
-      URL.revokeObjectURL(url)
-      
-      console.log("ZIP file downloaded successfully")
-    } catch (error) {
-      console.error("Error creating ZIP file:", error)
-    } finally {
-      setIsDownloading(false)
-    }
-  }
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true)
-    e.preventDefault()
-  }
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging || !containerRef.current) return
-
-      const container = containerRef.current
-      const rect = container.getBoundingClientRect()
-      const newPosition = ((e.clientX - rect.left) / rect.width) * 100
-
-      const constrainedPosition = Math.min(Math.max(newPosition, 25), 45)
-      console.log('Setting divider position to:', constrainedPosition)
-      setDividerPosition(constrainedPosition)
-      // Save to localStorage
-      localStorage.setItem('chromie_divider_position', constrainedPosition.toString())
-      console.log('Saved to localStorage:', constrainedPosition)
-    }
-
-    const handleMouseUp = () => {
-      setIsDragging(false)
-    }
-
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [isDragging])
-
-  // Helper function to get file icon based on extension
-  const getFileIcon = (fileName) => {
-    const ext = fileName.split('.').pop()?.toLowerCase()
-    switch (ext) {
-      case 'js':
-      case 'jsx':
-      case 'ts':
-      case 'tsx':
-        return <FileCode className="h-4 w-4 text-yellow-400" />
-      case 'json':
-        return <Settings className="h-4 w-4 text-orange-400" />
-      case 'html':
-      case 'htm':
-        return <Globe className="h-4 w-4 text-red-400" />
-      case 'css':
-      case 'scss':
-      case 'sass':
-        return <Palette className="h-4 w-4 text-blue-400" />
-      case 'png':
-      case 'jpg':
-      case 'jpeg':
-      case 'gif':
-      case 'svg':
-      case 'webp':
-        return <Image className="h-4 w-4 text-green-400" />
-      case 'md':
-      case 'txt':
-        return <FileText className="h-4 w-4 text-slate-400" />
-      default:
-        return <File className="h-4 w-4 text-slate-400" />
-    }
-  }
-
-  // Helper function to copy file content
-  const handleCopyFile = async (file) => {
-    try {
-      await navigator.clipboard.writeText(file.content)
-      setCopiedFile(file.name)
-      setTimeout(() => setCopiedFile(null), 2000)
-    } catch (error) {
-      console.error('Failed to copy file content:', error)
-    }
-  }
-
-  // Filter files based on search query
-  const filterFileTree = (items, query) => {
-    if (!query) return items
-    
-    return items.filter(item => {
-      if (item.type === 'file') {
-        return item.name.toLowerCase().includes(query.toLowerCase())
-      } else if (item.type === 'folder' && item.children) {
-        const filteredChildren = filterFileTree(item.children, query)
-        return filteredChildren.length > 0 || item.name.toLowerCase().includes(query.toLowerCase())
-      }
-      return false
-    }).map(item => {
-      if (item.type === 'folder' && item.children) {
-        return {
-          ...item,
-          children: filterFileTree(item.children, query)
-        }
-      }
-      return item
-    })
-  }
-
-  const renderFileTree = (items, level = 0) => {
-    const filteredItems = filterFileTree(items, searchQuery)
-    
-    return filteredItems.map((item, index) => (
-      <div key={index} style={{ marginLeft: `${level * 20}px` }}>
-        {item.type === "folder" ? (
-          <div>
-            <div
-              className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20"
-              onClick={() => toggleFolder(item.fullPath || item.name)}
-            >
-              <div className="flex items-center flex-1">
-                {expandedFolders[item.fullPath || item.name] ? 
-                  <ChevronDown className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" /> : 
-                  <ChevronRight className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" />
-                }
-                {expandedFolders[item.fullPath || item.name] ? (
-                  <FolderOpen className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
-                ) : (
-                  <Folder className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
-                )}
-                <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{item.name}</span>
-              </div>
-              {item.children && (
-                <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full">
-                  {item.children.length}
-                </span>
-              )}
-            </div>
-            {expandedFolders[item.fullPath || item.name] && item.children && (
-              <div className="mt-1">{renderFileTree(item.children, level + 1)}</div>
-            )}
-          </div>
-        ) : (
-          <div
-            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 ${
-              selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
-            }`}
-            onClick={() => handleFileSelect(item)}
-          >
-            <div className="flex items-center flex-1">
-              {getFileIcon(item.name)}
-              <span className={`text-sm ml-3 transition-colors ${
-                selectedFile?.name === item.name ? "text-white font-medium" : "text-slate-300 group-hover:text-white"
-              }`}>
-                {item.name}
-              </span>
-            </div>
-            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCopyFile(item)
-                }}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
-                title="Copy file content"
-              >
-                {copiedFile === item.name ? (
-                  <Check className="h-3 w-3 text-green-400" />
-                ) : (
-                  <Copy className="h-3 w-3 text-slate-400" />
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    ))
-  }
-
-  const handleTestExtension = async () => {
-    if (!currentProjectId) {
-      console.error("No project ID available")
-      return
-    }
-
-    setIsTestLoading(true)
-    setIsTestModalOpen(true)
-
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}/test-extension`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create test session")
-      }
-
-      console.log("Session data:", data.session)
-      setTestSessionData(data.session)
-      console.log("Test session created:", data.session.sessionId)
-    } catch (error) {
-      console.error("Error creating test session:", error)
-      // Keep modal open but show error state
-      setTestSessionData(null)
-    } finally {
-      setIsTestLoading(false)
-    }
-  }
-
-  const handleCloseTestModal = async () => {
-    // Terminate session if active
-    if (testSessionData?.sessionId) {
-      try {
-        await fetch(`/api/projects/${currentProjectId}/test-extension`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ sessionId: testSessionData.sessionId }),
-        })
-      } catch (error) {
-        console.error("Error terminating test session:", error)
-      }
-    }
-
-    setIsTestModalOpen(false)
-    setTestSessionData(null)
-  }
-
-  const handleRefreshTest = () => {
-    if (testSessionData) {
-      handleTestExtension()
-    }
-  }
-
-  if (isLoading || isSettingUpProject || (!currentProjectId && user && !projectSetupError)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
-          <p className="text-slate-300">
-            {isLoading ? "Loading..." : "Setting up your project..."}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Show error state if project setup failed
-  if (projectSetupError && user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-xl font-semibold mb-2">Setup Error</h2>
-          <p className="text-slate-300 mb-6">{projectSetupError}</p>
-          <Button 
-            onClick={() => {
-              setProjectSetupError(null)
-              checkAndSetupProject()
-            }}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  // No need to check for user here - middleware handles auth protection
 
   const handleSignOut = async () => {
-    // Clear session storage on sign out
     sessionStorage.removeItem('chromie_current_project_id')
     await supabase.auth.signOut()
     window.location.href = '/'
   }
 
-  // Helper function to navigate to builder with project ID
-  const navigateToBuilderWithProject = (projectId) => {
-    // Navigate to builder with project ID in URL, then clear it
-    router.push(`/builder?projectId=${projectId}`)
+  // Show loading state
+  if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
+    return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
+  }
+
+  // Show error state if project setup failed
+  if (projectSetup.projectSetupError && user) {
+    return (
+      <ErrorState 
+        projectSetupError={projectSetup.projectSetupError} 
+        onRetry={() => {
+          projectSetup.setProjectSetupError(null)
+          projectSetup.checkAndSetupProject()
+        }} 
+      />
+    )
   }
 
   return (
@@ -843,123 +131,55 @@ export default function BuilderPage() {
       <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <AppBarBuilder
-          onTestExtension={handleTestExtension}
-          onDownloadZip={handleDownloadZip}
+          onTestExtension={testExtension.handleTestExtension}
+          onDownloadZip={downloadExtension.handleDownloadZip}
           onSignOut={handleSignOut}
-          isTestDisabled={!currentProjectId || flatFiles.length === 0}
-          isDownloadDisabled={!currentProjectId || flatFiles.length === 0}
+          isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
+          isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isGenerating={isGenerating}
-          isDownloading={isDownloading}
+          isDownloading={downloadExtension.isDownloading}
         />
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
             <AIChat
-              projectId={currentProjectId}
+              projectId={projectSetup.currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
-              onAutoGenerateComplete={() => setAutoGeneratePrompt(null)} // Clear the prompt after use
+              onAutoGenerateComplete={() => setAutoGeneratePrompt(null)}
               onCodeGenerated={(response) => {
                 console.log("AI generated code:", response)
-                loadProjectFiles() // Reload files after generation
-                setIsGenerating(false) // Reset generating state
+                fileManagement.loadProjectFiles()
+                setIsGenerating(false)
               }}
               onGenerationStart={() => setIsGenerating(true)}
               onGenerationEnd={() => setIsGenerating(false)}
             />
           </div>
 
-          {/* Main Content Area with Resizable Panels - This is the container for the resizable panels */}
+          {/* Main Content Area with Resizable Panels */}
           <div className="flex-1 flex" ref={containerRef}>
             {/* Project Files Panel */}
-            <div className="border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up" style={{ width: `${dividerPosition}%` }}>
-              <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Layers className="h-5 w-5 text-purple-400" />
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">project files</h3>
-                </div>
-                <p className="text-sm text-slate-400 mb-3">chrome extension structure</p>
-                
-                {/* Search Bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="search files..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
-                  />
-                </div>
-              </div>
-              
-              <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar">
-                  {isLoadingFiles ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-center">
-                      <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-purple-500/30 border-t-purple-500 mb-4"></div>
-                      <h4 className="text-lg font-medium text-slate-400 mb-2">loading files</h4>
-                      <p className="text-sm text-slate-500">fetching your project structure...</p>
-                    </div>
-                  ) : fileStructure.length > 0 ? (
-                    <div className="space-y-1">
-                      {renderFileTree(fileStructure)}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in-up">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 animate-pulse-glow">
-                        <Package className="h-8 w-8 text-purple-400" />
-                      </div>
-                      <h4 className="text-lg font-medium gradient-text-secondary mb-2">no files yet</h4>
-                      <p className="text-sm text-slate-500 max-w-48 leading-relaxed">start by asking the ai assistant to generate your chrome extension</p>
-                    </div>
-                  )}
-                </div>
+            <div style={{ width: `${dividerPosition}%` }}>
+              <ProjectFilesPanel
+                fileStructure={fileManagement.fileStructure}
+                selectedFile={selectedFile}
+                onFileSelect={handleFileSelect}
+                isLoadingFiles={fileManagement.isLoadingFiles}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
             </div>
 
             {/* Resizable Divider */}
-            <div
-              className="w-1 bg-gradient-to-b from-purple-500/20 to-blue-500/20 hover:from-purple-500/40 hover:to-blue-500/40 cursor-col-resize transition-all duration-300 relative group"
-              onMouseDown={handleMouseDown}
-            >
-              <div className="absolute inset-y-0 -left-1 -right-1 group-hover:bg-gradient-to-b group-hover:from-purple-500/10 group-hover:to-blue-500/10 transition-all duration-300" />
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-12 bg-gradient-to-b from-purple-500/30 to-blue-500/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
+            <ResizableDivider />
 
-            {/* File Editor Panel - Full IDE Style */}
+            {/* File Editor Panel */}
             <div className="flex flex-col bg-slate-900 border-l border-slate-700/50" style={{ width: `${100 - dividerPosition}%` }}>
-              {selectedFile ? (
-                <MonacoEditor 
-                  code={selectedFile.content}
-                  fileName={selectedFile.name}
-                  className="h-full"
-                  onSave={handleFileSave}
-                  readOnly={false}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center bg-slate-900">
-                  <div className="text-center max-w-md animate-fade-in-up">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
-                      <FileCode className="h-10 w-10 text-purple-400" />
-                    </div>
-                    <h3 className="text-2xl font-semibold mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">chromie editor</h3>
-                    <p className="text-slate-400 mb-6 leading-relaxed">select a file from the project tree to start coding with full ide features</p>
-                    <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">intellisense</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">syntax highlighting</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-pulse"></div>
-                        <span className="font-medium">auto-complete</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <EditorPanel 
+                selectedFile={selectedFile}
+                onFileSave={handleFileSave}
+              />
             </div>
           </div>
         </div>
@@ -973,14 +193,27 @@ export default function BuilderPage() {
 
       {/* Test Modal */}
       <SideBySideTestModal
-        isOpen={isTestModalOpen}
-        onClose={handleCloseTestModal}
-        sessionData={testSessionData}
-        onRefresh={handleRefreshTest}
-        isLoading={isTestLoading}
-        projectId={currentProjectId}
-        extensionFiles={flatFiles}
+        isOpen={testExtension.isTestModalOpen}
+        onClose={testExtension.handleCloseTestModal}
+        sessionData={testExtension.testSessionData}
+        onRefresh={testExtension.handleRefreshTest}
+        isLoading={testExtension.isTestLoading}
+        projectId={projectSetup.currentProjectId}
+        extensionFiles={fileManagement.flatFiles}
       />
+
+      {/* Project Limit Modal */}
+      {projectSetup.projectLimitDetails && (
+        <ProjectMaxAlert
+          isOpen={projectSetup.isProjectLimitModalOpen}
+          onClose={() => projectSetup.setIsProjectLimitModalOpen(false)}
+          currentPlan={projectSetup.projectLimitDetails.currentPlan}
+          currentProjectCount={projectSetup.projectLimitDetails.currentProjectCount}
+          maxProjects={projectSetup.projectLimitDetails.maxProjects}
+          onUpgradePlan={projectSetup.handleUpgradePlan}
+          onDeleteProject={projectSetup.handleManageProjects}
+        />
+      )}
     </>
   )
 }

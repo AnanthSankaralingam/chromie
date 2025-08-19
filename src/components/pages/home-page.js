@@ -9,13 +9,30 @@ import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/auth-modal"
 import AppBar from "@/components/ui/app-bar"
+import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
+  const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const router = useRouter()
+
+  const handleTextareaInput = (e) => {
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px'
+  }
+
+  const handleTextareaChange = (e) => {
+    setPrompt(e.target.value)
+    // Auto-expand on change as well
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px'
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -41,6 +58,20 @@ export default function HomePage() {
         }),
       })
 
+      if (!response.ok) {
+        const errorData = await response.json()
+        
+        if (response.status === 403 && errorData.error === "Project limit reached") {
+          // Show project limit modal
+          setProjectLimitDetails(errorData.details)
+          setIsProjectLimitModalOpen(true)
+          setIsGenerating(false)
+          return
+        }
+        
+        throw new Error(errorData.error || "Failed to create project")
+      }
+
       const { project } = await response.json()
 
       // Redirect to builder immediately with the prompt to auto-generate
@@ -57,6 +88,18 @@ export default function HomePage() {
       e.preventDefault()
       handleSubmit(e)
     }
+  }
+
+  const handleUpgradePlan = () => {
+    // Close the modal and redirect to pricing page
+    setIsProjectLimitModalOpen(false)
+    router.push('/pricing')
+  }
+
+  const handleManageProjects = () => {
+    // Close the modal and redirect to profile page to manage existing projects
+    setIsProjectLimitModalOpen(false)
+    router.push('/profile')
   }
 
   if (isLoading) {
@@ -88,10 +131,11 @@ export default function HomePage() {
               <div className="relative max-w-3xl mx-auto">
                 <Textarea
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={handleTextareaChange}
+                  onInput={handleTextareaInput}
                   onKeyPress={handleKeyPress}
                   placeholder="type your extension idea and we'll bring it to life (or /command)"
-                  className="w-full min-h-[120px] p-6 text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full min-h-[120px] p-6 pb-20 text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   disabled={isGenerating}
                 />
 
@@ -133,6 +177,19 @@ export default function HomePage() {
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
       />
+
+      {/* Project Limit Modal */}
+      {projectLimitDetails && (
+        <ProjectMaxAlert
+          isOpen={isProjectLimitModalOpen}
+          onClose={() => setIsProjectLimitModalOpen(false)}
+          currentPlan={projectLimitDetails.currentPlan}
+          currentProjectCount={projectLimitDetails.currentProjectCount}
+          maxProjects={projectLimitDetails.maxProjects}
+          onUpgradePlan={handleUpgradePlan}
+          onDeleteProject={handleManageProjects}
+        />
+      )}
     </>
   )
 }

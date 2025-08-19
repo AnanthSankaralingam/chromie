@@ -14,6 +14,7 @@ Tracks user info (linked to Supabase Auth).
 | `email`             | text         | User email                                     |
 | `provider`          | text         | 'google', 'github', ...                        |
 | `stripe_customer_id`| text         | Stripe customer ref                            |
+| `project_count`     | integer      | DEFAULT 0, tracks total active projects        |
 | `created_at`        | timestamptz  | DEFAULT now()                                  |
 | `last_used_at`      | timestamptz  | DEFAULT now()                                  |
 
@@ -69,7 +70,7 @@ Not for credit card data — only foreign keys to Stripe.
 | `user_id`             | uuid         | FK → `profiles.id`, ON DELETE CASCADE        |
 | `stripe_customer_id`  | text         | Stripe ref                                   |
 | `stripe_subscription_id`| text       | Stripe ref                                   |
-| `plan`                | text         | e.g. 'free', 'pro'                           |
+| `plan`                | text         | e.g. 'free', 'starter', 'pro'                |
 | `status`              | text         | e.g. 'active', 'past_due'                    |
 | `created_at`          | timestamptz  | DEFAULT now()                                |
 | `valid_until`         | timestamptz  | Optional, subscription expiry                |
@@ -89,6 +90,67 @@ Tracks OpenAI token usage per user and project.
 | `model`           | text         | Model used (e.g. 'gpt-4o')                        |
 | `created_at`      | timestamptz  | DEFAULT now()                                    |
 
+---
+
+## Project Limits by Plan
+
+| Plan    | Max Projects | Description                    |
+|---------|--------------|--------------------------------|
+| free    | 10           | Basic tier with limited projects |
+| starter | 25           | Mid-tier with more projects    |
+| pro     | 50           | Premium tier with max projects |
+
+---
+
+## Required SQL Updates
+
+Run these SQL commands in your Supabase SQL editor to implement project counting:
+
+```sql
+-- Add project_count column to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS project_count INTEGER DEFAULT 0;
+
+-- Create function to update project count
+CREATE OR REPLACE FUNCTION update_project_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE profiles 
+    SET project_count = project_count + 1 
+    WHERE id = NEW.user_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE profiles 
+    SET project_count = project_count - 1 
+    WHERE id = OLD.user_id;
+    RETURN OLD;
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- Handle case where user_id changes (shouldn't happen but safety)
+    IF OLD.user_id != NEW.user_id THEN
+      UPDATE profiles SET project_count = project_count - 1 WHERE id = OLD.user_id;
+      UPDATE profiles SET project_count = project_count + 1 WHERE id = NEW.user_id;
+    END IF;
+    RETURN NEW;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to automatically update project count
+DROP TRIGGER IF EXISTS trigger_update_project_count ON projects;
+CREATE TRIGGER trigger_update_project_count
+  AFTER INSERT OR DELETE OR UPDATE ON projects
+  FOR EACH ROW EXECUTE FUNCTION update_project_count();
+
+-- Update existing project counts for all users
+UPDATE profiles 
+SET project_count = (
+  SELECT COUNT(*) 
+  FROM projects 
+  WHERE projects.user_id = profiles.id 
+  AND projects.archived = false
+);
+```
 
 ---
 
@@ -102,11 +164,13 @@ Tracks OpenAI token usage per user and project.
 
 - Users can SELECT, UPDATE, DELETE only their own row (where `id = auth.uid()`).
 - Users can INSERT their own row (optional; often managed by backend).
+- `project_count` is automatically maintained by database triggers.
 
 ### 2. `projects`
 
 - Users can SELECT, UPDATE, DELETE projects only where `user_id = auth.uid()`.
 - Users can INSERT rows with their own `user_id = auth.uid()`.
+- Project count is automatically updated via database triggers.
 
 ### 3. `code_files`
 
@@ -128,10 +192,12 @@ Tracks OpenAI token usage per user and project.
 
 ## Summary
 
-- **User isolation:** Each user can only see and modify their own data—never anyone else’s.
-- **Project/file-level security:** Files/conversations are always scoped to a user’s own projects.
-- **Billing data:** No unauthorized access to others’ billing info.
+- **User isolation:** Each user can only see and modify their own data—never anyone's.
+- **Project/file-level security:** Files/conversations are always scoped to a user's own projects.
+- **Billing data:** No unauthorized access to others' billing info.
+- **Project limits:** Automatically enforced based on user's subscription plan.
 - **Best practice:** All foreign keys are set to ON DELETE CASCADE for streamlined cleanup.
+- **Automatic counting:** Project counts are maintained automatically via database triggers.
 
 ---
 
@@ -172,6 +238,4 @@ When you click "Test Extension" in the builder, the app will:
 2. Upload to Browserbase
 3. Create a new browser session with your extension loaded
 4. Display the live browser in an iframe
-
----
 
