@@ -11,5 +11,6 @@ TODOs
 8. enable editing from UI - find out how to do with minimal saves (updates to supabase)
 9. fix add_to_existing prompt
 10. fix "manage billing" and test all buying scenarios.
-11. test end to end
+11. fix message from google oauth to mention chromie not supabase.
+12. test end to end
    
