@@ -280,15 +280,46 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
-    // Update project with generation info
-    await supabase
+    // Extract extension info from manifest.json and update project
+    let projectUpdateData = {
+      last_generated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    // Try to extract extension name from manifest.json
+    if (allFiles['manifest.json']) {
+      try {
+        const manifestContent = allFiles['manifest.json']
+        const manifest = JSON.parse(manifestContent)
+        
+        if (manifest.name && manifest.name.trim()) {
+          projectUpdateData.name = manifest.name.trim()
+          console.log(`Updating project name to: ${manifest.name}`)
+        }
+        
+        if (manifest.description && manifest.description.trim()) {
+          projectUpdateData.description = manifest.description.trim()
+          console.log(`Updating project description to: ${manifest.description}`)
+        }
+      } catch (parseError) {
+        console.warn('Could not parse manifest.json for project update:', parseError.message)
+      }
+    }
+
+    // Update project with generation info and extension details
+    const { error: projectUpdateError } = await supabase
       .from("projects")
-      .update({
-        last_generated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(projectUpdateData)
       .eq("id", projectId)
 
+    if (projectUpdateError) {
+      console.error('Error updating project with extension info:', projectUpdateError)
+    } else {
+      console.log('✅ Project updated successfully with extension info')
+    }
+
+    console.log(`✅ Code generation completed successfully. Generated ${savedFiles.length} files.`)
+    
     return NextResponse.json({
       success: true,
       explanation: result.explanation,

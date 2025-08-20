@@ -69,12 +69,14 @@ export default function BuilderPage() {
     }
   }, [projectSetup.currentProjectId, projectSetup.isSettingUpProject])
 
-  // Update project info when file structure changes (after code generation)
+  // Log extension info when file structure changes (after code generation)
   useEffect(() => {
     if (fileManagement.flatFiles.length > 0 && projectSetup.currentProjectId && !fileManagement.isLoadingFiles) {
       const extensionInfo = fileManagement.extractExtensionInfo(fileManagement.flatFiles)
       if (extensionInfo) {
-        fileManagement.updateProjectWithExtensionInfo(extensionInfo)
+        console.log('Extension info extracted after code generation:', extensionInfo)
+        // Project name and description are now automatically updated during code generation
+        // No need to make additional API calls
       }
     }
   }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles])
