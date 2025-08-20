@@ -74,27 +74,13 @@ export default function useFileManagement(currentProjectId, user) {
   }
 
   // Helper function to update project with extension info
+  // Note: Project name and description are now automatically updated during code generation
+  // This function is kept for compatibility but no longer makes API calls
   const updateProjectWithExtensionInfo = async (extensionInfo) => {
     if (!extensionInfo || !currentProjectId) return
-
-    try {
-      const response = await fetch(`/api/projects/${currentProjectId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: extensionInfo.name,
-          description: extensionInfo.description
-        }),
-      })
-
-      if (!response.ok) {
-        console.error('Failed to update project with extension info')
-      }
-    } catch (error) {
-      console.error('Error updating project with extension info:', error)
-    }
+    
+    console.log('Extension info extracted:', extensionInfo)
+    console.log('Project name and description will be automatically updated during code generation')
   }
 
   const loadProjectFiles = async () => {

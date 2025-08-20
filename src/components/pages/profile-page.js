@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [editingProject, setEditingProject] = useState(null)
   const [newProjectName, setNewProjectName] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
@@ -81,26 +82,40 @@ export default function ProfilePage() {
   const handleRenameProject = async (projectId, newName) => {
     if (!newName.trim()) return
 
+    // Project names are now automatically updated during code generation
+    // Show a message to the user
+    alert('Project names are now automatically updated based on the extension manifest. Renaming is no longer supported.')
+    setEditingProject(null)
+    setNewProjectName("")
+  }
+
+  // Handle project deletion
+  const handleDeleteProject = async (projectId) => {
+    if (!projectId) return
+
+    console.log('Attempting to delete project:', projectId)
+    setIsDeleting(true)
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newName.trim() }),
+        method: 'DELETE',
       })
 
       if (response.ok) {
-        setProjects(projects.map(project => 
-          project.id === projectId 
-            ? { ...project, name: newName.trim() }
-            : project
-        ))
-        setEditingProject(null)
-        setNewProjectName("")
+        // Remove the project from the local state
+        setProjects(projects.filter(project => project.id !== projectId))
+        setDeleteDialogOpen(false)
+        setProjectToDelete(null)
+        console.log('Project deleted successfully')
+      } else {
+        const errorData = await response.json()
+        console.error('Failed to delete project:', errorData.error)
+        alert('Failed to delete project. Please try again.')
       }
     } catch (error) {
-      console.error('Error renaming project:', error)
+      console.error('Error deleting project:', error)
+      alert('Error deleting project. Please try again.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -430,8 +445,9 @@ export default function ProfilePage() {
                              setEditingProject(project.id)
                              setNewProjectName(project.name)
                            }}
-                           className="text-slate-400 hover:text-white"
-                           title="Rename project"
+                           className="text-slate-500 hover:text-slate-400 cursor-not-allowed"
+                           title="Renaming is no longer supported - names update automatically"
+                           disabled
                          >
                            <Edit className="h-4 w-4" />
                          </Button>
@@ -443,6 +459,18 @@ export default function ProfilePage() {
                            title="Edit project in builder"
                          >
                            <ExternalLink className="h-4 w-4" />
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => {
+                             setProjectToDelete(project)
+                             setDeleteDialogOpen(true)
+                           }}
+                           className="text-red-400 hover:text-red-300"
+                           title="Delete project"
+                         >
+                           <Trash2 className="h-4 w-4" />
                          </Button>
                        </div>
                      )}
@@ -498,6 +526,45 @@ export default function ProfilePage() {
             </Dialog>
           </CardContent>
         </Card>
+
+        {/* Project Deletion Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogHeader>
+              <DialogTitle className="text-red-400">Delete Project</DialogTitle>
+              <DialogDescription className="text-slate-300">
+                {projectToDelete ? (
+                  <>
+                    Are you sure you want to delete <strong>"{projectToDelete.name}"</strong>?
+                    This action cannot be undone and will permanently remove the project and all its files.
+                  </>
+                ) : (
+                  "Are you sure you want to delete this project? This action cannot be undone."
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDeleteDialogOpen(false)
+                  setProjectToDelete(null)
+                }}
+                className="text-slate-300 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteProject(projectToDelete?.id)}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Project'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Billing Modal */}

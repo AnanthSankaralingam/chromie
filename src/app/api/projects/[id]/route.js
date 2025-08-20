@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PATCH(request, { params }) {
+export async function DELETE(request, { params }) {
   const supabase = createClient()
   const { id } = params
 
@@ -48,12 +48,6 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    const { name, description } = await request.json()
-
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json({ error: "Project name is required" }, { status: 400 })
-    }
-
     // Verify project ownership
     const { data: project, error: projectError } = await supabase
       .from("projects")
@@ -63,33 +57,36 @@ export async function PATCH(request, { params }) {
       .single()
 
     if (projectError || !project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+      return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
     }
 
-    // Update the project name and description
-    const updateData = { 
-      name: name.trim(),
-      last_used_at: new Date().toISOString()
+    // Delete all code files associated with the project
+    const { error: filesDeleteError } = await supabase
+      .from("code_files")
+      .delete()
+      .eq("project_id", id)
+
+    if (filesDeleteError) {
+      console.error("Error deleting project files:", filesDeleteError)
+      return NextResponse.json({ error: "Failed to delete project files" }, { status: 500 })
     }
-    
-    // Add description if provided
-    if (description && typeof description === 'string') {
-      updateData.description = description.trim()
-    }
-    
-    const { error: updateError } = await supabase
+
+    // Delete the project
+    const { error: projectDeleteError } = await supabase
       .from("projects")
-      .update(updateData)
+      .delete()
       .eq("id", id)
       .eq("user_id", user.id)
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    if (projectDeleteError) {
+      console.error("Error deleting project:", projectDeleteError)
+      return NextResponse.json({ error: "Failed to delete project" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    console.log(`Project ${id} deleted successfully by user ${user.id}`)
+    return NextResponse.json({ success: true, message: "Project deleted successfully" })
   } catch (error) {
-    console.error("Error updating project:", error)
+    console.error("Error deleting project:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-} 
+}
