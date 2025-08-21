@@ -58,16 +58,25 @@ export default function BuilderPage() {
         url.searchParams.delete('project')
         hasChanges = true
       }
-      if (url.searchParams.has('autoGenerate')) {
-        url.searchParams.delete('autoGenerate')
-        hasChanges = true
-      }
+      // Don't clear autoGenerate parameter here - wait for successful generation
       
       if (hasChanges) {
         window.history.replaceState({}, '', url.pathname)
       }
     }
   }, [projectSetup.currentProjectId, projectSetup.isSettingUpProject])
+
+  // Clear autoGenerate URL parameter after successful generation
+  useEffect(() => {
+    if (autoGeneratePrompt === null && typeof window !== 'undefined') {
+      const url = new URL(window.location)
+      if (url.searchParams.has('autoGenerate')) {
+        url.searchParams.delete('autoGenerate')
+        window.history.replaceState({}, '', url.pathname)
+        console.log('Cleared autoGenerate URL parameter after successful generation')
+      }
+    }
+  }, [autoGeneratePrompt])
 
   // Log extension info when file structure changes (after code generation)
   useEffect(() => {
@@ -87,10 +96,31 @@ export default function BuilderPage() {
       const urlParams = new URLSearchParams(window.location.search)
       const autoGenerateFromUrl = urlParams.get('autoGenerate')
       if (autoGenerateFromUrl) {
+        console.log('Setting autoGenerate prompt from URL:', autoGenerateFromUrl)
         setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
       }
     }
   }, [])
+
+  // Log when autoGeneratePrompt changes
+  useEffect(() => {
+    console.log('autoGeneratePrompt state changed:', autoGeneratePrompt)
+  }, [autoGeneratePrompt])
+
+  // Log when project setup status changes
+  useEffect(() => {
+    console.log('Project setup status changed:', {
+      isSettingUpProject: projectSetup.isSettingUpProject,
+      currentProjectId: projectSetup.currentProjectId,
+      isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId
+    })
+  }, [projectSetup.isSettingUpProject, projectSetup.currentProjectId])
+
+  // Only clear autoGeneratePrompt after successful code generation, not just when project is loaded
+  const handleAutoGenerateComplete = () => {
+    console.log('Auto-generation completed, clearing prompt')
+    setAutoGeneratePrompt(null)
+  }
 
   const handleFileSelect = (file) => {
     console.log('File selected:', file.name)
@@ -145,10 +175,11 @@ export default function BuilderPage() {
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
+            {console.log('Rendering AIChat with autoGeneratePrompt:', autoGeneratePrompt, 'projectId:', projectSetup.currentProjectId)}
             <AIChat
               projectId={projectSetup.currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
-              onAutoGenerateComplete={() => setAutoGeneratePrompt(null)}
+              onAutoGenerateComplete={handleAutoGenerateComplete}
               onCodeGenerated={(response) => {
                 console.log("AI generated code:", response)
                 fileManagement.loadProjectFiles()
@@ -156,6 +187,7 @@ export default function BuilderPage() {
               }}
               onGenerationStart={() => setIsGenerating(true)}
               onGenerationEnd={() => setIsGenerating(false)}
+              isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
             />
           </div>
 
