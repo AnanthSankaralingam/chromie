@@ -3,6 +3,6 @@ Allow: /
 
 # Google site verification
 # You can also verify by adding this line to your robots.txt:
-# Google: nAEDWE-ZXwUBJzvqb0DlBWsdtOX5-2xbPODlfoadkPc
+Google: nAEDWE-ZXwUBJzvqb0DlBWsdtOX5-2xbPODlfoadkPc
 
 Sitemap: https://chromie.dev/sitemap.xml 
