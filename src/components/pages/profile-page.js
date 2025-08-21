@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
@@ -490,7 +491,7 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -499,7 +500,7 @@ export default function ProfilePage() {
               </DialogTrigger>
               <DialogContent className="bg-slate-800 border-slate-700">
                 <DialogHeader>
-                  <DialogTitle className="text-red-400">Delete Account</DialogTitle>
+                  <DialogTitle className="text-red-400">Sign Out</DialogTitle>
                   <DialogDescription className="text-slate-300">
                     Are you sure you want to sign out?
                     Your projects and data will remain safe and you can sign back in anytime.
@@ -508,7 +509,7 @@ export default function ProfilePage() {
                 <DialogFooter>
                   <Button
                     variant="ghost"
-                    onClick={() => setDeleteDialogOpen(false)}
+                    onClick={() => setSignOutDialogOpen(false)}
                     className="text-slate-300 hover:text-white"
                   >
                     Cancel
