@@ -129,8 +129,9 @@ export default function ProfilePage() {
       // Redirect to Stripe customer portal
       window.open('/api/billing/portal', '_blank')
     } else if (action === 'manage') {
-      // Redirect to Stripe customer portal
-      window.open('/api/billing/portal', '_blank')
+      // Redirect to Stripe customer portal using environment variable
+      const manageBillingUrl = process.env.NEXT_PUBLIC_STRIPE_MANAGE_BILLING || '/api/billing/portal'
+      window.open(manageBillingUrl, '_blank')
     }
   }
 
