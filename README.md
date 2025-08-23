@@ -7,6 +7,8 @@ TODOs
 4. mobile friendly UI
 5. Parallelize the project creation and display frontend first when generating new extension
 6. Testing extension needs a way to just render html files
+7. Testing extension side by side view needs option to focus on one. browser testing shouldn't be assumed.
+8. display project names
 
 
    
