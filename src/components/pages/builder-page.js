@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
@@ -20,6 +20,7 @@ import useDownloadExtension from "@/components/ui/download-extension"
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
   const router = useRouter()
+  const hasProcessedAutoGenerate = useRef(false)
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -68,12 +69,15 @@ export default function BuilderPage() {
 
   // Clear autoGenerate URL parameter after successful generation
   useEffect(() => {
-    if (autoGeneratePrompt === null && typeof window !== 'undefined') {
+    console.log('🔍 URL clearing effect - hasProcessed:', hasProcessedAutoGenerate.current, 'autoGeneratePrompt:', autoGeneratePrompt)
+    
+    // Only clear if we've processed the prompt and it's now null
+    if (hasProcessedAutoGenerate.current && autoGeneratePrompt === null && typeof window !== 'undefined') {
       const url = new URL(window.location)
       if (url.searchParams.has('autoGenerate')) {
         url.searchParams.delete('autoGenerate')
         window.history.replaceState({}, '', url.pathname)
-        console.log('Cleared autoGenerate URL parameter after successful generation')
+        console.log('✅ Cleared autoGenerate URL parameter after successful generation')
       }
     }
   }, [autoGeneratePrompt])
@@ -95,31 +99,49 @@ export default function BuilderPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       const autoGenerateFromUrl = urlParams.get('autoGenerate')
+      console.log('🔍 Checking URL for autoGenerate parameter:', autoGenerateFromUrl)
+      
       if (autoGenerateFromUrl) {
-        console.log('Setting autoGenerate prompt from URL:', autoGenerateFromUrl)
+        console.log('🎯 Setting autoGenerate prompt from URL:', autoGenerateFromUrl)
         setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
+        hasProcessedAutoGenerate.current = true
+        console.log('✅ Marked autoGenerate as processed, ref set to:', hasProcessedAutoGenerate.current)
+      } else {
+        console.log('📝 No autoGenerate parameter found in URL')
       }
     }
   }, [])
 
   // Log when autoGeneratePrompt changes
   useEffect(() => {
-    console.log('autoGeneratePrompt state changed:', autoGeneratePrompt)
+    console.log('📝 autoGeneratePrompt state changed:', autoGeneratePrompt)
   }, [autoGeneratePrompt])
 
   // Log when project setup status changes
   useEffect(() => {
-    console.log('Project setup status changed:', {
+    console.log('🏗️ Project setup status changed:', {
       isSettingUpProject: projectSetup.isSettingUpProject,
       currentProjectId: projectSetup.currentProjectId,
-      isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId
+      isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId,
+      hasAutoGeneratePrompt: !!autoGeneratePrompt
     })
-  }, [projectSetup.isSettingUpProject, projectSetup.currentProjectId])
+  }, [projectSetup.isSettingUpProject, projectSetup.currentProjectId, autoGeneratePrompt])
+
+  // Trigger auto-generation when both prompt and project are ready
+  useEffect(() => {
+    if (autoGeneratePrompt && !projectSetup.isSettingUpProject && projectSetup.currentProjectId) {
+      console.log('🚀 Auto-generation conditions met - prompt and project ready:', {
+        prompt: autoGeneratePrompt,
+        projectId: projectSetup.currentProjectId
+      })
+    }
+  }, [autoGeneratePrompt, projectSetup.isSettingUpProject, projectSetup.currentProjectId])
 
   // Only clear autoGeneratePrompt after successful code generation, not just when project is loaded
   const handleAutoGenerateComplete = () => {
-    console.log('Auto-generation completed, clearing prompt')
+    console.log('✅ Auto-generation completed, clearing prompt')
     setAutoGeneratePrompt(null)
+    hasProcessedAutoGenerate.current = false
   }
 
   const handleFileSelect = (file) => {

@@ -13,7 +13,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-
 function searchChromeExtensionAPI(apiName) {
   if (!apiName || typeof apiName !== "string") {
     return {
@@ -53,6 +52,79 @@ function searchChromeExtensionAPI(apiName) {
 }
 
 /**
+ * Analyzes Chrome extension feature requests and creates structured implementation plans.
+ * This function ONLY handles the planning phase and returns requirements analysis.
+ * 
+ * @param {Object} params - Function parameters
+ * @param {string} params.featureRequest - User's feature request description
+ * @returns {Object} Requirements analysis with structured plan
+ */
+export async function analyzeExtensionRequirements({ featureRequest }) {
+  console.log(`Starting requirements analysis for feature: ${featureRequest}`)
+
+  try {
+    // Call the planning prompt to analyze the request
+    const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
+    
+    console.log("Calling planning prompt to analyze extension requirements...")
+    
+    const planningResponse = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.FIREWORKS_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "accounts/fireworks/models/gpt-oss-20b",
+        max_tokens: 2000,
+        top_p: 1,
+        top_k: 40,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "user",
+            content: planningPrompt
+          }
+        ]
+      })
+    });
+
+    if (!planningResponse.ok) {
+      throw new Error(`Fireworks API error: ${planningResponse.status} ${planningResponse.statusText}`);
+    }
+
+    const planningCompletion = await planningResponse.json();
+    const requirementsAnalysis = JSON.parse(planningCompletion.choices[0].message.content)
+    
+    console.log("Requirements analysis completed:", {
+      frontend_type: requirementsAnalysis.frontend_type,
+      docAPIs: requirementsAnalysis.docAPIs,
+      webPageData: requirementsAnalysis.webPageData,
+      ext_name: requirementsAnalysis.ext_name,
+      ext_description: requirementsAnalysis.ext_description
+    })
+
+    return {
+      success: true,
+      requirements: requirementsAnalysis,
+      tokenUsage: {
+        prompt_tokens: planningCompletion.usage?.prompt_tokens || 0,
+        completion_tokens: planningCompletion.usage?.completion_tokens || 0,
+        total_tokens: planningCompletion.usage?.total_tokens || 0,
+        model: "gpt-oss-20b"
+      }
+    }
+
+  } catch (error) {
+    console.error("Error in requirements analysis:", error)
+    throw error
+  }
+}
+
+/**
  * Generates Chrome extension code using the specified coding prompt
  * @param {string} codingPrompt - The coding prompt to use
  * @param {Object} replacements - Object containing placeholder replacements
@@ -64,6 +136,7 @@ async function generateExtensionCode(codingPrompt, replacements) {
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
   for (const [placeholder, value] of Object.entries(replacements)) {
+    console.log(`Replacing ${placeholder} with ${value}`)
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
@@ -105,14 +178,8 @@ async function generateExtensionCode(codingPrompt, replacements) {
 }
 
 /**
- * Analyzes Chrome extension feature requests and creates structured implementation plans.
- * 
- * This function replaces the previous code generation approach with a planning-first approach
- * that analyzes requirements before implementation. It returns a structured plan including:
- * - Frontend type recommendation
- * - Required Chrome APIs
- * - Website analysis requirements  
- * - Extension naming and description
+ * Main method for generating Chrome extension code.
+ * Orchestrates the entire process from requirements analysis to code generation.
  * 
  * @param {Object} params - Function parameters
  * @param {string} params.featureRequest - User's feature request description
@@ -120,70 +187,35 @@ async function generateExtensionCode(codingPrompt, replacements) {
  * @param {string} params.sessionId - Session/project identifier
  * @param {Object} params.existingFiles - Existing extension files (for add-to-existing requests)
  * @param {string} params.userProvidedUrl - User-provided URL for website analysis
- * @returns {Object} Requirements analysis with structured plan
+ * @returns {Object} Generated extension code and metadata
  */
-export async function analyzeExtensionRequirements({
+export async function generateExtension({
   featureRequest,
   requestType = REQUEST_TYPES.NEW_EXTENSION,
   sessionId,
   existingFiles = {},
   userProvidedUrl = null,
 }) {
-  console.log(`Starting requirements analysis for feature: ${featureRequest}`)
+  console.log(`Starting extension generation for feature: ${featureRequest}`)
   console.log(`Request type: ${requestType}`)
 
   try {
-    // First, call the planning prompt to analyze the request
-    const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
-    
-    console.log("Calling planning prompt to analyze extension requirements...")
-    
-    const planningCompletion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "user", content: planningPrompt },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "extension_planning",
-          schema: {
-            type: "object",
-            properties: {
-              frontend_type: { 
-                type: "string", 
-                enum: ["popup", "side_panel", "overlay"] 
-              },
-              docAPIs: { 
-                type: "array", 
-                items: { type: "string" } 
-              },
-              webPageData: { 
-                type: "array", 
-                items: { type: "string" }
-              },
-              ext_name: { type: "string" },
-              ext_description: { type: "string" }
-            },
-            required: ["frontend_type", "docAPIs", "webPageData", "ext_name", "ext_description"],
-          },
-        },
-      },
-      temperature: 0.2,
-      max_tokens: 2000,
-    })
+    let requirementsAnalysis
+    let planningTokenUsage
 
-    const requirementsAnalysis = JSON.parse(planningCompletion.choices[0].message.content)
-    
-    console.log("Requirements analysis completed:", {
-      frontend_type: requirementsAnalysis.frontend_type,
-      docAPIs: requirementsAnalysis.docAPIs,
-      webPageData: requirementsAnalysis.webPageData,
-      ext_name: requirementsAnalysis.ext_name,
-      ext_description: requirementsAnalysis.ext_description
-    })
+    // Step 1: Analyze requirements if this is a new extension
+    if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+      console.log("New extension request - analyzing requirements...")
+      const analysisResult = await analyzeExtensionRequirements({ featureRequest })
+      requirementsAnalysis = analysisResult.requirements
+      planningTokenUsage = analysisResult.tokenUsage
+    } else {
+      // For existing extensions, we would need to implement different logic
+      // For now, throw an error as this case isn't implemented
+      throw new Error(`Request type ${requestType} not yet implemented`)
+    }
 
-    // Step 1: Call searchChromeExtensionAPI for each of the APIs listed
+    // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
     if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
       console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
@@ -218,13 +250,13 @@ ${apiResult.code_example || 'No example provided'}
       console.log("Chrome API documentation compiled")
     }
 
-    // Step 2: Call batchScrapeWebpages for webpage analysis
+    // Step 3: Scrape webpages for analysis if needed
     const scrapedWebpageAnalysis = await batchScrapeWebpages(
       requirementsAnalysis.webPageData, 
       userProvidedUrl
     )
 
-    // Step 3: Route to appropriate coding prompt based on frontend_type
+    // Step 4: Select appropriate coding prompt based on frontend type
     let selectedCodingPrompt = ""
     switch (requirementsAnalysis.frontend_type) {
       case "side_panel":
@@ -234,12 +266,17 @@ ${apiResult.code_example || 'No example provided'}
         selectedCodingPrompt = NEW_EXT_POPUP_PROMPT
         break
       case "overlay":
-      default:
         selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT
+        break
+      case "generic":
+        selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+        break
+      default:
+        selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
         break
     }
 
-    // Step 4: Generate extension code using the dedicated method
+    // Step 5: Generate extension code
     const codingCompletion = await generateExtensionCode(selectedCodingPrompt, {
       user_feature_request: featureRequest,
       ext_name: requirementsAnalysis.ext_name,
@@ -253,7 +290,6 @@ ${apiResult.code_example || 'No example provided'}
     const implementationResult = JSON.parse(codingCompletion.choices[0].message.content)
 
     console.log("Implementation result received:", {
-      explanation: implementationResult.explanation,
       allKeys: Object.keys(implementationResult),
       files: Object.keys(implementationResult).filter((key) => key !== "explanation"),
     })
@@ -290,10 +326,13 @@ ${apiResult.code_example || 'No example provided'}
 
     // Calculate total token usage
     const totalUsage = {
-      prompt_tokens: (planningCompletion.usage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
-      completion_tokens: (planningCompletion.usage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
-      total_tokens: (planningCompletion.usage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
-      model: "gpt-4o"
+      prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
+      completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
+      total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
+      models: {
+        planning: "gpt-oss-20b",
+        coding: "gpt-4o"
+      }
     }
 
     console.log("Total token usage:", totalUsage)
@@ -307,7 +346,7 @@ ${apiResult.code_example || 'No example provided'}
     }
 
   } catch (error) {
-    console.error("Error in requirements analysis:", error)
+    console.error("Error in extension generation:", error)
     throw error
   }
 }

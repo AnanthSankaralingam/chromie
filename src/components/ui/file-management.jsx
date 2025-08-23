@@ -4,6 +4,7 @@ export default function useFileManagement(currentProjectId, user) {
   const [fileStructure, setFileStructure] = useState([])
   const [flatFiles, setFlatFiles] = useState([])
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [loadedProjectId, setLoadedProjectId] = useState(null) // Track which project's files are loaded
 
   // Helper function to transform flat file list into tree structure
   const transformFilesToTree = (files) => {
@@ -89,6 +90,12 @@ export default function useFileManagement(currentProjectId, user) {
       return
     }
 
+    // Skip loading if we already have files for this project
+    if (loadedProjectId === currentProjectId && fileStructure.length > 0) {
+      console.log('Files already loaded for this project, skipping API call')
+      return
+    }
+
     setIsLoadingFiles(true)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/files`)
@@ -106,6 +113,7 @@ export default function useFileManagement(currentProjectId, user) {
       setFlatFiles(files)
       const transformedFiles = transformFilesToTree(files)
       setFileStructure(transformedFiles)
+      setLoadedProjectId(currentProjectId) // Mark this project as loaded
 
       // Extract and update project with extension info from manifest.json
       const extensionInfo = extractExtensionInfo(files)
@@ -173,12 +181,12 @@ export default function useFileManagement(currentProjectId, user) {
     }
   }
 
-  // Load project files when currentProjectId is available
+  // Only load files when switching to a new project
   useEffect(() => {
-    if (currentProjectId && user) {
+    if (currentProjectId && user && loadedProjectId !== currentProjectId) {
       loadProjectFiles()
     }
-  }, [currentProjectId, user])
+  }, [currentProjectId, user, loadedProjectId])
 
   return {
     fileStructure,
