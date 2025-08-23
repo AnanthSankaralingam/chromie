@@ -82,7 +82,7 @@ You MUST return a JSON object with this exact schema:
 <output_schema>
 {
   "frontend_type": "popup | side_panel | overlay | generic",
-  "docAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
+  "chromeAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
   "webPageData": ["array of domains like 'youtube.com', 'twitter.com' or empty array if no specific sites needed"],
   "ext_name": "Descriptive extension name (3-5 words)",
   "ext_description": "Clear description of what the extension does (1-2 sentences)"
@@ -99,10 +99,10 @@ You MUST return a JSON object with this exact schema:
 </frontend_selection>
 
 <tool_analysis>
-- If request mentions Chrome functionality (bookmarks, tabs, notifications, etc.) → Include relevant APIs in docAPIs array
+- If request mentions Chrome functionality (bookmarks, tabs, notifications, etc.) → Include relevant APIs in chromeAPIs array
 - If request targets specific websites → Set webPageData to ["domain.com"]
 - If request needs both → Include APIs and set webPageData accordingly
-- If request is generic web enhancement → Use empty arrays: docAPIs: [], webPageData: []
+- If request is generic web enhancement → Use empty arrays: chromeAPIs: [], webPageData: []
 </tool_analysis>
 </decision_guidelines>
 
@@ -114,7 +114,7 @@ Tool Requirements: No specific APIs or sites needed
 Output:
 {
   "frontend_type": "generic",
-  "docAPIs": [],
+  "chromeAPIs": [],
   "webPageData": [],
   "ext_name": "Productivity Tracker",
   "ext_description": "Helps users track and improve their productivity habits throughout the day."
@@ -128,7 +128,7 @@ Tool Requirements: bookmarks API needed
 Output:
 {
   "frontend_type": "popup",
-  "docAPIs": ["bookmarks"],
+  "chromeAPIs": ["bookmarks"],
   "webPageData": [],
   "ext_name": "Quick Bookmark Access",
   "ext_description": "Provides instant access to your bookmarks through a convenient popup menu."
@@ -142,7 +142,7 @@ Tool Requirements: bookmarks API + YouTube domain
 Output:
 {
   "frontend_type": "overlay",
-  "docAPIs": ["bookmarks"],
+  "chromeAPIs": ["bookmarks"],
   "webPageData": ["youtube.com"],
   "ext_name": "YouTube Video Bookmarker",
   "ext_description": "Saves YouTube videos to your bookmarks with custom notes and easy access from any video page."
@@ -156,7 +156,7 @@ Tool Requirements: tabs API needed
 Output:
 {
   "frontend_type": "side_panel",
-  "docAPIs": ["tabs"],
+  "chromeAPIs": ["tabs"],
   "webPageData": [],
   "ext_name": "Tab Analytics Monitor",
   "ext_description": "Continuously tracks and displays detailed analytics about your browsing tabs in a persistent sidebar."

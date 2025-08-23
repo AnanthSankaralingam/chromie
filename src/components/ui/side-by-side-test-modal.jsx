@@ -34,8 +34,6 @@ export default function SideBySideTestModal({
   }, [communicationLog])
 
   useEffect(() => {
-    console.log("SideBySideTestModal received sessionData:", sessionData)
-    console.log("SideBySideTestModal received extensionFiles:", extensionFiles)
     
     if (extensionFiles && extensionFiles.length > 0) {
       console.log("Processing extension files for action generation...")
@@ -178,7 +176,6 @@ export default function SideBySideTestModal({
     }
   }
 
-  console.log("SideBySideTestModal render - isOpen:", isOpen, "sessionData:", sessionData, "isLoading:", isLoading)
   if (!isOpen) return null
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl

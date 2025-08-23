@@ -75,7 +75,15 @@ export default function HomePage() {
       const { project } = await response.json()
 
       // Redirect to builder immediately with the prompt to auto-generate
-      router.push(`/builder?project=${project.id}&autoGenerate=${encodeURIComponent(prompt)}`)
+      const encodedPrompt = encodeURIComponent(prompt)
+      const builderUrl = `/builder?project=${project.id}&autoGenerate=${encodedPrompt}`
+      console.log('🚀 Redirecting to builder with prompt:', {
+        originalPrompt: prompt,
+        encodedPrompt: encodedPrompt,
+        builderUrl: builderUrl,
+        projectId: project.id
+      })
+      router.push(builderUrl)
     } catch (error) {
       console.error("Error generating extension:", error)
     } finally {

@@ -378,14 +378,6 @@ Frontend Type: {frontend_type}
 {scraped_webpage_analysis}
 </webpage_data>
 
-<implementation_requirements>
-<frontend_implementation>
-Implement the specified frontend type ({frontend_type}):
-- popup: Create extension popup interface with popup.html and popup.js
-- side_panel: Create side panel interface with sidepanel.html and sidepanel.js
-- overlay: Create content script overlay injection in content.js
-</frontend_implementation>
-
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)

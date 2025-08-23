@@ -78,7 +78,6 @@ export class BrowserBaseService {
         // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, 300))
       }
-      console.log("Live View links:", liveViewLinks)
 
       // Return a shape compatible with existing UI
       // The connectUrl is the WebSocket URL to connect to the actual browser instance

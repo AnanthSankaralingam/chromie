@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { analyzeExtensionRequirements } from "@/lib/openai-service"
+import { generateExtension } from "@/lib/openai-service"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
@@ -100,7 +100,7 @@ export async function POST(request) {
     }
 
     // Generate extension code using OpenAI
-    const result = await analyzeExtensionRequirements({
+    const result = await generateExtension({
       featureRequest: prompt,
       requestType,
       sessionId: projectId,
