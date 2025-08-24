@@ -44,7 +44,7 @@ Stores each code file per project.
 | `project_id`  | uuid         | FK → `projects.id`, ON DELETE CASCADE    |
 | `file_path`   | text         | NOT NULL                                 |
 | `content`     | text         | Raw file contents                        |
-| `updated_at`  | timestamptz  | DEFAULT now()                            |
+| `last_used_at`  | timestamptz  | DEFAULT now()                            |
 
 ---
 
@@ -76,19 +76,15 @@ Not for credit card data — only foreign keys to Stripe.
 | `valid_until`         | timestamptz  | Optional, subscription expiry                |
 
 ### 6. `token_usage`
-Tracks OpenAI token usage per user and project.
+Tracks LLM token usage per user.
 
 | Column            | Type         | Details                                           |
 |-------------------|--------------|---------------------------------------------------|
 | `id`              | uuid         | PK, DEFAULT gen_random_uuid()                    |
 | `user_id`         | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
-| `project_id`      | uuid         | FK → `projects.id`, ON DELETE CASCADE            |
-| `request_id`      | uuid         | Optional session/request reference               |
-| `prompt_tokens`   | integer      | Tokens sent in prompt                            |
-| `completion_tokens`| integer     | Tokens generated in response                     |
 | `total_tokens`    | integer      | Total tokens = prompt + completion               |
 | `model`           | text         | Model used (e.g. 'gpt-4o')                        |
-| `created_at`      | timestamptz  | DEFAULT now()                                    |
+| `monthly_reset`      | timestamptz  | DEFAULT now()                                    |
 
 ---
 

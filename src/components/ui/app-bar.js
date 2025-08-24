@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
-import AuthModal from "@/components/ui/auth-modal"
+import AuthModal from "@/components/ui/modals/modal-auth"
 import { useState } from "react"
 
 export default function AppBar() {

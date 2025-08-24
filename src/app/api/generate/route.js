@@ -66,8 +66,17 @@ export async function POST(request) {
       .eq('user_id', user.id)
       .maybeSingle()
 
+    console.log('Existing token usage from database:', existingUsage)
+
     const now = new Date()
-    const monthlyResetDate = existingUsage?.monthly_reset ? new Date(existingUsage.monthly_reset) : null
+    // If no monthly_reset exists, calculate it as beginning of current month
+    let effectiveMonthlyReset = existingUsage?.monthly_reset
+    if (!effectiveMonthlyReset) {
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      effectiveMonthlyReset = firstDayOfMonth.toISOString()
+    }
+    
+    const monthlyResetDate = effectiveMonthlyReset ? new Date(effectiveMonthlyReset) : null
     let resetDatePlusOneMonth = null
     if (monthlyResetDate) {
       resetDatePlusOneMonth = new Date(monthlyResetDate)
@@ -78,6 +87,7 @@ export async function POST(request) {
     const effectiveTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
 
     console.log(`User plan: ${userPlan}, Limit: ${planLimit}, Used (effective): ${effectiveTokensUsed}`)
+    console.log(`Monthly reset date: ${monthlyResetDate?.toISOString()}, Reset due: ${isResetDue}`)
 
     // Check if user has exceeded their limit (unless unlimited)
     if (planLimit !== -1 && effectiveTokensUsed >= planLimit) {
@@ -89,6 +99,7 @@ export async function POST(request) {
     // Get existing files if this is an add-to-existing request
     let existingFiles = {}
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && projectId) {
+      console.log("🔧 Add-to-existing request - fetching existing project files...")
       const { data: files } = await supabase.from("code_files").select("file_path, content").eq("project_id", projectId)
 
       if (files) {
@@ -96,10 +107,19 @@ export async function POST(request) {
           acc[file.file_path] = file.content
           return acc
         }, {})
+        console.log(`📁 Found ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+      } else {
+        console.log("⚠️ No existing files found for add-to-existing request")
       }
+    } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+      console.log("🆕 New extension request - no existing files needed")
     }
 
     // Generate extension code using OpenAI
+    console.log(`🚀 Calling generateExtension with request type: ${requestType}`)
+    console.log(`📝 Feature request: ${prompt}`)
+    console.log(`📁 Existing files count: ${Object.keys(existingFiles).length}`)
+    
     const result = await generateExtension({
       featureRequest: prompt,
       requestType,
@@ -124,64 +144,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
     }
 
-    // Record token usage in database (global per-user, with monthly reset)
-    if (result.tokenUsage) {
-      const tokensThisRequest = result.tokenUsage.total_tokens || 0
-      const modelUsed = result.tokenUsage.model
+    console.log('Generate extension result:', {
+      success: result.success,
+      hasTokenUsage: !!result.tokenUsage,
+      tokenUsageKeys: result.tokenUsage ? Object.keys(result.tokenUsage) : null,
+      filesCount: result.files ? Object.keys(result.files).length : 0
+    })
 
-      // Determine new totals and monthly_reset state
-      let newTotalTokens
-      let newMonthlyReset = existingUsage?.monthly_reset
-
-      if (!existingUsage) {
-        // First-ever usage record for this user
-        newTotalTokens = tokensThisRequest
-        newMonthlyReset = now.toISOString()
-      } else if (!existingUsage.monthly_reset) {
-        // No monthly_reset set yet; set to today and continue accumulating
-        newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
-        newMonthlyReset = now.toISOString()
-      } else if (isResetDue) {
-        // New monthly period started; reset total to current request
-        newTotalTokens = tokensThisRequest
-        newMonthlyReset = now.toISOString()
-      } else {
-        // Same monthly period; accumulate
-        newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
-      }
-
-      if (existingUsage?.id) {
-        const { error: updateError } = await supabase
-          .from('token_usage')
-          .update({
-            total_tokens: newTotalTokens,
-            monthly_reset: newMonthlyReset,
-            model: modelUsed,
-          })
-          .eq('id', existingUsage.id)
-
-        if (updateError) {
-          console.error('Error updating token usage:', updateError)
-        } else {
-          console.log(`Token usage updated. New total: ${newTotalTokens}`)
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('token_usage')
-          .insert({
-            id: randomUUID(),
-            user_id: user.id,
-            total_tokens: newTotalTokens,
-            model: modelUsed,
-            monthly_reset: newMonthlyReset,
-          })
-
-        if (insertError) {
-          console.error('Error inserting token usage:', insertError)
-        } else {
-          console.log(`Token usage inserted. Total: ${newTotalTokens}`)
-        }
-      }
+    // Do not update token usage here anymore. The client will call POST /api/token-usage with result.tokenUsage
+    if (!result.tokenUsage) {
+      console.log('⚠️ No token usage data received from generateExtension function')
     }
 
     // Save generated files to database - handle each file individually
@@ -236,6 +208,7 @@ export async function POST(request) {
             .from("code_files")
             .update({
               content: content,
+              last_used_at: new Date().toISOString(),
             })
             .eq("id", existingFile.id)
 
@@ -253,7 +226,7 @@ export async function POST(request) {
               id: randomUUID(),
               project_id: projectId,
               file_path: filePath,
-              content: content,
+              content: content
             })
 
           if (insertError) {
@@ -278,7 +251,7 @@ export async function POST(request) {
       }, { status: 500 })
     }
 
-    // Extract extension info from manifest.json and update project
+    // Update project data
     let projectUpdateData = {
       last_used_at: new Date().toISOString(),
     }
@@ -322,6 +295,7 @@ export async function POST(request) {
       explanation: result.explanation,
       files: savedFiles,
       filesGenerated: savedFiles.length,
+      tokenUsage: result.tokenUsage || null,
     })
   } catch (error) {
     console.error("Error generating extension:", error)

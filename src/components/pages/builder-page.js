@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
-import AuthModal from "@/components/ui/auth-modal"
+import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBarBuilder from "@/components/ui/app-bar-builder"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'

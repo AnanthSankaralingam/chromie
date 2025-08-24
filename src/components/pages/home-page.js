@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Zap, Send, Paperclip, Sparkles, Edit3, Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
-import AuthModal from "@/components/ui/auth-modal"
+import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 

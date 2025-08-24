@@ -394,6 +394,7 @@ export function useChat({
     inputMessage,
     setInputMessage,
     isGenerating,
+    setIsGenerating,
     hasGeneratedCode,
     messagesEndRef,
     handleSendMessage,

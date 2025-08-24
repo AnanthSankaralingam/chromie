@@ -7,8 +7,8 @@ import { Edit3, Chrome, TestTube, Zap, Check, Star } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AppBar from "@/components/ui/app-bar"
-import AuthModal from "@/components/ui/auth-modal"
-import BillingModal from "@/components/ui/billing-modal"
+import AuthModal from "@/components/ui/modals/modal-auth"
+import BillingModal from "@/components/ui/modals/modal-billing"
 
 export default function PricingPage() {
   const { isLoading, user } = useSession()

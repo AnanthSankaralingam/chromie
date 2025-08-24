@@ -5,8 +5,9 @@ import { Bot } from "lucide-react"
 import ChatHeader from "./chat-header"
 import ChatMessage from "./chat-message"
 import ChatInput from "./chat-input"
-import ModalUrlPrompt from "./modal-url-prompt"
+import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
 import { useChat } from "@/hooks"
+import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 
 export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
   const [urlPromptData, setUrlPromptData] = useState(null)
@@ -33,6 +34,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     inputMessage,
     setInputMessage,
     isGenerating,
+    setIsGenerating,
     hasGeneratedCode,
     messagesEndRef,
     handleSendMessage,
@@ -51,7 +53,6 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
 
   // Show URL prompt modal when needed
   const showUrlPromptModal = (data, originalPrompt) => {
-    console.log('Creating URL prompt modal with data:', data)
     setUrlPromptData({ data, originalPrompt })
     setShowUrlPrompt(true)
   }
@@ -96,7 +97,8 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     }
 
     try {
-      console.log("Sending request with type:", hasGeneratedCode ? "add_to_existing" : "new_extension")
+      const requestType = hasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
+      console.log(`🔄 Follow-up request detected. Using request type: ${requestType}`)
       
       // Add "generating code..." message immediately
       const generatingMessage = {
@@ -113,7 +115,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         body: JSON.stringify({
           prompt: inputMessage,
           projectId,
-          requestType: hasGeneratedCode ? "add_to_existing" : "new_extension",
+          requestType: requestType,
         }),
       })
 
@@ -126,7 +128,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping
-        console.log('URL required for scraping:', data.message);
+        // console.log('URL required for scraping:', data.message);
         
         // Replace "generating code..." with URL request message
         const urlRequestMessage = {
@@ -177,6 +179,23 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         }
         return newMessages
       })
+
+      // Post token usage to server (moved out of /api/generate)
+      try {
+        if (data?.tokenUsage?.total_tokens) {
+          await fetch('/api/token-usage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              tokensThisRequest: data.tokenUsage.total_tokens,
+              model: data.tokenUsage.model || 'unknown'
+            })
+          })
+        }
+      } catch (usageErr) {
+        console.error('Failed to post token usage:', usageErr)
+      }
 
       // Mark that code has been generated
       setHasGeneratedCode(true)
