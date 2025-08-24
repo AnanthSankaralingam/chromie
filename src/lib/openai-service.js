@@ -243,6 +243,20 @@ export async function generateExtension({
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
 
+    // Check if URL is required but not provided
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl) {
+      console.log("URL required for scraping but not provided. Requesting URL from user.")
+      return {
+        success: false,
+        requiresUrl: true,
+        message: `This extension needs to analyze specific website structure. Please provide the URL of the website you want the extension to work with.`,
+        detectedSites: requirementsAnalysis.webPageData,
+        detectedUrls: [],
+        featureRequest: featureRequest,
+        requestType: requestType
+      }
+    }
+
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
     if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {

@@ -1,16 +1,17 @@
 # chromie
 
 TODOs
-1. P0: prompt engineer to get high quality code gen. its defaulting to overlay prompt (from planning) and forcing the overlay too much (coding).
-2. getting stuck on reload when going from / to /builder. prompt persistence / to auth to /builder
-3. ~add lambda api for scraper~
-4. ~number of projects by tier (10, 50, unlimited).~
-5. delete project functionality.
-6. ~get rid of generic icons and use chromie icon everywhere possible. dont want robot in ai-chat too~
-7. ~text box on home page does not expand~
-8. ~enable editing from UI~ find out how to do with minimal saves (updates to supabase)
-9. fix add_to_existing prompt
-10. fix "manage billing" and test all buying scenarios.
-11. fix message from google oauth to mention chromie not supabase.
-12. test end to end
+1. update frontend to ask for URLs
+2. fix token usage after initial request
+3. fix follow up prompt functionality.
+4. local updates to extension code --> minimal saves (updates to supabase)
+5. fix add_to_existing prompt so that we do git diff and effectively add changes/engineer context
+6. mobile friendly UI
+7. Parallelize the project creation and display frontend first when generating new extension
+8. Testing extension needs a way to just render html files
+9. Testing extension side by side view needs option to focus on one. browser testing shouldn't be assumed.
+10. display project names
+11. update side panel prompt to follow official docs
+
+
    

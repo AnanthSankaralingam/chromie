@@ -13,6 +13,21 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
   
+  // Listen for URL prompt events from use-chat hook
+  useEffect(() => {
+    const handleUrlPromptRequired = (event) => {
+      const { data, originalPrompt } = event.detail
+      console.log('URL prompt required event received:', data)
+      showUrlPromptModal(data, originalPrompt)
+    }
+
+    window.addEventListener('urlPromptRequired', handleUrlPromptRequired)
+    
+    return () => {
+      window.removeEventListener('urlPromptRequired', handleUrlPromptRequired)
+    }
+  }, [])
+  
   const {
     messages,
     setMessages,
@@ -183,6 +198,8 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       }
 
       // Mark that code has been generated
+      setHasGeneratedCode(true)
+
       if (onCodeGenerated) {
         onCodeGenerated(data)
       }

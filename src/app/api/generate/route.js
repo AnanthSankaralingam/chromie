@@ -20,7 +20,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -125,7 +125,7 @@ export async function POST(request) {
       requestType,
       sessionId: projectId,
       existingFiles,
-      userProvidedUrl: null, // Add this parameter for future use
+      userProvidedUrl: userProvidedUrl || null,
     })
 
     // Handle URL prompt requirement
@@ -226,8 +226,7 @@ export async function POST(request) {
               id: randomUUID(),
               project_id: projectId,
               file_path: filePath,
-              content: content,
-              last_used_at: new Date().toISOString(),
+              content: content
             })
 
           if (insertError) {

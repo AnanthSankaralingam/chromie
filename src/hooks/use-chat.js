@@ -273,6 +273,14 @@ export function useChat({
           return newMessages
         })
         
+        // For auto-generation, we need to trigger the URL prompt modal
+        // This will be handled by the parent component (ai-chat.js)
+        // We'll emit a custom event to signal that URL prompt is needed
+        const urlPromptEvent = new CustomEvent('urlPromptRequired', {
+          detail: { data, originalPrompt: prompt }
+        })
+        window.dispatchEvent(urlPromptEvent)
+        
         // Clear the auto-generate prompt for URL requests
         if (onAutoGenerateComplete) {
           onAutoGenerateComplete()
