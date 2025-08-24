@@ -4,7 +4,8 @@ import { NEW_EXT_PLANNING_PROMPT } from "./prompts/planning"
 import { 
   NEW_EXT_SIDEPANEL_PROMPT, 
   NEW_EXT_POPUP_PROMPT, 
-  NEW_EXT_OVERLAY_PROMPT 
+  NEW_EXT_OVERLAY_PROMPT,
+  NEW_EXT_GENERIC_PROMPT
 } from "./prompts/new-coding"
 import { batchScrapeWebpages } from "./webpage-scraper"
 const chromeApisData = require('./chrome_extension_apis.json');
@@ -97,7 +98,16 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     }
 
     const planningCompletion = await planningResponse.json();
+    
     const requirementsAnalysis = JSON.parse(planningCompletion.choices[0].message.content)
+    
+    // Extract token usage from Fireworks API response
+    const tokenUsage = {
+      prompt_tokens: planningCompletion.usage?.prompt_tokens || 0,
+      completion_tokens: planningCompletion.usage?.completion_tokens || 0,
+      total_tokens: planningCompletion.usage?.total_tokens || 0,
+      model: "gpt-oss-20b"
+    }
     
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
@@ -110,12 +120,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     return {
       success: true,
       requirements: requirementsAnalysis,
-      tokenUsage: {
-        prompt_tokens: planningCompletion.usage?.prompt_tokens || 0,
-        completion_tokens: planningCompletion.usage?.completion_tokens || 0,
-        total_tokens: planningCompletion.usage?.total_tokens || 0,
-        model: "gpt-oss-20b"
-      }
+      tokenUsage: tokenUsage
     }
 
   } catch (error) {
@@ -173,7 +178,6 @@ async function generateExtensionCode(codingPrompt, replacements) {
     max_tokens: 15000,
   })
 
-  console.log("Code generation completed")
   return codingCompletion
 }
 
@@ -196,22 +200,46 @@ export async function generateExtension({
   existingFiles = {},
   userProvidedUrl = null,
 }) {
-  console.log(`Starting extension generation for feature: ${featureRequest}`)
   console.log(`Request type: ${requestType}`)
 
   try {
     let requirementsAnalysis
     let planningTokenUsage
 
-    // Step 1: Analyze requirements if this is a new extension
+    // Step 1: Analyze requirements based on request type
     if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
-      console.log("New extension request - analyzing requirements...")
+      console.log("🆕 New extension request - analyzing requirements...")
       const analysisResult = await analyzeExtensionRequirements({ featureRequest })
       requirementsAnalysis = analysisResult.requirements
       planningTokenUsage = analysisResult.tokenUsage
+    } else if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      console.log("🔧 Add to existing extension request - analyzing existing code...")
+      
+      // For existing extensions, create a simplified requirements analysis
+      requirementsAnalysis = {
+        frontend_type: "generic", // Will be determined from existing files
+        docAPIs: [], // Will be determined from existing code
+        webPageData: null, // Usually not needed for modifications
+        ext_name: "Existing Extension", // Will be updated from manifest
+        ext_description: "Extension modification" // Will be updated from manifest
+      }
+      
+      // Extract extension info from existing manifest if available
+      if (existingFiles['manifest.json']) {
+        try {
+          const manifest = JSON.parse(existingFiles['manifest.json'])
+          if (manifest.name) requirementsAnalysis.ext_name = manifest.name
+          if (manifest.description) requirementsAnalysis.ext_description = manifest.description
+          console.log(`📋 Using existing manifest: ${manifest.name}`)
+        } catch (e) {
+          console.warn('Could not parse existing manifest.json:', e.message)
+        }
+      }
+      
+      // No planning tokens for modifications
+      planningTokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, model: "none" }
+      console.log("✅ Requirements analysis completed for existing extension modification")
     } else {
-      // For existing extensions, we would need to implement different logic
-      // For now, throw an error as this case isn't implemented
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
 
@@ -256,34 +284,55 @@ ${apiResult.code_example || 'No example provided'}
       userProvidedUrl
     )
 
-    // Step 4: Select appropriate coding prompt based on frontend type
+    // Step 4: Select appropriate coding prompt based on request type and frontend type
     let selectedCodingPrompt = ""
-    switch (requirementsAnalysis.frontend_type) {
-      case "side_panel":
-        selectedCodingPrompt = NEW_EXT_SIDEPANEL_PROMPT
-        break
-      case "popup":
-        selectedCodingPrompt = NEW_EXT_POPUP_PROMPT
-        break
-      case "overlay":
-        selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT
-        break
-      case "generic":
-        selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
-        break
-      default:
-        selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
-        break
+    
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      // For modifications, always use the generic prompt to handle any type of extension
+      selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+      console.log("🔧 Using generic coding prompt for extension modification")
+      console.log("📝 This prompt will handle modifications to any existing extension type")
+    } else {
+      // For new extensions, select based on frontend type
+      switch (requirementsAnalysis.frontend_type) {
+        case "side_panel":
+          selectedCodingPrompt = NEW_EXT_SIDEPANEL_PROMPT
+          break
+        case "popup":
+          selectedCodingPrompt = NEW_EXT_POPUP_PROMPT
+          break
+        case "overlay":
+          selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT
+          break
+        case "generic":
+          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+          break
+        default:
+          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+          break
+      }
+      console.log(`🆕 Using ${requirementsAnalysis.frontend_type} coding prompt for new extension`)
     }
 
     // Step 5: Generate extension code
-    const codingCompletion = await generateExtensionCode(selectedCodingPrompt, {
+    const replacements = {
       user_feature_request: featureRequest,
       ext_name: requirementsAnalysis.ext_name,
       ext_description: requirementsAnalysis.ext_description,
-      chrome_api_documentation: chromeApiDocumentation || '<!-- No Chrome APIs required -->',
+      chrome_api_documentation: chromeApiDocumentation || '',
       scraped_webpage_analysis: scrapedWebpageAnalysis
-    })
+    }
+    
+    // Add existing files context for modifications
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
+      console.log("📁 Including existing files context for modification")
+      replacements.existing_files = JSON.stringify(existingFiles, null, 2)
+      console.log(`📋 Context includes ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+      console.log("🔍 LLM will receive full existing code context for modification")
+    }
+    
+    console.log("🚀 Starting code generation with selected prompt...")
+    const codingCompletion = await generateExtensionCode(selectedCodingPrompt, replacements)
 
     console.log("Code generation completed")
 
@@ -304,8 +353,6 @@ ${apiResult.code_example || 'No example provided'}
       }
     }
 
-    console.log("Files to generate:", Object.keys(filesOnly))
-
     // Validate file contents are strings
     for (const [filename, content] of Object.entries(filesOnly)) {
       if (filename === "manifest.json" && typeof content === "object") {
@@ -325,17 +372,21 @@ ${apiResult.code_example || 'No example provided'}
     }
 
     // Calculate total token usage
+    console.log('Planning token usage:', planningTokenUsage)
+    console.log('Coding completion usage:', codingCompletion.usage)
+    
     const totalUsage = {
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
       total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
+      model: "gpt-4o", // Use the primary model for tracking
       models: {
         planning: "gpt-oss-20b",
         coding: "gpt-4o"
       }
     }
 
-    console.log("Total token usage:", totalUsage)
+    console.log("Total token usage calculated:", totalUsage)
 
     return {
       success: true,

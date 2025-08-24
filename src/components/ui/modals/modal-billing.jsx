@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Zap, X, Check, CreditCard, Mail, User } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
-import AuthModal from "@/components/ui/auth-modal"
+import AuthModal from "@/components/ui/modals/modal-auth"
 
 export default function BillingModal({ isOpen, onClose, selectedPlan }) {
   const [loading, setLoading] = useState(false)
