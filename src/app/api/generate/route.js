@@ -236,7 +236,6 @@ export async function POST(request) {
             .from("code_files")
             .update({
               content: content,
-              updated_at: new Date().toISOString(),
             })
             .eq("id", existingFile.id)
 
@@ -255,7 +254,6 @@ export async function POST(request) {
               project_id: projectId,
               file_path: filePath,
               content: content,
-              updated_at: new Date().toISOString(),
             })
 
           if (insertError) {
@@ -282,8 +280,7 @@ export async function POST(request) {
 
     // Extract extension info from manifest.json and update project
     let projectUpdateData = {
-      last_generated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      last_used_at: new Date().toISOString(),
     }
 
     // Try to extract extension name from manifest.json
