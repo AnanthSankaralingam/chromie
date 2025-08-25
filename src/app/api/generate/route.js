@@ -20,7 +20,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -44,7 +44,7 @@ export async function POST(request) {
       }
     }
 
-    console.log(":", prompt)
+    console.log("🚀 Generate request:", { prompt, projectId, requestType, userProvidedUrl, skipScraping })
 
     // Check user's plan and token usage limits
     const { data: billing, error: billingError } = await supabase
@@ -66,7 +66,6 @@ export async function POST(request) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    console.log('Existing token usage from database:', existingUsage)
 
     const now = new Date()
     // If no monthly_reset exists, calculate it as beginning of current month
@@ -119,13 +118,16 @@ export async function POST(request) {
     console.log(`🚀 Calling generateExtension with request type: ${requestType}`)
     console.log(`📝 Feature request: ${prompt}`)
     console.log(`📁 Existing files count: ${Object.keys(existingFiles).length}`)
+    console.log(`🔗 User provided URL: ${userProvidedUrl || 'none'}`)
+    console.log(`⏭️ Skip scraping: ${skipScraping || false}`)
     
     const result = await generateExtension({
       featureRequest: prompt,
       requestType,
       sessionId: projectId,
       existingFiles,
-      userProvidedUrl: userProvidedUrl || null,
+      userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
+      skipScraping: !!skipScraping,
     })
 
     // Handle URL prompt requirement
@@ -142,18 +144,6 @@ export async function POST(request) {
 
     if (!result.success) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
-    }
-
-    console.log('Generate extension result:', {
-      success: result.success,
-      hasTokenUsage: !!result.tokenUsage,
-      tokenUsageKeys: result.tokenUsage ? Object.keys(result.tokenUsage) : null,
-      filesCount: result.files ? Object.keys(result.files).length : 0
-    })
-
-    // Do not update token usage here anymore. The client will call POST /api/token-usage with result.tokenUsage
-    if (!result.tokenUsage) {
-      console.log('⚠️ No token usage data received from generateExtension function')
     }
 
     // Save generated files to database - handle each file individually
@@ -175,7 +165,6 @@ export async function POST(request) {
               file_path: `icons/${iconFile}`,
               content: iconContent.toString('base64') // Store as base64 for binary files
             })
-            console.log(`Including icon: ${iconFile} (${Math.round(iconContent.length / 1024)}KB)`)
           }
         }
         console.log(`✅ Successfully included ${iconFiles.length} icon files in extension`)

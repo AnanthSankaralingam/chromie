@@ -57,3 +57,34 @@
     @apply bg-white text-gray-950;
   }
 }
+
+@layer components {
+  /* URL Prompt Modal Styles */
+  .option-btn {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .option-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .option-btn.primary:hover {
+    background: #2563eb !important;
+  }
+  
+  .option-btn.secondary:hover {
+    background: #e5e7eb !important;
+  }
+  
+  .option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  
+  .url-prompt-container {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}

@@ -92,13 +92,6 @@ export function useChat({
     try {
       console.log("Sending request with type:", hasGeneratedCode ? "add_to_existing" : "new_extension")
       
-      // Add "generating code..." message immediately
-      const generatingMessage = {
-        role: "assistant",
-        content: "🚀 generating code...",
-      }
-      setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
-      
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -119,18 +112,11 @@ export function useChat({
       if (response.status === 403) {
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
-        // Show URL prompt modal for scraping
-        console.log('URL required for scraping:', data.message);
+        // Show URL prompt modal for scraping - no chat message needed
+        console.log('🔗 URL required for scraping - showing modal only');
         
-        // Replace "generating code..." with URL request message
-        const urlRequestMessage = {
-          role: "assistant",
-          content: "🔗 i need to analyze the specific webpage structure to build this extension effectively. please provide the url of the website you want the extension to work with.",
-        }
-        
-        setMessages(prev => replaceOrAddMessage(prev, urlRequestMessage, (lastMessage) => 
-          lastMessage.content.includes("Generating code")
-        ))
+        // Ensure spinner is not shown
+        setIsGenerating(false)
         
         // Clear the auto-generate prompt for URL requests
         if (onAutoGenerateComplete) {
@@ -146,34 +132,45 @@ export function useChat({
         content = "code generated successfully!"
       }
 
-      const assistantMessage = {
-        role: "assistant",
-        content,
-      }
-
-      // Replace the "generating code..." message with the actual result
-      setMessages((prev) => {
-        const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-          newMessages[newMessages.length - 1] = assistantMessage
-        } else {
-          newMessages.push(assistantMessage)
+      // Only add "generating code..." message if we're actually generating code (not showing URL modal)
+      if (content && !data.requiresUrl) {
+        setIsGenerating(true)
+        const generatingMessage = {
+          role: "assistant",
+          content: "🚀 generating code...",
         }
-        return newMessages
-      })
+        setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
+        
+        // Create the final assistant message
+        const assistantMessage = {
+          role: "assistant",
+          content,
+        }
 
-      // Mark that code has been generated
-      setHasGeneratedCode(true)
+        // Replace the "generating code..." message with the actual result
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          // Replace the last message (which should be the "generating code..." message)
+          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+            newMessages[newMessages.length - 1] = assistantMessage
+          } else {
+            newMessages.push(assistantMessage)
+          }
+          return newMessages
+        })
 
-      if (onCodeGenerated) {
-        onCodeGenerated(data)
+        // Mark that code has been generated
+        setHasGeneratedCode(true)
+
+        if (onCodeGenerated) {
+          onCodeGenerated(data)
+        }
+
+        // Refresh token usage display by triggering a page reload of the token usage component
+        // This is a simple way to refresh the token usage without complex state management
+        const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
+        window.dispatchEvent(tokenUsageEvent)
       }
-
-      // Refresh token usage display by triggering a page reload of the token usage component
-      // This is a simple way to refresh the token usage without complex state management
-      const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
-      window.dispatchEvent(tokenUsageEvent)
     } catch (error) {
       console.error("Error generating code:", error)
       const errorMessage = {
@@ -193,7 +190,7 @@ export function useChat({
         return newMessages
       })
     } finally {
-      setIsGenerating(false)
+      // Do not force spinner on; keep whatever state was set above
       // Notify parent component that generation ended
       if (onGenerationEnd) {
         onGenerationEnd()
@@ -226,13 +223,6 @@ export function useChat({
     try {
       console.log("🚀 Auto-generating with prompt:", prompt, "for project:", projectId)
       
-      // Add "generating code..." message immediately
-      const generatingMessage = {
-        role: "assistant",
-        content: "🚀 generating code...",
-      }
-      setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
-      
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -253,29 +243,13 @@ export function useChat({
       if (response.status === 403) {
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
-        // Show URL prompt modal for scraping
-        console.log('URL required for scraping:', data.message);
+        // Show URL prompt modal for scraping - no chat message needed
+        console.log('🔗 URL required for scraping - showing modal only');
         
-        // Replace "generating code..." with URL request message
-        const urlRequestMessage = {
-          role: "assistant",
-          content: "🔗 i need to analyze the specific webpage structure to build this extension effectively. please provide the url of the website you want the extension to work with.",
-        }
+        // Ensure spinner is not shown
+        setIsGenerating(false)
         
-        setMessages((prev) => {
-          const newMessages = [...prev]
-          // Replace the last message (which should be the "generating code..." message)
-          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-            newMessages[newMessages.length - 1] = urlRequestMessage
-          } else {
-            newMessages.push(urlRequestMessage)
-          }
-          return newMessages
-        })
-        
-        // For auto-generation, we need to trigger the URL prompt modal
-        // This will be handled by the parent component (ai-chat.js)
-        // We'll emit a custom event to signal that URL prompt is needed
+        // Emit event so AIChat opens the modal immediately in auto flow
         const urlPromptEvent = new CustomEvent('urlPromptRequired', {
           detail: { data, originalPrompt: prompt }
         })
@@ -295,40 +269,51 @@ export function useChat({
         content = "code generated successfully!"
       }
 
-      const assistantMessage = {
-        role: "assistant",
-        content,
-      }
-
-      // Replace the "generating code..." message with the actual result
-      setMessages((prev) => {
-        const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-          newMessages[newMessages.length - 1] = assistantMessage
-        } else {
-          newMessages.push(assistantMessage)
+      // Only add "generating code..." message if we're actually generating code (not showing URL modal)
+      if (content && !data.requiresUrl) {
+        setIsGenerating(true)
+        
+        const generatingMessage = {
+          role: "assistant",
+          content: "🚀 generating code...",
         }
-        return newMessages
-      })
+        setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
+        
+        const assistantMessage = {
+          role: "assistant",
+          content,
+        }
 
-      // Mark that code has been generated
-      setHasGeneratedCode(true)
+        // Replace the "generating code..." message with the actual result
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          // Replace the last message (which should be the "generating code..." message)
+          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+            newMessages[newMessages.length - 1] = assistantMessage
+          } else {
+            newMessages.push(assistantMessage)
+          }
+          return newMessages
+        })
 
-      if (onCodeGenerated) {
-        onCodeGenerated(data)
+        // Mark that code has been generated
+        setHasGeneratedCode(true)
+
+        if (onCodeGenerated) {
+          onCodeGenerated(data)
+        }
+
+        // Clear the auto-generate prompt after successful generation
+        if (onAutoGenerateComplete) {
+          console.log('✅ Auto-generation completed successfully, calling onAutoGenerateComplete')
+          onAutoGenerateComplete()
+        }
+
+        // Refresh token usage display
+        const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
+        window.dispatchEvent(tokenUsageEvent)
+        
       }
-
-      // Clear the auto-generate prompt after successful generation
-      if (onAutoGenerateComplete) {
-        console.log('✅ Auto-generation completed successfully, calling onAutoGenerateComplete')
-        onAutoGenerateComplete()
-      }
-
-      // Refresh token usage display
-      const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
-      window.dispatchEvent(tokenUsageEvent)
-      
     } catch (error) {
       console.error("Error during auto-generation:", error)
       const errorMessage = {
@@ -348,7 +333,7 @@ export function useChat({
         return newMessages
       })
     } finally {
-      setIsGenerating(false)
+      // Do not force spinner on; keep whatever state was set above
       
       // Clear the auto-generate prompt even on error
       if (onAutoGenerateComplete) {

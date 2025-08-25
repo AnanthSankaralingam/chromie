@@ -199,6 +199,7 @@ export async function generateExtension({
   sessionId,
   existingFiles = {},
   userProvidedUrl = null,
+  skipScraping = false,
 }) {
   console.log(`Request type: ${requestType}`)
 
@@ -244,12 +245,12 @@ export async function generateExtension({
     }
 
     // Check if URL is required but not provided
-    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl) {
-      console.log("URL required for scraping but not provided. Requesting URL from user.")
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
+      console.log("🔗 URL required for scraping - showing modal to user")
       return {
         success: false,
         requiresUrl: true,
-        message: `This extension needs to analyze specific website structure. Please provide the URL of the website you want the extension to work with.`,
+        message: `This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed.`,
         detectedSites: requirementsAnalysis.webPageData,
         detectedUrls: [],
         featureRequest: featureRequest,
@@ -292,11 +293,21 @@ ${apiResult.code_example || 'No example provided'}
       console.log("Chrome API documentation compiled")
     }
 
-    // Step 3: Scrape webpages for analysis if needed
-    const scrapedWebpageAnalysis = await batchScrapeWebpages(
-      requirementsAnalysis.webPageData, 
-      userProvidedUrl
-    )
+    // Step 3: Scrape webpages for analysis if needed and URL is provided
+    let scrapedWebpageAnalysis = null
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
+      console.log("🌐 Scraping webpage with user-provided URL:", userProvidedUrl)
+      scrapedWebpageAnalysis = await batchScrapeWebpages(
+        requirementsAnalysis.webPageData, 
+        userProvidedUrl
+      )
+    } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
+      console.log("⏸️ Skipping webpage scraping -", skipScraping ? "user opted out" : "no URL provided by user")
+      scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
+    } else {
+      console.log("📝 No website analysis required for this extension")
+      scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
+    }
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
     let selectedCodingPrompt = ""

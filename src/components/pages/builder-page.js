@@ -197,18 +197,23 @@ export default function BuilderPage() {
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
-            {console.log('Rendering AIChat with autoGeneratePrompt:', autoGeneratePrompt, 'projectId:', projectSetup.currentProjectId)}
             <AIChat
               projectId={projectSetup.currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
               onAutoGenerateComplete={handleAutoGenerateComplete}
               onCodeGenerated={(response) => {
-                console.log("AI generated code:", response)
+                console.log("✅ AI generated code:", response)
                 fileManagement.loadProjectFiles()
                 setIsGenerating(false)
               }}
-              onGenerationStart={() => setIsGenerating(true)}
-              onGenerationEnd={() => setIsGenerating(false)}
+              onGenerationStart={() => {
+                console.log("🚀 Generation started")
+                setIsGenerating(true)
+              }}
+              onGenerationEnd={() => {
+                console.log("🏁 Generation ended")
+                setIsGenerating(false)
+              }}
               isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
             />
           </div>
