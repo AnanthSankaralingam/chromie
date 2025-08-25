@@ -8,7 +8,7 @@ import { Zap, Send, Paperclip, Sparkles, Edit3, Github, ArrowRight, Chrome, Code
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import AppBar from "@/components/ui/app-bar"
+import AppBar from "@/components/ui/app-bars/app-bar"
 
 export default function AboutPage() {
   const { isLoading } = useSession()

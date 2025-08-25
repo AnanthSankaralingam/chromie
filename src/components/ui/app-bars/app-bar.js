@@ -4,14 +4,17 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Github } from "lucide-react"
+import { Github, Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { useState } from "react"
+import { useIsMobile } from "@/hooks"
 
 export default function AppBar() {
   const { user } = useSession()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -52,6 +55,13 @@ export default function AppBar() {
           </nav>
 
           <div className="flex items-center space-x-4">
+            <button
+              className="md:hidden p-2 text-slate-300 hover:text-white"
+              aria-label="Open menu"
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
             <div className="hidden md:flex items-center space-x-3">
             </div>
             {user ? (
@@ -90,6 +100,40 @@ export default function AppBar() {
             )}
           </div>
         </div>
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-white/10 mt-3 pt-3 px-2">
+            <div className="flex flex-col space-y-3">
+              <Link href="/about" className="text-slate-300 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+                how it works
+              </Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+                pricing
+              </Link>
+              {!user && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="justify-start text-slate-300 hover:text-white"
+                    onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
+                  >
+                    sign in
+                  </Button>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
+                  >
+                    get started
+                  </Button>
+                </>
+              )}
+              {user && (
+                <Link href="/builder" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Auth Modal */}

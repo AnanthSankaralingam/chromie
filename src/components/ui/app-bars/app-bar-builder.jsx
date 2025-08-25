@@ -5,8 +5,10 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Zap, Download, TestTube, LogOut, Sparkles, Code2 } from "lucide-react"
+import { Zap, Download, TestTube, LogOut, Sparkles, Code2, Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
+import { useState } from 'react'
+import { useIsMobile } from '@/hooks'
 
 export default function AppBarBuilder({ 
   onTestExtension, 
@@ -18,6 +20,8 @@ export default function AppBarBuilder({
   isDownloading = false
 }) {
   const { user } = useSession()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -60,6 +64,13 @@ export default function AppBarBuilder({
         <div className="flex items-center space-x-3">
           {user && (
             <>
+              <button
+                className="sm:hidden p-2 text-slate-300 hover:text-white"
+                aria-label="Open menu"
+                onClick={() => setIsMobileMenuOpen((v) => !v)}
+              >
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
               <div className="hidden sm:flex items-center space-x-3">
                 <Button
                   onClick={onTestExtension}
@@ -111,6 +122,28 @@ export default function AppBarBuilder({
           )}
         </div>
       </div>
+      {isMobileMenuOpen && (
+        <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
+          <div className="flex flex-col space-y-3">
+            <Button
+              onClick={() => { onTestExtension && onTestExtension(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+            >
+              <TestTube className="h-4 w-4 mr-2" />
+              test extension
+            </Button>
+            <Button
+              onClick={() => { onDownloadZip && onDownloadZip(); setIsMobileMenuOpen(false) }}
+              disabled={isDownloadDisabled || isDownloading}
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isDownloading ? "downloading..." : "download zip"}
+            </Button>
+          </div>
+        </div>
+      )}
     </header>
   )
 } 

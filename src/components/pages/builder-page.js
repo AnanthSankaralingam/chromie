@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import AppBarBuilder from "@/components/ui/app-bar-builder"
+import AppBarBuilder from "@/components/ui/app-bars/app-bar-builder"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
 import { LoadingState, ErrorState } from "@/components/ui/loading-error-states"

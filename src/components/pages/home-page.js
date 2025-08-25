@@ -8,11 +8,13 @@ import { Zap, Send, Paperclip, Sparkles, Edit3, Github } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import AppBar from "@/components/ui/app-bar"
+import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
+import { useIsMobile } from "@/hooks"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
+  const isMobile = useIsMobile()
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -130,7 +132,7 @@ export default function HomePage() {
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
               what do you want to build?
             </h1>
-            <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-400 mb-8 md:mb-12 max-w-2xl mx-auto px-2">
               create powerful chrome extensions by chatting with ai.
             </p>
 
@@ -143,12 +145,12 @@ export default function HomePage() {
                   onInput={handleTextareaInput}
                   onKeyPress={handleKeyPress}
                   placeholder="type your extension idea and we'll bring it to life (or /command)"
-                  className="w-full min-h-[120px] p-6 pb-20 text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
+                  className="w-full min-h-[120px] p-4 md:p-6 pb-20 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   disabled={isGenerating}
                 />
 
                 {/* Action Buttons */}
-                <div className="absolute bottom-4 left-4 flex items-center space-x-3">
+                <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 flex items-center space-x-2 md:space-x-3">
                   <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
                     <Paperclip className="h-4 w-4" />
                   </Button>
@@ -160,11 +162,11 @@ export default function HomePage() {
                   </Button>
                 </div>
 
-                <div className="absolute bottom-4 right-4">
+                <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4">
                   <Button
                     type="submit"
                     disabled={!prompt.trim() || isGenerating}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6"
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-5 md:px-6"
                   >
                     {isGenerating ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />

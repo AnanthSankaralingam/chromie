@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Edit3, Chrome, TestTube, Zap, Check, Star } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
-import AppBar from "@/components/ui/app-bar"
+import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import BillingModal from "@/components/ui/modals/modal-billing"
 
