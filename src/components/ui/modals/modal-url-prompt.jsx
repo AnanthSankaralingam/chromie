@@ -30,164 +30,155 @@ export default function ModalUrlPrompt({
     modal.className = 'url-prompt-modal';
     modal.id = `url-modal-${Date.now()}`; // Unique ID
     
+    // Get suggested URL from detected sites or URLs
+    const suggestedUrl = data.detectedUrls?.[0] || 
+                        (data.detectedSites?.[0] ? `https://${data.detectedSites[0]}` : null);
+    
+    console.log('🔗 Creating URL prompt modal with options:', {
+      suggestedUrl,
+      detectedSites: data.detectedSites,
+      detectedUrls: data.detectedUrls,
+      message: data.message
+    });
+    
     modal.innerHTML = `
       <div class="url-prompt-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center;">
         <div class="url-prompt-container" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; color: black;">
           <div class="url-prompt-header">
-            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">🔗 url required for better results</h3>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">🔗 Website Analysis Recommended</h3>
             <p style="color: #666; margin-bottom: 16px; line-height: 1.4;">${data.message}</p>
           </div>
           
           <div class="url-prompt-body">
-            ${data.detectedSites && data.detectedSites.length > 0 ? `
-              <div class="detected-sites" style="margin-bottom: 16px;">
-                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">detected sites:</h4>
-                <div class="site-suggestions" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                  ${data.detectedSites.map(site => `
-                    <button class="site-suggestion-btn" data-url="https://${site}" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer; hover:background: #e5e7eb;">
-                      ${site}
-                    </button>
-                  `).join('')}
+            <div class="url-options" style="margin-bottom: 20px;">
+              <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Choose an option:</h4>
+              
+              ${suggestedUrl ? `
+                <div class="option-group" style="margin-bottom: 16px;">
+                  <button id="useSuggestedUrl" class="option-btn primary" style="width: 100%; background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 14px; cursor: pointer; margin-bottom: 8px;">
+                    🎯 Use Suggested URL: ${new URL(suggestedUrl).hostname}
+                  </button>
+                  <small style="color: #666; display: block; text-align: center;">${suggestedUrl}</small>
                 </div>
+              ` : ''}
+              
+              <div class="option-group" style="margin-bottom: 16px;">
+                <label for="userUrl" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Or enter a custom URL:</label>
+                <input type="url" id="userUrl" placeholder="https://example.com" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin-bottom: 8px;" />
+                <button id="useCustomUrl" class="option-btn secondary" style="width: 100%; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer;">
+                  Use Custom URL
+                </button>
               </div>
-            ` : ''}
-            
-            ${data.detectedUrls && data.detectedUrls.length > 0 ? `
-              <div class="detected-urls" style="margin-bottom: 16px;">
-                <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 8px;">detected urls:</h4>
-                <div class="url-suggestions" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                  ${data.detectedUrls.map(url => `
-                    <button class="url-suggestion-btn" data-url="${url}" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 12px; cursor: pointer; hover:background: #e5e7eb;">
-                      ${url}
-                    </button>
-                  `).join('')}
-                </div>
+              
+              <div class="option-group">
+                <button id="noScraping" class="option-btn secondary" style="width: 100%; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer;">
+                  🚫 No website analysis needed
+                </button>
+                <small style="color: #666; display: block; text-align: center; margin-top: 4px;">Generate extension without specific website data</small>
               </div>
-            ` : ''}
-            
-            <div class="url-input-section">
-              <label for="userUrl" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">or enter a specific url:</label>
-              <input type="url" id="userUrl" placeholder="https://example.com" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin-bottom: 16px;" />
             </div>
           </div>
           
           <div class="url-prompt-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button id="cancelUrlPrompt" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer;">cancel</button>
-            <button id="submitUrl" style="background: #3b82f6; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer;">continue with url</button>
+            <button id="cancelUrlPrompt" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer;">Cancel</button>
           </div>
         </div>
       </div>
     `;
     
     document.body.appendChild(modal);
+    console.log('✅ URL prompt modal created and added to DOM');
     
     // Add event listeners
     const urlInput = modal.querySelector('#userUrl');
-    const submitBtn = modal.querySelector('#submitUrl');
+    const useSuggestedBtn = modal.querySelector('#useSuggestedUrl');
+    const useCustomBtn = modal.querySelector('#useCustomUrl');
+    const noScrapingBtn = modal.querySelector('#noScraping');
     const cancelBtn = modal.querySelector('#cancelUrlPrompt');
     
-    // Site suggestion buttons
-    modal.querySelectorAll('.site-suggestion-btn, .url-suggestion-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        urlInput.value = btn.dataset.url;
-        urlInput.focus();
+    // Use suggested URL
+    if (useSuggestedBtn) {
+      useSuggestedBtn.addEventListener('click', () => {
+        console.log('🎯 User selected suggested URL:', suggestedUrl);
+        handleUrlSubmit(suggestedUrl);
       });
-    });
+    }
     
-    // Submit URL
-    submitBtn.addEventListener('click', () => {
+    // Use custom URL
+    useCustomBtn.addEventListener('click', () => {
       const url = urlInput.value.trim();
       if (!url) {
-        alert('please enter a url or select a suggested site');
+        alert('Please enter a valid URL');
         return;
       }
-      
-      // Disable button to prevent double-clicks
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'processing...';
-      
-      console.log('Removing URL prompt modal and continuing with URL:', url);
-      
-      // Remove modal immediately with multiple fallback methods
-      const removeModal = () => {
-        try {
-          if (modal && modal.parentNode) {
-            document.body.removeChild(modal);
-            console.log('✅ Modal removed successfully');
-            return true;
-          }
-        } catch (error) {
-          console.error('Error removing modal:', error);
-        }
-        
-        // Fallback 1: Hide with display none
-        try {
-          if (modal) {
-            modal.style.display = 'none';
-            modal.style.visibility = 'hidden';
-            modal.style.opacity = '0';
-            console.log('✅ Modal hidden as fallback');
-            return true;
-          }
-        } catch (error) {
-          console.error('Error hiding modal:', error);
-        }
-        
-        return false;
-      };
-      
-      // Try to remove immediately
-      removeModal();
-      
-      // Fallback: Try again after a short delay
-      setTimeout(() => {
-        removeModal();
-      }, 100);
-      
-      // Continue generation with URL
-      onUrlSubmit(data, url, originalPrompt);
+      console.log('✏️ User entered custom URL:', url);
+      handleUrlSubmit(url);
+    });
+    
+    // No scraping needed
+    noScrapingBtn.addEventListener('click', () => {
+      console.log('🚫 User chose no website analysis');
+      handleUrlSubmit(null); // null indicates no scraping
     });
     
     // Cancel
     cancelBtn.addEventListener('click', () => {
-      console.log('Cancelling URL prompt modal');
-      
-      // Remove modal with error handling
-      try {
-        if (modal && modal.parentNode) {
-          document.body.removeChild(modal);
-          console.log('✅ Modal removed successfully (cancelled)');
-        }
-      } catch (error) {
-        console.error('Error removing modal on cancel:', error);
-        // Force removal by setting display none as fallback
-        if (modal) {
-          modal.style.display = 'none';
-        }
-      }
-      
-      onCancel();
+      console.log('❌ User cancelled URL prompt modal');
+      handleCancel();
     });
     
-    // Enter key support
+    // Enter key support for custom URL
     urlInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        submitBtn.click();
+        useCustomBtn.click();
       }
     });
     
     // Focus on input
     setTimeout(() => urlInput.focus(), 100);
     
-    // Cleanup function
-    return () => {
+    // Handle URL submission
+    const handleUrlSubmit = (url) => {
+      // Disable all buttons to prevent double-clicks
+      [useSuggestedBtn, useCustomBtn, noScrapingBtn].forEach(btn => {
+        if (btn) btn.disabled = true;
+      });
+      
+      console.log('🔗 URL prompt modal - submitting URL:', url);
+      
+      // Remove modal
+      removeModal();
+      
+      // Continue generation with URL (or null for no scraping)
+      onUrlSubmit(data, url, originalPrompt);
+    };
+    
+    // Handle cancellation
+    const handleCancel = () => {
+      console.log('❌ URL prompt modal cancelled');
+      removeModal();
+      onCancel();
+    };
+    
+    // Remove modal function
+    const removeModal = () => {
       try {
         if (modal && modal.parentNode) {
           document.body.removeChild(modal);
+          console.log('✅ Modal removed successfully');
         }
       } catch (error) {
-        console.warn('Error cleaning up modal:', error);
+        console.error('Error removing modal:', error);
+        // Fallback: hide modal
+        if (modal) {
+          modal.style.display = 'none';
+        }
       }
+    };
+    
+    // Cleanup function
+    return () => {
+      removeModal();
     };
   }, [data, originalPrompt, onUrlSubmit, onCancel]);
 

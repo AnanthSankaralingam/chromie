@@ -40,30 +40,21 @@ Side panels require:
 </side_panel_structure>
 
 <side_panel_template>
-// sidepanel.js
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize side panel interface
-  const iconImg = document.getElementById('panel-icon');
-  iconImg.src = chrome.runtime.getURL('icons/home-icon.png');
-  
-  // Set up panel functionality
-  const refreshButton = document.getElementById('refresh-data');
-  refreshButton.addEventListener('click', () => {
-    // Handle data refresh
-  });
-  
-  // Listen for messages from content scripts
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'UPDATE_PANEL') {
-      updatePanelContent(message.data);
-    }
+// background.js
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: 'openSidePanel',
+    title: 'Open side panel',
+    contexts: ['all']
   });
 });
 
-function updatePanelContent(data) {
-  // Update panel with new data
-}
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'openSidePanel') {
+    // This will open the panel in all the pages on the current window.
+    chrome.sidePanel.open({ windowId: tab.windowId });
+  }
+});
 </side_panel_template>
 
 <manifest_configuration>

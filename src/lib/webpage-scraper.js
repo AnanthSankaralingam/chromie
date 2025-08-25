@@ -106,15 +106,22 @@ export async function scrapeWebPage(url, options = {}) {
  */
 export async function batchScrapeWebpages(domains, userProvidedUrl = null, options = {}) {
   if (!domains || domains.length === 0) {
+    console.log("📝 No specific websites targeted - skipping scraping")
     return '<!-- No specific websites targeted -->'
   }
 
-  console.log("Scraping webpages for:", domains, "with options:", options)
+  if (!userProvidedUrl) {
+    console.log("⏸️ No user-provided URL - skipping webpage scraping")
+    return '<!-- Website analysis skipped - no URL provided -->'
+  }
+
+  console.log("🌐 Starting webpage scraping for:", domains, "with URL:", userProvidedUrl, "and options:", options)
   const webpageData = []
   
   for (const domain of domains) {
     // Use userProvidedUrl if available, otherwise construct from domain
     const urlToScrape = userProvidedUrl || `https://${domain}`
+    console.log(`🔍 Scraping domain: ${domain} at URL: ${urlToScrape}`)
     const scrapedData = await scrapeWebPage(urlToScrape, options)
     
     const statusInfo = scrapedData.statusCode ? ` (Status: ${scrapedData.statusCode})` : ''
@@ -221,6 +228,6 @@ export async function batchScrapeWebpages(domains, userProvidedUrl = null, optio
     webpageData.push(detailedAnalysis)
   }
   
-  console.log("Webpage analysis completed")
+  console.log("✅ Webpage analysis completed successfully")
   return webpageData.join('\n\n')
 }

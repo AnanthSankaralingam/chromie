@@ -17,7 +17,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
   useEffect(() => {
     const handleUrlPromptRequired = (event) => {
       const { data, originalPrompt } = event.detail
-      console.log('URL prompt required event received:', data)
+      console.log('🔗 URL prompt required event received:', data)
       showUrlPromptModal(data, originalPrompt)
     }
 
@@ -53,12 +53,14 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
 
   // Show URL prompt modal when needed
   const showUrlPromptModal = (data, originalPrompt) => {
+    console.log('🔗 Showing URL prompt modal for:', { data, originalPrompt })
     setUrlPromptData({ data, originalPrompt })
     setShowUrlPrompt(true)
   }
 
   // Handle URL submission from modal
   const onUrlSubmit = (data, userUrl, originalPrompt) => {
+    console.log('🔗 URL submitted from modal:', userUrl)
     setShowUrlPrompt(false)
     setUrlPromptData(null)
     handleUrlSubmit(data, userUrl, originalPrompt)
@@ -66,6 +68,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
 
   // Handle URL modal cancellation
   const onUrlCancel = () => {
+    console.log('❌ URL modal cancelled')
     setShowUrlPrompt(false)
     setUrlPromptData(null)
     handleUrlCancel()
@@ -89,23 +92,16 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     const userMessage = { role: "user", content: inputMessage }
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    setIsGenerating(true)
+    // Do not set generating yet; wait until we know we are actually generating code
 
-    // Notify parent component that generation started
-    if (onGenerationStart) {
-      onGenerationStart()
-    }
+    // Notify parent component only when actual generation begins (moved below)
+    // if (onGenerationStart) {
+    //   onGenerationStart()
+    // }
 
     try {
       const requestType = hasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
       console.log(`🔄 Follow-up request detected. Using request type: ${requestType}`)
-      
-      // Add "generating code..." message immediately
-      const generatingMessage = {
-        role: "assistant",
-        content: "🚀 generating code...",
-      }
-      setMessages(prev => [...prev, generatingMessage])
       
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -127,25 +123,11 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       if (response.status === 403) {
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
-        // Show URL prompt modal for scraping
-        // console.log('URL required for scraping:', data.message);
+        // Show URL prompt modal for scraping - no chat message needed
+        console.log('🔗 URL required for scraping - showing modal only')
         
-        // Replace "generating code..." with URL request message
-        const urlRequestMessage = {
-          role: "assistant",
-          content: "🔗 i need to analyze the specific webpage structure to build this extension effectively. please provide the url of the website you want the extension to work with.",
-        }
-        
-        setMessages(prev => {
-          const newMessages = [...prev]
-          // Replace the last message (which should be the "generating code..." message)
-          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-            newMessages[newMessages.length - 1] = urlRequestMessage
-          } else {
-            newMessages.push(urlRequestMessage)
-          }
-          return newMessages
-        })
+        // Ensure spinner is not shown
+        setIsGenerating(false)
         
         showUrlPromptModal(data, inputMessage);
         
@@ -163,22 +145,47 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         content = "code generated successfully!"
       }
 
-      const assistantMessage = {
-        role: "assistant",
-        content,
-      }
-
-      // Replace the "generating code..." message with the actual result
-      setMessages((prev) => {
-        const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-          newMessages[newMessages.length - 1] = assistantMessage
-        } else {
-          newMessages.push(assistantMessage)
+      // Only add "generating code..." message if we're actually generating code (not showing URL modal)
+      if (content && !data.requiresUrl) {
+        // Turn on spinner only when actually generating
+        setIsGenerating(true)
+        
+        const generatingMessage = {
+          role: "assistant",
+          content: "🚀 generating code...",
         }
-        return newMessages
-      })
+        setMessages(prev => [...prev, generatingMessage])
+        
+        // Create the final assistant message
+        const assistantMessage = {
+          role: "assistant",
+          content,
+        }
+
+        // Replace the "generating code..." message with the actual result
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          // Replace the last message (which should be the "generating code..." message)
+          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+            newMessages[newMessages.length - 1] = assistantMessage
+          } else {
+            newMessages.push(assistantMessage)
+          }
+          return newMessages
+        })
+
+        // Mark that code has been generated
+        setHasGeneratedCode(true)
+
+        if (onCodeGenerated) {
+          onCodeGenerated(data)
+        }
+
+        // Refresh token usage display by triggering a page reload of the token usage component
+        // This is a simple way to refresh the token usage without complex state management
+        const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
+        window.dispatchEvent(tokenUsageEvent)
+      }
 
       // Post token usage to server (moved out of /api/generate)
       try {
@@ -197,17 +204,6 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         console.error('Failed to post token usage:', usageErr)
       }
 
-      // Mark that code has been generated
-      setHasGeneratedCode(true)
-
-      if (onCodeGenerated) {
-        onCodeGenerated(data)
-      }
-
-      // Refresh token usage display by triggering a page reload of the token usage component
-      // This is a simple way to refresh the token usage without complex state management
-      const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
-      window.dispatchEvent(tokenUsageEvent)
     } catch (error) {
       console.error("Error generating code:", error)
       const errorMessage = {
