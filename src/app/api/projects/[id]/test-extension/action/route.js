@@ -120,7 +120,13 @@ async function sendActionToBrowserBase(sessionId, action) {
 function generateAutomationScript(action) {
   console.log("📝 SCRIPT: Generating script for action:", action.id)
   
-  // SIMPLIFIED: Only 2 actions
+  // Handle stagehand automation
+  if (action.type === 'stagehand_automation') {
+    console.log("🤖 SCRIPT: Creating stagehand automation script")
+    return generateStagehandAutomationScript(action.extensionConfig)
+  }
+  
+  // Handle basic test actions
   if (action.id === 'test_connection') {
     console.log("🔍 SCRIPT: Creating test connection script")
     return `
@@ -274,6 +280,97 @@ function generateAutomationScript(action) {
   }
 
   console.log("❓ SCRIPT: Unknown action, no script generated")
-  // No other actions supported in simplified version
   return null
+}
+
+function generateStagehandAutomationScript(extensionConfig) {
+  const stagehandScript = extensionConfig?.stagehandScript
+  const extensionName = extensionConfig?.name || "Extension"
+  
+  if (!stagehandScript) {
+    return `
+// No Stagehand script provided for ${extensionName}
+console.log("⚠️ STAGEHAND: No automation script found for this extension")
+
+// Show notification
+const notification = document.createElement('div');
+notification.innerHTML = 
+  '<div style="font-weight: bold; margin-bottom: 8px;">⚠️ No Automation Script</div>' +
+  '<div style="font-size: 12px; opacity: 0.9;">Extension: ${extensionName}</div>' +
+  '<div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">No stagehand script was generated for this extension</div>';
+
+notification.style.cssText = 
+  'position: fixed;' +
+  'top: 20px;' +
+  'right: 20px;' +
+  'background: linear-gradient(135deg, #FF9800, #F57C00);' +
+  'color: white;' +
+  'padding: 16px 20px;' +
+  'border-radius: 8px;' +
+  'z-index: 10000;' +
+  'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;' +
+  'font-size: 14px;' +
+  'box-shadow: 0 4px 20px rgba(0,0,0,0.3);' +
+  'max-width: 300px;';
+
+document.body.appendChild(notification);
+
+setTimeout(() => {
+  if (notification.parentNode) {
+    notification.parentNode.removeChild(notification);
+  }
+}, 5000);
+`
+  }
+  
+  return `
+// Stagehand Automation Script for ${extensionName}
+// Generated automatically based on extension functionality
+
+console.log("🤖 STAGEHAND: Starting automated test for ${extensionName}")
+
+// Execute the provided Stagehand script
+${stagehandScript}
+
+console.log("✅ STAGEHAND: Script execution completed successfully!")
+
+// Show completion notification
+const notification = document.createElement('div');
+notification.innerHTML = 
+  '<div style="font-weight: bold; margin-bottom: 8px;">🤖 Stagehand Automation Complete!</div>' +
+  '<div style="font-size: 12px; opacity: 0.9;">Extension: ${extensionName}</div>' +
+  '<div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">Script executed successfully</div>';
+
+notification.style.cssText = 
+  'position: fixed;' +
+  'top: 20px;' +
+  'right: 20px;' +
+  'background: linear-gradient(135deg, #9C27B0, #7B1FA2);' +
+  'color: white;' +
+  'padding: 16px 20px;' +
+  'border-radius: 8px;' +
+  'z-index: 10000;' +
+  'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;' +
+  'font-size: 14px;' +
+  'box-shadow: 0 4px 20px rgba(0,0,0,0.3);' +
+  'max-width: 300px;' +
+  'animation: slideIn 0.3s ease-out;';
+
+// Add animation keyframes
+const style = document.createElement('style');
+style.textContent = '@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }';
+document.head.appendChild(style);
+
+document.body.appendChild(notification);
+
+// Remove notification after delay
+setTimeout(() => {
+  if (notification.parentNode) {
+    notification.parentNode.removeChild(notification);
+  }
+  if (style.parentNode) {
+    style.parentNode.removeChild(style);
+  }
+}, 8000);
+`
 }

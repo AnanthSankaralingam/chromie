@@ -4,6 +4,7 @@ import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
 
 export async function GET() {
+  console.log('Token usage GET request received')
   const supabase = createClient()
 
   const {
@@ -11,7 +12,10 @@ export async function GET() {
     error: userError,
   } = await supabase.auth.getUser()
 
+  console.log('User auth result:', { user: user?.id, error: userError })
+
   if (userError || !user) {
+    console.log('User not authenticated, returning 401')
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

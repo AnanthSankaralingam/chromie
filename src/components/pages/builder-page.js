@@ -261,6 +261,8 @@ export default function BuilderPage() {
         isLoading={testExtension.isTestLoading}
         projectId={projectSetup.currentProjectId}
         extensionFiles={fileManagement.flatFiles}
+        extensionConfig={testExtension.extensionConfig}
+        stagehandScript={testExtension.stagehandScript}
       />
 
       {/* Project Limit Modal */}

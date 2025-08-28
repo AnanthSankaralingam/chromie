@@ -181,6 +181,12 @@ export async function POST(request) {
       allFiles[icon.file_path] = icon.content
     })
 
+    // Add stagehand script as a special file
+    if (result.stagehandScript) {
+      allFiles['stagehand_script.js'] = result.stagehandScript
+      console.log(`✅ Added stagehand automation script to extension`)
+    }
+
     for (const [filePath, content] of Object.entries(allFiles)) {
       try {
         // First, try to update existing file
@@ -284,6 +290,7 @@ export async function POST(request) {
       explanation: result.explanation,
       files: savedFiles,
       filesGenerated: savedFiles.length,
+      stagehandScript: result.stagehandScript || null,
       tokenUsage: result.tokenUsage || null,
     })
   } catch (error) {

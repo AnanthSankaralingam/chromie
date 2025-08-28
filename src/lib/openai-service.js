@@ -168,8 +168,8 @@ async function generateExtensionCode(codingPrompt, replacements) {
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
             "styles.css": { type: "string" },
+            "stagehand_script": { type: "string" }
           },
-          additionalProperties: { type: "string" },
           required: ["explanation"],
         },
       },
@@ -368,22 +368,29 @@ ${apiResult.code_example || 'No example provided'}
       files: Object.keys(implementationResult).filter((key) => key !== "explanation"),
     })
 
-    // Extract only the file contents, excluding explanation and any metadata
+    // Extract file contents and metadata separately
     const filesOnly = {}
     const excludedKeys = ["explanation", "properties", "required", "type", "schema"]
+            const nonStringKeys = [] // No special handling needed for stagehand_script
+    let stagehandScript = null
 
     for (const [key, value] of Object.entries(implementationResult)) {
-      if (!excludedKeys.includes(key)) {
+      if (key === "stagehand_script") {
+        stagehandScript = value
+      } else if (!excludedKeys.includes(key)) {
         filesOnly[key] = value
       }
     }
 
-    // Validate file contents are strings
+    // Validate file contents are strings (except for special non-string keys)
     for (const [filename, content] of Object.entries(filesOnly)) {
       if (filename === "manifest.json" && typeof content === "object") {
         // Convert manifest.json object to JSON string
         filesOnly[filename] = JSON.stringify(content, null, 2)
         console.log(`Converted manifest.json from object to JSON string`)
+      } else if (nonStringKeys.includes(filename)) {
+        // Skip validation for non-string keys like stagehand_commands
+        console.log(`Skipping string validation for ${filename} (expected ${typeof content})`)
       } else if (typeof content !== "string") {
         console.error(`Schema validation failed: ${filename} is ${typeof content}, expected string`)
         throw new Error(`Schema validation failed: ${filename} should be a string but got ${typeof content}`)
@@ -417,6 +424,7 @@ ${apiResult.code_example || 'No example provided'}
       success: true,
       explanation: implementationResult.explanation,
       files: filesOnly,
+      stagehandScript: stagehandScript,
       sessionId,
       tokenUsage: totalUsage
     }

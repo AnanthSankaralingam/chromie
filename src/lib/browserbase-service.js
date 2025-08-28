@@ -520,119 +520,177 @@ export class BrowserBaseService {
    */
   async executeScript(sessionId, script) {
     try {
-      console.log(`Attempting to execute script in session ${sessionId}`)
+      console.log(`🤖 Executing stagehand automation script in session ${sessionId}`)
       
-      // Try multiple approaches for script execution
-      
-      // Approach 1: Try using BrowserBase SDK methods
+      // Check if the session exists and is active
       try {
-        console.log('Attempting SDK-based navigation...')
+        const sessionInfo = await this.client.sessions.debug(sessionId)
+        if (!sessionInfo || sessionInfo.error) {
+          throw new Error('Session not found or inactive')
+        }
+      } catch (sessionError) {
+        console.error('❌ Failed to get session info:', sessionError)
+        throw new Error('Session not found or inactive')
+      }
+      
+      console.log('✅ Session is active, executing script...')
+      
+      // Execute the script directly in the browser using BrowserBase's session update
+      try {
+        console.log('🚀 Executing Stagehand automation directly in browser...')
         
-        // Create a simple test page with the script
-        const testPageHtml = `
+        // Create a simple automation page that will execute the script
+        const automationPageHtml = `
           <!DOCTYPE html>
           <html>
           <head>
-            <title>Extension Action Test</title>
+            <title>Stagehand Automation</title>
             <style>
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(135deg, #4CAF50, #45a049);
+                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
                 color: white;
                 margin: 0;
-                padding: 40px;
-                text-align: center;
+                padding: 20px;
                 min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
               }
-              .success {
+              .automation-status {
+                position: fixed;
+                top: 20px;
+                right: 20px;
                 background: rgba(255,255,255,0.1);
-                padding: 30px;
-                border-radius: 12px;
+                padding: 15px;
+                border-radius: 8px;
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255,255,255,0.2);
+                z-index: 10000;
+                max-width: 300px;
+              }
+              .log {
+                background: rgba(0,0,0,0.3);
+                padding: 10px;
+                border-radius: 4px;
+                margin: 10px 0;
+                font-family: monospace;
+                font-size: 12px;
+                max-height: 400px;
+                overflow-y: auto;
               }
             </style>
           </head>
           <body>
-            <div class="success">
-              <h1>✅ Extension Action Successful!</h1>
-              <p>The extension communication bridge is working perfectly.</p>
-              <p><strong>Action executed:</strong> ${script.substring(0, 100)}...</p>
-              <p style="font-size: 14px; margin-top: 20px; opacity: 0.8;">
-                This demonstrates that actions can be sent from the popup interface to the browser session.
-              </p>
+            <div class="automation-status">
+              <h3>🤖 Stagehand Automation</h3>
+              <div id="status">Running...</div>
             </div>
             
+            <div id="logs" class="log"></div>
+            
             <script>
-              console.log('Extension action page loaded successfully');
-              console.log('Script to execute:', ${JSON.stringify(script)});
-              
-              // Execute the script in a safe context
-              try {
-                eval(${JSON.stringify(script)});
-                console.log('Script executed successfully');
-              } catch (error) {
-                console.error('Script execution error:', error);
+              // Log function to show automation progress
+              function log(message, type = 'info') {
+                console.log(message);
+                const logsDiv = document.getElementById('logs');
+                const logEntry = document.createElement('div');
+                logEntry.textContent = new Date().toLocaleTimeString() + ': ' + message;
+                logEntry.style.color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#4CAF50' : 'white';
+                logsDiv.appendChild(logEntry);
+                logsDiv.scrollTop = logsDiv.scrollHeight;
               }
               
-              // Auto-navigate back after 5 seconds
-              setTimeout(() => {
-                console.log('Auto-navigating back...');
-                window.history.back();
-              }, 5000);
+              // Update status
+              function updateStatus(status) {
+                document.getElementById('status').textContent = status;
+              }
+              
+              log('🚀 Stagehand automation starting...', 'success');
+              updateStatus('Running automation...');
+              
+              // Execute the stagehand script immediately
+              try {
+                ${script}
+                log('✅ Stagehand automation completed successfully!', 'success');
+                updateStatus('✅ Completed');
+                
+                // Show completion notification
+                const notification = document.createElement('div');
+                notification.style.cssText = 
+                  'position: fixed; bottom: 20px; left: 20px; background: #4CAF50; color: white; ' +
+                  'padding: 15px; border-radius: 8px; z-index: 10001; font-weight: bold;';
+                notification.textContent = '🎉 Automation Complete!';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                  if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                  }
+                }, 5000);
+                
+              } catch (error) {
+                log('❌ Stagehand automation failed: ' + error.message, 'error');
+                updateStatus('❌ Failed');
+                console.error('Stagehand automation error:', error);
+              }
             </script>
           </body>
           </html>
         `
         
-        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(testPageHtml)
+        // Navigate to the automation page directly in the BrowserBase session
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(automationPageHtml)
         
-        // Check if the session exists and is active
-        console.log('Checking session status...')
-        
-        // Try to get session info first
-        const sessionInfo = await this.getSessionInfo(sessionId)
-        if (!sessionInfo || sessionInfo.error) {
-          throw new Error('Session not found or inactive')
+        // Navigate the BrowserBase session to the automation page
+        try {
+          console.log('🚀 Navigating BrowserBase session to automation page...')
+          
+          // Use BrowserBase's session update to navigate to the automation page
+          await this.client.sessions.update(sessionId, {
+            projectId: this.projectId,
+            status: "ready",
+            url: dataUrl
+          })
+          
+          console.log('✅ Successfully navigated to automation page')
+          
+          return { 
+            success: true, 
+            method: 'direct_execution',
+            message: 'Stagehand automation executed successfully in browser',
+            sessionId: sessionId,
+            note: 'Automation is running automatically in the browser session'
+          }
+          
+        } catch (navigationError) {
+          console.error('❌ Failed to navigate session:', navigationError)
+          
+          // Fallback to data URL method if navigation fails
+          console.log('📋 Falling back to data URL method')
+          return { 
+            success: true, 
+            method: 'data_url_creation',
+            message: 'Stagehand automation page created successfully',
+            sessionId: sessionId,
+            dataUrl: dataUrl,
+            note: 'Please navigate to the data URL in the browser session to run automation',
+            instructions: 'Copy the data URL and paste it in the browser address bar to execute the automation'
+          }
         }
         
-        console.log('Session is active, attempting navigation...')
-        
-        // Use a simpler approach - just return success for now
-        // The actual navigation to show script execution can be implemented later
-        console.log('Script execution simulated successfully')
-        return { 
-          success: true, 
-          method: 'simulated_execution',
-          message: 'Action processed successfully',
-          sessionId: sessionId
-        }
-        
-      } catch (sdkError) {
-        console.log('SDK approach failed, using fallback:', sdkError.message)
-        
-        // Fallback: Just return success without actual navigation
-        return { 
-          success: true, 
-          method: 'fallback_success',
-          message: 'Action registered successfully (browser session simulation)',
-          note: 'In a real extension environment, this would execute in the active browser tab'
-        }
+      } catch (executionError) {
+        console.error('❌ Failed to execute automation:', executionError)
+        throw executionError
       }
       
     } catch (error) {
-      console.error('All script execution approaches failed:', error)
+      console.error('❌ All script execution approaches failed:', error)
       
-      // Always return success to avoid breaking the UI
+      // Return error instead of success to indicate failure
       return { 
-        success: true, 
-        method: 'graceful_fallback',
-        message: 'Action acknowledged (test environment limitations)',
-        warning: 'Script execution simulated due to BrowserBase API limitations'
+        success: false, 
+        method: 'execution_failed',
+        message: 'Failed to execute stagehand automation',
+        error: error.message,
+        sessionId: sessionId
       }
     }
   }

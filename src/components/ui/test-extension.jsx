@@ -4,6 +4,8 @@ export default function useTestExtension(currentProjectId) {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testSessionData, setTestSessionData] = useState(null)
   const [isTestLoading, setIsTestLoading] = useState(false)
+  const [extensionConfig, setExtensionConfig] = useState(null)
+  const [stagehandScript, setStagehandScript] = useState(null)
 
   const handleTestExtension = async () => {
     if (!currentProjectId) {
@@ -30,7 +32,11 @@ export default function useTestExtension(currentProjectId) {
 
       console.log("Session data:", data.session)
       setTestSessionData(data.session)
+      setExtensionConfig(data.extensionConfig || null)
+      setStagehandScript(data.stagehandScript || null)
       console.log("Test session created:", data.session.sessionId)
+      console.log("Extension config:", data.extensionConfig)
+      console.log("Stagehand script:", data.stagehandScript ? data.stagehandScript.length + " characters" : "not found")
     } catch (error) {
       console.error("Error creating test session:", error)
       // Keep modal open but show error state
@@ -70,6 +76,8 @@ export default function useTestExtension(currentProjectId) {
     isTestModalOpen,
     testSessionData,
     isTestLoading,
+    extensionConfig,
+    stagehandScript,
     handleTestExtension,
     handleCloseTestModal,
     handleRefreshTest

@@ -69,6 +69,40 @@ Required manifest.json sections:
 </manifest_configuration>
 </side_panel_implementation_requirements>
 
+<stagehand_integration_requirements>
+MANDATORY: Include Stagehand bridge integration for automated testing.
+- Add content script bridge for Stagehand communication
+- Add service worker bridge for command handling
+- Generate specific stagehand commands based on extension functionality
+- Ensure all extension features can be tested via Stagehand commands
+
+<stagehand_bridge_components>
+1. Content script bridge (content.js) - Listens for Stagehand commands
+2. Service worker bridge (background.js) - Handles Stagehand commands
+3. Stagehand commands array - Specific commands for this extension
+</stagehand_bridge_components>
+
+<stagehand_script_generation>
+Generate a complete Stagehand automation script that demonstrates the extension's functionality:
+
+SCRIPT REQUIREMENTS:
+- Use actual Stagehand API calls: page.act(), page.extract(), page.observe(), agent.execute()
+- Include real-time logging and visual feedback
+- Test the extension's core features step by step
+- Add delays between actions for visibility
+- Show progress indicators and status updates
+- Handle errors gracefully with user-friendly messages
+
+STAGEHAND API USAGE:
+- page.act("natural language action") - for clicking, typing, navigating
+- page.extract({schema}) - for extracting data from the page
+- page.observe("element description") - for finding elements
+- agent.execute("AI task description") - for AI-powered workflows
+
+Generate a complete, runnable script that will work in a real browser environment.
+</stagehand_script_generation>
+</stagehand_integration_requirements>
+
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
@@ -88,13 +122,15 @@ Return a JSON object with the following structure:
   "sidepanel.html": "side panel HTML as raw text",
   "sidepanel.js": "side panel JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
-  "styles.css": "optional: side panel styling as raw text"
+  "styles.css": "optional: side panel styling as raw text",
+  "stagehand_script": "Complete Stagehand automation script as raw text with real-time logging and visual feedback"
 }
 
 File Format Rules:
 - manifest.json: Valid JSON object with quoted keys
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
+- stagehand_commands: Array of command objects for automated testing
 </output_requirements>
 
 <implementation_guidelines>
@@ -105,6 +141,8 @@ File Format Rules:
 5. Design responsive UI that works well in the side panel format
 6. Include proper error handling and user feedback
 7. Ensure smooth communication between all components
+8. Include Stagehand bridge integration for automated testing
+9. Generate specific stagehand commands for testing extension functionality
 </implementation_guidelines>
 `;
 
@@ -133,57 +171,68 @@ Frontend Type: popup
 
 <popup_implementation_requirements>
 <popup_strategy>
-MANDATORY: Implement Chrome extension popup that appears when clicking the extension icon.
+MANDATORY: Implement Chrome's popup API for extension UI.
+- Popup appears when extension icon is clicked
 - Compact, focused interface for quick actions
-- Fast loading with minimal dependencies  
-- Clear call-to-action buttons and intuitive layout
-- Proper communication with content scripts and background
+- Communicates with background script for functionality
+- Modern, clean design with proper user feedback
 </popup_strategy>
 
 <popup_structure>
 Popups require:
-1. action declaration with popup in manifest.json
-2. HTML file for popup interface (popup.html)
-3. JavaScript file for popup logic (popup.js)
-4. Content script for webpage interaction (if needed)
-5. Background script for coordination
+1. action declaration in manifest.json
+2. Dedicated HTML file for the popup interface
+3. JavaScript file for popup logic
+4. Background script for coordination
+5. Optional content script for webpage interaction
 </popup_structure>
-
-<popup_template>
-// popup.js
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize popup interface
-  const iconImg = document.getElementById('header-icon');
-  iconImg.src = chrome.runtime.getURL('icons/heart-icon.png');
-  
-  // Add your popup functionality here
-  const actionButton = document.getElementById('main-action');
-  actionButton.addEventListener('click', () => {
-    // Handle main action
-  });
-});
-</popup_template>
-
-<popup_dimensions>
-Recommended popup sizing:
-- Width: 300-400px (optimal for most content)
-- Height: 400-600px (scrollable if needed)
-- Min-height: 200px
-- Responsive design for different content amounts
-</popup_dimensions>
 
 <manifest_configuration>
 Required manifest.json sections:
 {
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "Extension Name"
+    "default_popup": "popup.html"
   },
-  "permissions": ["activeTab"]
+  "permissions": ["activeTab"],
+  "background": {
+    "service_worker": "background.js"
+  }
 }
 </manifest_configuration>
 </popup_implementation_requirements>
+
+<stagehand_integration_requirements>
+MANDATORY: Include Stagehand bridge integration for automated testing.
+- Add content script bridge for Stagehand communication
+- Add service worker bridge for command handling
+- Generate specific stagehand commands based on extension functionality
+- Ensure all extension features can be tested via Stagehand commands
+
+<stagehand_bridge_components>
+1. Content script bridge (content.js) - Listens for Stagehand commands
+2. Service worker bridge (background.js) - Handles Stagehand commands
+3. Stagehand commands array - Specific commands for this extension
+</stagehand_bridge_components>
+
+<stagehand_command_generation>
+Generate stagehand commands using the Stagehand API based on the extension's functionality:
+
+COMMAND TYPES:
+- "act": Natural language actions like "click the login button", "fill the form", "navigate to settings"
+- "extract": Data extraction with schema like {"price": "number", "title": "string"}
+- "observe": Element discovery like "find submit buttons", "locate form fields"
+- "agent": AI-powered workflows like "apply for this job", "analyze this page"
+
+COMMAND STRUCTURE:
+Each command should have:
+- name: Descriptive name for the command
+- type: One of "act", "extract", "observe", or "agent"
+- description: Natural language description of what the command does
+- payload: Additional configuration (schema for extract, provider/model for agent, etc.)
+
+Generate commands that test the core functionality of the extension using natural language descriptions.
+</stagehand_command_generation>
+</stagehand_integration_requirements>
 
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
@@ -191,13 +240,8 @@ MANDATORY: Use ONLY these available icon files:
 - icons/planet-icon.png, icons/search-icon.png, icons/timer-icon.png, icons/note-icon.png
 - icons/home-icon.png, icons/heart-icon.png, icons/cloud-icon.png, icons/calendar-icon.png
 
-Usage in popup: Always use chrome.runtime.getURL() in JavaScript.
-Example:
-// In popup.js
-document.addEventListener('DOMContentLoaded', () => {
-  const iconImg = document.getElementById('header-icon');
-  iconImg.src = chrome.runtime.getURL('icons/heart-icon.png');
-});
+Usage: Always use chrome.runtime.getURL() to load icons dynamically in JavaScript.
+Example: const iconUrl = chrome.runtime.getURL('icons/note-icon.png');
 </icon_configuration>
 
 <output_requirements>
@@ -209,24 +253,27 @@ Return a JSON object with the following structure:
   "popup.html": "popup HTML as raw text",
   "popup.js": "popup JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
-  "popup.css": "popup styling as raw text"
+  "popup.css": "optional: popup styling as raw text",
+  "stagehand_script": "Complete Stagehand automation script as raw text with real-time logging and visual feedback"
 }
 
 File Format Rules:
 - manifest.json: Valid JSON object with quoted keys
-- All other files: Raw text strings with proper newlines  
+- All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
+- stagehand_commands: Array of command objects for automated testing
 </output_requirements>
 
 <implementation_guidelines>
-1. Create a clean, intuitive popup interface
-2. Implement quick actions and controls users expect
+1. Create a focused popup interface for quick actions
+2. Implement proper messaging between popup and background script
 3. Use Chrome APIs from the API data section if provided
-4. Communicate with content scripts for webpage interaction if needed
-5. Design for the popup's constrained dimensions
-6. Include proper loading states and user feedback
-7. Ensure fast performance and minimal resource usage
-8. Handle popup closure and state management properly
+4. Handle webpage interactions using content scripts if needed
+5. Design clean, intuitive UI that works well in popup format
+6. Include proper error handling and user feedback
+7. Ensure smooth communication between all components
+8. Include Stagehand bridge integration for automated testing
+9. Generate specific stagehand commands for testing extension functionality
 </implementation_guidelines>
 `;
 
@@ -255,7 +302,7 @@ Frontend Type: overlay
 <ui_injection_strategy>
 MANDATORY: Use overlay injection pattern that creates floating UI elements on web pages.
 - Position: fixed with high z-index (999999+)
-- Placement: Top-right corner by default (customizable)
+- Placement: Top-right corner by default (customable)
 - Styling: Modern, clean design with proper shadows and borders
 - Responsiveness: Must work on all websites without breaking layout
 </ui_injection_strategy>
@@ -309,6 +356,39 @@ MANDATORY: Use overlay injection pattern that creates floating UI elements on we
 </overlay_template>
 </overlay_implementation_requirements>
 
+<stagehand_integration_requirements>
+MANDATORY: Include Stagehand bridge integration for automated testing.
+- Add content script bridge for Stagehand communication
+- Add service worker bridge for command handling
+- Generate specific stagehand commands based on extension functionality
+- Ensure all extension features can be tested via Stagehand commands
+
+<stagehand_bridge_components>
+1. Content script bridge (content.js) - Listens for Stagehand commands
+2. Service worker bridge (background.js) - Handles Stagehand commands
+3. Stagehand commands array - Specific commands for this extension
+</stagehand_bridge_components>
+
+<stagehand_command_generation>
+Generate stagehand commands using the Stagehand API based on the extension's functionality:
+
+COMMAND TYPES:
+- "act": Natural language actions like "click the login button", "fill the form", "navigate to settings"
+- "extract": Data extraction with schema like {"price": "number", "title": "string"}
+- "observe": Element discovery like "find submit buttons", "locate form fields"
+- "agent": AI-powered workflows like "apply for this job", "analyze this page"
+
+COMMAND STRUCTURE:
+Each command should have:
+- name: Descriptive name for the command
+- type: One of "act", "extract", "observe", or "agent"
+- description: Natural language description of what the command does
+- payload: Additional configuration (schema for extract, provider/model for agent, etc.)
+
+Generate commands that test the core functionality of the extension using natural language descriptions.
+</stagehand_command_generation>
+</stagehand_integration_requirements>
+
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
@@ -326,13 +406,15 @@ Return a JSON object with the following structure:
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "content.js": "overlay injection code as raw text", 
-  "styles.css": "optional: overlay styling as raw text"
+  "styles.css": "optional: overlay styling as raw text",
+  "stagehand_script": "Complete Stagehand automation script as raw text with real-time logging and visual feedback"
 }
 
 File Format Rules:
 - manifest.json: Valid JSON object with quoted keys
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
+- stagehand_script: Complete Stagehand automation script as raw text
 </output_requirements>
 
 <implementation_guidelines>
@@ -343,6 +425,8 @@ File Format Rules:
 5. Include proper error handling and edge cases
 6. Ensure the overlay is visually appealing and user-friendly
 7. Add proper event listeners and cleanup
+8. Include Stagehand bridge integration for automated testing
+9. Generate specific stagehand scripts for testing extension functionality
 </implementation_guidelines>
 `;
 
@@ -369,6 +453,39 @@ Frontend Type: {frontend_type}
 {scraped_webpage_analysis}
 </webpage_data>
 
+<stagehand_integration_requirements>
+MANDATORY: Include Stagehand bridge integration for automated testing.
+- Add content script bridge for Stagehand communication
+- Add service worker bridge for command handling
+- Generate specific stagehand commands based on extension functionality
+- Ensure all extension features can be tested via Stagehand commands
+
+<stagehand_bridge_components>
+1. Content script bridge (content.js) - Listens for Stagehand commands
+2. Service worker bridge (background.js) - Handles Stagehand commands
+3. Stagehand commands array - Specific commands for this extension
+</stagehand_bridge_components>
+
+<stagehand_command_generation>
+Generate stagehand commands using the Stagehand API based on the extension's functionality:
+
+COMMAND TYPES:
+- "act": Natural language actions like "click the login button", "fill the form", "navigate to settings"
+- "extract": Data extraction with schema like {"price": "number", "title": "string"}
+- "observe": Element discovery like "find submit buttons", "locate form fields"
+- "agent": AI-powered workflows like "apply for this job", "analyze this page"
+
+COMMAND STRUCTURE:
+Each command should have:
+- name: Descriptive name for the command
+- type: One of "act", "extract", "observe", or "agent"
+- description: Natural language description of what the command does
+- payload: Additional configuration (schema for extract, provider/model for agent, etc.)
+
+Generate commands that test the core functionality of the extension using natural language descriptions.
+</stagehand_command_generation>
+</stagehand_integration_requirements>
+
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
@@ -393,7 +510,8 @@ Return a JSON object with the following structure:
   "sidepanel.html": "side panel HTML as raw text (if frontend_type is side_panel)",
   "sidepanel.js": "side panel JavaScript as raw text (if frontend_type is side_panel)",
   "sidepanel.css": "side panel styling as raw text (if frontend_type is side_panel)",
-  "styles.css": "general styling as raw text (if needed)"
+  "styles.css": "general styling as raw text (if needed)",
+  "stagehand_script": "Complete Stagehand automation script as raw text with real-time logging and visual feedback"
 }
 
 File Format Rules:
@@ -401,6 +519,7 @@ File Format Rules:
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 - Only include files relevant to the chosen frontend type
+- stagehand_script: Complete Stagehand automation script as raw text
 </output_requirements>
 
 <implementation_guidelines>
@@ -413,5 +532,7 @@ File Format Rules:
 7. Implement proper error handling and user feedback
 8. Create clean, intuitive user interfaces
 9. Follow Chrome extension best practices and security guidelines
+10. Include Stagehand bridge integration for automated testing
+11. Generate specific stagehand scripts for testing extension functionality
 </implementation_guidelines>
 `;

@@ -41,10 +41,60 @@ export async function POST(request, { params }) {
 
     const extensionFiles = (files || []).map((f) => ({ file_path: f.file_path, content: f.content }))
 
+    // Extract stagehand script from extension files
+    let stagehandScript = null
+    let extensionConfig = {
+      name: "Extension",
+      description: "Chrome extension",
+      type: "generic"
+    }
+
+    // Try to extract stagehand script from the generated files
+    const stagehandScriptFile = files?.find(f => f.file_path === 'stagehand_script.js')
+    if (stagehandScriptFile) {
+      try {
+        stagehandScript = stagehandScriptFile.content
+        console.log("📋 Found stagehand script:", stagehandScript.length, "characters")
+      } catch (e) {
+        console.warn("Could not read stagehand script:", e.message)
+      }
+    }
+
+    // Try to extract extension config from manifest
+    const manifestFile = files?.find(f => f.file_path === 'manifest.json')
+    if (manifestFile) {
+      try {
+        const manifest = JSON.parse(manifestFile.content)
+        extensionConfig.name = manifest.name || "Extension"
+        extensionConfig.description = manifest.description || "Chrome extension"
+        
+        // Determine extension type from manifest
+        if (manifest.action?.default_popup) {
+          extensionConfig.type = "popup"
+        } else if (manifest.side_panel) {
+          extensionConfig.type = "side_panel"
+        } else if (manifest.content_scripts) {
+          extensionConfig.type = "overlay"
+        }
+      } catch (e) {
+        console.warn("Could not parse manifest.json:", e.message)
+      }
+    }
+
+    // Add stagehand script to extension config
+    extensionConfig.stagehandScript = stagehandScript
+
     console.log("Creating session with existing extension files count:", extensionFiles.length)
+    console.log("📋 Extension config:", extensionConfig)
+    console.log("🤖 Stagehand script:", stagehandScript ? stagehandScript.length + " characters" : "not found")
+    
     const session = await browserBaseService.createTestSession(extensionFiles, process.env.BROWSERBASE_PROJECT_ID)
 
-    return NextResponse.json({ session })
+    return NextResponse.json({ 
+      session,
+      extensionConfig,
+      stagehandScript 
+    })
   } catch (error) {
     console.error("Error creating Browserbase test session:", error)
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })

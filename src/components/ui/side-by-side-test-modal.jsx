@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info, MessageSquare, Monitor, Smartphone } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info, MessageSquare, Monitor, Smartphone, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ExtensionPopupRenderer, { ExtensionActionButtons } from "./extension-popup-renderer"
+import StagehandAutomation from "./stagehand-automation"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SideBySideTestModal({ 
   isOpen, 
@@ -13,7 +15,9 @@ export default function SideBySideTestModal({
   onRefresh, 
   isLoading = false,
   projectId,
-  extensionFiles = []
+  extensionFiles = [],
+  extensionConfig = null,
+  stagehandScript = null
 }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [communicationLog, setCommunicationLog] = useState([])
@@ -269,80 +273,108 @@ export default function SideBySideTestModal({
               </div>
             </div>
 
-          {/* Right Side - Extension Popup & Communication */}
+          {/* Right Side - Extension Testing & Automation */}
           <div className="w-[480px] flex flex-col overflow-hidden">
-            {/* Extension Popup Section */}
-            <div className="flex-1 border-b border-gray-200 flex flex-col overflow-hidden">
-              <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <Smartphone className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-semibold text-gray-800">Extension Popup</span>
-                </div>
-                <ExtensionActionButtons 
-                  popupActions={popupActions}
-                  onAction={handlePopupAction}
-                />
-              </div>
-              
-              <div className="flex-1 relative overflow-hidden">
-                <ExtensionPopupRenderer
-                  extensionFiles={extensionFiles}
-                  onRenderStateChange={setIsPopupRendered}
-                />
-              </div>
-            </div>
+            <Tabs defaultValue="popup" className="flex-1 flex flex-col">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="popup" className="flex items-center space-x-2">
+                  <Smartphone className="h-4 w-4" />
+                  <span>Manual Test</span>
+                </TabsTrigger>
+                <TabsTrigger value="automation" className="flex items-center space-x-2">
+                  <Bot className="h-4 w-4" />
+                  <span>Stagehand</span>
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Communication Log Section */}
-            <div className="h-80 flex flex-col overflow-hidden">
-              <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-semibold text-gray-800">Communication Bridge</span>
+              <TabsContent value="popup" className="flex-1 flex flex-col overflow-hidden">
+                {/* Extension Popup Section */}
+                <div className="flex-1 border-b border-gray-200 flex flex-col overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center space-x-2">
+                      <Smartphone className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-gray-800">Extension Popup</span>
+                    </div>
+                    <ExtensionActionButtons 
+                      popupActions={popupActions}
+                      onAction={handlePopupAction}
+                    />
+                  </div>
+                  
+                  <div className="flex-1 relative overflow-hidden">
+                    <ExtensionPopupRenderer
+                      extensionFiles={extensionFiles}
+                      onRenderStateChange={setIsPopupRendered}
+                    />
+                  </div>
                 </div>
-                {communicationLog.length > 0 && (
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      clearCommunicationLog()
-                    }}
-                    className="text-xs text-gray-600 hover:text-gray-900 hover:bg-red-50 hover:border-red-300 px-2 py-1 h-auto transition-colors border border-gray-300 rounded-md"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-              
-              <div className="flex-1 p-3 overflow-y-auto bg-gray-50">
-                {communicationLog.length === 0 ? (
-                  <div className="text-center text-gray-500 mt-4">
-                    <Info className="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                    <p className="text-xs">Interact with the popup above to see communication logs</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {communicationLog.map((log) => (
-                      <div 
-                        key={log.id}
-                        className={cn(
-                          "text-xs p-2 rounded-md border-l-2",
-                          log.type === 'user_action' && "bg-blue-50 text-blue-900 border-blue-300",
-                          log.type === 'bridge_action' && "bg-green-50 text-green-900 border-green-300",
-                          log.type === 'error' && "bg-red-50 text-red-900 border-red-300",
-                          log.type === 'warning' && "bg-yellow-50 text-yellow-900 border-yellow-300",
-                          log.type === 'info' && "bg-gray-100 text-gray-800 border-gray-300"
-                        )}
+
+                {/* Communication Log Section */}
+                <div className="h-80 flex flex-col overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-semibold text-gray-800">Communication Bridge</span>
+                    </div>
+                    {communicationLog.length > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          clearCommunicationLog()
+                        }}
+                        className="text-xs text-gray-600 hover:text-gray-900 hover:bg-red-50 hover:border-red-300 px-2 py-1 h-auto transition-colors border border-gray-300 rounded-md"
                       >
-                        <div className="flex items-start justify-between">
-                          <span className="font-medium leading-relaxed flex-1 pr-2">{log.message}</span>
-                          <span className="text-xs opacity-75 flex-shrink-0">{log.timestamp}</span>
-                        </div>
-                      </div>
-                    ))}
+                        Clear
+                      </button>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                  
+                  <div className="flex-1 p-3 overflow-y-auto bg-gray-50">
+                    {communicationLog.length === 0 ? (
+                      <div className="text-center text-gray-500 mt-4">
+                        <Info className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                        <p className="text-xs">Interact with the popup above to see communication logs</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {communicationLog.map((log) => (
+                          <div 
+                            key={log.id}
+                            className={cn(
+                              "text-xs p-2 rounded-md border-l-2",
+                              log.type === 'user_action' && "bg-blue-50 text-blue-900 border-blue-300",
+                              log.type === 'bridge_action' && "bg-green-50 text-green-900 border-green-300",
+                              log.type === 'error' && "bg-red-50 text-red-900 border-red-300",
+                              log.type === 'warning' && "bg-yellow-50 text-yellow-900 border-yellow-300",
+                              log.type === 'info' && "bg-gray-100 text-gray-800 border-gray-300"
+                            )}
+                          >
+                            <div className="flex items-start justify-between">
+                              <span className="font-medium leading-relaxed flex-1 pr-2">{log.message}</span>
+                              <span className="text-xs opacity-75 flex-shrink-0">{log.timestamp}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="automation" className="flex-1 overflow-hidden">
+                <div className="h-full p-4 overflow-y-auto">
+                  <StagehandAutomation
+                    sessionId={sessionData?.sessionId}
+                    extensionConfig={extensionConfig}
+                    projectId={projectId}
+                    onAutomationComplete={(results) => {
+                      console.log("Stagehand automation completed:", results)
+                    }}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
 
