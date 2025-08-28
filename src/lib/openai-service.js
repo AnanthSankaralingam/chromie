@@ -99,7 +99,46 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
 
     const planningCompletion = await planningResponse.json();
     
-    const requirementsAnalysis = JSON.parse(planningCompletion.choices[0].message.content)
+    // Preprocess the planning response to handle markdown-formatted JSON
+    let planningContent = planningCompletion.choices[0].message.content
+    console.log('🔍 Raw planning response:', planningContent.substring(0, 200) + '...')
+    console.log('🔍 Raw planning response contains ```json:', planningContent.includes('```json'))
+    console.log('🔍 Raw planning response contains ```:', planningContent.includes('```'))
+    
+    // Remove markdown code blocks if present
+    if (planningContent.includes('```json')) {
+      console.log('🔄 Detected markdown-formatted JSON in planning response, extracting content...')
+      const jsonMatch = planningContent.match(/```json\s*([\s\S]*?)\s*```/)
+      if (jsonMatch) {
+        planningContent = jsonMatch[1].trim()
+        console.log('✅ Extracted JSON from markdown code block in planning response')
+      } else {
+        console.log('⚠️ Could not extract JSON from markdown, trying fallback...')
+        const fallbackMatch = planningContent.match(/```\s*([\s\S]*?)\s*```/)
+        if (fallbackMatch) {
+          planningContent = fallbackMatch[1].trim()
+          console.log('✅ Extracted content from generic code block in planning response')
+        }
+      }
+    } else if (planningContent.includes('```')) {
+      console.log('🔄 Detected generic markdown code block in planning response, extracting content...')
+      const fallbackMatch = planningContent.match(/```\s*([\s\S]*?)\s*```/)
+      if (fallbackMatch) {
+        planningContent = fallbackMatch[1].trim()
+        console.log('✅ Extracted content from generic code block in planning response')
+      }
+    }
+    
+    console.log('🔍 Processed planning response:', planningContent.substring(0, 200) + '...')
+    
+    let requirementsAnalysis
+    try {
+      requirementsAnalysis = JSON.parse(planningContent)
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed for planning response:', parseError.message)
+      console.error('❌ Failed to parse this content:', planningContent.substring(0, 500) + '...')
+      throw parseError
+    }
     
     // Extract token usage from Fireworks API response
     const tokenUsage = {
@@ -168,8 +207,8 @@ async function generateExtensionCode(codingPrompt, replacements) {
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
             "styles.css": { type: "string" },
+            "stagehand_script": { type: "string" }
           },
-          additionalProperties: { type: "string" },
           required: ["explanation"],
         },
       },
@@ -361,29 +400,77 @@ ${apiResult.code_example || 'No example provided'}
 
     console.log("Code generation completed")
 
-    const implementationResult = JSON.parse(codingCompletion.choices[0].message.content)
+    // Preprocess the AI response to handle markdown-formatted JSON
+    let aiResponse = codingCompletion.choices[0].message.content
+    console.log('🔍 Raw AI response:', aiResponse.substring(0, 200) + '...')
+    console.log('🔍 Raw AI response contains ```json:', aiResponse.includes('```json'))
+    console.log('🔍 Raw AI response contains ```:', aiResponse.includes('```'))
+    console.log('🔍 Raw AI response starts with:', aiResponse.substring(0, 50))
+    
+    // Remove markdown code blocks if present
+    if (aiResponse.includes('```json')) {
+      console.log('🔄 Detected markdown-formatted JSON, extracting content...')
+      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/)
+      if (jsonMatch) {
+        aiResponse = jsonMatch[1].trim()
+        console.log('✅ Extracted JSON from markdown code block')
+      } else {
+        console.log('⚠️ Could not extract JSON from markdown, trying fallback...')
+        // Fallback: try to find JSON between ``` blocks
+        const fallbackMatch = aiResponse.match(/```\s*([\s\S]*?)\s*```/)
+        if (fallbackMatch) {
+          aiResponse = fallbackMatch[1].trim()
+          console.log('✅ Extracted content from generic code block')
+        }
+      }
+    } else if (aiResponse.includes('```')) {
+      console.log('🔄 Detected generic markdown code block, extracting content...')
+      const fallbackMatch = aiResponse.match(/```\s*([\s\S]*?)\s*```/)
+      if (fallbackMatch) {
+        aiResponse = fallbackMatch[1].trim()
+        console.log('✅ Extracted content from generic code block')
+      }
+    }
+    
+    console.log('🔍 Processed AI response:', aiResponse.substring(0, 200) + '...')
+    
+    let implementationResult
+    try {
+      implementationResult = JSON.parse(aiResponse)
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed:', parseError.message)
+      console.error('❌ Failed to parse this content:', aiResponse.substring(0, 500) + '...')
+      throw parseError
+    }
 
     console.log("Implementation result received:", {
       allKeys: Object.keys(implementationResult),
       files: Object.keys(implementationResult).filter((key) => key !== "explanation"),
     })
 
-    // Extract only the file contents, excluding explanation and any metadata
+    // Extract file contents and metadata separately
     const filesOnly = {}
     const excludedKeys = ["explanation", "properties", "required", "type", "schema"]
+            const nonStringKeys = [] // No special handling needed for stagehand_script
+    let stagehandScript = null
 
     for (const [key, value] of Object.entries(implementationResult)) {
-      if (!excludedKeys.includes(key)) {
+      if (key === "stagehand_script") {
+        stagehandScript = value
+      } else if (!excludedKeys.includes(key)) {
         filesOnly[key] = value
       }
     }
 
-    // Validate file contents are strings
+    // Validate file contents are strings (except for special non-string keys)
     for (const [filename, content] of Object.entries(filesOnly)) {
       if (filename === "manifest.json" && typeof content === "object") {
         // Convert manifest.json object to JSON string
         filesOnly[filename] = JSON.stringify(content, null, 2)
         console.log(`Converted manifest.json from object to JSON string`)
+      } else if (nonStringKeys.includes(filename)) {
+        // Skip validation for non-string keys like stagehand_commands
+        console.log(`Skipping string validation for ${filename} (expected ${typeof content})`)
       } else if (typeof content !== "string") {
         console.error(`Schema validation failed: ${filename} is ${typeof content}, expected string`)
         throw new Error(`Schema validation failed: ${filename} should be a string but got ${typeof content}`)
@@ -413,10 +500,178 @@ ${apiResult.code_example || 'No example provided'}
 
     console.log("Total token usage calculated:", totalUsage)
 
+    // Update token usage in Supabase
+    try {
+      console.log('🔍 Updating token usage in Supabase for session:', sessionId)
+      
+      // Import both clients - one for auth, one for admin operations
+      const { createClient: createServerClient } = await import('@/lib/supabase/server')
+      const { createClient: createDirectClient } = await import('@supabase/supabase-js')
+      
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      console.log('🔑 Service role key available:', !!serviceRoleKey)
+      console.log('🔑 Anon key available:', !!anonKey)
+      
+      // Use server client for authentication
+      const authClient = createServerClient()
+      
+      // Get the current user
+      const { data: { user }, error: userError } = await authClient.auth.getUser()
+      
+      if (userError || !user) {
+        console.error('❌ User not authenticated for token usage update:', userError)
+        return
+      }
+      
+      console.log('👤 User authenticated for token usage update:', user.id)
+      
+      // Use direct client with service role for admin operations
+      const supabase = createDirectClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        serviceRoleKey || anonKey
+      )
+      
+      // Fetch existing usage for this user
+      const { data: existingUsage, error: fetchError } = await supabase
+        .from('token_usage')
+        .select('id, total_tokens, monthly_reset, model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      
+      if (fetchError) {
+        console.error('❌ Error fetching existing token usage:', fetchError)
+      } else {
+        console.log('📊 Existing token usage found:', existingUsage)
+        
+        const now = new Date()
+        let effectiveMonthlyReset = existingUsage?.monthly_reset
+        if (!effectiveMonthlyReset) {
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          effectiveMonthlyReset = firstDayOfMonth.toISOString()
+        }
+        
+        const monthlyResetDate = effectiveMonthlyReset ? new Date(effectiveMonthlyReset) : null
+        let resetDatePlusOneMonth = null
+        if (monthlyResetDate) {
+          resetDatePlusOneMonth = new Date(monthlyResetDate)
+          resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+        }
+        
+        const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
+        
+        // Calculate new totals
+        let newTotalTokens
+        let newMonthlyReset = existingUsage?.monthly_reset
+        
+        if (!existingUsage) {
+          // First-ever usage record for this user
+          newTotalTokens = totalUsage.total_tokens
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          newMonthlyReset = firstDayOfMonth.toISOString()
+          console.log('🆕 Creating first token usage record')
+        } else if (isResetDue) {
+          // New monthly period started; reset total to current request
+          newTotalTokens = totalUsage.total_tokens
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          newMonthlyReset = firstDayOfMonth.toISOString()
+          console.log('🔄 Monthly reset due, resetting total')
+        } else {
+          // Same monthly period; accumulate
+          newTotalTokens = (existingUsage.total_tokens || 0) + totalUsage.total_tokens
+          console.log('📈 Accumulating tokens in same monthly period')
+        }
+        
+        console.log(`📊 Token calculation: existing=${existingUsage?.total_tokens || 0}, adding=${totalUsage.total_tokens}, new total=${newTotalTokens}`)
+        
+        if (existingUsage?.id) {
+          // Update existing record
+          console.log('🔄 Attempting to update token usage record with ID:', existingUsage.id)
+          console.log('🔄 Update payload:', {
+            total_tokens: newTotalTokens,
+            monthly_reset: newMonthlyReset,
+            model: totalUsage.model,
+          })
+          
+          // Try update with just the ID first
+          const { data: updatedRows, error: updateError } = await supabase
+            .from('token_usage')
+            .update({
+              total_tokens: newTotalTokens,
+              monthly_reset: newMonthlyReset,
+              model: totalUsage.model,
+            })
+            .eq('id', existingUsage.id)
+            .select('id, total_tokens, monthly_reset')
+          
+          console.log('🔄 Supabase update response:', { data: updatedRows, error: updateError })
+          
+          // If no rows were updated, let's check if the record exists and what the current user can see
+          if (!updatedRows || updatedRows.length === 0) {
+            console.log('⚠️ No rows updated, checking record visibility...')
+            
+            const { data: checkRecord, error: checkError } = await supabase
+              .from('token_usage')
+              .select('*')
+              .eq('id', existingUsage.id)
+            
+            console.log('🔍 Record visibility check:', { data: checkRecord, error: checkError })
+            
+            // Also try to see all records for this user
+            const { data: allUserRecords, error: allUserError } = await supabase
+              .from('token_usage')
+              .select('*')
+              .eq('user_id', user.id)
+            
+            console.log('🔍 All user records:', { data: allUserRecords, error: allUserError })
+          }
+          
+          if (updateError) {
+            console.error('❌ Error updating token usage:', updateError)
+          } else {
+            console.log('✅ Token usage updated successfully:', updatedRows?.[0])
+            
+            // Verify the update by fetching the record again
+            const { data: verifyData, error: verifyError } = await supabase
+              .from('token_usage')
+              .select('id, total_tokens, monthly_reset, model')
+              .eq('id', existingUsage.id)
+              .single()
+            
+            if (verifyError) {
+              console.error('❌ Error verifying update:', verifyError)
+            } else {
+              console.log('🔍 Verification - record after update:', verifyData)
+            }
+          }
+        } else {
+          // Create new record
+          const { error: insertError } = await supabase
+            .from('token_usage')
+            .insert({
+              user_id: user.id,
+              total_tokens: newTotalTokens,
+              model: totalUsage.model,
+              monthly_reset: newMonthlyReset,
+            })
+          
+          if (insertError) {
+            console.error('❌ Error inserting token usage:', insertError)
+          } else {
+            console.log('✅ Token usage record created successfully')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('💥 Exception during token usage update:', error)
+    }
+
     return {
       success: true,
       explanation: implementationResult.explanation,
       files: filesOnly,
+      stagehandScript: stagehandScript,
       sessionId,
       tokenUsage: totalUsage
     }
