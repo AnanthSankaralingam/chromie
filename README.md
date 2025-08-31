@@ -16,6 +16,7 @@ Optimizing TODOs
 3. separate all validations that go on in generate to different files 
 4. update project metadata only once - unnecessary to continually update supabase with this. user can do from /profile 
 5. Parallelize the project creation and display frontend first when generating new extension (ananth)
+6. summarize conversation history based on context window. if we use reasoning model we'll either hit window limits or performance degredation after ~5 turns.
 
    
 
