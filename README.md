@@ -8,7 +8,8 @@ TODOs
 5. Testing extension side by side view needs option to focus on one. browser testing shouldn't be assumed.
 6. display project names on builder page
 7. after purchasing a plan, a user's current token usage and monthly_reset should reset to 0.
-8. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable. 
+8. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
+9. stream code gen and thinking responses from openai and display snippets in frontend. bad ux if nothing in between.
 
 Optimizing TODOs
 1. cache files in builder while a session is in progress. upsert to db but don't repeatedly fetch. might be solved with chat history
