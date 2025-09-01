@@ -8,6 +8,7 @@ import {
   NEW_EXT_GENERIC_PROMPT
 } from "./prompts/new-coding"
 import { batchScrapeWebpages } from "./webpage-scraper"
+import { createClient } from "./supabase/server"
 const chromeApisData = require('./chrome_extension_apis.json');
 
 const openai = new OpenAI({
@@ -665,6 +666,27 @@ ${apiResult.code_example || 'No example provided'}
       }
     } catch (error) {
       console.error('💥 Exception during token usage update:', error)
+    }
+
+    // Update project's has_generated_code flag in Supabase
+    try {
+      if (sessionId) {
+        console.log(`🔧 Updating project ${sessionId} has_generated_code = true`)
+        const supabase = createClient()
+        
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ has_generated_code: true })
+          .eq('id', sessionId)
+        
+        if (updateError) {
+          console.error('❌ Error updating project has_generated_code:', updateError)
+        } else {
+          console.log('✅ Project has_generated_code updated successfully')
+        }
+      }
+    } catch (error) {
+      console.error('💥 Exception during project update:', error)
     }
 
     return {

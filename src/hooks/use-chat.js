@@ -32,6 +32,31 @@ export function useChat({
     scrollToBottom()
   }, [messages])
 
+  // Fetch hasGeneratedCode status from Supabase when project changes
+  useEffect(() => {
+    if (projectId) {
+      const fetchHasGeneratedCode = async () => {
+        try {
+          const response = await fetch(`/api/projects/${projectId}/has-generated-code`)
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`🔍 hasGeneratedCode loaded from Supabase: ${data.hasGeneratedCode}`)
+            setHasGeneratedCode(data.hasGeneratedCode)
+          } else {
+            console.warn(`⚠️ Failed to fetch hasGeneratedCode status: ${response.status}`)
+            setHasGeneratedCode(false)
+          }
+        } catch (error) {
+          console.error('Error fetching hasGeneratedCode status:', error)
+          setHasGeneratedCode(false)
+        }
+      }
+      
+      fetchHasGeneratedCode()
+    }
+  }, [projectId])
+
   // Auto-generate when autoGeneratePrompt is provided (from homepage redirect)
   useEffect(() => {
     console.log('🎯 Auto-generation effect triggered:', {
@@ -381,6 +406,7 @@ export function useChat({
     isGenerating,
     setIsGenerating,
     hasGeneratedCode,
+    setHasGeneratedCode,
     messagesEndRef,
     handleSendMessage,
     handleUrlSubmit,

@@ -84,17 +84,19 @@ export default function useFileManagement(currentProjectId, user) {
     console.log('Project name and description will be automatically updated during code generation')
   }
 
-  const loadProjectFiles = async () => {
+  const loadProjectFiles = async (refreshFromServer = false) => {
     if (!currentProjectId) {
       console.error("No project ID available for loading files")
       return
     }
 
-    // Skip loading if we already have files for this project
-    if (loadedProjectId === currentProjectId && fileStructure.length > 0) {
+    // Skip loading if we already have files for this project (unless refreshing from server)
+    if (!refreshFromServer && loadedProjectId === currentProjectId && fileStructure.length > 0) {
       console.log('Files already loaded for this project, skipping API call')
       return
     }
+
+    console.log(`📁 Loading project files${refreshFromServer ? ' (refreshing from server)' : ''} for project: ${currentProjectId}`)
 
     setIsLoadingFiles(true)
     try {
@@ -114,6 +116,8 @@ export default function useFileManagement(currentProjectId, user) {
       const transformedFiles = transformFilesToTree(files)
       setFileStructure(transformedFiles)
       setLoadedProjectId(currentProjectId) // Mark this project as loaded
+      
+      console.log(`✅ Loaded ${files.length} files for project: ${currentProjectId}`)
 
       // Extract and update project with extension info from manifest.json
       const extensionInfo = extractExtensionInfo(files)
