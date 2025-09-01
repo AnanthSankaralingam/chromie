@@ -1,15 +1,13 @@
-// Plan limits for token usage
-export const PLAN_LIMITS = {
-  free: 50000,      // 50k tokens for free users
-  starter: 100000,   // 100k tokens for starter plan
-  pro: 1000000,      // 1M tokens for pro plan
-  enterprise: -1     // -1 means unlimited
+export const REQUEST_TYPES = {
+  NEW_EXTENSION: "new_extension",
+  ADD_TO_EXISTING: "add_to_existing"
 }
 
-// Default plan for users without billing info
-export const DEFAULT_PLAN = 'free'
+export const PLAN_LIMITS = {
+  free: 10000,        // 10,000 tokens
+  starter: 100000,    // 100,000 tokens
+  pro: 1000000,       // 1,000,000 tokens
+  enterprise: -1      // unlimited
+}
 
-// Model names used in the application
-export const OPENAI_MODELS = {
-  GPT4O: 'gpt-4o'
-} 
+export const DEFAULT_PLAN = 'free'

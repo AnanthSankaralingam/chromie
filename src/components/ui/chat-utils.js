@@ -1,17 +1,13 @@
 // Helper function to replace or add messages without duplicates
 export const replaceOrAddMessage = (messages, newMessage, shouldReplace = null) => {
   const newMessages = [...messages]
+  const isGeneratingPlaceholder = (text) => typeof text === 'string' && text.toLowerCase().includes('generating')
   
   // Auto-replace logic for "generating code..." messages
   if (!shouldReplace && newMessages.length > 0) {
     const lastMessage = newMessages[newMessages.length - 1]
-    // Auto-replace generating messages with results
-    if (lastMessage.content.includes("Generating code") && !newMessage.content.includes("Generating code")) {
-      newMessages[newMessages.length - 1] = newMessage
-      return newMessages
-    }
-    // Auto-replace generating messages with URL requests
-    if (lastMessage.content.includes("Generating code") && newMessage.content.includes("I need to analyze")) {
+    // Auto-replace generating placeholder messages with results or URL requests
+    if (isGeneratingPlaceholder(lastMessage.content) && !isGeneratingPlaceholder(newMessage.content)) {
       newMessages[newMessages.length - 1] = newMessage
       return newMessages
     }

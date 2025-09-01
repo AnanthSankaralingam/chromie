@@ -34,25 +34,82 @@ Best practices for incremental changes:
 </tools_and_best_practices>
 
 <diff_output_requirements>
-You MUST produce unified diffs (git-style) for ONLY the files that change. Do NOT output full file contents. Do NOT include binary files or icons in diffs.
+CRITICAL: You MUST return ONLY a unified diff format. NEVER return JSON. The system expects unified diff format for follow-up requests.
 
-Format per changed file:
-1) Provide a unified diff with headers for the specific path, e.g.:
---- a/{relative_path_from_repo_root}
-+++ b/{relative_path_from_repo_root}
-@@ -old_start,old_count +new_start,new_count @@
-  context/removed/added lines
+REQUIRED FORMAT:
+Return a single unified diff string with this exact structure:
 
-2) If you return multiple file diffs, concatenate them in one unified diff block back-to-back.
+--- a/{filename}
++++ b/{filename}
+@@ -old_line_num,old_count +new_line_num,new_count @@
+  context lines (unchanged)
+ -removed lines (start with -)
+ +added lines (start with +)
+  context lines (unchanged)
 
-Final return format:
-Return a single string that is a valid unified diff containing all hunks. If you must wrap, use a fenced block with the diff language tag. No JSON wrapping, no extra commentary inside the diff.
+EXAMPLE - Adding popup to manifest.json:
+--- a/manifest.json
++++ b/manifest.json
+@@ -10,6 +10,9 @@
+   "permissions": ["activeTab", "storage"],
+   "background": {
+     "service_worker": "background.js"
+   },
++  "action": {
++    "default_popup": "popup.html"
++  },
+   "icons": {
+     "16": "icons/icon16.png",
+     "48": "icons/icon48.png",
+     "128": "icons/icon128.png"
+   }
+
+EXAMPLE - Modifying JavaScript file:
+--- a/popup.js
++++ b/popup.js
+@@ -1,5 +1,8 @@
+ // Existing code
+ document.addEventListener('DOMContentLoaded', function() {
++  // Add popup functionality
++  const noteInput = document.getElementById('note-input');
++  noteInput.focus();
++
+   // Rest of existing code...
 
 Validation rules:
-- Include proper --- a/ and +++ b/ headers for each file
-- Use \n newlines; do not include CRLF in the diff text
+- REQUIRED: Include proper --- a/ and +++ b/ headers for each file
+- REQUIRED: Include @@ hunk headers with line numbers for each change block
+- Use \n newlines only; do not include CRLF in the diff text
 - Exclude any icons or binary assets entirely
 - Keep changes minimal and targeted
+- Each hunk must have context lines around changes
+- Line numbers in @@ headers must be accurate
+
+CORRECT (DO THIS):
+--- a/manifest.json
++++ b/manifest.json
+@@ -10,6 +10,9 @@
+   "permissions": ["activeTab", "storage"],
+   "background": {
+     "service_worker": "background.js"
+   },
++  "action": {
++    "default_popup": "popup.html"
++  },
+   "icons": {
+     "16": "icons/icon16.png",
+     "48": "icons/icon48.png",
+     "128": "icons/icon128.png"
+   }
+--- a/popup.js
++++ b/popup.js
+@@ -1,3 +1,6 @@
+ document.addEventListener('DOMContentLoaded', function() {
++  // Initialize popup
++  const noteInput = document.getElementById('note-input');
++  noteInput.focus();
++
+   // Existing functionality...
 </diff_output_requirements>
 
 <planning_before_changes>

@@ -3,15 +3,17 @@
 import { useState, useRef, useEffect } from "react"
 import { replaceOrAddMessage, continueGenerationWithUrl } from "@/components/ui/chat-utils"
 
-export function useChat({ 
-  projectId, 
-  autoGeneratePrompt, 
-  onAutoGenerateComplete, 
-  onCodeGenerated, 
-  onGenerationStart, 
-  onGenerationEnd, 
-  isProjectReady 
+export function useChat({
+  projectId,
+  autoGeneratePrompt,
+  onAutoGenerateComplete,
+  onCodeGenerated,
+  onGenerationStart,
+  onGenerationEnd,
+  isProjectReady,
+  previousResponseId
 }) {
+  const isGeneratingPlaceholder = (text) => typeof text === 'string' && text.toLowerCase().includes('generating')
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -69,6 +71,8 @@ export function useChat({
     e.preventDefault()
     if (!inputMessage.trim() || isGenerating) return
 
+    console.log('🔄 Starting message send - isGenerating:', isGenerating, 'hasGeneratedCode:', hasGeneratedCode, 'previousResponseId:', previousResponseId)
+
     // Check if we have a valid project ID
     if (!isProjectReady) {
       const errorMessage = {
@@ -101,6 +105,7 @@ export function useChat({
           prompt: inputMessage,
           projectId,
           requestType: hasGeneratedCode ? "add_to_existing" : "new_extension",
+          previousResponseId,
         }),
       })
 
@@ -118,6 +123,12 @@ export function useChat({
         // Ensure spinner is not shown
         setIsGenerating(false)
         
+        // Emit event so AIChat opens the modal
+        const urlPromptEvent = new CustomEvent('urlPromptRequired', {
+          detail: { data, originalPrompt: inputMessage }
+        })
+        window.dispatchEvent(urlPromptEvent)
+        
         // Clear the auto-generate prompt for URL requests
         if (onAutoGenerateComplete) {
           onAutoGenerateComplete()
@@ -134,10 +145,15 @@ export function useChat({
 
       // Only add "generating code..." message if we're actually generating code (not showing URL modal)
       if (content && !data.requiresUrl) {
-        setIsGenerating(true)
+        // Enhanced generating message with conversation context
+        const isFollowUp = hasGeneratedCode || !!previousResponseId
+        const generatingContent = isFollowUp
+          ? "🔄 continuing our conversation... generating improved code..."
+          : "🚀 generating your extension..."
+
         const generatingMessage = {
           role: "assistant",
-          content: "🚀 generating code...",
+          content: generatingContent,
         }
         setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
         
@@ -150,8 +166,8 @@ export function useChat({
         // Replace the "generating code..." message with the actual result
         setMessages((prev) => {
           const newMessages = [...prev]
-          // Replace the last message (which should be the "generating code..." message)
-          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+          // Replace the last generating placeholder message with the actual result
+          if (newMessages.length > 0 && isGeneratingPlaceholder(newMessages[newMessages.length - 1].content)) {
             newMessages[newMessages.length - 1] = assistantMessage
           } else {
             newMessages.push(assistantMessage)
@@ -162,14 +178,15 @@ export function useChat({
         // Mark that code has been generated
         setHasGeneratedCode(true)
 
-        if (onCodeGenerated) {
-          onCodeGenerated(data)
-        }
-
         // Refresh token usage display by triggering a page reload of the token usage component
         // This is a simple way to refresh the token usage without complex state management
         const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
         window.dispatchEvent(tokenUsageEvent)
+
+        // Call onCodeGenerated callback (must be inside try-catch)
+        if (onCodeGenerated) {
+          onCodeGenerated(data)
+        }
       }
     } catch (error) {
       console.error("Error generating code:", error)
@@ -181,8 +198,8 @@ export function useChat({
       // Replace the "generating code..." message with the error message
       setMessages((prev) => {
         const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+        // Replace the last generating placeholder message with the error message
+        if (newMessages.length > 0 && isGeneratingPlaceholder(newMessages[newMessages.length - 1].content)) {
           newMessages[newMessages.length - 1] = errorMessage
         } else {
           newMessages.push(errorMessage)
@@ -190,7 +207,9 @@ export function useChat({
         return newMessages
       })
     } finally {
-      // Do not force spinner on; keep whatever state was set above
+      // Always ensure isGenerating is reset to allow follow-up conversations
+      console.log('🏁 Generation finished - resetting isGenerating to false')
+      setIsGenerating(false)
       // Notify parent component that generation ended
       if (onGenerationEnd) {
         onGenerationEnd()
@@ -232,6 +251,7 @@ export function useChat({
           prompt: prompt,
           projectId,
           requestType: hasGeneratedCode ? "add_to_existing" : "new_extension",
+          previousResponseId,
         }),
       })
 
@@ -271,11 +291,15 @@ export function useChat({
 
       // Only add "generating code..." message if we're actually generating code (not showing URL modal)
       if (content && !data.requiresUrl) {
-        setIsGenerating(true)
-        
+        // Enhanced generating message with conversation context
+        const isFollowUp = hasGeneratedCode || !!previousResponseId
+        const generatingContent = isFollowUp
+          ? "🔄 continuing our conversation... generating improved code..."
+          : "🚀 generating your extension..."
+
         const generatingMessage = {
           role: "assistant",
-          content: "🚀 generating code...",
+          content: generatingContent,
         }
         setMessages(prev => replaceOrAddMessage(prev, generatingMessage))
         
@@ -287,8 +311,8 @@ export function useChat({
         // Replace the "generating code..." message with the actual result
         setMessages((prev) => {
           const newMessages = [...prev]
-          // Replace the last message (which should be the "generating code..." message)
-          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+          // Replace the last generating placeholder message with the actual result
+          if (newMessages.length > 0 && isGeneratingPlaceholder(newMessages[newMessages.length - 1].content)) {
             newMessages[newMessages.length - 1] = assistantMessage
           } else {
             newMessages.push(assistantMessage)
@@ -299,10 +323,6 @@ export function useChat({
         // Mark that code has been generated
         setHasGeneratedCode(true)
 
-        if (onCodeGenerated) {
-          onCodeGenerated(data)
-        }
-
         // Clear the auto-generate prompt after successful generation
         if (onAutoGenerateComplete) {
           console.log('✅ Auto-generation completed successfully, calling onAutoGenerateComplete')
@@ -312,6 +332,11 @@ export function useChat({
         // Refresh token usage display
         const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
         window.dispatchEvent(tokenUsageEvent)
+
+        // Call onCodeGenerated callback (must be inside try-catch)
+        if (onCodeGenerated) {
+          onCodeGenerated(data)
+        }
         
       }
     } catch (error) {
@@ -324,8 +349,8 @@ export function useChat({
       // Replace the "generating code..." message with the error message
       setMessages((prev) => {
         const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
+        // Replace the last generating placeholder message with the error message
+        if (newMessages.length > 0 && isGeneratingPlaceholder(newMessages[newMessages.length - 1].content)) {
           newMessages[newMessages.length - 1] = errorMessage
         } else {
           newMessages.push(errorMessage)
@@ -333,14 +358,15 @@ export function useChat({
         return newMessages
       })
     } finally {
-      // Do not force spinner on; keep whatever state was set above
-      
+      // Always ensure isGenerating is reset to allow follow-up conversations
+      setIsGenerating(false)
+
       // Clear the auto-generate prompt even on error
       if (onAutoGenerateComplete) {
         console.log('🔄 Auto-generation finished (success or error), calling onAutoGenerateComplete')
         onAutoGenerateComplete()
       }
-      
+
       // Notify parent component that generation ended
       if (onGenerationEnd) {
         onGenerationEnd()
@@ -381,6 +407,7 @@ export function useChat({
     isGenerating,
     setIsGenerating,
     hasGeneratedCode,
+    setHasGeneratedCode,
     messagesEndRef,
     handleSendMessage,
     handleUrlSubmit,

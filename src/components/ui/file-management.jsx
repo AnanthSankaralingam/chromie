@@ -136,6 +136,61 @@ export default function useFileManagement(currentProjectId, user) {
     }
   }
 
+  // Force load files regardless of current state (for after code generation)
+  const forceLoadProjectFiles = async () => {
+    if (!currentProjectId) {
+      console.error("No project ID available for loading files")
+      throw new Error("No project ID available for loading files")
+    }
+
+    console.log('🔄 Force loading project files (ignoring cache)')
+    setIsLoadingFiles(true)
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}/files`)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const errorMsg = `Error loading project files: ${errorData.error || response.statusText}`
+        console.error(errorMsg)
+        throw new Error(errorMsg)
+      }
+
+      const data = await response.json()
+      const files = data.files || []
+
+      // Store both flat files for actions and transformed tree for display
+      setFlatFiles(files)
+      const transformedFiles = transformFilesToTree(files)
+      setFileStructure(transformedFiles)
+      setLoadedProjectId(currentProjectId) // Mark this project as loaded
+
+      console.log(`✅ Force loaded ${files.length} files for project ${currentProjectId}`)
+      console.log(`📋 File paths: ${files.map(f => f.file_path).join(', ')}`)
+
+      // Extract and update project with extension info from manifest.json
+      const extensionInfo = extractExtensionInfo(files)
+      if (extensionInfo) {
+        // Check if we need to update (avoid unnecessary updates)
+        const lastUpdateKey = `last_project_update_${currentProjectId}`
+        const lastUpdate = sessionStorage.getItem(lastUpdateKey)
+        const now = Date.now()
+
+        // Only update if it's been more than 5 minutes since last update
+        if (!lastUpdate || (now - parseInt(lastUpdate)) > 5 * 60 * 1000) {
+          await updateProjectWithExtensionInfo(extensionInfo)
+          sessionStorage.setItem(lastUpdateKey, now.toString())
+        }
+      }
+
+      return files // Return files for debugging
+    } catch (error) {
+      console.error("Error force loading project files:", error)
+      throw error // Re-throw so the caller can handle it
+    } finally {
+      setIsLoadingFiles(false)
+    }
+  }
+
   const handleFileSave = async (selectedFile, content) => {
     if (!selectedFile || !currentProjectId) {
       console.error('No file selected or project ID available')
@@ -193,6 +248,7 @@ export default function useFileManagement(currentProjectId, user) {
     flatFiles,
     isLoadingFiles,
     loadProjectFiles,
+    forceLoadProjectFiles,
     handleFileSave,
     extractExtensionInfo,
     updateProjectWithExtensionInfo

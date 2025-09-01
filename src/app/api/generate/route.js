@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateExtension } from "@/lib/openai-service"
-import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
+import { generateExtension } from "@/lib/extension-generator"
+import { REQUEST_TYPES } from "@/lib/constants"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
 import fs from "fs"
 import path from "path"
+import { DiffProcessingService } from "@/lib/diff-processing-service.js"
 
 export async function POST(request) {
   const supabase = createClient()
@@ -20,7 +21,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping, previousResponseId } = await request.json()
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -44,7 +45,11 @@ export async function POST(request) {
       }
     }
 
-    console.log("🚀 Generate request:", { prompt, projectId, requestType, userProvidedUrl, skipScraping })
+    console.log("🚀 Generate request:", { prompt, projectId, requestType, userProvidedUrl, skipScraping, previousResponseId })
+
+    // Detect if this is a follow-up request
+    const isFollowUpRequest = !!previousResponseId
+    console.log(`🔄 Request type: ${isFollowUpRequest ? 'follow-up' : 'initial'} (previousResponseId: ${previousResponseId || 'none'})`)
 
     // Check user's plan and token usage limits
     const { data: billing, error: billingError } = await supabase
@@ -103,10 +108,15 @@ export async function POST(request) {
 
       if (files) {
         existingFiles = files.reduce((acc, file) => {
-          acc[file.file_path] = file.content
+          // Skip icon files to avoid logging large base64 content
+          if (!file.file_path.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i)) {
+            acc[file.file_path] = file.content
+          }
           return acc
         }, {})
-        console.log(`📁 Found ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+        const totalFiles = files.length
+        const skippedIcons = totalFiles - Object.keys(existingFiles).length
+        console.log(`📁 Found ${totalFiles} files (${skippedIcons} icons skipped): ${Object.keys(existingFiles).join(', ')}`)
       } else {
         console.log("⚠️ No existing files found for add-to-existing request")
       }
@@ -114,21 +124,55 @@ export async function POST(request) {
       console.log("🆕 New extension request - no existing files needed")
     }
 
-    // Generate extension code using OpenAI
-    console.log(`🚀 Calling generateExtension with request type: ${requestType}`)
-    console.log(`📝 Feature request: ${prompt}`)
-    console.log(`📁 Existing files count: ${Object.keys(existingFiles).length}`)
-    console.log(`🔗 User provided URL: ${userProvidedUrl || 'none'}`)
-    console.log(`⏭️ Skip scraping: ${skipScraping || false}`)
-    
-    const result = await generateExtension({
-      featureRequest: prompt,
-      requestType,
-      sessionId: projectId,
-      existingFiles,
-      userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
-      skipScraping: !!skipScraping,
-    })
+    let result
+    let existingProjectFiles = {}
+
+    if (isFollowUpRequest) {
+      console.log("🔄 Follow-up request detected - loading existing project files for diff processing")
+
+      // Load existing project files for diff processing
+      const { data: projectFiles } = await supabase.from("code_files").select("file_path, content").eq("project_id", projectId)
+
+      if (projectFiles && projectFiles.length > 0) {
+        existingProjectFiles = projectFiles.reduce((acc, file) => {
+          // Skip icon files to avoid logging large base64 content
+          if (!file.file_path.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i)) {
+            acc[file.file_path] = file.content
+          }
+          return acc
+        }, {})
+        const totalFiles = projectFiles.length
+        const skippedIcons = totalFiles - Object.keys(existingProjectFiles).length
+        console.log(`📁 Loaded ${totalFiles} files for diff processing (${skippedIcons} icons skipped)`)
+      } else {
+        console.log("⚠️ No existing files found for follow-up request")
+      }
+
+      // Generate diff-based response for follow-up
+      result = await generateExtension({
+        featureRequest: prompt,
+        requestType,
+        sessionId: projectId,
+        existingFiles: existingProjectFiles,
+        userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
+        skipScraping: !!skipScraping,
+        previousResponseId,
+      })
+
+    } else {
+      console.log("🆕 Initial request - generating full extension")
+
+      // Generate full extension for initial request
+      result = await generateExtension({
+        featureRequest: prompt,
+        requestType,
+        sessionId: projectId,
+        existingFiles,
+        userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
+        skipScraping: !!skipScraping,
+        previousResponseId,
+      })
+    }
 
     // Handle URL prompt requirement
     if (!result.success && result.requiresUrl) {
@@ -138,12 +182,89 @@ export async function POST(request) {
         detectedSites: result.detectedSites,
         detectedUrls: result.detectedUrls,
         featureRequest: result.featureRequest,
-        requestType: result.requestType
+        requestType: result.requestType,
+        responseId: result.responseId || null,
       })
     }
 
     if (!result.success) {
       return NextResponse.json({ error: "Failed to generate extension code" }, { status: 500 })
+    }
+
+    // Process diffs for follow-up requests
+    if (isFollowUpRequest && result.files && Object.keys(result.files).length > 0) {
+      console.log("🔧 Processing diffs for follow-up request")
+
+      try {
+        // Initialize diff processing service with existing files
+        const diffService = new DiffProcessingService({
+          initialFiles: existingProjectFiles
+        })
+
+        // Find the diff content (assume it's in a file or explanation)
+        let diffContent = ""
+
+        // Check if diff is in explanation or a specific file
+        if (result.explanation && result.explanation.includes('```diff')) {
+          diffContent = result.explanation
+        } else if (result.files['diff.patch']) {
+          diffContent = result.files['diff.patch']
+        } else {
+          // Try to extract diff from any file that might contain it
+          for (const [filePath, content] of Object.entries(result.files)) {
+            if (content.includes('```diff') || content.includes('--- ') || content.includes('+++ ')) {
+              diffContent = content
+              break
+            }
+          }
+        }
+
+        if (diffContent) {
+          console.log("📝 Applying diff to existing files")
+          const diffResult = diffService.processFollowUpResponse({
+            responseText: diffContent,
+            defaultFilePath: 'manifest.json' // fallback for headerless diffs
+          })
+
+          console.log(`✅ Diff processing completed: ${diffResult.updated.length} files updated, ${diffResult.errors.length} errors`)
+
+          // Update result.files with the modified files from diff service
+          result.files = diffService.getFilesSnapshot()
+
+          if (diffResult.errors.length > 0) {
+            console.warn("⚠️ Diff processing had errors:", diffResult.errors)
+            // Continue with partial results rather than failing completely
+          }
+        } else {
+          console.log("ℹ️ No diff content found in response, merging JSON files with existing files")
+
+          // For follow-up requests with JSON responses, merge with existing files
+          // Start with existing files as base
+          const mergedFiles = { ...existingProjectFiles }
+
+          console.log(`📊 Merging files: ${Object.keys(existingProjectFiles).length} existing, ${Object.keys(result.files).length} new`)
+
+          // Update/merge with new files from JSON response
+          for (const [filePath, newContent] of Object.entries(result.files)) {
+            const wasExisting = filePath in mergedFiles
+            mergedFiles[filePath] = newContent
+            console.log(`🔄 ${wasExisting ? 'Updated' : 'Added'} file: ${filePath} (${newContent.length} chars)`)
+          }
+
+          // Update result.files with merged files
+          result.files = mergedFiles
+
+          console.log(`✅ File merging completed: ${Object.keys(result.files).length} total files after merge`)
+          console.log(`📋 Files in result: ${Object.keys(result.files).join(', ')}`)
+        }
+
+      } catch (diffError) {
+        console.error("❌ Error processing diffs:", diffError)
+        return NextResponse.json({
+          error: "Failed to process diff updates",
+          details: diffError.message
+        }, { status: 500 })
+      }
     }
 
     // Save generated files to database - handle each file individually
@@ -285,6 +406,7 @@ export async function POST(request) {
       files: savedFiles,
       filesGenerated: savedFiles.length,
       tokenUsage: result.tokenUsage || null,
+      responseId: result.responseId || null,
     })
   } catch (error) {
     console.error("Error generating extension:", error)

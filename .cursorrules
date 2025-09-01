@@ -6,13 +6,17 @@
 - prioritize essential user workflows and app security
 
 ## terminal commands
-- only use syntax for windows powershell
+- only use syntax for windows powershell and node
 
 ## architecture
 - use pages router pattern
 - full pages go in src\components\pages
-- reusable UI components go in src\components\ui
-- create reusable UI components whenever needed
+- create reusable UI components in src\components\ui to prevent frontend files from becoming too large
 
 ## code style
 - log key information to test features as added
+- always use the @ for aliasing files
+
+## testing
+- for any major or independent changes, create and run tests in test/utils
+- run tests using node test/utils/test-name.test.js

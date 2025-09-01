@@ -306,6 +306,13 @@ function applyDiffToFile(originalContent, diffString, filePath = "file.txt") {
         // context: must match next base line
         const current = baseLines[baseIndex] ?? "";
         if (current !== text) {
+          console.log(`[git-diff-utils] Context mismatch at line ${baseIndex + 1}:`);
+          console.log(`[git-diff-utils] Expected: '${text}'`);
+          console.log(`[git-diff-utils] Got: '${current}'`);
+          console.log(`[git-diff-utils] Original file lines around ${baseIndex + 1}:`);
+          for (let i = Math.max(0, baseIndex - 2); i <= Math.min(baseLines.length - 1, baseIndex + 2); i++) {
+            console.log(`[git-diff-utils] Line ${i + 1}: '${baseLines[i]}'`);
+          }
           const err = new Error(`Context mismatch while applying diff at '${text}' (got '${current}')`);
           err.code = 'CONTEXT_MISMATCH';
           throw err;

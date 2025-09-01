@@ -16,6 +16,7 @@ import useFileManagement from "@/components/ui/file-management"
 import useResizablePanels from "@/components/ui/resizable-panels"
 import useTestExtension from "@/components/ui/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
+import { loadResponseId, saveResponseId } from "@/lib/conversation-state"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -27,6 +28,9 @@ export default function BuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  // Simple conversation state - only track previous responseId
+  const [previousResponseId, setPreviousResponseId] = useState(null)
+  const responseIdInitializedRef = useRef(false)
 
   // Custom hooks
   const projectSetup = useProjectSetup(user, isLoading)
@@ -52,6 +56,14 @@ export default function BuilderPage() {
   // Clear URL parameters after project is loaded
   useEffect(() => {
     if (projectSetup.currentProjectId && !projectSetup.isSettingUpProject) {
+      // Initialize previous responseId after project is known (once)
+      if (!responseIdInitializedRef.current && typeof window !== 'undefined') {
+        const loaded = loadResponseId(projectSetup.currentProjectId)
+        console.log('💬 Loaded previous responseId:', loaded)
+        setPreviousResponseId(loaded)
+        responseIdInitializedRef.current = true
+      }
+
       const url = new URL(window.location)
       let hasChanges = false
       
@@ -117,6 +129,13 @@ export default function BuilderPage() {
     console.log('📝 autoGeneratePrompt state changed:', autoGeneratePrompt)
   }, [autoGeneratePrompt])
 
+  // Persist previousResponseId whenever it changes for current project
+  useEffect(() => {
+    if (!projectSetup.currentProjectId) return
+    console.log('💾 Persisting previousResponseId:', previousResponseId, 'for project:', projectSetup.currentProjectId)
+    saveResponseId(projectSetup.currentProjectId, previousResponseId)
+  }, [previousResponseId, projectSetup.currentProjectId])
+
   // Log when project setup status changes
   useEffect(() => {
     console.log('🏗️ Project setup status changed:', {
@@ -143,6 +162,8 @@ export default function BuilderPage() {
     setAutoGeneratePrompt(null)
     hasProcessedAutoGenerate.current = false
   }
+
+
 
   const handleFileSelect = (file) => {
     console.log('File selected:', file.name)
@@ -201,10 +222,32 @@ export default function BuilderPage() {
               projectId={projectSetup.currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
               onAutoGenerateComplete={handleAutoGenerateComplete}
-              onCodeGenerated={(response) => {
-                console.log("✅ AI generated code:", response)
-                fileManagement.loadProjectFiles()
-                setIsGenerating(false)
+              onCodeGenerated={async (response) => {
+                try {
+                  console.log("✅ AI generated code:", response)
+                  console.log('🔄 Response details:', {
+                    hasFiles: !!response?.files,
+                    filesCount: response?.filesGenerated || 0,
+                    filesList: response?.files ? response.files.join(', ') : 'none',
+                    responseId: response?.responseId
+                  })
+                  console.log('🔄 Updating previousResponseId to:', response?.responseId)
+
+                  // Force refresh files after code generation
+                  console.log('🔄 Forcing file refresh after code generation')
+                  await fileManagement.forceLoadProjectFiles()
+                  console.log('✅ File refresh completed successfully')
+
+                  setIsGenerating(false)
+                  // Update previousResponseId after successful generation
+                  if (response?.responseId) {
+                    setPreviousResponseId(response.responseId)
+                    console.log('💬 Conversation state updated - previousResponseId:', response.responseId)
+                  }
+                } catch (error) {
+                  console.error('❌ Error in onCodeGenerated callback:', error)
+                  // Do not rethrow; avoid converting a successful generation into a chat error
+                }
               }}
               onGenerationStart={() => {
                 console.log("🚀 Generation started")
@@ -215,6 +258,7 @@ export default function BuilderPage() {
                 setIsGenerating(false)
               }}
               isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+              previousResponseId={previousResponseId}
             />
           </div>
 
@@ -275,6 +319,7 @@ export default function BuilderPage() {
           onDeleteProject={projectSetup.handleManageProjects}
         />
       )}
+
     </>
   )
 }

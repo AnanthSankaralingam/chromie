@@ -7,12 +7,12 @@ import ChatMessage from "./chat-message"
 import ChatInput from "./chat-input"
 import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
 import { useChat } from "@/hooks"
-import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
+import { REQUEST_TYPES } from "@/lib/constants"
 
-export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
+export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady, previousResponseId }) {
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
-  
+
   // Listen for URL prompt events from use-chat hook
   useEffect(() => {
     const handleUrlPromptRequired = (event) => {
@@ -36,6 +36,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     isGenerating,
     setIsGenerating,
     hasGeneratedCode,
+    setHasGeneratedCode,
     messagesEndRef,
     handleSendMessage,
     handleUrlSubmit,
@@ -48,8 +49,17 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     onCodeGenerated,
     onGenerationStart,
     onGenerationEnd,
-    isProjectReady
+    isProjectReady,
+    previousResponseId
   })
+
+  // Detect if this is a follow-up request
+  const isFollowUpRequest = hasGeneratedCode || !!previousResponseId
+
+  // Wrapper to maintain compatibility with older callers referencing this name
+  const handleSendMessageWithUrlPrompt = (e) => {
+    return handleSendMessage(e)
+  }
 
   // Show URL prompt modal when needed
   const showUrlPromptModal = (data, originalPrompt) => {
@@ -74,167 +84,20 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     handleUrlCancel()
   }
 
-  // Override the default handleSendMessage to show URL prompt when needed
-  const handleSendMessageWithUrlPrompt = async (e) => {
-    e.preventDefault()
-    if (!inputMessage.trim() || isGenerating) return
 
-    // Check if we have a valid project ID
-    if (!isProjectReady) {
-      const errorMessage = {
-        role: "assistant",
-        content: "please wait while i set up your project, then try again.",
-      }
-      setMessages((prev) => [...prev, errorMessage])
-      return
-    }
-
-    const userMessage = { role: "user", content: inputMessage }
-    setMessages((prev) => [...prev, userMessage])
-    setInputMessage("")
-    // Do not set generating yet; wait until we know we are actually generating code
-
-    // Notify parent component only when actual generation begins (moved below)
-    // if (onGenerationStart) {
-    //   onGenerationStart()
-    // }
-
-    try {
-      const requestType = hasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
-      console.log(`🔄 Follow-up request detected. Using request type: ${requestType}`)
-      
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: inputMessage,
-          projectId,
-          requestType: requestType,
-        }),
-      })
-
-      const data = await response.json()
-
-      let content = ""
-
-      // Handle different response scenarios
-      if (response.status === 403) {
-        content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
-      } else if (data.requiresUrl) {
-        // Show URL prompt modal for scraping - no chat message needed
-        console.log('🔗 URL required for scraping - showing modal only')
-        
-        // Ensure spinner is not shown
-        setIsGenerating(false)
-        
-        showUrlPromptModal(data, inputMessage);
-        
-        // Clear the auto-generate prompt for URL requests
-        if (onAutoGenerateComplete) {
-          onAutoGenerateComplete()
-        }
-        
-        return; // Don't continue with normal flow
-      } else if (data.explanation) {
-        content = `${data.explanation}`
-      } else if (data.error) {
-        content = `Error: ${data.error}`
-      } else {
-        content = "code generated successfully!"
-      }
-
-      // Only add "generating code..." message if we're actually generating code (not showing URL modal)
-      if (content && !data.requiresUrl) {
-        // Turn on spinner only when actually generating
-        setIsGenerating(true)
-        
-        const generatingMessage = {
-          role: "assistant",
-          content: "🚀 generating code...",
-        }
-        setMessages(prev => [...prev, generatingMessage])
-        
-        // Create the final assistant message
-        const assistantMessage = {
-          role: "assistant",
-          content,
-        }
-
-        // Replace the "generating code..." message with the actual result
-        setMessages((prev) => {
-          const newMessages = [...prev]
-          // Replace the last message (which should be the "generating code..." message)
-          if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-            newMessages[newMessages.length - 1] = assistantMessage
-          } else {
-            newMessages.push(assistantMessage)
-          }
-          return newMessages
-        })
-
-        // Mark that code has been generated
-        setHasGeneratedCode(true)
-
-        if (onCodeGenerated) {
-          onCodeGenerated(data)
-        }
-
-        // Refresh token usage display by triggering a page reload of the token usage component
-        // This is a simple way to refresh the token usage without complex state management
-        const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
-        window.dispatchEvent(tokenUsageEvent)
-      }
-
-      // Post token usage to server (moved out of /api/generate)
-      try {
-        if (data?.tokenUsage?.total_tokens) {
-          await fetch('/api/token-usage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              tokensThisRequest: data.tokenUsage.total_tokens,
-              model: data.tokenUsage.model || 'unknown'
-            })
-          })
-        }
-      } catch (usageErr) {
-        console.error('Failed to post token usage:', usageErr)
-      }
-
-    } catch (error) {
-      console.error("Error generating code:", error)
-      const errorMessage = {
-        role: "assistant",
-        content: "sorry, i encountered an error while generating your extension. please try again.",
-      }
-      
-      // Replace the "generating code..." message with the error message
-      setMessages((prev) => {
-        const newMessages = [...prev]
-        // Replace the last message (which should be the "generating code..." message)
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].content.includes("Generating code")) {
-          newMessages[newMessages.length - 1] = errorMessage
-        } else {
-          newMessages.push(errorMessage)
-        }
-        return newMessages
-      })
-    } finally {
-      setIsGenerating(false)
-      // Notify parent component that generation ended
-      if (onGenerationEnd) {
-        onGenerationEnd()
-      }
-    }
-  }
 
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <ChatHeader />
+      <div className="relative">
+        <ChatHeader />
+        {/* Conversation Continuity Indicator */}
+        {isFollowUpRequest && (
+          <div className="absolute top-2 right-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs text-blue-300">
+            💬 follow-up
+          </div>
+        )}
+      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
@@ -249,7 +112,9 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
             <div className="bg-slate-700/50 border border-slate-600/50 p-3 rounded-lg">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent" />
-                <span className="text-sm text-slate-300">generating code...</span>
+                <span className="text-sm text-slate-300">
+                  {isFollowUpRequest ? "continuing conversation..." : "generating code..."}
+                </span>
               </div>
             </div>
           </div>
