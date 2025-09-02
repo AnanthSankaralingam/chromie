@@ -203,7 +203,7 @@ export default function BuilderPage() {
               onAutoGenerateComplete={handleAutoGenerateComplete}
               onCodeGenerated={(response) => {
                 console.log("✅ AI generated code:", response)
-                fileManagement.loadProjectFiles()
+                fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                 setIsGenerating(false)
               }}
               onGenerationStart={() => {

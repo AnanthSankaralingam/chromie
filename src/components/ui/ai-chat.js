@@ -36,6 +36,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     isGenerating,
     setIsGenerating,
     hasGeneratedCode,
+    setHasGeneratedCode,
     messagesEndRef,
     handleSendMessage,
     handleUrlSubmit,
@@ -100,8 +101,28 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     // }
 
     try {
-      const requestType = hasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
-      console.log(`🔄 Follow-up request detected. Using request type: ${requestType}`)
+      console.log(`🔍 hasGeneratedCode: ${hasGeneratedCode}, projectId: ${projectId}`)
+      
+      // Force refresh hasGeneratedCode from Supabase before determining request type
+      let currentHasGeneratedCode = hasGeneratedCode
+      if (projectId) {
+        try {
+          const response = await fetch(`/api/projects/${projectId}/has-generated-code`)
+          if (response.ok) {
+            const data = await response.json()
+            currentHasGeneratedCode = data.hasGeneratedCode
+            if (data.hasGeneratedCode !== hasGeneratedCode) {
+              console.log(`🔍 hasGeneratedCode updated: ${hasGeneratedCode} → ${data.hasGeneratedCode}`)
+              setHasGeneratedCode(data.hasGeneratedCode)
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing hasGeneratedCode:', error)
+        }
+      }
+      
+      const requestType = currentHasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
+      console.log(`🔄 Request type: ${requestType}`)
       
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -116,6 +137,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
       })
 
       const data = await response.json()
+      console.log(`🔍 Debug: Response data:`, data)
 
       let content = ""
 
@@ -174,8 +196,10 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
           return newMessages
         })
 
-        // Mark that code has been generated
-        setHasGeneratedCode(true)
+        // Mark that code has been generated (only set once after first successful generation)
+        if (!hasGeneratedCode) {
+          setHasGeneratedCode(true)
+        }
 
         if (onCodeGenerated) {
           onCodeGenerated(data)

@@ -243,6 +243,7 @@ export async function POST(request) {
     // Update project data
     let projectUpdateData = {
       last_used_at: new Date().toISOString(),
+      has_generated_code: true, // Mark that code has been generated for this project
     }
 
     // Try to extract extension name from manifest.json
