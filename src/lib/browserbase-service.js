@@ -52,9 +52,8 @@ export class BrowserBaseService {
         browserSettings: {
           viewport: { width: 1280, height: 720 },
           blockAds: false,
-          solveCaptchas: true,
-          recordSession: true,
-          logSession: true,
+          // Removed premium features: solveCaptchas, recordSession, logSession
+          // These require paid plan and cause errors on free tier
         },
       }
       if (extensionId) {

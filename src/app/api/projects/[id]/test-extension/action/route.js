@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { browserBaseService } from "@/lib/browserbase-service"
+import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -88,8 +88,8 @@ async function sendActionToBrowserBase(sessionId, action) {
 
     console.log("🚀 BACKEND: Executing automation script...")
     
-    // Execute the automation script in the BrowserBase session
-    const result = await browserBaseService.executeScript(sessionId, automationScript)
+    // Execute the automation script in the Hyperbrowser session
+    const result = await hyperbrowserService.executeScript(sessionId, automationScript)
     
     console.log("✅ BACKEND: Script execution completed:", result)
     
