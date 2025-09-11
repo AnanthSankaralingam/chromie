@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { browserBaseService } from "@/lib/browserbase-service"
+import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -42,11 +42,11 @@ export async function POST(request, { params }) {
     const extensionFiles = (files || []).map((f) => ({ file_path: f.file_path, content: f.content }))
 
     console.log("Creating session with existing extension files count:", extensionFiles.length)
-    const session = await browserBaseService.createTestSession(extensionFiles, process.env.BROWSERBASE_PROJECT_ID)
+    const session = await hyperbrowserService.createTestSession(extensionFiles, id)
 
     return NextResponse.json({ session })
   } catch (error) {
-    console.error("Error creating Browserbase test session:", error)
+    console.error("Error creating Hyperbrowser test session:", error)
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })
   }
 }
@@ -69,13 +69,13 @@ export async function DELETE(request, { params }) {
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
-    const ok = await browserBaseService.terminateSession(sessionId)
+    const ok = await hyperbrowserService.terminateSession(sessionId)
     if (!ok) {
       return NextResponse.json({ error: "Failed to terminate session" }, { status: 500 })
     }
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error terminating Browserbase session:", error)
+    console.error("Error terminating Hyperbrowser session:", error)
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })
   }
 } 

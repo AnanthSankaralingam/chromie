@@ -29,8 +29,21 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
   console.log("TestModal liveUrl:", liveUrl, "sessionData keys:", sessionData ? Object.keys(sessionData) : null)
 
+  // Handle cleanup when modal is closed
+  const handleClose = () => {
+    console.log("🚪 Test modal closing, triggering cleanup")
+    onClose()
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose()
+        }
+      }}
+    >
       <div className="fixed inset-4 bg-white rounded-lg shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -58,7 +71,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
           </div>
 
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-gray-600 hover:text-gray-900">
+            <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-600 hover:text-gray-900">
               <X className="h-4 w-4" />
             </Button>
           </div>

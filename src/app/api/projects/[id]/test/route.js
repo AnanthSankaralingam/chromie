@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
-import { BrowserBaseService } from "@/lib/browserbase-service"
+import { HyperbrowserService } from "@/lib/hyperbrowser-service"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -45,9 +45,9 @@ export async function POST(request, { params }) {
       extensionFiles[file.file_path] = file.content
     })
 
-    // Create test session using BrowserBase service
-    const browserBaseService = new BrowserBaseService()
-    const sessionData = await browserBaseService.createTestSession(extensionFiles, projectId)
+    // Create test session using Hyperbrowser service
+    const hyperbrowserService = new HyperbrowserService()
+    const sessionData = await hyperbrowserService.createTestSession(extensionFiles, projectId)
 
     console.log("Test session created successfully:", sessionData.sessionId)
 
@@ -96,9 +96,9 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Session ID is required" }, { status: 400 })
     }
 
-    // Terminate session using BrowserBase service
-    const browserBaseService = new BrowserBaseService()
-    const success = await browserBaseService.terminateSession(sessionId)
+    // Terminate session using Hyperbrowser service
+    const hyperbrowserService = new HyperbrowserService()
+    const success = await hyperbrowserService.terminateSession(sessionId)
 
     console.log("Test session terminated:", sessionId, success ? "successfully" : "with errors")
 
