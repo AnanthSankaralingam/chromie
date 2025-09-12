@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +15,8 @@ export default function SideBySideTestModal({
   extensionFiles = []
 }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
+  const [isRunningHyperAgent, setIsRunningHyperAgent] = useState(false)
+  const [hyperAgentResult, setHyperAgentResult] = useState(null)
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -33,6 +35,47 @@ export default function SideBySideTestModal({
   const handleClose = () => {
     console.log("🚪 Side-by-side test modal closing, triggering cleanup")
     onClose()
+  }
+
+  // Handle HyperAgent test execution
+  const handleRunHyperAgentTest = async () => {
+    if (!sessionData?.sessionId || !projectId) {
+      console.error("Missing session ID or project ID for HyperAgent test")
+      return
+    }
+
+    setIsRunningHyperAgent(true)
+    setHyperAgentResult(null)
+
+    try {
+      console.log("🤖 Starting HyperAgent test execution")
+      const response = await fetch(`/api/projects/${projectId}/hyperagent-test`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "HyperAgent test failed")
+      }
+
+      console.log("✅ HyperAgent test completed:", result)
+      setHyperAgentResult(result)
+    } catch (error) {
+      console.error("❌ HyperAgent test error:", error)
+      setHyperAgentResult({
+        success: false,
+        error: error.message,
+      })
+    } finally {
+      setIsRunningHyperAgent(false)
+    }
   }
 
   // Get viewport dimensions from sessionData, with fallbacks
@@ -171,7 +214,45 @@ export default function SideBySideTestModal({
               )}
             </div>
 
-            <div className="text-sm text-gray-500">Powered by Hyperbrowser</div>
+            <div className="flex items-center space-x-4">
+              {/* HyperAgent Test Results */}
+              {hyperAgentResult && (
+                <div className={cn(
+                  "flex items-center space-x-1 text-sm",
+                  hyperAgentResult.success ? "text-green-600" : "text-red-600"
+                )}>
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    hyperAgentResult.success ? "bg-green-500" : "bg-red-500"
+                  )} />
+                  <span>
+                    {hyperAgentResult.success ? "Test passed" : "Test failed"}
+                  </span>
+                </div>
+              )}
+
+              {/* HyperAgent Test Button */}
+              <Button
+                onClick={handleRunHyperAgentTest}
+                disabled={isRunningHyperAgent || !sessionData?.sessionId}
+                size="sm"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRunningHyperAgent ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3 w-3 mr-2" />
+                    Test Extension
+                  </>
+                )}
+              </Button>
+
+              <div className="text-sm text-gray-500">Powered by Hyperbrowser</div>
+            </div>
           </div>
         </div>
       </div>

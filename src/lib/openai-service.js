@@ -9,6 +9,7 @@ import {
 } from "./prompts/new-coding"
 import { batchScrapeWebpages } from "./webpage-scraper"
 import { createClient } from "./supabase/server"
+import { randomUUID } from "crypto"
 const chromeApisData = require('./chrome_extension_apis.json');
 
 const openai = new OpenAI({
@@ -234,7 +235,7 @@ async function generateExtensionCode(codingPrompt, replacements, stream = false)
  * @param {Object} replacements - Object containing placeholder replacements
  * @returns {AsyncGenerator} Stream of thinking and code generation
  */
-async function* generateExtensionCodeStream(codingPrompt, replacements) {
+async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId) {
   console.log("Generating extension code with streaming...")
   
   // Replace placeholders in the coding prompt
@@ -342,7 +343,8 @@ async function* generateExtensionCodeStream(codingPrompt, replacements) {
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
             "styles.css": { type: "string" },
-            "stagehand_script": { type: "string" }
+            "stagehand_script": { type: "string" },
+            "hyperagent_test_script.js": { type: "string" }
           },
           required: ["explanation"],
         },
@@ -363,6 +365,118 @@ async function* generateExtensionCodeStream(codingPrompt, replacements) {
   }
 
   yield { type: "complete", content: codeContent }
+  
+  // Process and save the generated files
+  try {
+    console.log("🔄 Processing generated code for file saving...")
+    const implementationResult = JSON.parse(codeContent)
+    
+    if (implementationResult && typeof implementationResult === 'object') {
+      // Save files to database
+      const supabase = createClient()
+      
+      // Get predefined icons
+      const iconFiles = [
+        { file_path: "icons/icon16.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" },
+        { file_path: "icons/icon48.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" },
+        { file_path: "icons/icon128.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" }
+      ]
+      
+      // Combine generated files with icons
+      const allFiles = { ...implementationResult }
+      iconFiles.forEach(icon => {
+        allFiles[icon.file_path] = icon.content
+      })
+      
+      // Remove explanation as it's not a file
+      delete allFiles.explanation
+      
+      console.log(`💾 Saving ${Object.keys(allFiles).length} files to database`)
+      
+      const savedFiles = []
+      const errors = []
+      
+      for (const [filePath, content] of Object.entries(allFiles)) {
+        try {
+          // First, try to update existing file
+          const { data: existingFile } = await supabase
+            .from("code_files")
+            .select("id")
+            .eq("project_id", sessionId)
+            .eq("file_path", filePath)
+            .single()
+          
+          if (existingFile) {
+            // Update existing file
+            const { error: updateError } = await supabase
+              .from("code_files")
+              .update({
+                content: content,
+                last_used_at: new Date().toISOString(),
+              })
+              .eq("id", existingFile.id)
+            
+            if (updateError) {
+              console.error(`Error updating file ${filePath}:`, updateError)
+              errors.push({ filePath, error: updateError })
+            } else {
+              savedFiles.push(filePath)
+            }
+          } else {
+            // Insert new file
+            const { error: insertError } = await supabase
+              .from("code_files")
+              .insert({
+                id: randomUUID(),
+                project_id: sessionId,
+                file_path: filePath,
+                content: content
+              })
+            
+            if (insertError) {
+              console.error(`Error inserting file ${filePath}:`, insertError)
+              errors.push({ filePath, error: insertError })
+            } else {
+              savedFiles.push(filePath)
+            }
+          }
+        } catch (fileError) {
+          console.error(`Exception handling file ${filePath}:`, fileError)
+          errors.push({ filePath, error: fileError })
+        }
+      }
+      
+      console.log(`✅ Saved ${savedFiles.length} files successfully`)
+      if (errors.length > 0) {
+        console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
+      }
+      
+      // Update project's has_generated_code flag
+      try {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ 
+            has_generated_code: true,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('id', sessionId)
+        
+        if (updateError) {
+          console.error('❌ Error updating project has_generated_code:', updateError)
+        } else {
+          console.log('✅ Project has_generated_code updated successfully')
+        }
+      } catch (error) {
+        console.error('💥 Exception during project update:', error)
+      }
+      
+      yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+    }
+  } catch (error) {
+    console.error("❌ Error processing generated code:", error)
+    yield { type: "save_error", content: `Error saving files: ${error.message}` }
+  }
+  
   // Emit implementing phase completion summary
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
 }
@@ -1055,7 +1169,7 @@ ${apiResult.code_example || 'No example provided'}
     yield { type: "phase", phase: "implementing", content: "Generating extension files and applying project updates." }
 
     // Use the streaming code generation
-    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements)) {
+    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements, sessionId)) {
       yield chunk
     }
 
