@@ -6,12 +6,14 @@ import ChatHeader from "./chat-header"
 import ChatMessage from "./chat-message"
 import ChatInput from "./chat-input"
 import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
+import StreamingChat from "./streaming-chat"
 import { useChat } from "@/hooks"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 
 export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
+  const [useStreaming, setUseStreaming] = useState(true) // Enable streaming with buffering fix
   
   // Listen for URL prompt events from use-chat hook
   useEffect(() => {
@@ -255,10 +257,57 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
     }
   }
 
+  // Use streaming chat by default for better UX
+  if (useStreaming) {
+    try {
+      return (
+        <>
+          <StreamingChat
+            projectId={projectId}
+            autoGeneratePrompt={autoGeneratePrompt}
+            onAutoGenerateComplete={onAutoGenerateComplete}
+            onCodeGenerated={onCodeGenerated}
+            onGenerationStart={onGenerationStart}
+            onGenerationEnd={onGenerationEnd}
+            isProjectReady={isProjectReady}
+          />
+          
+          {/* URL Prompt Modal */}
+          {showUrlPrompt && urlPromptData && (
+            <ModalUrlPrompt
+              data={urlPromptData.data}
+              originalPrompt={urlPromptData.originalPrompt}
+              onUrlSubmit={onUrlSubmit}
+              onCancel={onUrlCancel}
+              onCodeGenerated={onCodeGenerated}
+              projectId={projectId}
+              hasGeneratedCode={hasGeneratedCode}
+              onGenerationEnd={onGenerationEnd}
+            />
+          )}
+        </>
+      )
+    } catch (error) {
+      console.error('Error rendering StreamingChat, falling back to regular chat:', error)
+      setUseStreaming(false)
+    }
+  }
+
+  // Fallback to original non-streaming chat
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
       <ChatHeader />
+      
+      {/* Debug Toggle */}
+      <div className="p-2 border-b border-white/10 bg-slate-800/50">
+        <button
+          onClick={() => setUseStreaming(!useStreaming)}
+          className="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-white"
+        >
+          {useStreaming ? 'Switch to Regular Chat' : 'Switch to Streaming Chat'}
+        </button>
+      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
