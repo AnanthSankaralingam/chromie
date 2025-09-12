@@ -161,12 +161,14 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         }
         
         return; // Don't continue with normal flow
-      } else if (data.explanation) {
-        content = `${data.explanation}`
       } else if (data.error) {
         content = `Error: ${data.error}`
+      } else if (data.thinkingSummary) {
+        content = `${data.thinkingSummary}`
+      } else if (data.explanation) {
+        content = `${data.explanation}`
       } else {
-        content = "code generated successfully!"
+        content = "Extension code has been generated and saved to your project."
       }
 
       // Only add "generating code..." message if we're actually generating code (not showing URL modal)

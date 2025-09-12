@@ -139,22 +139,25 @@ export function useChat({
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping - no chat message needed
         console.log('🔗 URL required for scraping - showing modal only');
-        
+
         // Ensure spinner is not shown
         setIsGenerating(false)
-        
+
         // Clear the auto-generate prompt for URL requests
         if (onAutoGenerateComplete) {
           onAutoGenerateComplete()
         }
-        
+
         return; // Don't continue with normal flow
-      } else if (data.explanation) {
-        content = `${data.explanation}`
       } else if (data.error) {
         content = `Error: ${data.error}`
+      } else if (data.thinkingSummary) {
+        content = `${data.thinkingSummary}`
+      } else if (data.explanation) {
+        content = `${data.explanation}`
       } else {
-        content = "code generated successfully!"
+        // fallback
+        content = "Extension code has been generated and saved to your project."
       }
 
       // Only add "generating code..." message if we're actually generating code (not showing URL modal)
@@ -279,19 +282,22 @@ export function useChat({
           detail: { data, originalPrompt: prompt }
         })
         window.dispatchEvent(urlPromptEvent)
-        
+
         // Clear the auto-generate prompt for URL requests
         if (onAutoGenerateComplete) {
           onAutoGenerateComplete()
         }
-        
+
         return; // Don't continue with normal flow
-      } else if (data.explanation) {
-        content = `${data.explanation}`
       } else if (data.error) {
         content = `Error: ${data.error}`
+      } else if (data.thinkingSummary) {
+        content = `${data.thinkingSummary}`
+      } else if (data.explanation) {
+        content = `${data.explanation}`
       } else {
-        content = "code generated successfully!"
+        // This should not happen in normal flow, but provide fallback
+        content = "Extension code has been generated and saved to your project."
       }
 
       // Only add "generating code..." message if we're actually generating code (not showing URL modal)

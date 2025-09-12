@@ -281,7 +281,7 @@ export default function StreamingChat({
                   if (!finalMessageAddedRef.current) {
                     const finalMessage = {
                       role: "assistant",
-                      content: "Code generated successfully",
+                      content: phaseSummaries.planning || "Extension code has been generated and saved to your project.",
                     }
                     setMessages(prev => [...prev, finalMessage])
                     finalMessageAddedRef.current = true
@@ -487,7 +487,7 @@ export default function StreamingChat({
                   if (!finalMessageAddedRef.current) {
                     const finalMessage = {
                       role: "assistant",
-                      content: "Code generated successfully",
+                      content: phaseSummaries.planning || "Extension code has been generated and saved to your project.",
                     }
                     setMessages(prev => [...prev, finalMessage])
                     finalMessageAddedRef.current = true

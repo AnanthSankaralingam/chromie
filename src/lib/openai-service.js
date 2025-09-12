@@ -952,6 +952,7 @@ ${apiResult.code_example || 'No example provided'}
     return {
       success: true,
       explanation: implementationResult.explanation,
+      thinkingSummary: thinkingSummary,
       files: filesOnly,
       stagehandScript: stagehandScript,
       sessionId,

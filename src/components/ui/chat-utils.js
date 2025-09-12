@@ -87,16 +87,19 @@ export const continueGenerationWithUrl = async (
       })
 
       const data = await response.json()
-      
+
       let content = ""
       if (response.status === 403) {
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
-      } else if (data.explanation) {
-        content = `${data.explanation}`
       } else if (data.error) {
         content = `Error: ${data.error}`
+      } else if (data.thinkingSummary) {
+        content = `${data.thinkingSummary}`
+      } else if (data.explanation) {
+        content = `${data.explanation}`
       } else {
-        content = "code generated successfully!"
+        // This should not happen in normal flow, but provide fallback
+        content = "Extension code has been generated and saved to your project."
       }
 
       const assistantMessage = {
@@ -161,16 +164,19 @@ export const continueGenerationWithUrl = async (
     })
 
     const data = await response.json()
-    
+
     let content = ""
     if (response.status === 403) {
       content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
-    } else if (data.explanation) {
-      content = `${data.explanation}`
     } else if (data.error) {
       content = `Error: ${data.error}`
+    } else if (data.thinkingSummary) {
+      content = `${data.thinkingSummary}`
+    } else if (data.explanation) {
+      content = `${data.explanation}`
     } else {
-      content = "code generated successfully!"
+      // This should not happen in normal flow, but provide fallback
+      content = "Extension code has been generated and saved to your project."
     }
 
     const assistantMessage = {

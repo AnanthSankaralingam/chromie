@@ -283,6 +283,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       explanation: result.explanation,
+      thinkingSummary: result.thinkingSummary,
       files: savedFiles,
       filesGenerated: savedFiles.length,
       tokenUsage: result.tokenUsage || null,
