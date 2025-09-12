@@ -173,9 +173,10 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
  * Generates Chrome extension code using the specified coding prompt
  * @param {string} codingPrompt - The coding prompt to use
  * @param {Object} replacements - Object containing placeholder replacements
+ * @param {boolean} stream - Whether to stream the response
  * @returns {Promise<Object>} Generated extension code and metadata
  */
-async function generateExtensionCode(codingPrompt, replacements) {
+async function generateExtensionCode(codingPrompt, replacements, stream = false) {
   console.log("Generating extension code using coding prompt...")
   
   // Replace placeholders in the coding prompt
@@ -185,7 +186,7 @@ async function generateExtensionCode(codingPrompt, replacements) {
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  const codingCompletion = await openai.chat.completions.create({
+  const requestConfig = {
     model: "gpt-4o",
     messages: [
       { role: "user", content: finalPrompt },
@@ -216,9 +217,154 @@ async function generateExtensionCode(codingPrompt, replacements) {
     },
     temperature: 0.2,
     max_tokens: 15000,
-  })
+  }
+
+  if (stream) {
+    requestConfig.stream = true
+  }
+
+  const codingCompletion = await openai.chat.completions.create(requestConfig)
 
   return codingCompletion
+}
+
+/**
+ * Generates Chrome extension code with streaming support
+ * @param {string} codingPrompt - The coding prompt to use
+ * @param {Object} replacements - Object containing placeholder replacements
+ * @returns {AsyncGenerator} Stream of thinking and code generation
+ */
+async function* generateExtensionCodeStream(codingPrompt, replacements) {
+  console.log("Generating extension code with streaming...")
+  
+  // Replace placeholders in the coding prompt
+  let finalPrompt = codingPrompt
+  for (const [placeholder, value] of Object.entries(replacements)) {
+    console.log(`Replacing ${placeholder} with ${value}`)
+    finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
+  }
+
+  // First, generate thinking/explanation using OpenAI and stream it
+  const thinkingStream = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { 
+        role: "system", 
+        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning. Be concise but thorough in your thinking process." 
+      },
+      { role: "user", content: `Think through this request: ${finalPrompt}` },
+    ],
+    stream: true,
+    temperature: 0.3,
+    max_tokens: 1000,
+  })
+
+  let thinkingContent = ""
+  for await (const chunk of thinkingStream) {
+    const content = chunk.choices[0]?.delta?.content || ""
+    if (content) {
+      thinkingContent += content
+      // Stream the actual thinking content as it comes from OpenAI
+      yield { type: "thinking", content: content }
+    }
+  }
+
+  // Generate a quick summary using Fireworks API (gpt-oss-20b)
+  let thinkingSummary = ""
+  try {
+    const summaryResponse = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.FIREWORKS_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "accounts/fireworks/models/gpt-oss-20b",
+        max_tokens: 400,
+        top_p: 1,
+        top_k: 40,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        temperature: 0.3,
+        messages: [
+          {
+            role: "system",
+            content: "You are a Chrome extension development assistant. Provide a brief, clear summary of the development approach and key decisions in 1-2 sentences. Keep it concise and user-friendly. Always complete your sentences."
+          },
+          {
+            role: "user",
+            content: `Summarize this development thinking in 1-2 sentences: ${thinkingContent}`
+          }
+        ]
+      })
+    });
+
+    if (summaryResponse.ok) {
+      const summaryCompletion = await summaryResponse.json();
+      thinkingSummary = summaryCompletion.choices[0]?.message?.content || "Planning complete"
+      console.log("🔥 Fireworks summary generated:", thinkingSummary)
+    } else {
+      console.error("❌ Fireworks API error:", summaryResponse.status, summaryResponse.statusText)
+      thinkingSummary = "Planning complete"
+    }
+  } catch (error) {
+    console.error("Error generating thinking summary:", error)
+    thinkingSummary = "Planning complete"
+  }
+
+  // Stream the summary when thinking is complete
+  yield { type: "thinking_complete", content: thinkingSummary }
+  // Also emit a planning phase summary for the UI phases view
+  yield { type: "phase", phase: "planning", content: thinkingSummary }
+  yield { type: "generating_code", content: "Now generating the extension code..." }
+
+  const codeStream = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "user", content: finalPrompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "extension_implementation",
+        schema: {
+          type: "object",
+          properties: {
+            explanation: { type: "string" },
+            "manifest.json": {
+              oneOf: [{ type: "string" }, { type: "object" }],
+            },
+            "background.js": { type: "string" },
+            "content.js": { type: "string" },
+            "popup.html": { type: "string" },
+            "popup.js": { type: "string" },
+            "sidepanel.html": { type: "string" },
+            "sidepanel.js": { type: "string" },
+            "styles.css": { type: "string" },
+            "stagehand_script": { type: "string" }
+          },
+          required: ["explanation"],
+        },
+      },
+    },
+    stream: true,
+    temperature: 0.2,
+    max_tokens: 15000,
+  })
+
+  let codeContent = ""
+  for await (const chunk of codeStream) {
+    const content = chunk.choices[0]?.delta?.content || ""
+    if (content) {
+      codeContent += content
+      yield { type: "code", content: content }
+    }
+  }
+
+  yield { type: "complete", content: codeContent }
+  // Emit implementing phase completion summary
+  yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
 }
 
 /**
@@ -701,5 +847,222 @@ ${apiResult.code_example || 'No example provided'}
   } catch (error) {
     console.error("Error in extension generation:", error)
     throw error
+  }
+}
+
+/**
+ * Streaming version of generateExtension that yields thinking and code generation in real-time
+ * @param {Object} params - Function parameters
+ * @param {string} params.featureRequest - User's feature request description
+ * @param {string} params.requestType - Type of request (new extension, add to existing, etc.)
+ * @param {string} params.sessionId - Session/project identifier
+ * @param {Object} params.existingFiles - Existing extension files (for add-to-existing requests)
+ * @param {string} params.userProvidedUrl - User-provided URL for website analysis
+ * @returns {AsyncGenerator} Stream of thinking and code generation
+ */
+export async function* generateExtensionStream({
+  featureRequest,
+  requestType = REQUEST_TYPES.NEW_EXTENSION,
+  sessionId,
+  existingFiles = {},
+  userProvidedUrl = null,
+  skipScraping = false,
+}) {
+  console.log(`Streaming request type: ${requestType}`)
+
+  try {
+    let requirementsAnalysis
+    let planningTokenUsage
+
+    // Step 1: Analyze requirements based on request type
+    if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+      console.log("🆕 New extension request - analyzing requirements...")
+      yield { type: "analyzing", content: "analyzing" }
+      // Emit an analyzing phase summary stub; UI can show/update as details emerge
+      yield { type: "phase", phase: "analyzing", content: "Understanding your requirements and constraints to scope the extension." }
+      
+      const analysisResult = await analyzeExtensionRequirements({ featureRequest })
+      requirementsAnalysis = analysisResult.requirements
+      planningTokenUsage = analysisResult.tokenUsage
+      
+      yield { type: "analysis_complete", content: requirementsAnalysis.frontend_type }
+      // Provide a more specific analyzing summary now that analysis is complete
+      const analyzingSummary = `Identified a ${requirementsAnalysis.frontend_type} UI with ${
+        (requirementsAnalysis.docAPIs||[]).length
+      } Chrome APIs and ${
+        requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 ? 'site analysis required' : 'no site analysis needed'
+      }.`
+      yield { type: "phase", phase: "analyzing", content: analyzingSummary }
+    } else if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      console.log("🔧 Add to existing extension request - analyzing existing code...")
+      yield { type: "analyzing", content: "analyzing" }
+      yield { type: "phase", phase: "analyzing", content: "Reviewing current extension files to determine safe changes." }
+      
+      // For existing extensions, create a simplified requirements analysis
+      requirementsAnalysis = {
+        frontend_type: "generic", // Will be determined from existing files
+        docAPIs: [], // Will be determined from existing code
+        webPageData: null, // Usually not needed for modifications
+        ext_name: "Existing Extension", // Will be updated from manifest
+        ext_description: "Extension modification" // Will be updated from manifest
+      }
+      
+      // Extract extension info from existing manifest if available
+      if (existingFiles['manifest.json']) {
+        try {
+          const manifest = JSON.parse(existingFiles['manifest.json'])
+          if (manifest.name) requirementsAnalysis.ext_name = manifest.name
+          if (manifest.description) requirementsAnalysis.ext_description = manifest.description
+          console.log(`📋 Using existing manifest: ${manifest.name}`)
+        } catch (e) {
+          console.warn('Could not parse existing manifest.json:', e.message)
+        }
+      }
+      
+      // No planning tokens for modifications
+      planningTokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, model: "none" }
+      console.log("✅ Requirements analysis completed for existing extension modification")
+      yield { type: "analysis_complete", content: requirementsAnalysis.ext_name }
+      const analyzingSummaryExisting = `Will modify "${requirementsAnalysis.ext_name}" (${requirementsAnalysis.ext_description}).`
+      yield { type: "phase", phase: "analyzing", content: analyzingSummaryExisting }
+    } else {
+      throw new Error(`Request type ${requestType} not yet implemented`)
+    }
+
+    // Check if URL is required but not provided
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
+      console.log("🔗 URL required for scraping - showing modal to user")
+      yield { type: "requires_url", content: "This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed." }
+      return
+    }
+
+    // Step 2: Fetch Chrome API documentation for required APIs
+    let chromeApiDocumentation = ""
+    if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
+      console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
+      yield { type: "fetching_apis", content: "fetching_apis" }
+      yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.docAPIs.join(', ')}` }
+      
+      const apiDocs = []
+      
+      for (const apiName of requirementsAnalysis.docAPIs) {
+        const apiResult = searchChromeExtensionAPI(apiName)
+        console.log(`API result for ${apiName}:`, JSON.stringify(apiResult, null, 2))
+        if (!apiResult.error) {
+          apiDocs.push(`
+## ${apiResult.name} API
+**Namespace:** ${apiResult.namespace || 'Unknown'}
+**Description:** ${apiResult.description || 'No description available'}
+**Permissions:** ${Array.isArray(apiResult.permissions) ? apiResult.permissions.join(', ') : (apiResult.permissions || 'None required')}
+**Code Example:**
+\`\`\`javascript
+${apiResult.code_example || 'No example provided'}
+\`\`\`
+**Compatibility:** ${apiResult.compatibility || 'Chrome 88+'}
+**Manifest Version:** ${apiResult.manifest_version || 'V3'}
+          `)
+        } else {
+          apiDocs.push(`
+## ${apiName} API
+**Error:** ${apiResult.error}
+**Available APIs:** ${apiResult.available_apis?.slice(0, 10).join(', ')}...
+          `)
+        }
+      }
+      
+      chromeApiDocumentation = apiDocs.join('\n\n')
+      console.log("Chrome API documentation compiled")
+      yield { type: "apis_ready", content: "apis_ready" }
+      yield { type: "phase", phase: "planning", content: "Chrome API references ready for prompt conditioning." }
+    }
+
+    // Step 3: Scrape webpages for analysis if needed and URL is provided
+    let scrapedWebpageAnalysis = null
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
+      console.log("🌐 Scraping webpage with user-provided URL:", userProvidedUrl)
+      yield { type: "scraping", content: "scraping" }
+      yield { type: "phase", phase: "planning", content: `Analyzing page structure at ${userProvidedUrl} for selectors and actions.` }
+      
+      scrapedWebpageAnalysis = await batchScrapeWebpages(
+        requirementsAnalysis.webPageData, 
+        userProvidedUrl
+      )
+      yield { type: "scraping_complete", content: "scraping_complete" }
+      yield { type: "phase", phase: "planning", content: "Website structure analysis ready for code generation." }
+    } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
+      console.log("⏸️ Skipping webpage scraping -", skipScraping ? "user opted out" : "no URL provided by user")
+      scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
+      yield { type: "scraping_skipped", content: "scraping_skipped" }
+      yield { type: "phase", phase: "planning", content: "Skipping website analysis; proceeding with available context." }
+    } else {
+      console.log("📝 No website analysis required for this extension")
+      scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
+    }
+
+    // Step 4: Select appropriate coding prompt based on request type and frontend type
+    let selectedCodingPrompt = ""
+    
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      // For modifications, always use the generic prompt to handle any type of extension
+      selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+      console.log("🔧 Using generic coding prompt for extension modification")
+      yield { type: "prompt_selected", content: "prompt_selected" }
+      yield { type: "phase", phase: "planning", content: "Selected a generic modification plan based on existing files." }
+    } else {
+      // For new extensions, select based on frontend type
+      switch (requirementsAnalysis.frontend_type) {
+        case "side_panel":
+          selectedCodingPrompt = NEW_EXT_SIDEPANEL_PROMPT
+          break
+        case "popup":
+          selectedCodingPrompt = NEW_EXT_POPUP_PROMPT
+          break
+        case "overlay":
+          selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT
+          break
+        case "generic":
+          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+          break
+        default:
+          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
+          break
+      }
+      console.log(`🆕 Using ${requirementsAnalysis.frontend_type} coding prompt for new extension`)
+      yield { type: "prompt_selected", content: "prompt_selected" }
+      yield { type: "phase", phase: "planning", content: `Chose a ${requirementsAnalysis.frontend_type} implementation plan.` }
+    }
+
+    // Step 5: Generate extension code with streaming
+    const replacements = {
+      user_feature_request: featureRequest,
+      ext_name: requirementsAnalysis.ext_name,
+      ext_description: requirementsAnalysis.ext_description,
+      chrome_api_documentation: chromeApiDocumentation || '',
+      scraped_webpage_analysis: scrapedWebpageAnalysis
+    }
+    
+    // Add existing files context for modifications
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
+      console.log("📁 Including existing files context for modification")
+      replacements.existing_files = JSON.stringify(existingFiles, null, 2)
+      console.log(`📋 Context includes ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+      yield { type: "context_ready", content: "context_ready" }
+    }
+    
+    console.log("🚀 Starting streaming code generation...")
+    yield { type: "generation_starting", content: "generation_starting" }
+    // Emit implementing phase start
+    yield { type: "phase", phase: "implementing", content: "Generating extension files and applying project updates." }
+
+    // Use the streaming code generation
+    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements)) {
+      yield chunk
+    }
+
+    yield { type: "generation_complete", content: "generation_complete" }
+
+  } catch (error) {
+    console.error("Error in streaming extension generation:", error)
+    yield { type: "error", content: `Error: ${error.message}` }
   }
 }

@@ -46,7 +46,7 @@ export class HyperbrowserService {
       console.log("Creating session with extensionId:", extensionId)
       const sessionCreatePayload = {
         // Hyperbrowser session configuration - using only free plan features
-        viewport: { width: 1600, height: 900 },
+        viewport: { width: 1680, height: 1050 },
         blockAds: false,
         // Removed premium features: solveCaptchas, recordSession, logSession
         // These require paid plan and cause errors on free tier
@@ -97,7 +97,7 @@ export class HyperbrowserService {
         expiresAt: sessionDetails.expiresAt || session.expiresAt || null,
         browserInfo: {
           userAgent: "Chrome Extension Tester",
-          viewport: { width: 1600, height: 900 },
+          viewport: { width: 1680, height: 1050 },
         },
         connectUrl: sessionDetails.wsEndpoint || sessionDetails.connectUrl,
         seleniumRemoteUrl: sessionDetails.seleniumRemoteUrl,
