@@ -87,4 +87,34 @@
   .url-prompt-container {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
+
+  /* Thinking dots animation */
+  .thinking-dots {
+    display: inline-block;
+  }
+  
+  .thinking-dots span {
+    animation: thinking-blink 1.4s infinite both;
+  }
+  
+  .thinking-dots .dot-1 {
+    animation-delay: 0s;
+  }
+  
+  .thinking-dots .dot-2 {
+    animation-delay: 0.2s;
+  }
+  
+  .thinking-dots .dot-3 {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes thinking-blink {
+    0%, 80%, 100% {
+      opacity: 0;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
 }

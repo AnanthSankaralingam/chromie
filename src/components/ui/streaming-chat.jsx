@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, Loader2 } from "lucide-react"
+import { Send, Loader2, ChevronDown, ChevronRight } from "lucide-react"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
 
@@ -31,6 +31,7 @@ export default function StreamingChat({
   const [phaseSummaries, setPhaseSummaries] = useState({ analyzing: null, planning: null, implementing: null })
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
+  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false)
   const messagesEndRef = useRef(null)
   const thinkingBufferRef = useRef("")
   const codeBufferRef = useRef("")
@@ -89,6 +90,7 @@ export default function StreamingChat({
     setCurrentThinking("")
     setCurrentCode("")
     setPhaseSummaries({ analyzing: null, planning: null, implementing: null })
+    setIsThinkingExpanded(false)
     
     // Reset buffers
     thinkingBufferRef.current = ""
@@ -335,6 +337,7 @@ export default function StreamingChat({
     setCurrentThinking("")
     setCurrentCode("")
     setPhaseSummaries({ analyzing: null, planning: null, implementing: null })
+    setIsThinkingExpanded(false)
     
     // Reset buffers
     thinkingBufferRef.current = ""
@@ -570,33 +573,67 @@ export default function StreamingChat({
     setStreamingMessage(null)
   }
 
-  const renderStreamingMessage = () => {
-    const renderPhases = () => {
-      const items = []
-      if (phaseSummaries.analyzing) {
-        items.push(
-          <div key="analyzing" className="p-3 rounded-lg border text-blue-300 bg-blue-900/10 border-blue-500/20 mb-2">
-            <div className="text-xs uppercase tracking-wide mb-1">Analyzing</div>
-            <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.analyzing}</div>
+  const renderThinkingSection = () => {
+    // Show if we have thinking content, phase summaries, or are currently thinking
+    const hasThinkingContent = currentThinking && currentThinking.trim().length > 0
+    const hasPhases = phaseSummaries.analyzing || phaseSummaries.planning || phaseSummaries.implementing
+    
+    if (!hasThinkingContent && !hasPhases && !isGenerating) return null
+    
+    // Determine if thinking is complete (generation finished and we have content)
+    const isThinkingComplete = !isGenerating && (hasThinkingContent || hasPhases)
+    
+    return (
+      <div className="mb-2">
+        <div 
+          className="flex items-center space-x-2 cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-gray-800/30 transition-colors py-2 px-2 rounded-md -mx-2"
+          onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
+        >
+          <div className="flex items-center space-x-2">
+            {isThinkingExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+            {isGenerating ? (
+              <span className="text-sm font-medium">
+                thinking
+                <span className="thinking-dots">
+                  <span className="dot-1">.</span>
+                  <span className="dot-2">.</span>
+                  <span className="dot-3">.</span>
+                </span>
+              </span>
+            ) : (
+              <span className="text-sm font-medium">
+                {isThinkingComplete ? "thinking complete" : "thinking"}
+              </span>
+            )}
           </div>
-        )
-      }
-      if (phaseSummaries.planning) {
-        items.push(
-          <div key="planning" className="p-3 rounded-lg border text-yellow-300 bg-yellow-900/10 border-yellow-500/20 mb-2">
-            <div className="text-xs uppercase tracking-wide mb-1">Implementing</div>
-            <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.planning}</div>
+        </div>
+        
+        {isThinkingExpanded && hasPhases && (
+          <div className="mt-2 space-y-2">
+            {/* Phase summaries */}
+            {phaseSummaries.analyzing && (
+              <div className="p-3 rounded-lg border text-blue-300 bg-blue-900/10 border-blue-500/20">
+                <div className="text-xs uppercase tracking-wide mb-1">Analyzing</div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.analyzing}</div>
+              </div>
+            )}
+            {phaseSummaries.planning && (
+              <div className="p-3 rounded-lg border text-yellow-300 bg-yellow-900/10 border-yellow-500/20">
+                <div className="text-xs uppercase tracking-wide mb-1">Implementing</div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.planning}</div>
+              </div>
+            )}
           </div>
-        )
-      }
-      // Implementing box removed per request; planning summary is labeled as Implementing
-      return items
-    }
+        )}
+        
+      </div>
+    )
+  }
 
-    const phaseCards = renderPhases()
+  const renderStreamingMessage = () => {
     const hasStreaming = !!streamingMessage
 
-    if (!hasStreaming && phaseCards.length === 0) return null
+    if (!hasStreaming) return null
 
     const getMessageStyle = () => {
       switch (streamingMessage.type) {
@@ -633,33 +670,28 @@ export default function StreamingChat({
     }
 
     return (
-      <div>
-        {phaseCards}
-        {hasStreaming && (
-          <div className={`p-3 rounded-lg border ${getMessageStyle()} mb-2`}>
-            <div className="flex items-start space-x-2">
-              <span className="text-lg">{getIcon()}</span>
-              <div className="flex-1">
-                <div className="text-sm font-medium mb-1">
-                  {streamingMessage.type === "thinking" && "Planning"}
-                  {streamingMessage.type === "thinking_complete" && null}
-                  {streamingMessage.type === "generating_code" && "Creating extension"}
-                  {streamingMessage.type === "code" && "Writing code"}
-                  {streamingMessage.type === "status" && "Processing"}
-                  {streamingMessage.type === "error" && "Error"}
-                  {streamingMessage.type === "requires_url" && "URL required"}
-                  {streamingMessage.type === "generation_complete" && "Complete"}
-                </div>
-                <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {streamingMessage.content}
-                  {streamingMessage.type === "code" && (
-                    <span className="inline-block w-2 h-4 bg-green-400 ml-1 animate-pulse"></span>
-                  )}
-                </div>
-              </div>
+      <div className={`p-3 rounded-lg border ${getMessageStyle()} mb-2`}>
+        <div className="flex items-start space-x-2">
+          <span className="text-lg">{getIcon()}</span>
+          <div className="flex-1">
+            <div className="text-sm font-medium mb-1">
+              {streamingMessage.type === "thinking" && "Planning"}
+              {streamingMessage.type === "thinking_complete" && null}
+              {streamingMessage.type === "generating_code" && "Creating extension"}
+              {streamingMessage.type === "code" && "Writing code"}
+              {streamingMessage.type === "status" && "Processing"}
+              {streamingMessage.type === "error" && "Error"}
+              {streamingMessage.type === "requires_url" && "URL required"}
+              {streamingMessage.type === "generation_complete" && "Complete"}
+            </div>
+            <div className="text-sm whitespace-pre-wrap leading-relaxed">
+              {streamingMessage.content}
+              {streamingMessage.type === "code" && (
+                <span className="inline-block w-2 h-4 bg-green-400 ml-1 animate-pulse"></span>
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -690,6 +722,9 @@ export default function StreamingChat({
             </div>
           </div>
         ))}
+        
+        {/* Thinking section */}
+        {renderThinkingSection()}
         
         {/* Streaming message */}
         {renderStreamingMessage()}
