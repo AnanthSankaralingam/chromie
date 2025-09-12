@@ -28,6 +28,7 @@ export default function StreamingChat({
   const [streamingMessage, setStreamingMessage] = useState(null)
   const [currentThinking, setCurrentThinking] = useState("")
   const [currentCode, setCurrentCode] = useState("")
+  const [phaseSummaries, setPhaseSummaries] = useState({ analyzing: null, planning: null, implementing: null })
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
   const messagesEndRef = useRef(null)
@@ -87,6 +88,11 @@ export default function StreamingChat({
     setStreamingMessage(null)
     setCurrentThinking("")
     setCurrentCode("")
+    setPhaseSummaries({ analyzing: null, planning: null, implementing: null })
+    
+    // Reset buffers
+    thinkingBufferRef.current = ""
+    codeBufferRef.current = ""
     
     // Reset final message flag
     finalMessageAddedRef.current = false
@@ -161,75 +167,84 @@ export default function StreamingChat({
 
               switch (data.type) {
                 case "start":
-                  setStreamingMessage({ type: "status", content: "Starting to work on your request" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "analyzing":
-                  setStreamingMessage({ type: "status", content: "Analyzing your request to understand what you need" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "analysis_complete":
-                  setStreamingMessage({ type: "status", content: `Identified extension type: ${data.content.includes('side_panel') ? 'side panel' : data.content.includes('popup') ? 'popup' : 'content script'}` })
+                  // ignore placeholder status in UI
                   break
                 
                 case "fetching_apis":
-                  setStreamingMessage({ type: "status", content: "Looking up required Chrome APIs" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "apis_ready":
-                  setStreamingMessage({ type: "status", content: "Chrome API documentation compiled" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping":
-                  setStreamingMessage({ type: "status", content: "Analyzing website structure" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping_complete":
-                  setStreamingMessage({ type: "status", content: "Website analysis complete" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping_skipped":
-                  setStreamingMessage({ type: "status", content: "Skipping website analysis" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "prompt_selected":
-                  setStreamingMessage({ type: "status", content: "Selected best approach for extension type" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "context_ready":
-                  setStreamingMessage({ type: "status", content: "Context prepared for code generation" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "generation_starting":
-                  setStreamingMessage({ type: "status", content: "Starting code generation" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "thinking":
-                  // Show planning status instead of raw content
-                  setStreamingMessage({ type: "thinking", content: "Planning the extension architecture" })
+                  // Accumulate but do not render raw thinking tokens in UI
+                  thinkingBufferRef.current += data.content
+                  setCurrentThinking(thinkingBufferRef.current)
                   break
 
                 case "thinking_complete":
-                  setStreamingMessage({ type: "thinking_complete", content: "Planning complete, starting code generation" })
+                  // Do not duplicate summary here; phase:planning will render the concise summary
+                  if (data.content) {
+                    setPhaseSummaries(prev => ({ ...prev, planning: data.content }))
+                  }
+                  break
+
+                case "phase":
+                  // Update phase summaries with concise content
+                  if (data.phase && data.content) {
+                    console.log(`📘 Phase update: ${data.phase} →`, data.content)
+                    setPhaseSummaries(prev => ({ ...prev, [data.phase]: data.content }))
+                  }
                   break
 
                 case "generating_code":
-                  setStreamingMessage({ type: "generating_code", content: "Writing extension code" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "code":
-                  // Show code generation status instead of raw content
-                  setStreamingMessage({ type: "code", content: "Generating extension files" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "generation_complete":
-                  setStreamingMessage({ type: "generation_complete", content: "Extension generation complete" })
+                  // ignore placeholder status in UI
                   break
 
                 case "requires_url":
-                  // Handle URL requirement - trigger the URL prompt modal
-                  setStreamingMessage({ type: "requires_url", content: "Website URL required for analysis" })
-                  
+                  // Handle URL requirement - trigger the URL prompt modal (no streaming status)
                   // Store the current request info for URL continuation
                   currentRequestRef.current = {
                     prompt: prompt,
@@ -319,6 +334,11 @@ export default function StreamingChat({
     setStreamingMessage(null)
     setCurrentThinking("")
     setCurrentCode("")
+    setPhaseSummaries({ analyzing: null, planning: null, implementing: null })
+    
+    // Reset buffers
+    thinkingBufferRef.current = ""
+    codeBufferRef.current = ""
     
     // Reset final message flag
     finalMessageAddedRef.current = false
@@ -374,74 +394,82 @@ export default function StreamingChat({
 
               switch (data.type) {
                 case "start":
-                  setStreamingMessage({ type: "status", content: "Continuing with website analysis" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "analyzing":
-                  setStreamingMessage({ type: "status", content: "Analyzing your request to understand what you need" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "analysis_complete":
-                  setStreamingMessage({ type: "status", content: `Identified extension type: ${data.content.includes('side_panel') ? 'side panel' : data.content.includes('popup') ? 'popup' : 'content script'}` })
+                  // ignore placeholder status in UI
                   break
                 
                 case "fetching_apis":
-                  setStreamingMessage({ type: "status", content: "Looking up required Chrome APIs" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "apis_ready":
-                  setStreamingMessage({ type: "status", content: "Chrome API documentation compiled" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping":
-                  setStreamingMessage({ type: "status", content: "Analyzing website structure" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping_complete":
-                  setStreamingMessage({ type: "status", content: "Website analysis complete" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "scraping_skipped":
-                  setStreamingMessage({ type: "status", content: "Skipping website analysis" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "prompt_selected":
-                  setStreamingMessage({ type: "status", content: "Selected best approach for extension type" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "context_ready":
-                  setStreamingMessage({ type: "status", content: "Context prepared for code generation" })
+                  // ignore placeholder status in UI
                   break
                 
                 case "generation_starting":
-                  setStreamingMessage({ type: "status", content: "Starting code generation" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "thinking":
-                  // Show planning status instead of raw content
-                  setStreamingMessage({ type: "thinking", content: "Planning the extension architecture" })
+                  // Accumulate but do not render raw thinking tokens in UI
+                  thinkingBufferRef.current += data.content
+                  setCurrentThinking(thinkingBufferRef.current)
                   break
 
                 case "thinking_complete":
-                  setStreamingMessage({ type: "thinking_complete", content: "Planning complete, starting code generation" })
+                  if (data.content) {
+                    setPhaseSummaries(prev => ({ ...prev, planning: data.content }))
+                  }
+                  break
+
+                case "phase":
+                  if (data.phase && data.content) {
+                    console.log(`📘 Phase update (with URL): ${data.phase} →`, data.content)
+                    setPhaseSummaries(prev => ({ ...prev, [data.phase]: data.content }))
+                  }
                   break
 
                 case "generating_code":
-                  setStreamingMessage({ type: "generating_code", content: "Writing extension code" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "code":
-                  // Show code generation status instead of raw content
-                  setStreamingMessage({ type: "code", content: "Generating extension files" })
+                  // ignore placeholder status in UI
                   break
-
+                
                 case "generation_complete":
-                  setStreamingMessage({ type: "generation_complete", content: "Extension generation complete" })
+                  // ignore placeholder status in UI
                   break
 
                 case "requires_url":
-                  // This shouldn't happen again, but handle it gracefully
-                  setStreamingMessage({ type: "error", content: "Still need a URL, please try again" })
+                  // This shouldn't happen again; ignore status and continue
                   break
 
                 case "error":
@@ -543,7 +571,32 @@ export default function StreamingChat({
   }
 
   const renderStreamingMessage = () => {
-    if (!streamingMessage) return null
+    const renderPhases = () => {
+      const items = []
+      if (phaseSummaries.analyzing) {
+        items.push(
+          <div key="analyzing" className="p-3 rounded-lg border text-blue-300 bg-blue-900/10 border-blue-500/20 mb-2">
+            <div className="text-xs uppercase tracking-wide mb-1">Analyzing</div>
+            <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.analyzing}</div>
+          </div>
+        )
+      }
+      if (phaseSummaries.planning) {
+        items.push(
+          <div key="planning" className="p-3 rounded-lg border text-yellow-300 bg-yellow-900/10 border-yellow-500/20 mb-2">
+            <div className="text-xs uppercase tracking-wide mb-1">Implementing</div>
+            <div className="text-sm whitespace-pre-wrap leading-relaxed">{phaseSummaries.planning}</div>
+          </div>
+        )
+      }
+      // Implementing box removed per request; planning summary is labeled as Implementing
+      return items
+    }
+
+    const phaseCards = renderPhases()
+    const hasStreaming = !!streamingMessage
+
+    if (!hasStreaming && phaseCards.length === 0) return null
 
     const getMessageStyle = () => {
       switch (streamingMessage.type) {
@@ -580,31 +633,33 @@ export default function StreamingChat({
     }
 
     return (
-      <div className={`p-3 rounded-lg border ${getMessageStyle()} mb-2`}>
-        <div className="flex items-start space-x-2">
-          <span className="text-lg">{getIcon()}</span>
-          <div className="flex-1">
-            <div className="text-sm font-medium mb-1">
-              {streamingMessage.type === "thinking" && "Planning"}
-              {streamingMessage.type === "thinking_complete" && "Ready to build"}
-              {streamingMessage.type === "generating_code" && "Creating extension"}
-              {streamingMessage.type === "code" && "Writing code"}
-              {streamingMessage.type === "status" && "Processing"}
-              {streamingMessage.type === "error" && "Error"}
-              {streamingMessage.type === "requires_url" && "URL required"}
-              {streamingMessage.type === "generation_complete" && "Complete"}
-            </div>
-            <div className="text-sm whitespace-pre-wrap leading-relaxed">
-              {streamingMessage.content}
-              {streamingMessage.type === "thinking" && (
-                <span className="inline-block w-2 h-4 bg-yellow-400 ml-1 animate-pulse"></span>
-              )}
-              {streamingMessage.type === "code" && (
-                <span className="inline-block w-2 h-4 bg-green-400 ml-1 animate-pulse"></span>
-              )}
+      <div>
+        {phaseCards}
+        {hasStreaming && (
+          <div className={`p-3 rounded-lg border ${getMessageStyle()} mb-2`}>
+            <div className="flex items-start space-x-2">
+              <span className="text-lg">{getIcon()}</span>
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-1">
+                  {streamingMessage.type === "thinking" && "Planning"}
+                  {streamingMessage.type === "thinking_complete" && null}
+                  {streamingMessage.type === "generating_code" && "Creating extension"}
+                  {streamingMessage.type === "code" && "Writing code"}
+                  {streamingMessage.type === "status" && "Processing"}
+                  {streamingMessage.type === "error" && "Error"}
+                  {streamingMessage.type === "requires_url" && "URL required"}
+                  {streamingMessage.type === "generation_complete" && "Complete"}
+                </div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {streamingMessage.content}
+                  {streamingMessage.type === "code" && (
+                    <span className="inline-block w-2 h-4 bg-green-400 ml-1 animate-pulse"></span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     )
   }

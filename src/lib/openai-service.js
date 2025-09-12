@@ -244,7 +244,7 @@ async function* generateExtensionCodeStream(codingPrompt, replacements) {
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  // First, generate thinking/explanation
+  // First, generate thinking/explanation using OpenAI and stream it
   const thinkingStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
@@ -264,12 +264,59 @@ async function* generateExtensionCodeStream(codingPrompt, replacements) {
     const content = chunk.choices[0]?.delta?.content || ""
     if (content) {
       thinkingContent += content
+      // Stream the actual thinking content as it comes from OpenAI
       yield { type: "thinking", content: content }
     }
   }
 
-  // Then generate the actual code
-  yield { type: "thinking_complete", content: thinkingContent }
+  // Generate a quick summary using Fireworks API (gpt-oss-20b)
+  let thinkingSummary = ""
+  try {
+    const summaryResponse = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.FIREWORKS_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "accounts/fireworks/models/gpt-oss-20b",
+        max_tokens: 400,
+        top_p: 1,
+        top_k: 40,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        temperature: 0.3,
+        messages: [
+          {
+            role: "system",
+            content: "You are a Chrome extension development assistant. Provide a brief, clear summary of the development approach and key decisions in 1-2 sentences. Keep it concise and user-friendly. Always complete your sentences."
+          },
+          {
+            role: "user",
+            content: `Summarize this development thinking in 1-2 sentences: ${thinkingContent}`
+          }
+        ]
+      })
+    });
+
+    if (summaryResponse.ok) {
+      const summaryCompletion = await summaryResponse.json();
+      thinkingSummary = summaryCompletion.choices[0]?.message?.content || "Planning complete"
+      console.log("🔥 Fireworks summary generated:", thinkingSummary)
+    } else {
+      console.error("❌ Fireworks API error:", summaryResponse.status, summaryResponse.statusText)
+      thinkingSummary = "Planning complete"
+    }
+  } catch (error) {
+    console.error("Error generating thinking summary:", error)
+    thinkingSummary = "Planning complete"
+  }
+
+  // Stream the summary when thinking is complete
+  yield { type: "thinking_complete", content: thinkingSummary }
+  // Also emit a planning phase summary for the UI phases view
+  yield { type: "phase", phase: "planning", content: thinkingSummary }
   yield { type: "generating_code", content: "Now generating the extension code..." }
 
   const codeStream = await openai.chat.completions.create({
@@ -316,6 +363,8 @@ async function* generateExtensionCodeStream(codingPrompt, replacements) {
   }
 
   yield { type: "complete", content: codeContent }
+  // Emit implementing phase completion summary
+  yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
 }
 
 /**
@@ -829,15 +878,25 @@ export async function* generateExtensionStream({
     if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
       console.log("🆕 New extension request - analyzing requirements...")
       yield { type: "analyzing", content: "analyzing" }
+      // Emit an analyzing phase summary stub; UI can show/update as details emerge
+      yield { type: "phase", phase: "analyzing", content: "Understanding your requirements and constraints to scope the extension." }
       
       const analysisResult = await analyzeExtensionRequirements({ featureRequest })
       requirementsAnalysis = analysisResult.requirements
       planningTokenUsage = analysisResult.tokenUsage
       
       yield { type: "analysis_complete", content: requirementsAnalysis.frontend_type }
+      // Provide a more specific analyzing summary now that analysis is complete
+      const analyzingSummary = `Identified a ${requirementsAnalysis.frontend_type} UI with ${
+        (requirementsAnalysis.docAPIs||[]).length
+      } Chrome APIs and ${
+        requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 ? 'site analysis required' : 'no site analysis needed'
+      }.`
+      yield { type: "phase", phase: "analyzing", content: analyzingSummary }
     } else if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
       console.log("🔧 Add to existing extension request - analyzing existing code...")
       yield { type: "analyzing", content: "analyzing" }
+      yield { type: "phase", phase: "analyzing", content: "Reviewing current extension files to determine safe changes." }
       
       // For existing extensions, create a simplified requirements analysis
       requirementsAnalysis = {
@@ -864,6 +923,8 @@ export async function* generateExtensionStream({
       planningTokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, model: "none" }
       console.log("✅ Requirements analysis completed for existing extension modification")
       yield { type: "analysis_complete", content: requirementsAnalysis.ext_name }
+      const analyzingSummaryExisting = `Will modify "${requirementsAnalysis.ext_name}" (${requirementsAnalysis.ext_description}).`
+      yield { type: "phase", phase: "analyzing", content: analyzingSummaryExisting }
     } else {
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
@@ -880,6 +941,7 @@ export async function* generateExtensionStream({
     if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
       console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
       yield { type: "fetching_apis", content: "fetching_apis" }
+      yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.docAPIs.join(', ')}` }
       
       const apiDocs = []
       
@@ -911,6 +973,7 @@ ${apiResult.code_example || 'No example provided'}
       chromeApiDocumentation = apiDocs.join('\n\n')
       console.log("Chrome API documentation compiled")
       yield { type: "apis_ready", content: "apis_ready" }
+      yield { type: "phase", phase: "planning", content: "Chrome API references ready for prompt conditioning." }
     }
 
     // Step 3: Scrape webpages for analysis if needed and URL is provided
@@ -918,16 +981,19 @@ ${apiResult.code_example || 'No example provided'}
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
       console.log("🌐 Scraping webpage with user-provided URL:", userProvidedUrl)
       yield { type: "scraping", content: "scraping" }
+      yield { type: "phase", phase: "planning", content: `Analyzing page structure at ${userProvidedUrl} for selectors and actions.` }
       
       scrapedWebpageAnalysis = await batchScrapeWebpages(
         requirementsAnalysis.webPageData, 
         userProvidedUrl
       )
       yield { type: "scraping_complete", content: "scraping_complete" }
+      yield { type: "phase", phase: "planning", content: "Website structure analysis ready for code generation." }
     } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
       console.log("⏸️ Skipping webpage scraping -", skipScraping ? "user opted out" : "no URL provided by user")
       scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
       yield { type: "scraping_skipped", content: "scraping_skipped" }
+      yield { type: "phase", phase: "planning", content: "Skipping website analysis; proceeding with available context." }
     } else {
       console.log("📝 No website analysis required for this extension")
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
@@ -941,6 +1007,7 @@ ${apiResult.code_example || 'No example provided'}
       selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
       console.log("🔧 Using generic coding prompt for extension modification")
       yield { type: "prompt_selected", content: "prompt_selected" }
+      yield { type: "phase", phase: "planning", content: "Selected a generic modification plan based on existing files." }
     } else {
       // For new extensions, select based on frontend type
       switch (requirementsAnalysis.frontend_type) {
@@ -962,6 +1029,7 @@ ${apiResult.code_example || 'No example provided'}
       }
       console.log(`🆕 Using ${requirementsAnalysis.frontend_type} coding prompt for new extension`)
       yield { type: "prompt_selected", content: "prompt_selected" }
+      yield { type: "phase", phase: "planning", content: `Chose a ${requirementsAnalysis.frontend_type} implementation plan.` }
     }
 
     // Step 5: Generate extension code with streaming
@@ -983,6 +1051,8 @@ ${apiResult.code_example || 'No example provided'}
     
     console.log("🚀 Starting streaming code generation...")
     yield { type: "generation_starting", content: "generation_starting" }
+    // Emit implementing phase start
+    yield { type: "phase", phase: "implementing", content: "Generating extension files and applying project updates." }
 
     // Use the streaming code generation
     for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements)) {

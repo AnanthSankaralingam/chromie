@@ -50,7 +50,7 @@ export class BrowserBaseService {
       const sessionCreatePayload = {
         projectId: resolvedProjectId,
         browserSettings: {
-          viewport: { width: 1280, height: 720 },
+          viewport: { width: 1680, height: 1050 },
           blockAds: false,
           // Removed premium features: solveCaptchas, recordSession, logSession
           // These require paid plan and cause errors on free tier
@@ -92,7 +92,7 @@ export class BrowserBaseService {
         expiresAt: session.expiresAt || null,
         browserInfo: {
           userAgent: "Chrome Extension Tester",
-          viewport: { width: 1280, height: 720 },
+          viewport: { width: 1680, height: 1050 },
         },
         connectUrl: session.connectUrl,
         seleniumRemoteUrl: session.seleniumRemoteUrl,
