@@ -85,7 +85,7 @@ You MUST return a JSON object with this exact schema:
   "chromeAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
   "webPageData": ["array of domains like 'youtube.com', 'twitter.com' or empty array if no specific sites needed"],
   "ext_name": "Descriptive extension name (3-5 words)",
-  "ext_description": "Clear description of what the extension does (1-2 sentences)"
+  "enhanced_prompt": "Enhanced version of the user's original request with better prompt engineering for subsequent coding"
 }
 </output_schema>
 </output_requirements>
@@ -117,7 +117,7 @@ Output:
   "chromeAPIs": [],
   "webPageData": [],
   "ext_name": "Productivity Tracker",
-  "ext_description": "Helps users track and improve their productivity habits throughout the day."
+  "enhanced_prompt": "Create a comprehensive productivity tracking extension that monitors time spent on websites, tracks daily goals, and provides insights to help users improve their work habits and focus."
 }
 </example_request_1>
 
@@ -131,7 +131,7 @@ Output:
   "chromeAPIs": ["bookmarks"],
   "webPageData": [],
   "ext_name": "Quick Bookmark Access",
-  "ext_description": "Provides instant access to your bookmarks through a convenient popup menu."
+  "enhanced_prompt": "Build a Chrome extension that displays a well-organized, searchable bookmark menu in a popup when the extension icon is clicked, allowing users to quickly navigate to their saved websites with keyboard shortcuts and visual icons."
 }
 </example_request_2>
 
@@ -145,23 +145,9 @@ Output:
   "chromeAPIs": ["bookmarks"],
   "webPageData": ["youtube.com"],
   "ext_name": "YouTube Video Bookmarker",
-  "ext_description": "Saves YouTube videos to your bookmarks with custom notes and easy access from any video page."
+  "enhanced_prompt": "Create a YouTube-specific bookmarking extension that adds a prominent 'Bookmark' button to video pages, allows users to save videos with custom notes and tags, and provides an organized interface to manage and search through saved videos with timestamps and categories."
 }
 </example_request_3>
-
-<example_request_4>
-User: "Build an extension that continuously monitors my open tabs and shows analytics in a persistent sidebar."
-Analysis: Continuous monitoring, persistent UI needed
-Tool Requirements: tabs API needed
-Output:
-{
-  "frontend_type": "side_panel",
-  "chromeAPIs": ["tabs"],
-  "webPageData": [],
-  "ext_name": "Tab Analytics Monitor",
-  "ext_description": "Continuously tracks and displays detailed analytics about your browsing tabs in a persistent sidebar."
-}
-</example_request_4>
 </examples>
 
 <final_reminders>
@@ -169,6 +155,6 @@ Output:
 - Default to "generic" as needed.
 - Be precise with API names and domain identification based on the actual request requirements
 - Include only the specific APIs and domains that are actually needed
-- Generate realistic, descriptive names and descriptions
+- Generate realistic, descriptive names and enhanced prompts that maintain user intent while adding helpful detail for coding
 </final_reminders>
 `;
