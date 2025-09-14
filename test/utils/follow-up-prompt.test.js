@@ -4,7 +4,7 @@ function runFollowUpPromptTests() {
   console.log('Running follow-up prompt tests...');
 
   // Import using CommonJS compatibility from the prompt file
-  const { FOLLOW_UP_CODING_PROMPT } = require('../../src/lib/prompts/follow-up-coding.js');
+  const { FOLLOW_UP_CODING_PROMPT } = require('../../src/lib/prompts/followup/follow-up-coding.js');
 
   assert(typeof FOLLOW_UP_CODING_PROMPT === 'string', 'Prompt should export a string');
 

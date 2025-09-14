@@ -49,7 +49,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     
     // Preprocess the planning response to handle markdown-formatted JSON
     let planningContent = planningCompletion.choices[0].message.content
-    console.log('🔍 Raw planning response:', planningContent.substring(0, 200) + '...')
+    console.log('🔍 Raw planning response:', planningContent.substring(0, 300) + '...')
     console.log('🔍 Raw planning response contains ```json:', planningContent.includes('```json'))
     console.log('🔍 Raw planning response contains ```:', planningContent.includes('```'))
     
@@ -100,8 +100,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.docAPIs,
       webPageData: requirementsAnalysis.webPageData,
-      ext_name: requirementsAnalysis.ext_name,
-      ext_description: requirementsAnalysis.ext_description
+      ext_name: requirementsAnalysis.ext_name
     })
 
     return {
