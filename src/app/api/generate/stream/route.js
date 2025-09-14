@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateExtensionStream } from "@/lib/openai-service"
+import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 
@@ -117,7 +117,7 @@ export async function POST(request) {
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`))
 
           // Use the streaming generation
-          for await (const chunk of generateExtensionStream({
+          for await (const chunk of generateChromeExtensionStream({
             featureRequest: prompt,
             requestType,
             sessionId: projectId,

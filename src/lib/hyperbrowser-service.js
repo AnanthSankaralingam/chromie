@@ -60,7 +60,6 @@ export class HyperbrowserService {
       const session = await this.client.sessions.create(sessionCreatePayload)
       
       console.log("Hyperbrowser session created:", session.id)
-      console.log("Session response:", JSON.stringify(session, null, 2))
 
       // Get session details for embedding
       const sessionDetails = await this.client.sessions.get(session.id)

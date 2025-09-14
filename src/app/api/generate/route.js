@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateExtension } from "@/lib/openai-service"
+import { generateChromeExtension } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
@@ -121,7 +121,7 @@ export async function POST(request) {
     console.log(`🔗 User provided URL: ${userProvidedUrl || 'none'}`)
     console.log(`⏭️ Skip scraping: ${skipScraping || false}`)
     
-    const result = await generateExtension({
+    const result = await generateChromeExtension({
       featureRequest: prompt,
       requestType,
       sessionId: projectId,
