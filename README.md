@@ -4,12 +4,9 @@ TODOs
 1. local updates to extension code --> minimal saves (updates to supabase)
 2. follow up prompts: fix add_to_existing prompt, git diff, effectively add changes/engineer context, update hooks in builder with last convo id (ananth)
 3. encourage comments in new_ext prompt
-4. Testing extension needs a way to just render html files
-5. Testing extension side by side view needs option to focus on one. browser testing shouldn't be assumed.
 6. display project names on builder page
 7. after purchasing a plan, a user's current token usage and monthly_reset should reset to 0.
 8. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
-9. stream code gen and thinking responses from openai and display snippets in frontend. bad ux if nothing in between. for followup and init reqs.
 10. frontend shouldn't disable the text box when code is generating, only send button.
    
 
