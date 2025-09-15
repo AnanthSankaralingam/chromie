@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { replaceOrAddMessage, continueGenerationWithUrl } from "@/components/ui/chat-utils"
+import { replaceOrAddMessage, continueGenerationWithUrl } from "@/components/ui/chat/chat-utils"
 
 export function useChat({ 
   projectId, 

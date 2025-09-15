@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtension } from "@/lib/codegen/generate-extension"
-import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
+import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { randomUUID } from "crypto"
 import fs from "fs"

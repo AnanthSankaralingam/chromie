@@ -1,4 +1,4 @@
-import { Button } from "./button"
+import { Button } from "@/components/ui/button"
 
 export function LoadingState({ isLoading, isSettingUpProject }) {
   if (!isLoading && !isSettingUpProject) return null

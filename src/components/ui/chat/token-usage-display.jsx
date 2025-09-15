@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/feedback/badge"
 import { Zap, AlertTriangle } from "lucide-react"
 
 export default function TokenUsageDisplay() {

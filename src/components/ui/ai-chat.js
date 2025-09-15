@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Bot } from "lucide-react"
-import ChatHeader from "./chat-header"
-import ChatMessage from "./chat-message"
-import ChatInput from "./chat-input"
+import ChatHeader from "@/components/ui/chat/chat-header"
+import ChatMessage from "@/components/ui/chat/chat-message"
+import ChatInput from "@/components/ui/chat/chat-input"
 import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
-import StreamingChat from "./streaming-chat"
-import { useChat } from "@/hooks"
-import { REQUEST_TYPES } from "@/lib/prompts/old-prompts"
+import StreamingChat from "@/components/ui/chat/streaming-chat"
+import { useChat } from "@/hooks/use-chat"
+import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 
 export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
   const [urlPromptData, setUrlPromptData] = useState(null)

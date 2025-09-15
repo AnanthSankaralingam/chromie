@@ -341,8 +341,3 @@ When adding new files, ensure they integrate properly with existing extension ar
 - Use overlay approach for UI injection unless specified otherwise
 - Always preserve existing functionality while adding new features
 </final_reminder>`;
-
-export const REQUEST_TYPES = {
-  NEW_EXTENSION: "new_extension",
-  ADD_TO_EXISTING: "add_to_existing",
-}

@@ -1,4 +1,4 @@
-import { REQUEST_TYPES } from "../prompts/old-prompts"
+import { REQUEST_TYPES } from "../prompts/request-types"
 import { NEW_EXT_GENERIC_PROMPT } from "../prompts/new-extension/generic"
 import { NEW_EXT_OVERLAY_PROMPT } from "../prompts/new-extension/overlay"
 import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel"

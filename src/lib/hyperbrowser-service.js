@@ -63,7 +63,6 @@ export class HyperbrowserService {
 
       // Get session details for embedding
       const sessionDetails = await this.client.sessions.get(session.id)
-      console.log("Session details response:", JSON.stringify(sessionDetails, null, 2))
       
       // Extract live view URL from various possible fields
       const liveViewUrl = sessionDetails.liveViewUrl || 
