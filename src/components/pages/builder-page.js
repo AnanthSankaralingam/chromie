@@ -69,15 +69,12 @@ export default function BuilderPage() {
 
   // Clear autoGenerate URL parameter after successful generation
   useEffect(() => {
-    console.log('🔍 URL clearing effect - hasProcessed:', hasProcessedAutoGenerate.current, 'autoGeneratePrompt:', autoGeneratePrompt)
-    
     // Only clear if we've processed the prompt and it's now null
     if (hasProcessedAutoGenerate.current && autoGeneratePrompt === null && typeof window !== 'undefined') {
       const url = new URL(window.location)
       if (url.searchParams.has('autoGenerate')) {
         url.searchParams.delete('autoGenerate')
         window.history.replaceState({}, '', url.pathname)
-        console.log('✅ Cleared autoGenerate URL parameter after successful generation')
       }
     }
   }, [autoGeneratePrompt])
@@ -87,7 +84,6 @@ export default function BuilderPage() {
     if (fileManagement.flatFiles.length > 0 && projectSetup.currentProjectId && !fileManagement.isLoadingFiles) {
       const extensionInfo = fileManagement.extractExtensionInfo(fileManagement.flatFiles)
       if (extensionInfo) {
-        console.log('Extension info extracted after code generation:', extensionInfo)
         // Project name and description are now automatically updated during code generation
         // No need to make additional API calls
       }
@@ -96,7 +92,6 @@ export default function BuilderPage() {
       if (!selectedFile) {
         const manifestFile = fileManagement.findManifestFile()
         if (manifestFile) {
-          console.log("📄 Auto-selecting manifest.json file on initial load:", manifestFile)
           setSelectedFile(manifestFile)
         }
       }
@@ -108,53 +103,28 @@ export default function BuilderPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       const autoGenerateFromUrl = urlParams.get('autoGenerate')
-      console.log('🔍 Checking URL for autoGenerate parameter:', autoGenerateFromUrl)
       
       if (autoGenerateFromUrl) {
-        console.log('🎯 Setting autoGenerate prompt from URL:', autoGenerateFromUrl)
         setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
         hasProcessedAutoGenerate.current = true
-        console.log('✅ Marked autoGenerate as processed, ref set to:', hasProcessedAutoGenerate.current)
-      } else {
-        console.log('📝 No autoGenerate parameter found in URL')
       }
     }
   }, [])
 
-  // Log when autoGeneratePrompt changes
-  useEffect(() => {
-    console.log('📝 autoGeneratePrompt state changed:', autoGeneratePrompt)
-  }, [autoGeneratePrompt])
-
-  // Log when project setup status changes
-  useEffect(() => {
-    console.log('🏗️ Project setup status changed:', {
-      isSettingUpProject: projectSetup.isSettingUpProject,
-      currentProjectId: projectSetup.currentProjectId,
-      isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId,
-      hasAutoGeneratePrompt: !!autoGeneratePrompt
-    })
-  }, [projectSetup.isSettingUpProject, projectSetup.currentProjectId, autoGeneratePrompt])
-
   // Trigger auto-generation when both prompt and project are ready
   useEffect(() => {
     if (autoGeneratePrompt && !projectSetup.isSettingUpProject && projectSetup.currentProjectId) {
-      console.log('🚀 Auto-generation conditions met - prompt and project ready:', {
-        prompt: autoGeneratePrompt,
-        projectId: projectSetup.currentProjectId
-      })
+      // Auto-generation conditions met
     }
   }, [autoGeneratePrompt, projectSetup.isSettingUpProject, projectSetup.currentProjectId])
 
   // Only clear autoGeneratePrompt after successful code generation, not just when project is loaded
   const handleAutoGenerateComplete = () => {
-    console.log('✅ Auto-generation completed, clearing prompt')
     setAutoGeneratePrompt(null)
     hasProcessedAutoGenerate.current = false
   }
 
   const handleFileSelect = (file) => {
-    console.log('File selected:', file.name)
     setSelectedFile(file)
   }
 
@@ -212,7 +182,6 @@ export default function BuilderPage() {
               autoGeneratePrompt={autoGeneratePrompt}
               onAutoGenerateComplete={handleAutoGenerateComplete}
               onCodeGenerated={async (response) => {
-                console.log("✅ AI generated code:", response)
                 await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                 setIsGenerating(false)
                 
@@ -220,19 +189,14 @@ export default function BuilderPage() {
                 setTimeout(() => {
                   const manifestFile = fileManagement.findManifestFile()
                   if (manifestFile) {
-                    console.log("📄 Auto-selecting manifest.json file:", manifestFile)
                     setSelectedFile(manifestFile)
-                  } else {
-                    console.log("⚠️ Manifest.json file not found in file structure")
                   }
                 }, 500) // Small delay to ensure file structure is updated
               }}
               onGenerationStart={() => {
-                console.log("🚀 Generation started")
                 setIsGenerating(true)
               }}
               onGenerationEnd={() => {
-                console.log("🏁 Generation ended")
                 setIsGenerating(false)
               }}
               isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}

@@ -80,8 +80,6 @@ export default function useFileManagement(currentProjectId, user) {
   const updateProjectWithExtensionInfo = async (extensionInfo) => {
     if (!extensionInfo || !currentProjectId) return
     
-    console.log('Extension info extracted:', extensionInfo)
-    console.log('Project name and description will be automatically updated during code generation')
   }
 
   const loadProjectFiles = async (refreshFromServer = false) => {
@@ -92,11 +90,9 @@ export default function useFileManagement(currentProjectId, user) {
 
     // Skip loading if we already have files for this project (unless refreshing from server)
     if (!refreshFromServer && loadedProjectId === currentProjectId && fileStructure.length > 0) {
-      console.log('Files already loaded for this project, skipping API call')
       return
     }
 
-    console.log(`📁 Loading project files${refreshFromServer ? ' (refreshing from server)' : ''} for project: ${currentProjectId}`)
 
     setIsLoadingFiles(true)
     try {
@@ -117,13 +113,10 @@ export default function useFileManagement(currentProjectId, user) {
       setFileStructure(transformedFiles)
       setLoadedProjectId(currentProjectId) // Mark this project as loaded
       
-      console.log(`✅ Loaded ${files.length} files for project: ${currentProjectId}`)
-      console.log('📁 File structure:', transformedFiles)
       
       // Debug manifest.json specifically
       const manifestFile = files.find(file => file.file_path === 'manifest.json')
       if (manifestFile) {
-        console.log('📄 Manifest.json found:', manifestFile)
       }
 
       // Extract and update project with extension info from manifest.json
@@ -185,7 +178,6 @@ export default function useFileManagement(currentProjectId, user) {
         return updateFileInTree(prevStructure)
       })
 
-      console.log('File saved successfully:', selectedFile.name)
     } catch (error) {
       console.error('Error saving file:', error)
       throw error
@@ -194,12 +186,10 @@ export default function useFileManagement(currentProjectId, user) {
 
   // Function to find and return the manifest.json file
   const findManifestFile = () => {
-    console.log('🔍 Searching for manifest.json in file structure:', fileStructure)
     
     const findFileInTree = (items) => {
       for (const item of items) {
         if (item.type === 'file' && item.name === 'manifest.json') {
-          console.log('✅ Found manifest.json file:', item)
           return item
         } else if (item.type === 'folder' && item.children) {
           const found = findFileInTree(item.children)
@@ -211,7 +201,6 @@ export default function useFileManagement(currentProjectId, user) {
     
     const result = findFileInTree(fileStructure)
     if (!result) {
-      console.log('❌ Manifest.json file not found in file structure')
     }
     return result
   }

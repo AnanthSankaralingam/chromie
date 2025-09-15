@@ -44,7 +44,6 @@ export async function POST(request) {
       }
     }
 
-    console.log("🚀 Generate request:", { prompt, projectId, requestType, userProvidedUrl, skipScraping })
 
     // Check user's plan and token usage limits
     const { data: billing, error: billingError } = await supabase

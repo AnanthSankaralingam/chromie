@@ -19,7 +19,6 @@ export default function FileTree({
   }
 
   const handleFileSelect = (file) => {
-    console.log('File selected:', file.name)
     onFileSelect(file)
   }
 
