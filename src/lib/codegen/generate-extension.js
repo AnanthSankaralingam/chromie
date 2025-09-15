@@ -69,20 +69,16 @@ export async function generateChromeExtension({
   userProvidedUrl = null,
   skipScraping = false,
 }) {
-  console.log(`Request type: ${requestType}`)
-
   try {
     let requirementsAnalysis
     let planningTokenUsage
 
     // Step 1: Analyze requirements based on request type
     if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
-      console.log("🆕 New extension request - analyzing requirements...")
       const analysisResult = await analyzeExtensionRequirements({ featureRequest })
       requirementsAnalysis = analysisResult.requirements
       planningTokenUsage = analysisResult.tokenUsage
     } else if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
-      console.log("🔧 Add to existing extension request - analyzing existing code...")
       
       // For existing extensions, create a simplified requirements analysis
       requirementsAnalysis = {
@@ -97,7 +93,6 @@ export async function generateChromeExtension({
         try {
           const manifest = JSON.parse(existingFiles['manifest.json'])
           if (manifest.name) requirementsAnalysis.ext_name = manifest.name
-          console.log(`📋 Using existing manifest: ${manifest.name}`)
         } catch (e) {
           console.warn('Could not parse existing manifest.json:', e.message)
         }
@@ -105,14 +100,12 @@ export async function generateChromeExtension({
       
       // No planning tokens for modifications
       planningTokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, model: "none" }
-      console.log("✅ Requirements analysis completed for existing extension modification")
     } else {
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
 
     // Check if URL is required but not provided
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
-      console.log("🔗 URL required for scraping - showing modal to user")
       return {
         success: false,
         requiresUrl: true,
@@ -127,12 +120,10 @@ export async function generateChromeExtension({
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
     if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
-      console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
       const apiDocs = []
       
       for (const apiName of requirementsAnalysis.docAPIs) {
         const apiResult = searchChromeExtensionAPI(apiName)
-        console.log(`API result for ${apiName}:`, JSON.stringify(apiResult, null, 2))
         if (!apiResult.error) {
           apiDocs.push(`
 ## ${apiResult.name} API
@@ -156,22 +147,18 @@ ${apiResult.code_example || 'No example provided'}
       }
       
       chromeApiDocumentation = apiDocs.join('\n\n')
-      console.log("Chrome API documentation compiled")
     }
 
     // Step 3: Scrape webpages for analysis if needed and URL is provided
     let scrapedWebpageAnalysis = null
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
-      console.log("🌐 Scraping webpage with user-provided URL:", userProvidedUrl)
       scrapedWebpageAnalysis = await batchScrapeWebpages(
         requirementsAnalysis.webPageData, 
         userProvidedUrl
       )
     } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
-      console.log("⏸️ Skipping webpage scraping -", skipScraping ? "user opted out" : "no URL provided by user")
       scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
     } else {
-      console.log("📝 No website analysis required for this extension")
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
     }
 
@@ -181,8 +168,6 @@ ${apiResult.code_example || 'No example provided'}
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
       // For modifications, use the specialized follow-up prompt with tool integration
       selectedCodingPrompt = UPDATE_EXT_PROMPT
-      console.log("🔧 Using specialized follow-up prompt for extension modification")
-      console.log("📝 This prompt will handle modifications with tool integration")
     } else {
       // For new extensions, select based on frontend type
       switch (requirementsAnalysis.frontend_type) {
@@ -202,7 +187,6 @@ ${apiResult.code_example || 'No example provided'}
           selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
           break
       }
-      console.log(`🆕 Using ${requirementsAnalysis.frontend_type} coding prompt for new extension`)
     }
 
     // Step 5: Generate extension code
@@ -215,50 +199,32 @@ ${apiResult.code_example || 'No example provided'}
     
     // Add existing files context for modifications
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
-      console.log("📁 Including existing files context for modification")
       replacements.existing_files = JSON.stringify(existingFiles, null, 2)
-      console.log(`📋 Context includes ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
-      console.log("🔍 LLM will receive full existing code context for modification")
     }
     
-    console.log("🚀 Starting code generation with selected prompt...")
     const codingCompletion = await generateExtensionCode(selectedCodingPrompt, replacements)
-
-    console.log("Code generation completed")
 
     // Preprocess the AI response to handle markdown-formatted JSON
     let aiResponse = codingCompletion.choices[0].message.content
-    console.log('🔍 Raw AI response:', aiResponse.substring(0, 200) + '...')
-    console.log('🔍 Raw AI response contains ```json:', aiResponse.includes('```json'))
-    console.log('🔍 Raw AI response contains ```:', aiResponse.includes('```'))
-    console.log('🔍 Raw AI response starts with:', aiResponse.substring(0, 50))
     
     // Remove markdown code blocks if present
     if (aiResponse.includes('```json')) {
-      console.log('🔄 Detected markdown-formatted JSON, extracting content...')
       const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/)
       if (jsonMatch) {
         aiResponse = jsonMatch[1].trim()
-        console.log('✅ Extracted JSON from markdown code block')
       } else {
-        console.log('⚠️ Could not extract JSON from markdown, trying fallback...')
         // Fallback: try to find JSON between ``` blocks
         const fallbackMatch = aiResponse.match(/```\s*([\s\S]*?)\s*```/)
         if (fallbackMatch) {
           aiResponse = fallbackMatch[1].trim()
-          console.log('✅ Extracted content from generic code block')
         }
       }
     } else if (aiResponse.includes('```')) {
-      console.log('🔄 Detected generic markdown code block, extracting content...')
       const fallbackMatch = aiResponse.match(/```\s*([\s\S]*?)\s*```/)
       if (fallbackMatch) {
         aiResponse = fallbackMatch[1].trim()
-        console.log('✅ Extracted content from generic code block')
       }
     }
-    
-    console.log('🔍 Processed AI response:', aiResponse.substring(0, 200) + '...')
     
     let implementationResult
     try {
@@ -269,10 +235,6 @@ ${apiResult.code_example || 'No example provided'}
       throw parseError
     }
 
-    console.log("Implementation result received:", {
-      allKeys: Object.keys(implementationResult),
-      files: Object.keys(implementationResult).filter((key) => key !== "explanation"),
-    })
 
     // Extract file contents and metadata separately
     const filesOnly = {}
@@ -290,21 +252,15 @@ ${apiResult.code_example || 'No example provided'}
 
     // Add fallback HyperAgent script if not provided
     if (!filesOnly["hyperagent_test_script.js"]) {
-      console.log("📝 No HyperAgent script provided, using fallback")
       const fallbackScript = `// Fallback HyperAgent test script for Chrome extension testing
 // This is a minimal placeholder script that will be used when no specific
 // HyperAgent script is generated by the AI
 
-console.log("Starting HyperAgent test for Chrome Extension")
-
 // Basic test task - click extension icon and verify it loads
 const testTask = "Test the Chrome extension by clicking the extension icon and verifying it loads correctly"
 
-console.log("Test task:", testTask)
-
 // This is a placeholder script - the actual HyperAgent execution will be handled
 // by the Hyperbrowser service using this basic test task
-console.log("✅ HyperAgent test script loaded (fallback version)")
 
 // Export the test task for use by the HyperAgent service
 if (typeof module !== 'undefined' && module.exports) {
@@ -318,10 +274,8 @@ if (typeof module !== 'undefined' && module.exports) {
       if (filename === "manifest.json" && typeof content === "object") {
         // Convert manifest.json object to JSON string
         filesOnly[filename] = JSON.stringify(content, null, 2)
-        console.log(`Converted manifest.json from object to JSON string`)
       } else if (nonStringKeys.includes(filename)) {
         // Skip validation for non-string keys like stagehand_commands
-        console.log(`Skipping string validation for ${filename} (expected ${typeof content})`)
       } else if (typeof content !== "string") {
         console.error(`Schema validation failed: ${filename} is ${typeof content}, expected string`)
         throw new Error(`Schema validation failed: ${filename} should be a string but got ${typeof content}`)
@@ -335,9 +289,6 @@ if (typeof module !== 'undefined' && module.exports) {
     }
 
     // Calculate total token usage
-    console.log('Planning token usage:', planningTokenUsage)
-    console.log('Coding completion usage:', codingCompletion.usage)
-    
     const totalUsage = {
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
@@ -349,21 +300,14 @@ if (typeof module !== 'undefined' && module.exports) {
       }
     }
 
-    console.log("Total token usage calculated:", totalUsage)
-
     // Update token usage in Supabase
     try {
-      console.log('🔍 Updating token usage in Supabase for session:', sessionId)
-      
       // Import both clients - one for auth, one for admin operations
       const { createClient: createServerClient } = await import('@/lib/supabase/server')
       const { createClient: createDirectClient } = await import('@supabase/supabase-js')
       
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      
-      console.log('🔑 Service role key available:', !!serviceRoleKey)
-      console.log('🔑 Anon key available:', !!anonKey)
       
       // Use server client for authentication
       const authClient = createServerClient()
@@ -375,8 +319,6 @@ if (typeof module !== 'undefined' && module.exports) {
         console.error('❌ User not authenticated for token usage update:', userError)
         return
       }
-      
-      console.log('👤 User authenticated for token usage update:', user.id)
       
       // Use direct client with service role for admin operations
       const supabase = createDirectClient(
@@ -394,7 +336,6 @@ if (typeof module !== 'undefined' && module.exports) {
       if (fetchError) {
         console.error('❌ Error fetching existing token usage:', fetchError)
       } else {
-        console.log('📊 Existing token usage found:', existingUsage)
         
         const now = new Date()
         let effectiveMonthlyReset = existingUsage?.monthly_reset
@@ -421,29 +362,18 @@ if (typeof module !== 'undefined' && module.exports) {
           newTotalTokens = totalUsage.total_tokens
           const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
           newMonthlyReset = firstDayOfMonth.toISOString()
-          console.log('🆕 Creating first token usage record')
         } else if (isResetDue) {
           // New monthly period started; reset total to current request
           newTotalTokens = totalUsage.total_tokens
           const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
           newMonthlyReset = firstDayOfMonth.toISOString()
-          console.log('🔄 Monthly reset due, resetting total')
         } else {
           // Same monthly period; accumulate
           newTotalTokens = (existingUsage.total_tokens || 0) + totalUsage.total_tokens
-          console.log('📈 Accumulating tokens in same monthly period')
         }
-        
-        console.log(`📊 Token calculation: existing=${existingUsage?.total_tokens || 0}, adding=${totalUsage.total_tokens}, new total=${newTotalTokens}`)
         
         if (existingUsage?.id) {
           // Update existing record
-          console.log('🔄 Attempting to update token usage record with ID:', existingUsage.id)
-          console.log('🔄 Update payload:', {
-            total_tokens: newTotalTokens,
-            monthly_reset: newMonthlyReset,
-            model: totalUsage.model,
-          })
           
           // Try update with just the ID first
           const { data: updatedRows, error: updateError } = await supabase
@@ -456,33 +386,23 @@ if (typeof module !== 'undefined' && module.exports) {
             .eq('id', existingUsage.id)
             .select('id, total_tokens, monthly_reset')
           
-          console.log('🔄 Supabase update response:', { data: updatedRows, error: updateError })
-          
           // If no rows were updated, let's check if the record exists and what the current user can see
           if (!updatedRows || updatedRows.length === 0) {
-            console.log('⚠️ No rows updated, checking record visibility...')
-            
             const { data: checkRecord, error: checkError } = await supabase
               .from('token_usage')
               .select('*')
               .eq('id', existingUsage.id)
-            
-            console.log('🔍 Record visibility check:', { data: checkRecord, error: checkError })
             
             // Also try to see all records for this user
             const { data: allUserRecords, error: allUserError } = await supabase
               .from('token_usage')
               .select('*')
               .eq('user_id', user.id)
-            
-            console.log('🔍 All user records:', { data: allUserRecords, error: allUserError })
           }
           
           if (updateError) {
             console.error('❌ Error updating token usage:', updateError)
           } else {
-            console.log('✅ Token usage updated successfully:', updatedRows?.[0])
-            
             // Verify the update by fetching the record again
             const { data: verifyData, error: verifyError } = await supabase
               .from('token_usage')
@@ -492,8 +412,6 @@ if (typeof module !== 'undefined' && module.exports) {
             
             if (verifyError) {
               console.error('❌ Error verifying update:', verifyError)
-            } else {
-              console.log('🔍 Verification - record after update:', verifyData)
             }
           }
         } else {
@@ -509,8 +427,6 @@ if (typeof module !== 'undefined' && module.exports) {
           
           if (insertError) {
             console.error('❌ Error inserting token usage:', insertError)
-          } else {
-            console.log('✅ Token usage record created successfully')
           }
         }
       }
@@ -521,7 +437,6 @@ if (typeof module !== 'undefined' && module.exports) {
     // Update project's has_generated_code flag in Supabase
     try {
       if (sessionId) {
-        console.log(`🔧 Updating project ${sessionId} has_generated_code = true`)
         const supabase = createClient()
         
         const { error: updateError } = await supabase
@@ -531,8 +446,6 @@ if (typeof module !== 'undefined' && module.exports) {
         
         if (updateError) {
           console.error('❌ Error updating project has_generated_code:', updateError)
-        } else {
-          console.log('✅ Project has_generated_code updated successfully')
         }
       }
     } catch (error) {
@@ -572,7 +485,6 @@ export async function* generateChromeExtensionStream({
   userProvidedUrl = null,
   skipScraping = false,
 }) {
-  console.log(`Streaming request type: ${requestType}`)
 
   try {
     let requirementsAnalysis
@@ -580,7 +492,6 @@ export async function* generateChromeExtensionStream({
 
     // Step 1: Analyze requirements based on request type
     if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
-      console.log("🆕 New extension request - analyzing requirements...")
       yield { type: "analyzing", content: "analyzing" }
       // Emit an analyzing phase summary stub; UI can show/update as details emerge
       yield { type: "phase", phase: "analyzing", content: "Understanding your requirements and constraints to scope the extension." }
@@ -615,7 +526,6 @@ export async function* generateChromeExtensionStream({
         try {
           const manifest = JSON.parse(existingFiles['manifest.json'])
           if (manifest.name) requirementsAnalysis.ext_name = manifest.name
-          console.log(`📋 Using existing manifest: ${manifest.name}`)
         } catch (e) {
           console.warn('Could not parse existing manifest.json:', e.message)
         }
@@ -623,7 +533,6 @@ export async function* generateChromeExtensionStream({
       
       // No planning tokens for modifications
       planningTokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, model: "none" }
-      console.log("✅ Requirements analysis completed for existing extension modification")
       yield { type: "analysis_complete", content: requirementsAnalysis.ext_name }
       const analyzingSummaryExisting = `Will modify "${requirementsAnalysis.ext_name}".`
       yield { type: "phase", phase: "analyzing", content: analyzingSummaryExisting }
@@ -633,7 +542,6 @@ export async function* generateChromeExtensionStream({
 
     // Check if URL is required but not provided
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
-      console.log("🔗 URL required for scraping - showing modal to user")
       yield { type: "requires_url", content: "This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed." }
       return
     }
@@ -641,7 +549,6 @@ export async function* generateChromeExtensionStream({
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
     if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
-      console.log("Fetching Chrome API documentation for:", requirementsAnalysis.docAPIs)
       yield { type: "fetching_apis", content: "fetching_apis" }
       yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.docAPIs.join(', ')}` }
       
@@ -649,7 +556,6 @@ export async function* generateChromeExtensionStream({
       
       for (const apiName of requirementsAnalysis.docAPIs) {
         const apiResult = searchChromeExtensionAPI(apiName)
-        console.log(`API result for ${apiName}:`, JSON.stringify(apiResult, null, 2))
         if (!apiResult.error) {
           apiDocs.push(`
 ## ${apiResult.name} API
@@ -673,7 +579,6 @@ ${apiResult.code_example || 'No example provided'}
       }
       
       chromeApiDocumentation = apiDocs.join('\n\n')
-      console.log("Chrome API documentation compiled")
       yield { type: "apis_ready", content: "apis_ready" }
       yield { type: "phase", phase: "planning", content: "Chrome API references ready for prompt conditioning." }
     }
@@ -681,7 +586,6 @@ ${apiResult.code_example || 'No example provided'}
     // Step 3: Scrape webpages for analysis if needed and URL is provided
     let scrapedWebpageAnalysis = null
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
-      console.log("🌐 Scraping webpage with user-provided URL:", userProvidedUrl)
       yield { type: "scraping", content: "scraping" }
       yield { type: "phase", phase: "planning", content: `Analyzing page structure at ${userProvidedUrl} for selectors and actions.` }
       
@@ -692,12 +596,10 @@ ${apiResult.code_example || 'No example provided'}
       yield { type: "scraping_complete", content: "scraping_complete" }
       yield { type: "phase", phase: "planning", content: "Website structure analysis ready for code generation." }
     } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
-      console.log("⏸️ Skipping webpage scraping -", skipScraping ? "user opted out" : "no URL provided by user")
       scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
       yield { type: "scraping_skipped", content: "scraping_skipped" }
       yield { type: "phase", phase: "planning", content: "Skipping website analysis; proceeding with available context." }
     } else {
-      console.log("📝 No website analysis required for this extension")
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
     }
 
@@ -729,7 +631,6 @@ ${apiResult.code_example || 'No example provided'}
           selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
           break
       }
-      console.log(`🆕 Using ${requirementsAnalysis.frontend_type} coding prompt for new extension`)
       yield { type: "prompt_selected", content: "prompt_selected" }
       yield { type: "phase", phase: "planning", content: `Chose a ${requirementsAnalysis.frontend_type} implementation plan.` }
     }

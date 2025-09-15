@@ -20,6 +20,10 @@ Frontend Type: {frontend_type}
 {scraped_webpage_analysis}
 </webpage_data>
 
+<api_key_usage>
+IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
+</api_key_usage>
+
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)

@@ -19,7 +19,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
   useEffect(() => {
     const handleUrlPromptRequired = (event) => {
       const { data, originalPrompt } = event.detail
-      console.log('🔗 URL prompt required event received:', data)
       showUrlPromptModal(data, originalPrompt)
     }
 
@@ -56,14 +55,12 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
 
   // Show URL prompt modal when needed
   const showUrlPromptModal = (data, originalPrompt) => {
-    console.log('🔗 Showing URL prompt modal for:', { data, originalPrompt })
     setUrlPromptData({ data, originalPrompt })
     setShowUrlPrompt(true)
   }
 
   // Handle URL submission from modal
   const onUrlSubmit = (data, userUrl, originalPrompt) => {
-    console.log('🔗 URL submitted from modal:', userUrl)
     setShowUrlPrompt(false)
     setUrlPromptData(null)
     handleUrlSubmit(data, userUrl, originalPrompt)
@@ -71,7 +68,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
 
   // Handle URL modal cancellation
   const onUrlCancel = () => {
-    console.log('❌ URL modal cancelled')
     setShowUrlPrompt(false)
     setUrlPromptData(null)
     handleUrlCancel()
@@ -103,8 +99,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     // }
 
     try {
-      console.log(`🔍 hasGeneratedCode: ${hasGeneratedCode}, projectId: ${projectId}`)
-      
       // Force refresh hasGeneratedCode from Supabase before determining request type
       let currentHasGeneratedCode = hasGeneratedCode
       if (projectId) {
@@ -114,7 +108,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
             const data = await response.json()
             currentHasGeneratedCode = data.hasGeneratedCode
             if (data.hasGeneratedCode !== hasGeneratedCode) {
-              console.log(`🔍 hasGeneratedCode updated: ${hasGeneratedCode} → ${data.hasGeneratedCode}`)
               setHasGeneratedCode(data.hasGeneratedCode)
             }
           }
@@ -124,7 +117,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
       }
       
       const requestType = currentHasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
-      console.log(`🔄 Request type: ${requestType}`)
       
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -139,7 +131,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
       })
 
       const data = await response.json()
-      console.log(`🔍 Debug: Response data:`, data)
 
       let content = ""
 
@@ -148,7 +139,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping - no chat message needed
-        console.log('🔗 URL required for scraping - showing modal only')
         
         // Ensure spinner is not shown
         setIsGenerating(false)
