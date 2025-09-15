@@ -15,7 +15,7 @@ export default function EditorPanel({ selectedFile, onFileSave }) {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-slate-900">
+    <div className="h-full flex items-center justify-center bg-slate-900 bg-gradient-to-b from-slate-800/30 to-slate-900/30">
       <div className="text-center max-w-md animate-fade-in-up">
         <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-purple-500/20 animate-pulse-glow hover-lift">
           <FileCode className="h-10 w-10 text-purple-400" />

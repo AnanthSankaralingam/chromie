@@ -94,11 +94,12 @@ export default function FileTree({
     const filteredItems = filterFileTree(items, searchQuery)
     
     return filteredItems.map((item, index) => (
-      <div key={index} style={{ marginLeft: `${level * 20}px` }}>
+      <div key={index}>
         {item.type === "folder" ? (
           <div>
             <div
-              className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20"
+              className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20 file-tree-item"
+              style={{ marginLeft: `${level * 20}px` }}
               onClick={() => toggleFolder(item.fullPath || item.name)}
             >
               <div className="flex items-center flex-1">
@@ -125,9 +126,10 @@ export default function FileTree({
           </div>
         ) : (
           <div
-            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 ${
+            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 file-tree-item ${
               selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
             }`}
+            style={{ marginLeft: `${level * 20}px` }}
             onClick={() => handleFileSelect(item)}
           >
             <div className="flex items-center flex-1">

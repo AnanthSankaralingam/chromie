@@ -91,8 +91,17 @@ export default function BuilderPage() {
         // Project name and description are now automatically updated during code generation
         // No need to make additional API calls
       }
+      
+      // Auto-select manifest.json if no file is currently selected
+      if (!selectedFile) {
+        const manifestFile = fileManagement.findManifestFile()
+        if (manifestFile) {
+          console.log("📄 Auto-selecting manifest.json file on initial load:", manifestFile)
+          setSelectedFile(manifestFile)
+        }
+      }
     }
-  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles])
+  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile])
 
   // Check for autoGenerate prompt in URL
   useEffect(() => {
@@ -201,10 +210,21 @@ export default function BuilderPage() {
               projectId={projectSetup.currentProjectId}
               autoGeneratePrompt={autoGeneratePrompt}
               onAutoGenerateComplete={handleAutoGenerateComplete}
-              onCodeGenerated={(response) => {
+              onCodeGenerated={async (response) => {
                 console.log("✅ AI generated code:", response)
-                fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
+                await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                 setIsGenerating(false)
+                
+                // Auto-select manifest.json file after code generation
+                setTimeout(() => {
+                  const manifestFile = fileManagement.findManifestFile()
+                  if (manifestFile) {
+                    console.log("📄 Auto-selecting manifest.json file:", manifestFile)
+                    setSelectedFile(manifestFile)
+                  } else {
+                    console.log("⚠️ Manifest.json file not found in file structure")
+                  }
+                }, 500) // Small delay to ensure file structure is updated
               }}
               onGenerationStart={() => {
                 console.log("🚀 Generation started")
