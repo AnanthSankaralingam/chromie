@@ -251,7 +251,6 @@ export default function SideBySideTestModal({
                 )}
               </Button>
 
-              <div className="text-sm text-gray-500">Powered by Hyperbrowser</div>
             </div>
           </div>
         </div>

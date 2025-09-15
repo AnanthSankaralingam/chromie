@@ -144,7 +144,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
               )}
             </div>
 
-            <div className="text-sm text-gray-500">Powered by BrowserBase</div>
           </div>
         </div>
       </div>
