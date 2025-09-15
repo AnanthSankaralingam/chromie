@@ -1,39 +1,47 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Zap, Send, Paperclip, Sparkles, Edit3, Github } from "lucide-react"
+import { Textarea } from "@/components/ui/forms-and-input/textarea"
+import { Send, Paperclip, Sparkles, Edit3 } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
-import { useIsMobile } from "@/hooks"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
-  const isMobile = useIsMobile()
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const router = useRouter()
+  const textareaRef = useRef(null)
 
-  const handleTextareaInput = (e) => {
-    const textarea = e.target
+  const resizeTextarea = () => {
+    const textarea = textareaRef.current
+    if (!textarea) return
     textarea.style.height = 'auto'
-    textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px'
+    const EXTRA_SPACE_PX = 30
+    const newHeight = Math.max(120, textarea.scrollHeight + EXTRA_SPACE_PX)
+    textarea.style.height = newHeight + 'px'
+    console.log('🧺 Resized textarea with extra space', {
+      scrollHeight: textarea.scrollHeight,
+      extra: EXTRA_SPACE_PX,
+      newHeight
+    })
+  }
+
+  const handleTextareaInput = () => {
+    requestAnimationFrame(() => {
+      resizeTextarea()
+    })
   }
 
   const handleTextareaChange = (e) => {
     setPrompt(e.target.value)
-    // Auto-expand on change as well
-    const textarea = e.target
-    textarea.style.height = 'auto'
-    textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px'
   }
 
   const handleSubmit = async (e) => {
@@ -93,12 +101,27 @@ export default function HomePage() {
     }
   }
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit(e)
+      return
+    }
+    if (e.key === 'Enter' && e.shiftKey) {
+      // Ensure the textarea grows immediately after newline is inserted
+      requestAnimationFrame(() => {
+        resizeTextarea()
+      })
     }
   }
+
+  useLayoutEffect(() => {
+    resizeTextarea()
+  }, [prompt])
+
+  useEffect(() => {
+    resizeTextarea()
+  }, [])
 
   const handleUpgradePlan = () => {
     // Close the modal and redirect to pricing page
@@ -143,9 +166,16 @@ export default function HomePage() {
                   value={prompt}
                   onChange={handleTextareaChange}
                   onInput={handleTextareaInput}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyDown}
+                  onPaste={() => {
+                    requestAnimationFrame(() => {
+                      resizeTextarea()
+                      console.log('📋 Pasted content: resized textarea to', textareaRef.current?.style.height)
+                    })
+                  }}
                   placeholder="type your extension idea and we'll bring it to life (or /command)"
-                  className="w-full min-h-[120px] p-4 md:p-6 pb-20 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
+                  className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
+                  ref={textareaRef}
                   disabled={isGenerating}
                 />
 

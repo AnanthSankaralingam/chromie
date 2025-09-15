@@ -3,9 +3,8 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Zap, Download, TestTube, LogOut, Sparkles, Code2, Menu, X } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState } from 'react'
 import { useIsMobile } from '@/hooks'

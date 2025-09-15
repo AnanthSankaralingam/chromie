@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession } from '@/components/SessionProviderClient'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -13,7 +13,7 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject } from "@/lib/utils"
 import React from "react"
-import TokenUsageDisplay from "@/components/ui/token-usage-display"
+import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()

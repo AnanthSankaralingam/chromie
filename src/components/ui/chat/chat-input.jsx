@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/forms-and-input/textarea"
 import { Send } from "lucide-react"
 
 export default function ChatInput({ 

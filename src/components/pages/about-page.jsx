@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/forms-and-input/textarea"
 import { Zap, Send, Paperclip, Sparkles, Edit3, Github, ArrowRight, Chrome, Code, TestTube } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"

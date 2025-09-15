@@ -3,18 +3,18 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import AIChat from "@/components/ui/ai-chat"
-import SideBySideTestModal from "@/components/ui/side-by-side-test-modal"
+import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBarBuilder from "@/components/ui/app-bars/app-bar-builder"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
-import { LoadingState, ErrorState } from "@/components/ui/loading-error-states"
+import { LoadingState, ErrorState } from "@/components/ui/feedback/loading-error-states"
 import ProjectFilesPanel from "@/components/ui/project-files-panel"
-import EditorPanel from "@/components/ui/editor-panel"
+import EditorPanel from "@/components/ui/code-editing/editor-panel"
 import useProjectSetup from "@/components/ui/project-setup"
 import useFileManagement from "@/components/ui/file-management"
 import useResizablePanels from "@/components/ui/resizable-panels"
-import useTestExtension from "@/components/ui/test-extension"
+import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 
 export default function BuilderPage() {
