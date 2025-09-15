@@ -11,12 +11,12 @@ Frontend Type: side_panel
 </extension_details>
 
 <chrome_api_data>
-<!-- This section will be conditionally populated if docAPIs array is not empty -->
+<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
-<!-- This section will be conditionally populated if webPageData[0] is true -->
+<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
 
@@ -97,13 +97,10 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-1. Create a comprehensive side panel interface
-2. Implement proper messaging between panel and content scripts
-3. Use Chrome APIs from the API data section if provided
-4. Handle webpage interactions using content scripts if needed
-5. Design responsive UI that works well in the side panel format
-6. Include proper error handling and user feedback
-7. Ensure smooth communication between all components
+- Create a comprehensive side panel interface
+- Implement proper messaging between panel and content scripts
+- Use Chrome APIs from the API data section if provided
+- Target specific websites using webpage data if provided
+- Implement proper error handling, comments, and logging
 </implementation_guidelines>
 `;
-

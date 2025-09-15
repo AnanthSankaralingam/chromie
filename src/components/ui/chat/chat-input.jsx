@@ -9,7 +9,8 @@ export default function ChatInput({
   setInputMessage, 
   onSubmit, 
   isGenerating, 
-  projectId 
+  projectId,
+  projectName 
 }) {
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -25,9 +26,8 @@ export default function ChatInput({
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="describe what you want to add or modify..."
+          placeholder={projectName ? `describe what you want to add or modify in ${projectName}...` : "describe what you want to add or modify..."}
           className="min-h-[80px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none"
-          disabled={isGenerating}
         />
         <Button
           type="submit"

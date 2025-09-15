@@ -9,6 +9,7 @@ import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
 
 export default function StreamingChat({ 
   projectId, 
+  projectName, 
   autoGeneratePrompt, 
   onAutoGenerateComplete, 
   onCodeGenerated, 
@@ -729,7 +730,9 @@ export default function StreamingChat({
     <div className="flex flex-col h-full">
       {/* Chat Header */}
       <div className="p-4 border-b border-white/10">
-        <p className="text-sm text-gray-400">describe what you want to add or modify</p>
+        <p className="text-sm text-gray-400">
+          {projectName || "describe what you want to add or modify"}
+        </p>
       </div>
 
       {/* Messages */}
@@ -766,9 +769,8 @@ export default function StreamingChat({
           <Textarea
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="describe what you want to add or modify..."
+            placeholder={projectName ? `describe what you want to add or modify in ${projectName}...` : "describe what you want to add or modify..."}
             className="min-h-[80px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none"
-            disabled={isGenerating}
           />
           <Button
             type="submit"

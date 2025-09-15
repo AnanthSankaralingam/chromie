@@ -208,6 +208,7 @@ export default function BuilderPage() {
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
             <AIChat
               projectId={projectSetup.currentProjectId}
+              projectName={projectSetup.currentProjectName}
               autoGeneratePrompt={autoGeneratePrompt}
               onAutoGenerateComplete={handleAutoGenerateComplete}
               onCodeGenerated={async (response) => {

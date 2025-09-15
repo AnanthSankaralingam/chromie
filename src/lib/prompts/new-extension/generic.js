@@ -11,12 +11,12 @@ Frontend Type: {frontend_type}
 </extension_details>
 
 <chrome_api_data>
-<!-- This section will be conditionally populated if docAPIs array is not empty -->
+<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
-<!-- This section will be conditionally populated if webPageData[0] is true -->
+<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
 
@@ -55,14 +55,14 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-1. Implement the core functionality described in the user's feature request
-2. Use the specified frontend type exclusively - do not mix frontend patterns
-3. Utilize Chrome APIs from the API data section if provided
-4. Target specific websites using webpage data if provided
-5. Ensure proper manifest.json configuration for the chosen frontend type
-6. Include appropriate permissions based on required functionality
-7. Implement proper error handling and user feedback
-8. Create clean, intuitive user interfaces
-9. Follow Chrome extension best practices and security guidelines
+- Implement the core functionality described in the user's feature request
+- Use the specified frontend type exclusively - do not mix frontend patterns
+- Utilize Chrome APIs from the API data section if provided
+- Target specific websites using webpage data if provided
+- Ensure proper manifest.json configuration for the chosen frontend type
+- Include appropriate permissions based on required functionality
+- Implement proper error handling, comments, and logging
+- Create clean, intuitive user interfaces
+- Follow Chrome extension best practices and security guidelines
 </implementation_guidelines>
 `;

@@ -48,7 +48,6 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
             "styles.css": { type: "string" },
-            "stagehand_script": { type: "string" }
           },
           required: ["explanation"],
         },
@@ -79,7 +78,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
   for (const [placeholder, value] of Object.entries(replacements)) {
-    if (!placeholder.includes('icon')) {
+    if (!placeholder.includes('existing_files')) {
       console.log(`Replacing ${placeholder} with ${value}`)
     }
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
@@ -137,7 +136,6 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
             "styles.css": { type: "string" },
-            "stagehand_script": { type: "string" },
             "hyperagent_test_script.js": { type: "string" }
           },
           required: ["explanation"],

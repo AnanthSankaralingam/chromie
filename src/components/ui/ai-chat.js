@@ -10,7 +10,7 @@ import StreamingChat from "@/components/ui/chat/streaming-chat"
 import { useChat } from "@/hooks/use-chat"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 
-export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
+export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, isProjectReady }) {
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
   const [useStreaming, setUseStreaming] = useState(true) // Enable streaming with buffering fix
@@ -266,6 +266,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         <>
           <StreamingChat
             projectId={projectId}
+            projectName={projectName}
             autoGeneratePrompt={autoGeneratePrompt}
             onAutoGenerateComplete={onAutoGenerateComplete}
             onCodeGenerated={onCodeGenerated}
@@ -339,6 +340,7 @@ export default function AIChat({ projectId, autoGeneratePrompt, onAutoGenerateCo
         onSubmit={handleSendMessageWithUrlPrompt}
         isGenerating={isGenerating}
         projectId={projectId}
+        projectName={projectName}
       />
 
       {/* URL Prompt Modal */}

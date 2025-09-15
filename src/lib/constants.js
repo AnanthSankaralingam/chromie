@@ -1,9 +1,21 @@
 // Plan limits for token usage
 export const PLAN_LIMITS = {
-  free: 50000,      // 50k tokens for free users
-  starter: 100000,   // 100k tokens for starter plan
-  pro: 1000000,      // 1M tokens for pro plan
-  enterprise: -1     // -1 means unlimited
+  free: { 
+    monthly_tokens: 50000,
+    max_projects: 10 
+  },
+  starter: { 
+    monthly_tokens: 100000,
+    max_projects: 25 
+  },
+  pro: { 
+    monthly_tokens: 1000000,
+    max_projects: 50 
+  },
+  enterprise: { 
+    monthly_tokens: -1, // unlimited
+    max_projects: -1 
+  }
 }
 
 // Default plan for users without billing info

@@ -16,3 +16,6 @@
 
 ## code style
 - log key information to test features as added
+
+## database related changes
+- reference supabase-info.md for all database related changes
