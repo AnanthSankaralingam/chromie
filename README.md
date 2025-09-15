@@ -1,8 +1,6 @@
 # chromie
 
 TODOs
-1. debug monthly_reset issue. when monthly_reset is due, user should be required to create or continue subscription.
-2. after purchasing a plan, a user's current token usage and monthly_reset should reset to 0.
 
 Security TODOs
 1. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
