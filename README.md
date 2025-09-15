@@ -4,9 +4,11 @@ TODOs
 1. local updates to extension code --> minimal saves (updates to supabase)
 2. encourage comments in new_ext prompt
 3. display project names on builder page
-4. after purchasing a plan, a user's current token usage and monthly_reset should reset to 0.
-5. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
+4. debug monthly_reset issue. when monthly_reset is due, user should be required to create or continue subscription.
+5. after purchasing a plan, a user's current token usage and monthly_reset should reset to 0.
 6. frontend shouldn't disable the text box when code is generating, only send button.
+7. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
+
    
 
 Optimizing TODOs
