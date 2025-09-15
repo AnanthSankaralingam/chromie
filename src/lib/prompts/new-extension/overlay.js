@@ -11,10 +11,12 @@ Frontend Type: overlay
 </extension_details>
 
 <chrome_api_data>
+<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
+<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
 
@@ -41,16 +43,16 @@ MANDATORY: Use overlay injection pattern that creates floating UI elements on we
     // Add your overlay content here
     overlay.innerHTML = 
       '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">' +
-        '<img id="extension-icon" style="width: 20px; height: 20px;" alt="Extension">' +
-        '<h3 style="margin: 0; color: #1976d2; font-size: 16px;">Extension</h3>' +
+        '<img id="icons/planet-icon.png" style="width: 20px; height: 20px;" alt="Extension">' +
+        '<h3 style="margin: 0; color: #1976d2; font-size: 16px;">{ext_name}</h3>' +
       '</div>' +
       '<div id="overlay-content">' +
         '<!-- Your content here -->' +
       '</div>';
     
     // Set icon dynamically
-    const iconImg = overlay.querySelector('#extension-icon');
-    iconImg.src = chrome.runtime.getURL('icons/icon48.png');
+    const iconImg = overlay.querySelector('#icons/planet-icon.png');
+    iconImg.src = chrome.runtime.getURL('icons/planet-icon.png');
     
     return overlay;
   }
@@ -103,12 +105,12 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-1. Create a robust overlay that works on all websites
-2. Implement the core functionality described in the extension details
-3. Use Chrome APIs from the API data section if provided
-4. Target specific websites using webpage data if provided
-5. Include proper error handling and edge cases
-6. Ensure the overlay is visually appealing and user-friendly
-7. Add proper event listeners and cleanup
+- Create a robust overlay that works on all websites
+- Implement the core functionality described in the extension details
+- Use Chrome APIs from the API data section if provided
+- Target specific websites using webpage data if provided
+- Implement proper error handling, comments, and logging
+- Ensure the overlay is visually appealing and user-friendly
+- Add proper event listeners and cleanup
 </implementation_guidelines>
 `;

@@ -11,12 +11,12 @@ Frontend Type: popup
 </extension_details>
 
 <chrome_api_data>
-<!-- This section will be conditionally populated if docAPIs array is not empty -->
+<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
-<!-- This section will be conditionally populated if webPageData[0] is true -->
+<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
 
@@ -40,7 +40,6 @@ Popups require:
 
 <popup_template>
 // popup.js
-
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize popup interface
   const iconImg = document.getElementById('header-icon');
@@ -53,14 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </popup_template>
-
-<popup_dimensions>
-Recommended popup sizing:
-- Width: 300-400px (optimal for most content)
-- Height: 400-600px (scrollable if needed)
-- Min-height: 200px
-- Responsive design for different content amounts
-</popup_dimensions>
 
 <manifest_configuration>
 Required manifest.json sections:
@@ -79,14 +70,6 @@ MANDATORY: Use ONLY these available icon files:
 - icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
 - icons/planet-icon.png, icons/search-icon.png, icons/timer-icon.png, icons/note-icon.png
 - icons/home-icon.png, icons/heart-icon.png, icons/cloud-icon.png, icons/calendar-icon.png
-
-Usage in popup: Always use chrome.runtime.getURL() in JavaScript.
-Example:
-// In popup.js
-document.addEventListener('DOMContentLoaded', () => {
-  const iconImg = document.getElementById('header-icon');
-  iconImg.src = chrome.runtime.getURL('icons/heart-icon.png');
-});
 </icon_configuration>
 
 <output_requirements>
@@ -108,13 +91,12 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-1. Create a clean, intuitive popup interface
-2. Implement quick actions and controls users expect
-3. Use Chrome APIs from the API data section if provided
-4. Communicate with content scripts for webpage interaction if needed
-5. Design for the popup's constrained dimensions
-6. Include proper loading states and user feedback
-7. Ensure fast performance and minimal resource usage
-8. Handle popup closure and state management properly
+- Create a clean, intuitive popup interface
+- Implement quick actions and controls users expect
+- Use Chrome APIs from the API data section if provided
+- Target specific websites using webpage data if provided
+- Design for the popup's expected dimensions
+- Implement proper error handling, comments, and logging
+- Handle popup closure and state management properly
 </implementation_guidelines>
 `;

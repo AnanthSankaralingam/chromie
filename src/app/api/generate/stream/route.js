@@ -77,6 +77,49 @@ export async function POST(request) {
 
     if (shouldReset) {
       console.log("🔄 Monthly token usage reset needed")
+      
+      // Reset token usage
+      const { error: tokenResetError } = await supabase
+        .from('token_usage')
+        .update({
+          total_tokens: 0,
+          monthly_reset: today
+        })
+        .eq('user_id', user.id)
+
+      if (tokenResetError) {
+        console.error("Error resetting token usage:", tokenResetError)
+        return NextResponse.json({ error: "Failed to reset token usage" }, { status: 500 })
+      }
+
+      // Update billing valid_until to extend subscription by 1 month
+      const { data: currentBilling } = await supabase
+        .from('billing')
+        .select('valid_until')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+
+      if (currentBilling?.valid_until) {
+        const currentValidUntil = new Date(currentBilling.valid_until)
+        const newValidUntil = new Date(currentValidUntil)
+        newValidUntil.setMonth(newValidUntil.getMonth() + 1)
+
+        const { error: billingUpdateError } = await supabase
+          .from('billing')
+          .update({
+            valid_until: newValidUntil.toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+
+        if (billingUpdateError) {
+          console.error("Error updating billing valid_until:", billingUpdateError)
+          // Don't fail the request, just log the error
+        }
+      }
+
+      console.log("✅ Monthly reset completed successfully")
     }
 
     const effectiveUsage = shouldReset ? 0 : currentUsage
