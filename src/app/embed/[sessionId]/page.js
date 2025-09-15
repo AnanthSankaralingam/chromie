@@ -386,7 +386,7 @@ export default function BrowserEmbed() {
 
           <div className="mt-6 pt-4 border-t text-center">
             <p className="text-xs text-gray-400">
-              Test Session: {sessionId?.slice(-8)} • Powered by BrowserBase
+              Test Session: {sessionId?.slice(-8)} 
             </p>
           </div>
         </div>

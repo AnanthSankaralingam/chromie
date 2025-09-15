@@ -8,5 +8,5 @@ export function cn(...inputs) {
 // Utility function to navigate to builder with project ID
 export const navigateToBuilderWithProject = (projectId) => {
   // Navigate to builder with project ID in URL, then clear it
-  window.location.href = `/builder?projectId=${projectId}`
+  window.location.href = `/builder?project=${projectId}`
 }
