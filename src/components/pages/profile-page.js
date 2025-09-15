@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Trash2, Edit, User, Mail, Calendar, AlertTriangle, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
