@@ -159,6 +159,7 @@ export async function POST(request) {
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`))
 
           // Use the streaming generation
+          let requiresUrl = false
           for await (const chunk of generateChromeExtensionStream({
             featureRequest: prompt,
             requestType,
@@ -169,11 +170,18 @@ export async function POST(request) {
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+            
+            // Check if URL is required
+            if (chunk.type === "requires_url") {
+              requiresUrl = true
+            }
           }
 
-          // Send completion signal
-          const completionData = JSON.stringify({ type: "done", content: "Generation complete" })
-          controller.enqueue(encoder.encode(`data: ${completionData}\n\n`))
+          // Only send completion signal if URL is not required
+          if (!requiresUrl) {
+            const completionData = JSON.stringify({ type: "done", content: "Generation complete" })
+            controller.enqueue(encoder.encode(`data: ${completionData}\n\n`))
+          }
           controller.close()
         } catch (error) {
           console.error("Error in streaming generation:", error)

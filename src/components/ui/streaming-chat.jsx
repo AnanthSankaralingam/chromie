@@ -298,8 +298,8 @@ export default function StreamingChat({
                   // Final completion
                   setStreamingMessage(null)
                   
-                  // Add final assistant message only if not already added
-                  if (!finalMessageAddedRef.current) {
+                  // Add final assistant message only if not already added and not waiting for URL
+                  if (!finalMessageAddedRef.current && !showUrlPrompt) {
                     const finalMessage = {
                       role: "assistant",
                       content: phaseSummaries.explanation || phaseSummaries.planning || "Extension code has been generated and saved to your project.",
@@ -512,8 +512,8 @@ export default function StreamingChat({
                   // Final completion
                   setStreamingMessage(null)
                   
-                  // Add final assistant message only if not already added
-                  if (!finalMessageAddedRef.current) {
+                  // Add final assistant message only if not already added and not waiting for URL
+                  if (!finalMessageAddedRef.current && !showUrlPrompt) {
                     const finalMessage = {
                       role: "assistant",
                       content: phaseSummaries.explanation || phaseSummaries.planning || "Extension code has been generated and saved to your project.",
@@ -586,6 +586,29 @@ export default function StreamingChat({
     console.log('Continuing generation with URL:', userUrl)
     setShowUrlPrompt(false)
     setUrlPromptData(null)
+    
+    // Reset the final message flag to prevent conflicts
+    finalMessageAddedRef.current = false
+    
+    // Remove any incomplete generation message from chat history
+    setMessages((prev) => {
+      const newMessages = [...prev]
+      // Remove the last message if it's an incomplete assistant message
+      if (newMessages.length > 0 && 
+          newMessages[newMessages.length - 1].role === 'assistant') {
+        // Check if it's a completion or generation message
+        const lastContent = newMessages[newMessages.length - 1].content
+        if (lastContent.includes('Extension code has been generated') ||
+            lastContent.includes('extension code has been generated') ||
+            lastContent.includes('generated and saved') ||
+            lastContent.includes('generating') ||
+            lastContent.includes('Generating')) {
+          console.log('🗑️ Removing incomplete generation message:', lastContent.substring(0, 50) + '...')
+          newMessages.pop()
+        }
+      }
+      return newMessages
+    })
     
     // Continue generation with the URL using the stored request info
     const requestInfo = currentRequestRef.current

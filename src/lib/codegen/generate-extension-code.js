@@ -82,84 +82,98 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  // First, generate thinking/explanation using OpenAI and stream it
-  const thinkingStream = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { 
-        role: "system", 
-        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning. Be concise but thorough in your thinking process." 
-      },
-      { role: "user", content: `Think through this request: ${finalPrompt}` },
-    ],
-    stream: true,
-    temperature: 0.3,
-    max_tokens: 1000,
-  })
-
-  let thinkingContent = ""
-  for await (const chunk of thinkingStream) {
-    const content = chunk.choices[0]?.delta?.content || ""
-    if (content) {
-      thinkingContent += content
-      // Stream the actual thinking content as it comes from OpenAI
-      yield { type: "thinking", content: content }
-    }
-  }
-
-  // Stream thinking complete without summary
-  yield { type: "thinking_complete", content: "Thinking complete" }
-  yield { type: "generating_code", content: "Now generating the extension code..." }
+  // Generate extension code with streaming - includes thinking and implementation in one call
+  yield { type: "generating_code", content: "Starting code generation..." }
 
   const codeStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
+      { 
+        role: "system", 
+        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning. Then generate the complete extension code. End your response with valid JSON containing all the files in this exact format: {\"explanation\": \"...\", \"manifest.json\": \"...\", \"background.js\": \"...\", etc.}" 
+      },
       { role: "user", content: finalPrompt },
     ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "extension_implementation",
-        schema: {
-          type: "object",
-          properties: {
-            explanation: { type: "string" },
-            "manifest.json": {
-              oneOf: [{ type: "string" }, { type: "object" }],
-            },
-            "background.js": { type: "string" },
-            "content.js": { type: "string" },
-            "popup.html": { type: "string" },
-            "popup.js": { type: "string" },
-            "sidepanel.html": { type: "string" },
-            "sidepanel.js": { type: "string" },
-            "styles.css": { type: "string" },
-            "hyperagent_test_script.js": { type: "string" }
-          },
-          required: ["explanation"],
-        },
-      },
-    },
     stream: true,
     temperature: 0.2,
     max_tokens: 15000,
   })
 
-  let codeContent = ""
+  let fullContent = ""
+  let isInJsonSection = false
+  
   for await (const chunk of codeStream) {
     const content = chunk.choices[0]?.delta?.content || ""
     if (content) {
-      codeContent += content
-      yield { type: "code", content: content }
+      fullContent += content
+      
+      // Check if we've reached the JSON section
+      if (!isInJsonSection && content.includes('{')) {
+        // Look for the start of JSON structure
+        const jsonStart = fullContent.lastIndexOf('{')
+        if (jsonStart > 0) {
+          isInJsonSection = true
+          yield { type: "thinking_complete", content: "Planning complete, generating files..." }
+        }
+      }
+      
+      if (!isInJsonSection) {
+        // Stream thinking content
+        yield { type: "thinking", content: content }
+      } else {
+        // Stream code generation progress
+        yield { type: "code", content: content }
+      }
     }
   }
 
-  yield { type: "complete", content: codeContent }
+  yield { type: "complete", content: fullContent }
   
   // Extract and stream the explanation from the coding completion
   let implementationResult
   try {
-    implementationResult = JSON.parse(codeContent)
+    // Find the JSON section in the full content
+    let jsonContent = ""
+    
+    // Look for JSON block markers first
+    if (fullContent.includes('```json')) {
+      const jsonMatch = fullContent.match(/```json\s*([\s\S]*?)\s*```/)
+      if (jsonMatch) {
+        jsonContent = jsonMatch[1].trim()
+      }
+    } else if (fullContent.includes('```')) {
+      // Try generic code block
+      const codeMatch = fullContent.match(/```\s*([\s\S]*?)\s*```/)
+      if (codeMatch) {
+        jsonContent = codeMatch[1].trim()
+      }
+    } else {
+      // Find the largest JSON object in the content
+      const jsonStart = fullContent.indexOf('{')
+      if (jsonStart === -1) {
+        throw new Error("No JSON found in response")
+      }
+      
+      // Find the matching closing brace
+      let braceCount = 0
+      let jsonEnd = jsonStart
+      for (let i = jsonStart; i < fullContent.length; i++) {
+        if (fullContent[i] === '{') braceCount++
+        if (fullContent[i] === '}') braceCount--
+        if (braceCount === 0) {
+          jsonEnd = i + 1
+          break
+        }
+      }
+      
+      jsonContent = fullContent.substring(jsonStart, jsonEnd)
+    }
+    
+    if (!jsonContent) {
+      throw new Error("No JSON content extracted")
+    }
+    
+    implementationResult = JSON.parse(jsonContent)
     if (implementationResult && implementationResult.explanation) {
       console.log("📝 Extracted explanation from coding completion")
       yield { type: "explanation", content: implementationResult.explanation }
