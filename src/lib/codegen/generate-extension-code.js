@@ -78,9 +78,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
   for (const [placeholder, value] of Object.entries(replacements)) {
-    if (!placeholder.includes('existing_files')) {
-      console.log(`Replacing ${placeholder} with ${value}`)
-    }
+    console.log(`Adding ${placeholder} to the prompt`)
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 

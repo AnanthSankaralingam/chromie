@@ -76,6 +76,39 @@
   .file-tree-item:hover {
     transform: translateX(2px);
   }
+  
+  /* Custom scrollbar styling */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.3) rgba(30, 41, 59, 0.1);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.1);
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(30, 41, 59, 0.2);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.5);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:active {
+    background: rgba(139, 92, 246, 0.7);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: rgba(30, 41, 59, 0.1);
+  }
 }
 
 @layer components {

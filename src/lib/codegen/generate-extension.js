@@ -3,6 +3,7 @@ import { NEW_EXT_GENERIC_PROMPT } from "../prompts/new-extension/generic"
 import { NEW_EXT_OVERLAY_PROMPT } from "../prompts/new-extension/overlay"
 import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel"
 import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup"
+import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs"
 import { batchScrapeWebpages } from "../webpage-scraper"
 import { createClient } from "../supabase/server"
 import { analyzeExtensionRequirements } from "./preprocessing"
@@ -178,10 +179,10 @@ ${apiResult.code_example || 'No example provided'}
     let selectedCodingPrompt = ""
     
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
-      // For modifications, always use the generic prompt to handle any type of extension
-      selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
-      console.log("🔧 Using generic coding prompt for extension modification")
-      console.log("📝 This prompt will handle modifications to any existing extension type")
+      // For modifications, use the specialized follow-up prompt with tool integration
+      selectedCodingPrompt = UPDATE_EXT_PROMPT
+      console.log("🔧 Using specialized follow-up prompt for extension modification")
+      console.log("📝 This prompt will handle modifications with tool integration")
     } else {
       // For new extensions, select based on frontend type
       switch (requirementsAnalysis.frontend_type) {
@@ -704,9 +705,9 @@ ${apiResult.code_example || 'No example provided'}
     let selectedCodingPrompt = ""
     
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
-      // For modifications, always use the generic prompt to handle any type of extension
-      selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT
-      console.log("🔧 Using generic coding prompt for extension modification")
+      // For modifications, use the specialized follow-up prompt with tool integration
+      selectedCodingPrompt = UPDATE_EXT_PROMPT
+      console.log("🔧 Using specialized follow-up prompt for extension modification")
       yield { type: "prompt_selected", content: "prompt_selected" }
       yield { type: "phase", phase: "planning", content: "Selected a generic modification plan based on existing files." }
     } else {
