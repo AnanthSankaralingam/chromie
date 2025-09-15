@@ -178,6 +178,22 @@ async function handleSubscriptionCreated(subscription) {
       throw profileError
     }
     
+    // Reset token usage for the new plan
+    const { error: tokenResetError } = await supabase
+      .from('token_usage')
+      .update({
+        total_tokens: 0,
+        monthly_reset: new Date().toISOString().split('T')[0]
+      })
+      .eq('user_id', userId)
+
+    if (tokenResetError) {
+      console.error('Error resetting token usage on plan upgrade:', tokenResetError)
+      // Don't fail the webhook, just log the error
+    } else {
+      console.log('Successfully reset token usage for upgraded user:', userId)
+    }
+    
     console.log('Successfully updated billing and profile for user:', userId)
   } else {
     console.log('Could not find user for subscription:', subscription.id)

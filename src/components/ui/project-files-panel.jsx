@@ -10,8 +10,8 @@ export default function ProjectFilesPanel({
   onSearchChange
 }) {
   return (
-    <div className="border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up">
-      <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50">
+    <div className="h-full border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up flex flex-col">
+      <div className="p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 flex-shrink-0">
         <div className="flex items-center space-x-2 mb-3">
           <Layers className="h-5 w-5 text-purple-400" />
           <h3 className="text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">project files</h3>
@@ -31,14 +31,16 @@ export default function ProjectFilesPanel({
         </div>
       </div>
       
-      <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar bg-gradient-to-b from-slate-800/30 to-slate-900/30">
-        <FileTree
-          fileStructure={fileStructure}
-          selectedFile={selectedFile}
-          onFileSelect={onFileSelect}
-          isLoadingFiles={isLoadingFiles}
-          searchQuery={searchQuery}
-        />
+      <div className="flex-1 overflow-auto custom-scrollbar bg-gradient-to-b from-slate-800/30 to-slate-900/30">
+        <div className="p-4">
+          <FileTree
+            fileStructure={fileStructure}
+            selectedFile={selectedFile}
+            onFileSelect={onFileSelect}
+            isLoadingFiles={isLoadingFiles}
+            searchQuery={searchQuery}
+          />
+        </div>
       </div>
     </div>
   )

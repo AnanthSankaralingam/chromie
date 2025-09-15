@@ -313,7 +313,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-auto p-4 space-y-4 bg-gradient-to-b from-slate-800/30 to-slate-900/30">
+      <div className="flex-1 overflow-auto custom-scrollbar p-4 space-y-4 bg-gradient-to-b from-slate-800/30 to-slate-900/30">
         {messages.map((message, index) => (
           <ChatMessage key={index} message={message} index={index} />
         ))}

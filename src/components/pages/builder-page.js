@@ -191,7 +191,7 @@ export default function BuilderPage() {
 
   return (
     <>
-      <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <AppBarBuilder
           onTestExtension={testExtension.handleTestExtension}
