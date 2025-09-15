@@ -118,6 +118,13 @@ export default function useFileManagement(currentProjectId, user) {
       setLoadedProjectId(currentProjectId) // Mark this project as loaded
       
       console.log(`✅ Loaded ${files.length} files for project: ${currentProjectId}`)
+      console.log('📁 File structure:', transformedFiles)
+      
+      // Debug manifest.json specifically
+      const manifestFile = files.find(file => file.file_path === 'manifest.json')
+      if (manifestFile) {
+        console.log('📄 Manifest.json found:', manifestFile)
+      }
 
       // Extract and update project with extension info from manifest.json
       const extensionInfo = extractExtensionInfo(files)
@@ -185,6 +192,30 @@ export default function useFileManagement(currentProjectId, user) {
     }
   }
 
+  // Function to find and return the manifest.json file
+  const findManifestFile = () => {
+    console.log('🔍 Searching for manifest.json in file structure:', fileStructure)
+    
+    const findFileInTree = (items) => {
+      for (const item of items) {
+        if (item.type === 'file' && item.name === 'manifest.json') {
+          console.log('✅ Found manifest.json file:', item)
+          return item
+        } else if (item.type === 'folder' && item.children) {
+          const found = findFileInTree(item.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    
+    const result = findFileInTree(fileStructure)
+    if (!result) {
+      console.log('❌ Manifest.json file not found in file structure')
+    }
+    return result
+  }
+
   // Only load files when switching to a new project
   useEffect(() => {
     if (currentProjectId && user && loadedProjectId !== currentProjectId) {
@@ -199,6 +230,7 @@ export default function useFileManagement(currentProjectId, user) {
     loadProjectFiles,
     handleFileSave,
     extractExtensionInfo,
-    updateProjectWithExtensionInfo
+    updateProjectWithExtensionInfo,
+    findManifestFile
   }
 } 

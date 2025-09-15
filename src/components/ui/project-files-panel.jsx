@@ -31,7 +31,7 @@ export default function ProjectFilesPanel({
         </div>
       </div>
       
-      <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar">
+      <div className="p-4 overflow-auto h-[calc(100%-140px)] custom-scrollbar bg-gradient-to-b from-slate-800/30 to-slate-900/30">
         <FileTree
           fileStructure={fileStructure}
           selectedFile={selectedFile}

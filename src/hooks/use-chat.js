@@ -28,8 +28,14 @@ export function useChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  // Only scroll to bottom when assistant messages are added, not user messages
   useEffect(() => {
-    scrollToBottom()
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage.role === 'assistant') {
+        scrollToBottom()
+      }
+    }
   }, [messages])
 
   // Fetch hasGeneratedCode status from Supabase when project changes

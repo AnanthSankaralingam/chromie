@@ -19,7 +19,9 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
   for (const [placeholder, value] of Object.entries(replacements)) {
-    console.log(`Replacing ${placeholder} with ${value}`)
+    if (!placeholder.includes('icon')) {
+      console.log(`Replacing ${placeholder} with ${value}`)
+    }
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
@@ -106,54 +108,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     }
   }
 
-  // Generate a quick summary using Fireworks API (gpt-oss-20b)
-  let thinkingSummary = ""
-  try {
-    const summaryResponse = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.FIREWORKS_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "accounts/fireworks/models/gpt-oss-20b",
-        max_tokens: 400,
-        top_p: 1,
-        top_k: 40,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        temperature: 0.3,
-        messages: [
-          {
-            role: "system",
-            content: "You are a Chrome extension development assistant. Provide a brief, clear summary of the development approach and key decisions in 1-2 sentences. Keep it concise and user-friendly. Always complete your sentences."
-          },
-          {
-            role: "user",
-            content: `Summarize this development thinking in 1-2 sentences: ${thinkingContent}`
-          }
-        ]
-      })
-    });
-
-    if (summaryResponse.ok) {
-      const summaryCompletion = await summaryResponse.json();
-      thinkingSummary = summaryCompletion.choices[0]?.message?.content || "Planning complete"
-      console.log("🔥 Fireworks summary generated:", thinkingSummary)
-    } else {
-      console.error("❌ Fireworks API error:", summaryResponse.status, summaryResponse.statusText)
-      thinkingSummary = "Planning complete"
-    }
-  } catch (error) {
-    console.error("Error generating thinking summary:", error)
-    thinkingSummary = "Planning complete"
-  }
-
-  // Stream the summary when thinking is complete
-  yield { type: "thinking_complete", content: thinkingSummary }
-  // Also emit a planning phase summary for the UI phases view
-  yield { type: "phase", phase: "planning", content: thinkingSummary }
+  // Stream thinking complete without summary
+  yield { type: "thinking_complete", content: "Thinking complete" }
   yield { type: "generating_code", content: "Now generating the extension code..." }
 
   const codeStream = await openai.chat.completions.create({
@@ -202,10 +158,24 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   yield { type: "complete", content: codeContent }
   
+  // Extract and stream the explanation from the coding completion
+  let implementationResult
+  try {
+    implementationResult = JSON.parse(codeContent)
+    if (implementationResult && implementationResult.explanation) {
+      console.log("📝 Extracted explanation from coding completion")
+      yield { type: "explanation", content: implementationResult.explanation }
+      // Also emit as planning phase summary for the UI phases view
+      yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+    }
+  } catch (error) {
+    console.error("❌ Error parsing explanation from coding completion:", error)
+    yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+  }
+  
   // Process and save the generated files
   try {
     console.log("🔄 Processing generated code for file saving...")
-    const implementationResult = JSON.parse(codeContent)
     
     if (implementationResult && typeof implementationResult === 'object') {
       // Save files to database
