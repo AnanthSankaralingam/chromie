@@ -79,8 +79,8 @@ export default function SideBySideTestModal({
   }
 
   // Get viewport dimensions from sessionData, with fallbacks
-  const viewportWidth = sessionData?.browserInfo?.viewport?.width || 1680;
-  const viewportHeight = sessionData?.browserInfo?.viewport?.height || 1050;
+  const viewportWidth = sessionData?.browserInfo?.viewport?.width || 1920;
+  const viewportHeight = sessionData?.browserInfo?.viewport?.height || 1080;
 
   // Estimate extra height for modal header and footer
   // Header: h-14 (56px)

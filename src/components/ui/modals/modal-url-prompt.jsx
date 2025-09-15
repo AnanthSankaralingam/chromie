@@ -42,45 +42,29 @@ export default function ModalUrlPrompt({
     });
     
     modal.innerHTML = `
-      <div class="url-prompt-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center;">
-        <div class="url-prompt-container" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; color: black;">
-          <div class="url-prompt-header">
-            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">🔗 Website Analysis Recommended</h3>
-            <p style="color: #666; margin-bottom: 16px; line-height: 1.4;">${data.message}</p>
+      <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center;">
+        <div class="url-prompt-container" style="background: #ffffff; color: #111827; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 16px; width: 92%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
+          <div class="url-prompt-header" style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px;">
+            <div style="font-size: 14px; font-weight: 600;">Website URL</div>
+            <button id="cancelUrlPrompt" aria-label="Close" style="background: transparent; border: none; color: #6b7280; font-size: 18px; cursor: pointer; line-height: 1;">×</button>
           </div>
-          
-          <div class="url-prompt-body">
-            <div class="url-options" style="margin-bottom: 20px;">
-              <h4 style="font-size: 14px; font-weight: 500; margin-bottom: 12px;">Choose an option:</h4>
-              
-              ${suggestedUrl ? `
-                <div class="option-group" style="margin-bottom: 16px;">
-                  <button id="useSuggestedUrl" class="option-btn primary" style="width: 100%; background: #3b82f6; color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 14px; cursor: pointer; margin-bottom: 8px;">
-                    🎯 Use Suggested URL: ${new URL(suggestedUrl).hostname}
-                  </button>
-                  <small style="color: #666; display: block; text-align: center;">${suggestedUrl}</small>
-                </div>
-              ` : ''}
-              
-              <div class="option-group" style="margin-bottom: 16px;">
-                <label for="userUrl" style="display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px;">Or enter a custom URL:</label>
-                <input type="url" id="userUrl" placeholder="https://example.com" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin-bottom: 8px;" />
-                <button id="useCustomUrl" class="option-btn secondary" style="width: 100%; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer;">
-                  Use Custom URL
-                </button>
-              </div>
-              
-              <div class="option-group">
-                <button id="noScraping" class="option-btn secondary" style="width: 100%; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer;">
-                  🚫 No website analysis needed
-                </button>
-                <small style="color: #666; display: block; text-align: center; margin-top: 4px;">Generate extension without specific website data</small>
-              </div>
-            </div>
+
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
+
+          ${suggestedUrl ? `
+            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer; margin-bottom: 10px;">
+              <span style="opacity:.9;">Suggested:</span>
+              <strong style="font-weight:600;">${new URL(suggestedUrl).hostname}</strong>
+            </button>
+          ` : ''}
+
+          <div class="option-group" style="margin-bottom: 12px;">
+            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" style="width: 100%; padding: 10px 12px; background:#ffffff; color:#111827; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; outline: none;" />
           </div>
-          
-          <div class="url-prompt-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button id="cancelUrlPrompt" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer;">Cancel</button>
+
+          <div style="display:flex; gap:8px; align-items:center; justify-content: space-between;">
+            <button id="useCustomUrl" style="flex:1; background: linear-gradient(90deg,#7c3aed,#2563eb); color: white; border: none; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer;">Continue</button>
+            <button id="noScraping" style="background: #f3f4f6; color:#374151; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer;">Skip</button>
           </div>
         </div>
       </div>
@@ -96,7 +80,7 @@ export default function ModalUrlPrompt({
     const noScrapingBtn = modal.querySelector('#noScraping');
     const cancelBtn = modal.querySelector('#cancelUrlPrompt');
     
-    // Use suggested URL
+    // Use suggested URL (one-click)
     if (useSuggestedBtn) {
       useSuggestedBtn.addEventListener('click', () => {
         console.log('🎯 User selected suggested URL:', suggestedUrl);
@@ -104,10 +88,23 @@ export default function ModalUrlPrompt({
       });
     }
     
-    // Use custom URL
+    // Continue with custom URL
     useCustomBtn.addEventListener('click', () => {
-      const url = urlInput.value.trim();
+      let url = urlInput.value.trim();
       if (!url) {
+        alert('Please enter a valid URL');
+        return;
+      }
+      // Add https:// if the user omitted protocol for convenience
+      if (!/^https?:\/\//i.test(url)) {
+        url = `https://${url}`;
+      }
+
+      try {
+        // Validate URL format
+        // eslint-disable-next-line no-new
+        new URL(url);
+      } catch (e) {
         alert('Please enter a valid URL');
         return;
       }
@@ -127,10 +124,15 @@ export default function ModalUrlPrompt({
       handleCancel();
     });
     
-    // Enter key support for custom URL
+    // Keyboard support
     urlInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         useCustomBtn.click();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        handleCancel();
       }
     });
     

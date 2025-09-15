@@ -17,6 +17,9 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
   
   // Listen for URL prompt events from use-chat hook
   useEffect(() => {
+    // In streaming mode, StreamingChat owns the URL prompt. Skip listener here.
+    if (useStreaming) return
+
     const handleUrlPromptRequired = (event) => {
       const { data, originalPrompt } = event.detail
       console.log('🔗 URL prompt required event received:', data)
@@ -28,7 +31,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     return () => {
       window.removeEventListener('urlPromptRequired', handleUrlPromptRequired)
     }
-  }, [])
+  }, [useStreaming])
   
   const {
     messages,
@@ -274,20 +277,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
             onGenerationEnd={onGenerationEnd}
             isProjectReady={isProjectReady}
           />
-          
-          {/* URL Prompt Modal */}
-          {showUrlPrompt && urlPromptData && (
-            <ModalUrlPrompt
-              data={urlPromptData.data}
-              originalPrompt={urlPromptData.originalPrompt}
-              onUrlSubmit={onUrlSubmit}
-              onCancel={onUrlCancel}
-              onCodeGenerated={onCodeGenerated}
-              projectId={projectId}
-              hasGeneratedCode={hasGeneratedCode}
-              onGenerationEnd={onGenerationEnd}
-            />
-          )}
         </>
       )
     } catch (error) {
