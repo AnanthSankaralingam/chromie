@@ -8,6 +8,7 @@ import { batchScrapeWebpages } from "../webpage-scraper"
 import { createClient } from "../supabase/server"
 import { analyzeExtensionRequirements } from "./preprocessing"
 import { generateExtensionCode, generateExtensionCodeStream } from "./generate-extension-code"
+import { formatManifestJson, formatJsonFile } from "../utils/json-formatter"
 
 const chromeApisData = require('../chrome_extension_apis.json');
 
@@ -279,9 +280,19 @@ if (typeof module !== 'undefined' && module.exports) {
 
     // Validate file contents are strings (except for special non-string keys)
     for (const [filename, content] of Object.entries(filesOnly)) {
-      if (filename === "manifest.json" && typeof content === "object") {
-        // Convert manifest.json object to JSON string
-        filesOnly[filename] = JSON.stringify(content, null, 2)
+      if (filename === "manifest.json") {
+        // Use the specialized manifest formatter to ensure proper formatting
+        try {
+          filesOnly[filename] = formatManifestJson(content)
+        } catch (error) {
+          console.error(`Error formatting manifest.json: ${error.message}`)
+          // Fallback to basic JSON formatting
+          if (typeof content === "object") {
+            filesOnly[filename] = JSON.stringify(content, null, 2)
+          } else {
+            filesOnly[filename] = content
+          }
+        }
       } else if (nonStringKeys.includes(filename)) {
         // Skip validation for non-string keys like stagehand_commands
       } else if (typeof content !== "string") {
