@@ -98,7 +98,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
-      docAPIs: requirementsAnalysis.docAPIs,
+      docAPIs: requirementsAnalysis.chromeAPIs,
       webPageData: requirementsAnalysis.webPageData,
       ext_name: requirementsAnalysis.ext_name
     })

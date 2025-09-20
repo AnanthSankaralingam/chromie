@@ -197,9 +197,17 @@ ${apiResult.code_example || 'No example provided'}
       scraped_webpage_analysis: scrapedWebpageAnalysis
     }
     
-    // Add existing files context for modifications
+    // Add existing files context for modifications (excluding icon files)
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
-      replacements.existing_files = JSON.stringify(existingFiles, null, 2)
+      // Filter out icon files from the context
+      const filteredFiles = {}
+      for (const [filename, content] of Object.entries(existingFiles)) {
+        // Skip icon files (png, jpg, jpeg, gif, svg, ico files)
+        if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
+          filteredFiles[filename] = content
+        }
+      }
+      replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
     }
     
     const codingCompletion = await generateExtensionCode(selectedCodingPrompt, replacements)
@@ -643,11 +651,21 @@ ${apiResult.code_example || 'No example provided'}
       scraped_webpage_analysis: scrapedWebpageAnalysis
     }
     
-    // Add existing files context for modifications
+    // Add existing files context for modifications (excluding icon files)
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
       console.log("📁 Including existing files context for modification")
-      replacements.existing_files = JSON.stringify(existingFiles, null, 2)
-      console.log(`📋 Context includes ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+      
+      // Filter out icon files from the context
+      const filteredFiles = {}
+      for (const [filename, content] of Object.entries(existingFiles)) {
+        // Skip icon files (png, jpg, jpeg, gif, svg, ico files)
+        if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
+          filteredFiles[filename] = content
+        }
+      }
+      
+      replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
+      console.log(`📋 Context includes ${Object.keys(filteredFiles).length} existing files (excluding icons): ${Object.keys(filteredFiles).join(', ')}`)
       yield { type: "context_ready", content: "context_ready" }
     }
     
