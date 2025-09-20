@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useOnboarding } from "@/hooks/use-onboarding"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -27,11 +28,16 @@ export default function BuilderPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [shouldStartTestHighlight, setShouldStartTestHighlight] = useState(false)
+  const [shouldStartDownloadHighlight, setShouldStartDownloadHighlight] = useState(false)
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
+  const [hasTestedExtension, setHasTestedExtension] = useState(false)
 
   // Custom hooks
   const projectSetup = useProjectSetup(user, isLoading)
   const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
+  const { isOnboardingCompleted } = useOnboarding()
   
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
@@ -95,8 +101,16 @@ export default function BuilderPage() {
           setSelectedFile(manifestFile)
         }
       }
+
+      // Trigger test button highlight for first-time users after code generation
+      if (!hasGeneratedCode && !isOnboardingCompleted) {
+        setHasGeneratedCode(true)
+        setShouldStartTestHighlight(true)
+        // Reset the highlight trigger after a short delay
+        setTimeout(() => setShouldStartTestHighlight(false), 100)
+      }
     }
-  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile])
+  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode, isOnboardingCompleted])
 
   // Check for autoGenerate prompt in URL
   useEffect(() => {
@@ -123,6 +137,23 @@ export default function BuilderPage() {
     setAutoGeneratePrompt(null)
     hasProcessedAutoGenerate.current = false
   }
+
+  // Track when user returns from testing to trigger download button highlight
+  useEffect(() => {
+    if (!testExtension.isTestModalOpen && hasTestedExtension && hasGeneratedCode && !isOnboardingCompleted) {
+      // User has returned from testing, trigger download button highlight
+      setShouldStartDownloadHighlight(true)
+      // Reset the highlight trigger after a short delay
+      setTimeout(() => setShouldStartDownloadHighlight(false), 100)
+    }
+  }, [testExtension.isTestModalOpen, hasTestedExtension, hasGeneratedCode, isOnboardingCompleted])
+
+  // Track when user opens test modal to mark that they've tested
+  useEffect(() => {
+    if (testExtension.isTestModalOpen && hasGeneratedCode) {
+      setHasTestedExtension(true)
+    }
+  }, [testExtension.isTestModalOpen, hasGeneratedCode])
 
   const handleFileSelect = (file) => {
     setSelectedFile(file)
@@ -171,6 +202,8 @@ export default function BuilderPage() {
           isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isGenerating={isGenerating}
           isDownloading={downloadExtension.isDownloading}
+          shouldStartTestHighlight={shouldStartTestHighlight}
+          shouldStartDownloadHighlight={shouldStartDownloadHighlight}
         />
 
         <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">

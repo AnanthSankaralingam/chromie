@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Download, TestTube, LogOut, Sparkles, Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
-import { useState } from 'react'
-import { useIsMobile } from '@/hooks'
+import { useState, useEffect } from 'react'
+import { useOnboarding } from '@/hooks/use-onboarding'
 
 export default function AppBarBuilder({ 
   onTestExtension, 
@@ -16,11 +16,43 @@ export default function AppBarBuilder({
   isTestDisabled = false,
   isDownloadDisabled = false,
   isGenerating = false,
-  isDownloading = false
+  isDownloading = false,
+  shouldStartTestHighlight = false,
+  shouldStartDownloadHighlight = false
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const isMobile = useIsMobile()
+  const {
+    isTestButtonHighlighted,
+    isDownloadButtonHighlighted,
+    startTestButtonHighlight,
+    startDownloadButtonHighlight,
+    stopAllHighlights
+  } = useOnboarding()
+
+  // Handle highlight triggers
+  useEffect(() => {
+    if (shouldStartTestHighlight) {
+      startTestButtonHighlight()
+    }
+  }, [shouldStartTestHighlight, startTestButtonHighlight])
+
+  useEffect(() => {
+    if (shouldStartDownloadHighlight) {
+      startDownloadButtonHighlight()
+    }
+  }, [shouldStartDownloadHighlight, startDownloadButtonHighlight])
+
+  // Stop highlights when user interacts with buttons
+  const handleTestClick = () => {
+    stopAllHighlights()
+    onTestExtension?.()
+  }
+
+  const handleDownloadClick = () => {
+    stopAllHighlights()
+    onDownloadZip?.()
+  }
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -72,17 +104,17 @@ export default function AppBarBuilder({
               </button>
               <div className="hidden sm:flex items-center space-x-3">
                 <Button
-                  onClick={onTestExtension}
+                  onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 px-4 py-2 font-medium"
+                  className={`bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 px-4 py-2 font-medium ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
                 >
                   <TestTube className="h-4 w-4 mr-2" />
                   test extension
                 </Button>
                 <Button 
-                  onClick={onDownloadZip} 
+                  onClick={handleDownloadClick} 
                   disabled={isDownloadDisabled || isDownloading}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium"
+                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   {isDownloading ? (
@@ -125,17 +157,17 @@ export default function AppBarBuilder({
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
             <Button
-              onClick={() => { onTestExtension && onTestExtension(); setIsMobileMenuOpen(false) }}
+              onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+              className={`w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
             >
               <TestTube className="h-4 w-4 mr-2" />
               test extension
             </Button>
             <Button
-              onClick={() => { onDownloadZip && onDownloadZip(); setIsMobileMenuOpen(false) }}
+              onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
               disabled={isDownloadDisabled || isDownloading}
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              className={`w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
             >
               <Download className="h-4 w-4 mr-2" />
               {isDownloading ? "downloading..." : "download zip"}

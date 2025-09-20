@@ -170,4 +170,71 @@
       opacity: 1;
     }
   }
+
+  /* Onboarding button highlight - bright highlight with subtle pulse for 6 seconds */
+  .onboarding-pulse {
+    box-shadow: 
+      0 0 0 4px rgba(16, 185, 129, 0.8),
+      0 0 25px rgba(16, 185, 129, 0.9),
+      0 0 50px rgba(16, 185, 129, 0.5),
+      inset 0 0 0 1px rgba(16, 185, 129, 1);
+    transform: scale(1.02);
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border: 1px solid #10b981 !important;
+    animation: subtle-pulse 8s ease-in-out infinite;
+  }
+
+  @keyframes subtle-pulse {
+    0%, 100% {
+      box-shadow: 
+        0 0 0 4px rgba(16, 185, 129, 0.8),
+        0 0 25px rgba(16, 185, 129, 0.9),
+        0 0 50px rgba(16, 185, 129, 0.5),
+        inset 0 0 0 1px rgba(16, 185, 129, 1);
+      transform: scale(1.02);
+    }
+    50% {
+      box-shadow: 
+        0 0 0 5px rgba(16, 185, 129, 0.9),
+        0 0 30px rgba(16, 185, 129, 1),
+        0 0 60px rgba(16, 185, 129, 0.6),
+        inset 0 0 0 1px rgba(16, 185, 129, 1);
+      transform: scale(1.03);
+    }
+  }
+
+  .onboarding-pulse-download {
+    animation: onboarding-pulse-download 50s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    position: relative;
+    z-index: 10;
+  }
+
+  @keyframes onboarding-pulse-download {
+    0%, 40% {
+      box-shadow: 
+        0 0 0 0 rgba(59, 130, 246, 0.8),
+        0 0 0 0 rgba(59, 130, 246, 0.6),
+        0 0 20px rgba(59, 130, 246, 0.4),
+        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+      transform: scale(1);
+    }
+    48%, 52% {
+      box-shadow: 
+        0 0 0 8px rgba(59, 130, 246, 0.4),
+        0 0 0 16px rgba(59, 130, 246, 0.2),
+        0 0 30px rgba(59, 130, 246, 0.6),
+        inset 0 0 0 1px rgba(59, 130, 246, 0.5);
+      transform: scale(1.02);
+    }
+    60%, 100% {
+      box-shadow: 
+        0 0 0 0 rgba(59, 130, 246, 0.8),
+        0 0 0 0 rgba(59, 130, 246, 0.6),
+        0 0 20px rgba(59, 130, 246, 0.4),
+        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+      transform: scale(1);
+    }
+  }
 }
