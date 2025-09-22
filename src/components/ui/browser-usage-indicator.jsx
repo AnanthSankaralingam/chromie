@@ -99,11 +99,11 @@ export default function BrowserUsageIndicator({
         )}
       </span>
       
-      {!isUnlimited && (
+      {/* {!isUnlimited && (
         <span className="text-xs opacity-75">
           ({remainingBrowserMinutes} remaining)
         </span>
-      )}
+      )} */}
 
       {showDetails && (
         <div className="ml-2 text-xs opacity-75">
