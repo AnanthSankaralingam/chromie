@@ -635,6 +635,99 @@ export class BrowserBaseService {
       }
     }
   }
+
+  /**
+   * Clean up expired sessions and update browser usage
+   * @param {Object} supabase - Supabase client instance
+   * @returns {Promise<Object>} Cleanup results
+   */
+  async cleanupExpiredSessions(supabase) {
+    try {
+      console.log('Starting expired session cleanup...')
+      
+      const now = new Date()
+      const { data: expiredSessions, error: fetchError } = await supabase
+        .from('browser_sessions')
+        .select('id, user_id, created_at, expires_at, remaining_minutes, status')
+        .eq('status', 'active')
+        .lt('expires_at', now.toISOString())
+
+      if (fetchError) {
+        console.error('Error fetching expired sessions:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+
+      if (!expiredSessions || expiredSessions.length === 0) {
+        console.log('No expired sessions found')
+        return { success: true, cleaned: 0 }
+      }
+
+      console.log(`Found ${expiredSessions.length} expired sessions to clean up`)
+
+      let cleanedCount = 0
+      const errors = []
+
+      for (const session of expiredSessions) {
+        try {
+          // Always record 1 minute used regardless of actual session duration
+          const actualMinutesUsed = 1
+
+          // Terminate the session
+          const terminated = await this.terminateSession(session.id)
+          if (!terminated) {
+            console.warn(`Failed to terminate session ${session.id}`)
+          }
+
+          // Update browser usage
+          if (actualMinutesUsed > 0) {
+            const { error: usageError } = await supabase.rpc('update_browser_usage', {
+              user_id: session.user_id,
+              minutes_used: actualMinutesUsed
+            })
+
+            if (usageError) {
+              console.error(`Error updating browser usage for session ${session.id}:`, usageError)
+              errors.push(`Usage update failed for session ${session.id}`)
+            }
+          }
+
+          // Mark session as expired in database
+          const { error: updateError } = await supabase
+            .from('browser_sessions')
+            .update({ 
+              status: 'expired',
+              terminated_at: now.toISOString(),
+              actual_minutes_used: actualMinutesUsed
+            })
+            .eq('id', session.id)
+
+          if (updateError) {
+            console.error(`Error updating session status for ${session.id}:`, updateError)
+            errors.push(`Status update failed for session ${session.id}`)
+          } else {
+            cleanedCount++
+            console.log(`Cleaned up session ${session.id}, used ${actualMinutesUsed} minutes`)
+          }
+
+        } catch (sessionError) {
+          console.error(`Error cleaning up session ${session.id}:`, sessionError)
+          errors.push(`Cleanup failed for session ${session.id}: ${sessionError.message}`)
+        }
+      }
+
+      console.log(`Session cleanup completed: ${cleanedCount} sessions cleaned, ${errors.length} errors`)
+
+      return {
+        success: true,
+        cleaned: cleanedCount,
+        errors: errors.length > 0 ? errors : undefined
+      }
+
+    } catch (error) {
+      console.error('Error during session cleanup:', error)
+      return { success: false, error: error.message }
+    }
+  }
 }
 
 export const browserBaseService = new BrowserBaseService()

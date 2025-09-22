@@ -4,9 +4,12 @@ import { useState, useEffect } from "react"
 import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import SessionTimer from "@/components/ui/timer/session-timer"
+import BrowserUsageIndicator from "@/components/ui/browser-usage-indicator"
 
 export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -29,9 +32,17 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
   console.log("TestModal liveUrl:", liveUrl, "sessionData keys:", sessionData ? Object.keys(sessionData) : null)
 
+  // Handle session expiry
+  const handleSessionExpire = () => {
+    setSessionExpired(true)
+    // Auto-close modal after a brief delay to show expiry message
+    setTimeout(() => {
+      handleClose()
+    }, 2000)
+  }
+
   // Handle cleanup when modal is closed
   const handleClose = () => {
-    console.log("🚪 Test modal closing, triggering cleanup")
     onClose()
   }
 
@@ -63,23 +74,42 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
             {sessionData && (
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <span>Session: {sessionData.sessionId?.slice(-8)}</span>
-                {sessionData.expiresAt && (
-                  <span>• Expires: {new Date(sessionData.expiresAt).toLocaleTimeString()}</span>
-                )}
               </div>
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-600 hover:text-gray-900">
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center space-x-3">
+            {/* Session Timer */}
+            {sessionData?.expiresAt && !sessionExpired && (
+              <SessionTimer 
+                expiresAt={sessionData.expiresAt}
+                onExpire={handleSessionExpire}
+                warningThreshold={30}
+              />
+            )}
+
+            {/* Browser Usage Indicator */}
+            <BrowserUsageIndicator showDetails={false} />
+
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-600 hover:text-gray-900">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 relative">
-          {isLoading || (isOpen && sessionData && !liveUrl) ? (
+          {sessionExpired ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Session Expired</h3>
+                <p className="text-gray-600">This session has reached its 1-minute limit and will close automatically.</p>
+              </div>
+            </div>
+          ) : isLoading || (isOpen && sessionData && !liveUrl) ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />

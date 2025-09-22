@@ -32,7 +32,7 @@ export async function GET() {
     // Fetch single per-user token usage with monthly reset logic
     const { data: existingUsage, error: tokenError } = await supabase
       .from('token_usage')
-      .select('id, total_tokens, monthly_reset')
+      .select('id, total_tokens, monthly_reset, browser_minutes')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -51,7 +51,9 @@ export async function GET() {
 
     const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
     const totalTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
+    const totalBrowserMinutesUsed = isResetDue ? 0 : (existingUsage?.browser_minutes || 0)
     const usagePercentage = planLimit === -1 ? 0 : Math.round((totalTokensUsed / planLimit) * 100)
+    const browserUsagePercentage = planLimit.monthly_browser_minutes === -1 ? 0 : Math.round((totalBrowserMinutesUsed / planLimit.monthly_browser_minutes) * 100)
     const monthlyUsage = totalTokensUsed
 
     // If reset is due, update the record so UI reflects fresh cycle next calls
@@ -60,7 +62,7 @@ export async function GET() {
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const { error: resetError } = await supabase
         .from('token_usage')
-        .update({ total_tokens: 0, monthly_reset: firstDayOfMonth.toISOString() })
+        .update({ total_tokens: 0, browser_minutes: 0, monthly_reset: firstDayOfMonth.toISOString() })
         .eq('id', existingUsage.id)
         .eq('user_id', user.id)
 
@@ -70,6 +72,7 @@ export async function GET() {
     }
 
     console.log(`Token usage - plan: ${userPlan}, limit: ${planLimit}, used: ${totalTokensUsed}, resetDue: ${isResetDue}`)
+    console.log(`Browser usage - limit: ${planLimit.monthly_browser_minutes}, used: ${totalBrowserMinutesUsed}`)
 
     return NextResponse.json({
       totalTokensUsed,
@@ -80,6 +83,11 @@ export async function GET() {
       remainingTokens: planLimit === -1 ? 'unlimited' : Math.max(0, planLimit - totalTokensUsed),
       monthlyReset: monthlyResetDate ? monthlyResetDate.toISOString() : null,
       resetDue: isResetDue,
+      // Browser usage data
+      totalBrowserMinutesUsed,
+      browserPlanLimit: planLimit.monthly_browser_minutes === -1 ? 'unlimited' : planLimit.monthly_browser_minutes,
+      browserUsagePercentage,
+      remainingBrowserMinutes: planLimit.monthly_browser_minutes === -1 ? 'unlimited' : Math.max(0, planLimit.monthly_browser_minutes - totalBrowserMinutesUsed),
     })
   } catch (error) {
     console.error("Error getting token usage:", error)
@@ -102,11 +110,16 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const tokensThisRequest = Number(body?.tokensThisRequest || 0)
+    const browserMinutesThisRequest = Number(body?.browserMinutesThisRequest || 0)
     const modelUsed = typeof body?.model === 'string' ? body.model : 'unknown'
     const targetId = typeof body?.id === 'string' ? body.id : null
 
     if (!Number.isFinite(tokensThisRequest) || tokensThisRequest < 0) {
       return NextResponse.json({ error: "tokensThisRequest must be a non-negative number" }, { status: 400 })
+    }
+
+    if (!Number.isFinite(browserMinutesThisRequest) || browserMinutesThisRequest < 0) {
+      return NextResponse.json({ error: "browserMinutesThisRequest must be a non-negative number" }, { status: 400 })
     }
 
     // Prefer service-role client for deterministic, RLS-safe updates (after verifying auth user)
@@ -123,7 +136,7 @@ export async function POST(request) {
     if (targetId) {
       const { data } = await db
         .from('token_usage')
-        .select('id, total_tokens, monthly_reset, model')
+        .select('id, total_tokens, monthly_reset, model, browser_minutes')
         .eq('id', targetId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -131,7 +144,7 @@ export async function POST(request) {
     } else {
       const { data } = await db
         .from('token_usage')
-        .select('id, total_tokens, monthly_reset, model')
+        .select('id, total_tokens, monthly_reset, model, browser_minutes')
         .eq('user_id', user.id)
         .maybeSingle()
       existingUsage = data || null
@@ -156,41 +169,48 @@ export async function POST(request) {
 
     // Determine new totals and monthly_reset state
     let newTotalTokens
+    let newTotalBrowserMinutes
     let newMonthlyReset = existingUsage?.monthly_reset
 
     if (!existingUsage) {
       // First-ever usage record for this user
       newTotalTokens = tokensThisRequest
+      newTotalBrowserMinutes = browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else if (!existingUsage.monthly_reset) {
       // No monthly_reset set yet; set to beginning of current month and continue accumulating
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+      newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else if (isResetDue) {
       // New monthly period started; reset total to current request
       newTotalTokens = tokensThisRequest
+      newTotalBrowserMinutes = browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else {
       // Same monthly period; accumulate
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+      newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
     }
 
     console.log(`Updating token usage via POST - user: ${user.id}, add: ${tokensThisRequest}, total -> ${newTotalTokens}`)
+    console.log(`Updating browser usage via POST - user: ${user.id}, add: ${browserMinutesThisRequest}, total -> ${newTotalBrowserMinutes}`)
 
     if (existingUsage?.id) {
       const { data: updatedRows, error: updateError } = await db
         .from('token_usage')
         .update({
           total_tokens: newTotalTokens,
+          browser_minutes: newTotalBrowserMinutes,
           monthly_reset: newMonthlyReset,
           model: modelUsed,
         })
         .eq('id', existingUsage.id)
         .eq('user_id', user.id)
-        .select('id, total_tokens, monthly_reset')
+        .select('id, total_tokens, browser_minutes, monthly_reset')
 
       if (updateError) {
         console.error('Error updating token usage via POST:', updateError)
@@ -201,6 +221,7 @@ export async function POST(request) {
         success: true,
         id: updatedRows?.[0]?.id || existingUsage.id,
         total_tokens: updatedRows?.[0]?.total_tokens ?? newTotalTokens,
+        browser_minutes: updatedRows?.[0]?.browser_minutes ?? newTotalBrowserMinutes,
         monthly_reset: updatedRows?.[0]?.monthly_reset ?? newMonthlyReset,
         model: modelUsed,
       })
@@ -213,6 +234,7 @@ export async function POST(request) {
         id: newId,
         user_id: user.id,
         total_tokens: newTotalTokens,
+        browser_minutes: newTotalBrowserMinutes,
         model: modelUsed,
         monthly_reset: newMonthlyReset,
       })
@@ -226,6 +248,7 @@ export async function POST(request) {
       success: true,
       id: newId,
       total_tokens: newTotalTokens,
+      browser_minutes: newTotalBrowserMinutes,
       monthly_reset: newMonthlyReset,
       model: modelUsed,
     })
