@@ -101,8 +101,11 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   const thinkingStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
-      { role: "system", content: thinkingSystem },
-      { role: "user", content: thinkingUser },
+      { 
+        role: "system", 
+        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem." 
+      },
+      { role: "user", content: `Please think through this request step by step. Limit your analysis to 2 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.` },
     ],
     stream: true,
     temperature: 0.3,

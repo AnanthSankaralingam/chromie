@@ -3,8 +3,9 @@
 TODOs
 1. use response id for continued conversation. do not update supabase with it yet. (ananth)
 2. render html in editor
-3. test and use o3, sonnet, etc. (o3 better at complex reasoning, seems to overengineer a lot though - doing some linear algebra for UI element placement)
-4. auto completions/suggestions for home page prompt input (akshay - done, can revise list)
+3. token usage rendering bug
+4. test and use o3, sonnet, etc. (o3 better at complex reasoning, seems to overengineer a lot though - doing some linear algebra for UI element placement)
+5. auto completions/suggestions for home page prompt input (akshay - done, can revise list)
 
 Security TODOs
 1. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
