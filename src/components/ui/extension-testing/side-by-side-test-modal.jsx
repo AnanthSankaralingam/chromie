@@ -5,7 +5,7 @@ import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play } f
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
-import BrowserUsageIndicator from "@/components/ui/browser-usage-indicator"
+import BrowserTestingTutorial from "./browser-testing-tutorial"
 
 export default function SideBySideTestModal({ 
   isOpen, 
@@ -108,6 +108,7 @@ export default function SideBySideTestModal({
     sessionData: sessionData?.browserInfo
   })
 
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -158,9 +159,6 @@ export default function SideBySideTestModal({
               />
             )}
 
-            {/* Browser Usage Indicator */}
-            <BrowserUsageIndicator showDetails={false} />
-
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" onClick={onRefresh} className="text-gray-600 hover:text-gray-900">
                 <RefreshCw className="h-4 w-4" />
@@ -182,6 +180,7 @@ export default function SideBySideTestModal({
           <div className="flex-1 relative overflow-hidden">
             {sessionExpired ? (
               <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+
                 <div className="text-center">
                   <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Session Expired</h3>
@@ -189,13 +188,7 @@ export default function SideBySideTestModal({
                 </div>
               </div>
             ) : isLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Starting session...</h3>
-                  <p className="text-gray-600">This may take a few moments</p>
-                </div>
-              </div>
+              <BrowserTestingTutorial />
             ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center max-w-md">

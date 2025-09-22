@@ -5,7 +5,6 @@ import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info } from "luci
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
-import BrowserUsageIndicator from "@/components/ui/browser-usage-indicator"
 
 export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
@@ -87,9 +86,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
                 warningThreshold={30}
               />
             )}
-
-            {/* Browser Usage Indicator */}
-            <BrowserUsageIndicator showDetails={false} />
 
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-600 hover:text-gray-900">
