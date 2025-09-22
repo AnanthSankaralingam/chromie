@@ -117,7 +117,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Step 2: Generate the structured code based on the thinking
   console.log("💻 Starting code generation phase...")
   const codeStream = await openai.chat.completions.create({
-    model: "4o",
+    model: "gpt-4o",
     messages: [
       { 
         role: "system", 
