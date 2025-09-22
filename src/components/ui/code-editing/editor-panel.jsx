@@ -1,12 +1,14 @@
 import { FileCode } from "lucide-react"
 import MonacoEditor from "./monaco-editor"
 
-export default function EditorPanel({ selectedFile, onFileSave }) {
+export default function EditorPanel({ selectedFile, onFileSave, allFiles }) {
   if (selectedFile) {
     return (
       <MonacoEditor 
         code={selectedFile.content}
         fileName={selectedFile.name}
+        filePath={selectedFile.fullPath}
+        projectFiles={allFiles}
         className="h-full"
         onSave={onFileSave}
         readOnly={false}

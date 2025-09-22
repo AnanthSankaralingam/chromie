@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2 } from 'lucide-react'
+import { Save, Edit3, Settings, Code2, Eye, Code } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 
 export default function MonacoEditor({ 
@@ -11,12 +12,16 @@ export default function MonacoEditor({
   fileName, 
   className = "", 
   onSave,
-  readOnly = false 
+  readOnly = false,
+  filePath,
+  projectFiles = []
 }) {
   const editorRef = useRef(null)
   const [content, setContent] = useState(code)
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isHtmlPreview, setIsHtmlPreview] = useState(false)
+  const [isPreviewInfoOpen, setIsPreviewInfoOpen] = useState(false)
 
   // Update content when code prop changes
   useEffect(() => {
@@ -87,6 +92,78 @@ export default function MonacoEditor({
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleToggleHtmlPreview = () => {
+    if (!(language === 'html')) return
+    const next = !isHtmlPreview
+    setIsHtmlPreview(next)
+    console.log('[MonacoEditor] HTML preview toggled', { fileName, preview: next })
+    if (next) {
+      try {
+        const seen = typeof window !== 'undefined' && window.localStorage.getItem('html_preview_info_seen') === '1'
+        if (!seen) {
+          setIsPreviewInfoOpen(true)
+          window.localStorage.setItem('html_preview_info_seen', '1')
+        }
+      } catch (e) {
+        // non-blocking
+      }
+    }
+  }
+
+  const buildHtmlSrcDoc = (raw) => {
+    const inlineLinkedStyles = (html) => {
+      try {
+        const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi
+        const baseDir = (filePath || '').split('/').slice(0, -1).join('/')
+        const resolvePath = (href) => {
+          if (/^https?:\/\//i.test(href)) return href
+          if (href.startsWith('/')) return href // leave absolute paths (may 404 in dev)
+          const parts = [...(baseDir ? baseDir.split('/') : []), href]
+          const stack = []
+          for (const part of parts) {
+            if (part === '' || part === '.') continue
+            if (part === '..') stack.pop()
+            else stack.push(part)
+          }
+          return stack.join('/')
+        }
+        return html.replace(linkRegex, (match, href) => {
+          const resolved = resolvePath(href)
+          const file = projectFiles.find(f => f.file_path === resolved)
+          if (file && typeof file.content === 'string') {
+            return `<style>${file.content}</style>`
+          }
+          return match
+        })
+      } catch (e) {
+        return html
+      }
+    }
+    const hasFullHtml = /<html[\s>]/i.test(raw) || /<body[\s>]/i.test(raw)
+    if (hasFullHtml) {
+      // Ensure a white background similar to extension rendering
+      // If user's HTML already sets background, their CSS may override this.
+      const withBg = `<!doctype html>` + raw.replace(
+        /<head(.*?)>/i,
+        (m) => `${m}\n<style>html, body { background: #ffffff !important; }</style>`
+      )
+      return inlineLinkedStyles(withBg)
+    }
+    const scaffold = `<!doctype html><html><head><meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root { color-scheme: light dark; }
+      html, body { height: 100%; background: #ffffff !important; }
+      body { margin: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; line-height: 1.5; }
+      img, video, canvas, svg { max-width: 100%; height: auto; }
+      * { box-sizing: border-box; }
+    </style>
+    </head><body>
+      <div id="app">${raw}</div>
+    </body></html>`
+    return inlineLinkedStyles(scaffold)
   }
 
   const handleFormat = () => {
@@ -204,6 +281,22 @@ export default function MonacoEditor({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
+      <Dialog open={isPreviewInfoOpen} onOpenChange={setIsPreviewInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>HTML Preview (Beta)</DialogTitle>
+            <DialogDescription>
+              This is a visual-only preview of your HTML. Interactivity, scripts, and extension APIs will not function here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-3 text-sm text-slate-400">
+            For full functionality, try the simulated browser or install and test the generated extension in your browser.
+          </div>
+          <div className="mt-5 flex justify-end">
+            <Button onClick={() => setIsPreviewInfoOpen(false)} className="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1">Got it</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Editor Header */}
       {!readOnly && (
         <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-700/50">
@@ -232,6 +325,22 @@ export default function MonacoEditor({
                 Format
               </Button>
             )}
+            {language === 'html' && (
+              <Button
+                onClick={handleToggleHtmlPreview}
+                size="sm"
+                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"
+                title={isHtmlPreview ? 'Back to Code' : 'See HTML'}
+              >
+                {isHtmlPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                {isHtmlPreview ? 'Code' : (
+                  <span className="inline-flex items-center space-x-1">
+                    <span>See</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-teal-800 text-teal-200 border border-teal-700">beta</span>
+                  </span>
+                )}
+              </Button>
+            )}
             <Button
               onClick={handleSave}
               disabled={!hasChanges || isSaving}
@@ -247,59 +356,70 @@ export default function MonacoEditor({
 
       {/* Monaco Editor */}
       <div className="flex-1 min-h-0">
-        <Editor
-          height="100%"
-          language={language}
-          value={content}
-          onChange={handleEditorChange}
-          onMount={handleEditorDidMount}
-          theme="vs-dark"
-          options={{
-            readOnly: readOnly,
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            minimap: { enabled: true },
-            fontSize: 14,
-            lineHeight: 20,
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
-            fontLigatures: true,
-            wordWrap: 'on',
-            lineNumbers: 'on',
-            glyphMargin: true,
-            folding: true,
-            renderWhitespace: 'selection',
-            cursorBlinking: 'smooth',
-            cursorSmoothCaretAnimation: true,
-            smoothScrolling: true,
-            contextmenu: true,
-            mouseWheelZoom: true,
-            multiCursorModifier: 'ctrlCmd',
-            formatOnPaste: true,
-            formatOnType: true,
-            suggestOnTriggerCharacters: true,
-            acceptSuggestionOnEnter: 'on',
-            tabCompletion: 'on',
-            wordBasedSuggestions: true,
-            parameterHints: { enabled: true },
-            quickSuggestions: true,
-            hover: { enabled: true },
-            bracketPairColorization: { enabled: true },
-            guides: {
-              bracketPairs: true,
-              bracketPairsHorizontal: true,
-              highlightActiveBracketPair: true,
-              indentation: true
-            }
-          }}
-          loading={
-            <div className="flex items-center justify-center h-full bg-slate-900">
-              <div className="flex flex-col items-center space-y-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent"></div>
-                <span className="text-sm text-slate-400">Loading editor...</span>
+        {language === 'html' && isHtmlPreview ? (
+          <div className="h-full w-full">
+            <iframe
+              title="HTML Preview"
+              className="w-full h-full bg-white"
+              sandbox="allow-same-origin allow-forms allow-scripts allow-pointer-lock allow-popups"
+              srcDoc={buildHtmlSrcDoc(content)}
+            />
+          </div>
+        ) : (
+          <Editor
+            height="100%"
+            language={language}
+            value={content}
+            onChange={handleEditorChange}
+            onMount={handleEditorDidMount}
+            theme="vs-dark"
+            options={{
+              readOnly: readOnly,
+              automaticLayout: true,
+              scrollBeyondLastLine: false,
+              minimap: { enabled: true },
+              fontSize: 14,
+              lineHeight: 20,
+              fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+              fontLigatures: true,
+              wordWrap: 'on',
+              lineNumbers: 'on',
+              glyphMargin: true,
+              folding: true,
+              renderWhitespace: 'selection',
+              cursorBlinking: 'smooth',
+              cursorSmoothCaretAnimation: true,
+              smoothScrolling: true,
+              contextmenu: true,
+              mouseWheelZoom: true,
+              multiCursorModifier: 'ctrlCmd',
+              formatOnPaste: true,
+              formatOnType: true,
+              suggestOnTriggerCharacters: true,
+              acceptSuggestionOnEnter: 'on',
+              tabCompletion: 'on',
+              wordBasedSuggestions: true,
+              parameterHints: { enabled: true },
+              quickSuggestions: true,
+              hover: { enabled: true },
+              bracketPairColorization: { enabled: true },
+              guides: {
+                bracketPairs: true,
+                bracketPairsHorizontal: true,
+                highlightActiveBracketPair: true,
+                indentation: true
+              }
+            }}
+            loading={
+              <div className="flex items-center justify-center h-full bg-slate-900">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent"></div>
+                  <span className="text-sm text-slate-400">Loading editor...</span>
+                </div>
               </div>
-            </div>
-          }
-        />
+            }
+          />
+        )}
       </div>
     </div>
   )
