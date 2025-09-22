@@ -77,6 +77,32 @@
     transform: translateX(2px);
   }
   
+  /* Mobile-specific improvements */
+  @media (max-width: 1024px) {
+    .glass-effect {
+      backdrop-filter: blur(8px);
+    }
+    
+    /* Improve touch targets on mobile */
+    button, .cursor-pointer {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better text readability on mobile */
+    .text-xs {
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+    
+    /* Reduce motion for mobile users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      .animate-pulse, .animate-spin, .animate-fade-in-up {
+        animation: none;
+      }
+    }
+  }
+  
   /* Custom scrollbar styling */
   .custom-scrollbar {
     scrollbar-width: thin;

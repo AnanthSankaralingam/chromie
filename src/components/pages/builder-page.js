@@ -17,6 +17,7 @@ import useFileManagement from "@/components/ui/file-management"
 import useResizablePanels from "@/components/ui/resizable-panels"
 import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
+import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -32,6 +33,7 @@ export default function BuilderPage() {
   const [shouldStartDownloadHighlight, setShouldStartDownloadHighlight] = useState(false)
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
   const [hasTestedExtension, setHasTestedExtension] = useState(false)
+  const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
 
   // Custom hooks
   const projectSetup = useProjectSetup(user, isLoading)
@@ -206,7 +208,106 @@ export default function BuilderPage() {
           shouldStartDownloadHighlight={shouldStartDownloadHighlight}
         />
 
-        <div className="flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+        {/* Mobile Tab Navigation */}
+        <div className="lg:hidden border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
+                activeTab === 'chat' 
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>AI Chat</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('files')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
+                activeTab === 'files' 
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+              }`}
+            >
+              <FolderOpen className="h-4 w-4" />
+              <span>Files</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
+                activeTab === 'editor' 
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+              }`}
+            >
+              <FileCode className="h-4 w-4" />
+              <span>Editor</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Single Panel View */}
+        <div className="lg:hidden h-[calc(100vh-73px-49px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+          {activeTab === 'chat' && (
+            <div className="h-full flex flex-col">
+              <AIChat
+                projectId={projectSetup.currentProjectId}
+                projectName={projectSetup.currentProjectName}
+                autoGeneratePrompt={autoGeneratePrompt}
+                onAutoGenerateComplete={handleAutoGenerateComplete}
+                onCodeGenerated={async (response) => {
+                  await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
+                  setIsGenerating(false)
+                  
+                  // Auto-select manifest.json file after code generation and switch to files tab
+                  setTimeout(() => {
+                    const manifestFile = fileManagement.findManifestFile()
+                    if (manifestFile) {
+                      setSelectedFile(manifestFile)
+                    }
+                    setActiveTab('files') // Switch to files tab after code generation
+                  }, 500) // Small delay to ensure file structure is updated
+                }}
+                onGenerationStart={() => {
+                  setIsGenerating(true)
+                }}
+                onGenerationEnd={() => {
+                  setIsGenerating(false)
+                }}
+                isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+              />
+            </div>
+          )}
+          
+          {activeTab === 'files' && (
+            <div className="h-full">
+              <ProjectFilesPanel
+                fileStructure={fileManagement.fileStructure}
+                selectedFile={selectedFile}
+                onFileSelect={(file) => {
+                  handleFileSelect(file)
+                  setActiveTab('editor') // Switch to editor when file is selected
+                }}
+                isLoadingFiles={fileManagement.isLoadingFiles}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+            </div>
+          )}
+          
+          {activeTab === 'editor' && (
+            <div className="h-full bg-slate-900">
+              <EditorPanel 
+                selectedFile={selectedFile}
+                onFileSave={handleFileSave}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Layout - Hidden on Mobile */}
+        <div className="hidden lg:flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
             <AIChat
