@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
-import AutocompleteSuggestions from "@/components/ui/autocomplete-suggestions"
+import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -134,9 +134,9 @@ export default function HomePage() {
   }
 
   const handleKeyDown = (e) => {
-    // Don't handle Enter if suggestions are visible - let autocomplete handle it
-    if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
-      // Let the autocomplete component handle these keys
+    // Let tab-complete component handle navigation and completion keys
+    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'Escape')) {
+      // Let the tab-complete component handle these keys
       return
     }
     
@@ -220,8 +220,8 @@ export default function HomePage() {
                   disabled={isGenerating}
                 />
 
-                {/* Autocomplete Suggestions */}
-                <AutocompleteSuggestions
+                {/* Tab Complete Suggestions */}
+                <TabCompleteSuggestions
                   query={prompt}
                   onSuggestionSelect={handleSuggestionSelect}
                   isVisible={showSuggestions}
