@@ -86,34 +86,9 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-<<<<<<< Updated upstream
   // Log the final coding prompt (stream)
   console.log('🧾 Final coding prompt (stream):\n', finalPrompt)
 
-  // Generate extension code with streaming - first get thinking, then structured code
-  yield { type: "generating_code", content: "Starting code generation..." }
-
-  // Step 1: Get the thinking process with streaming
-  console.log("🧠 Starting thinking phase...")
-  // Log the thinking prompt messages for traceability
-  const thinkingSystem = "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2-3 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem."
-  const thinkingUser = `${finalPrompt}\n\nPlease think through this request step by step. Limit your analysis to 2-3 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.`
-  console.log('🧠 Thinking prompt (system):\n', thinkingSystem)
-  console.log('🧠 Thinking prompt (user):\n', thinkingUser)
-  const thinkingStream = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { 
-        role: "system", 
-        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem." 
-      },
-      { role: "user", content: `Please think through this request step by step. Limit your analysis to 2 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.` },
-    ],
-    stream: true,
-    temperature: 0.3,
-    max_tokens: 3000,
-  })
-=======
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
@@ -121,20 +96,24 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   if (!skipThinking) {
     // Step 1: Get the thinking process with streaming
     console.log("🧠 Starting thinking phase...")
+    // Log the thinking prompt messages for traceability
+    const thinkingSystem = "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2-3 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem."
+    const thinkingUser = `${finalPrompt}\n\nPlease think through this request step by step. Limit your analysis to 2-3 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.`
+    console.log('🧠 Thinking prompt (system):\n', thinkingSystem)
+    console.log('🧠 Thinking prompt (user):\n', thinkingUser)
     const thinkingStream = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         { 
           role: "system", 
-          content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem." 
+          content: thinkingSystem
         },
-        { role: "user", content: `Please think through this request step by step. Limit your analysis to 2 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.` },
+        { role: "user", content: thinkingUser },
       ],
       stream: true,
       temperature: 0.3,
       max_tokens: 3000,
     })
->>>>>>> Stashed changes
 
     let thinkingContent = ""
     
