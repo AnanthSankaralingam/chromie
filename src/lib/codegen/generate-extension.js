@@ -6,7 +6,7 @@ import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup"
 import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs"
 import { batchScrapeWebpages } from "../webpage-scraper"
 import { createClient } from "../supabase/server"
-import { analyzeExtensionRequirements } from "./preprocessing"
+import { analyzeExtensionRequirements, analyzeExtensionRequirementsStream } from "./preprocessing"
 import { generateExtensionCode, generateExtensionCodeStream } from "./generate-extension-code"
 import { formatManifestJson, formatJsonFile } from "../utils/json-formatter"
 
@@ -191,7 +191,7 @@ ${apiResult.code_example || 'No example provided'}
 
     // Step 5: Generate extension code
     const replacements = {
-      user_feature_request: featureRequest,
+      user_feature_request: requirementsAnalysis.enhanced_prompt || featureRequest,
       ext_name: requirementsAnalysis.ext_name,
       chrome_api_documentation: chromeApiDocumentation || '',
       scraped_webpage_analysis: scrapedWebpageAnalysis
@@ -514,11 +514,21 @@ export async function* generateChromeExtensionStream({
       // Emit an analyzing phase summary stub; UI can show/update as details emerge
       yield { type: "phase", phase: "analyzing", content: "Understanding your requirements and constraints to scope the extension." }
       
-      const analysisResult = await analyzeExtensionRequirements({ featureRequest })
-      requirementsAnalysis = analysisResult.requirements
-      planningTokenUsage = analysisResult.tokenUsage
+      // Use streaming analysis to get both thinking content and requirements
+      for await (const chunk of analyzeExtensionRequirementsStream({ featureRequest })) {
+        if (chunk.type === "thinking" || chunk.type === "thinking_complete") {
+          // Forward the thinking content directly from the planning stream
+          yield chunk
+        } else if (chunk.type === "analysis_complete") {
+          requirementsAnalysis = chunk.requirements
+          planningTokenUsage = chunk.tokenUsage
+          yield { type: "analysis_complete", content: requirementsAnalysis.frontend_type }
+        } else if (chunk.type === "error") {
+          yield chunk
+          return
+        }
+      }
       
-      yield { type: "analysis_complete", content: requirementsAnalysis.frontend_type }
       // Provide a more specific analyzing summary now that analysis is complete
       const analyzingSummary = `Identified a ${requirementsAnalysis.frontend_type} UI with ${
         (requirementsAnalysis.docAPIs||[]).length
@@ -653,8 +663,11 @@ ${apiResult.code_example || 'No example provided'}
     }
 
     // Step 5: Generate extension code with streaming
+    const finalPrompt = requirementsAnalysis.enhanced_prompt || featureRequest
+    console.log(`🎯 Using ${requirementsAnalysis.enhanced_prompt ? 'enhanced' : 'original'} prompt: ${finalPrompt.substring(0, 150)}...`)
+    
     const replacements = {
-      user_feature_request: featureRequest,
+      user_feature_request: finalPrompt,
       ext_name: requirementsAnalysis.ext_name,
       chrome_api_documentation: chromeApiDocumentation || '',
       scraped_webpage_analysis: scrapedWebpageAnalysis
@@ -683,8 +696,8 @@ ${apiResult.code_example || 'No example provided'}
     // Emit implementing phase start
     yield { type: "phase", phase: "implementing", content: "Generating extension files and applying project updates." }
 
-    // Use the streaming code generation
-    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements, sessionId)) {
+    // Use the streaming code generation (skip thinking phase since it was done in planning)
+    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements, sessionId, true)) {
       yield chunk
     }
 

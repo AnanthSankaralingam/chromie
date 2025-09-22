@@ -77,10 +77,11 @@ Tool Requirements: No tools needed - generic functionality
 </tool_calling_examples>
 
 <output_requirements>
-You MUST return a JSON object with this exact schema:
+You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all quotes inside string values are properly escaped with backslashes.
 
 <output_schema>
 {
+  "plan": "Think through the user's request step by step, explaining your approach and reasoning in detail. Cover the most important implementation details, Chrome APIs needed, UI approach, and any challenges. Write 2 sentences that show your expert analysis of the request. IMPORTANT: Do not use quotes within this text - use single quotes or avoid them entirely.",
   "frontend_type": "popup | side_panel | overlay | generic",
   "chromeAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
   "webPageData": ["array of domains like 'youtube.com', 'twitter.com' or empty array if no specific sites needed"],
@@ -88,6 +89,14 @@ You MUST return a JSON object with this exact schema:
   "enhanced_prompt": "Enhanced version of the user's original request with better prompt engineering for subsequent coding"
 }
 </output_schema>
+
+<json_formatting_rules>
+- Use only double quotes for JSON strings
+- Do not use quotes (") within string values - use single quotes (') instead
+- Ensure proper comma placement between fields
+- Do not add trailing commas
+- Return only valid JSON without markdown code blocks
+</json_formatting_rules>
 </output_requirements>
 
 <decision_guidelines>
@@ -113,6 +122,7 @@ Analysis: Ambiguous request, no specific frontend or functionality mentioned
 Tool Requirements: No specific APIs or sites needed
 Output:
 {
+  "plan": "This productivity tracking request requires monitoring user activity across websites and storing time data persistently. I'll use Chrome's storage API to save tracking data and tabs API to monitor active websites. The extension should have a simple popup interface for viewing stats and setting goals, with background scripts handling the time tracking logic.",
   "frontend_type": "generic",
   "chromeAPIs": [],
   "webPageData": [],
@@ -127,6 +137,7 @@ Analysis: Quick access functionality, popup UI needed
 Tool Requirements: bookmarks API needed
 Output:
 {
+  "plan": "This bookmark access extension needs to retrieve and display Chrome bookmarks in an organized popup interface. I'll use the Chrome bookmarks API to fetch the bookmark tree and create a searchable, categorized menu. The popup should be lightweight and fast, with click handlers to open bookmarks in new tabs and keyboard navigation support.",
   "frontend_type": "popup",
   "chromeAPIs": ["bookmarks"],
   "webPageData": [],
@@ -141,6 +152,7 @@ Analysis: Needs Chrome bookmarks API + YouTube site structure, page interaction 
 Tool Requirements: bookmarks API + YouTube domain
 Output:
 {
+  "plan": "This YouTube bookmarking extension requires content script injection to add a bookmark button to video pages and use Chrome's bookmarks API to save videos with metadata. I'll need to analyze YouTube's DOM structure to position the button properly, extract video titles and URLs, and create a storage system for custom notes. The overlay approach will provide an in-page interface for managing saved videos.",
   "frontend_type": "overlay",
   "chromeAPIs": ["bookmarks"],
   "webPageData": ["youtube.com"],

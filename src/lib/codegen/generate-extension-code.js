@@ -70,12 +70,13 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
 }
 
 /**
- * Generates Chrome extension code with streaming support
+ * Generates Chrome extension code with streaming support (without separate thinking phase)
  * @param {string} codingPrompt - The coding prompt to use
  * @param {Object} replacements - Object containing placeholder replacements
- * @returns {AsyncGenerator} Stream of thinking and code generation
+ * @param {boolean} skipThinking - Whether to skip the thinking phase (already done in planning)
+ * @returns {AsyncGenerator} Stream of code generation
  */
-export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId) {
+export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false) {
   console.log("Generating extension code with streaming...")
   
   // Replace placeholders in the coding prompt
@@ -85,6 +86,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
+<<<<<<< Updated upstream
   // Log the final coding prompt (stream)
   console.log('🧾 Final coding prompt (stream):\n', finalPrompt)
 
@@ -111,21 +113,44 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     temperature: 0.3,
     max_tokens: 3000,
   })
+=======
+  // Generate extension code with streaming
+  yield { type: "generating_code", content: "Starting code generation..." }
 
-  let thinkingContent = ""
-  
-  for await (const chunk of thinkingStream) {
-    const content = chunk.choices[0]?.delta?.content || ""
-    if (content) {
-      thinkingContent += content
-      // Stream thinking content in real-time
-      yield { type: "thinking", content: content }
+  // Skip thinking phase if already done (e.g., from planning stream)
+  if (!skipThinking) {
+    // Step 1: Get the thinking process with streaming
+    console.log("🧠 Starting thinking phase...")
+    const thinkingStream = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem." 
+        },
+        { role: "user", content: `Please think through this request step by step. Limit your analysis to 2 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.` },
+      ],
+      stream: true,
+      temperature: 0.3,
+      max_tokens: 3000,
+    })
+>>>>>>> Stashed changes
+
+    let thinkingContent = ""
+    
+    for await (const chunk of thinkingStream) {
+      const content = chunk.choices[0]?.delta?.content || ""
+      if (content) {
+        thinkingContent += content
+        // Stream thinking content in real-time
+        yield { type: "thinking", content: content }
+      }
     }
+
+    yield { type: "thinking_complete", content: thinkingContent }
   }
 
-  yield { type: "thinking_complete", content: thinkingContent }
-
-  // Step 2: Generate the structured code based on the thinking
+  // Generate the structured code
   console.log("💻 Starting code generation phase...")
   // Log the coding phase message role and prompt
   console.log('💻 Coding prompt role: system')
