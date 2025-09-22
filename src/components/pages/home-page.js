@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
+import AutocompleteSuggestions from "@/components/ui/autocomplete-suggestions"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const router = useRouter()
   const textareaRef = useRef(null)
 
@@ -41,7 +43,37 @@ export default function HomePage() {
   }
 
   const handleTextareaChange = (e) => {
-    setPrompt(e.target.value)
+    const value = e.target.value
+    setPrompt(value)
+    
+    // Show suggestions when user starts typing
+    if (value.trim().length >= 2) {
+      setShowSuggestions(true)
+    } else {
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleSuggestionSelect = (suggestionText) => {
+    setPrompt(suggestionText)
+    setShowSuggestions(false)
+    // Focus back to textarea after selection
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+    console.log('🎯 Selected suggestion applied:', suggestionText.slice(0, 50) + '...')
+  }
+
+  const handleTextareaFocus = () => {
+    // Show suggestions if there's existing text
+    if (prompt.trim().length >= 2) {
+      setShowSuggestions(true)
+    }
+  }
+
+  const handleTextareaBlur = () => {
+    // Don't hide suggestions immediately to allow clicking on them
+    // The autocomplete component handles hiding via click outside
   }
 
   const handleSubmit = async (e) => {
@@ -102,8 +134,15 @@ export default function HomePage() {
   }
 
   const handleKeyDown = (e) => {
+    // Don't handle Enter if suggestions are visible - let autocomplete handle it
+    if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Escape')) {
+      // Let the autocomplete component handle these keys
+      return
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      setShowSuggestions(false) // Hide suggestions when submitting
       handleSubmit(e)
       return
     }
@@ -167,6 +206,8 @@ export default function HomePage() {
                   onChange={handleTextareaChange}
                   onInput={handleTextareaInput}
                   onKeyDown={handleKeyDown}
+                  onFocus={handleTextareaFocus}
+                  onBlur={handleTextareaBlur}
                   onPaste={() => {
                     requestAnimationFrame(() => {
                       resizeTextarea()
@@ -177,6 +218,15 @@ export default function HomePage() {
                   className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   ref={textareaRef}
                   disabled={isGenerating}
+                />
+
+                {/* Autocomplete Suggestions */}
+                <AutocompleteSuggestions
+                  query={prompt}
+                  onSuggestionSelect={handleSuggestionSelect}
+                  isVisible={showSuggestions}
+                  onVisibilityChange={setShowSuggestions}
+                  inputRef={textareaRef}
                 />
 
                 {/* Action Buttons */}
