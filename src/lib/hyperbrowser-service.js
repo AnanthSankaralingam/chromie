@@ -7,11 +7,25 @@ import JSZip from "jszip"
 
 export class HyperbrowserService {
   constructor() {
-    this.apiKey = process.env.HYPERBROWSER_API_KEY
+    this.apiKey = process.env.HYPERBROWSER_API_KEY || process.env.HYPERBROWSER_API_KEY_FALLBACK_1
+    this.fallbackApiKey = process.env.HYPERBROWSER_API_KEY_FALLBACK_1
     this.client = null
     if (this.apiKey) {
       this.client = new Hyperbrowser({ apiKey: this.apiKey })
     }
+  }
+
+  /**
+   * Try to reinitialize client with fallback API key
+   */
+  tryFallbackApiKey() {
+    if (this.fallbackApiKey && this.apiKey !== this.fallbackApiKey) {
+      console.log("Trying fallback API key for Hyperbrowser")
+      this.apiKey = this.fallbackApiKey
+      this.client = new Hyperbrowser({ apiKey: this.apiKey })
+      return true
+    }
+    return false
   }
 
   /**
@@ -112,6 +126,18 @@ export class HyperbrowserService {
       return result
     } catch (error) {
       console.error("Failed to create Hyperbrowser test session:", error)
+      
+      // Try fallback API key if available
+      if (this.tryFallbackApiKey()) {
+        try {
+          console.log("Retrying with fallback API key...")
+          return await this.createTestSession(extensionFiles, projectId)
+        } catch (fallbackError) {
+          console.error("Fallback API key also failed:", fallbackError)
+          throw new Error(`Hyperbrowser session creation failed with both API keys: ${error.message}`)
+        }
+      }
+      
       throw new Error(`Hyperbrowser session creation failed: ${error.message}`)
     }
   }
@@ -569,6 +595,24 @@ setTimeout(() => {
         }
       } catch (error) {
         console.warn("Could not retrieve session from Hyperbrowser:", error.message)
+        
+        // Try fallback API key if available
+        if (this.tryFallbackApiKey()) {
+          try {
+            console.log("Retrying session status with fallback API key...")
+            const sessionInfo = await this.client.sessions.get(sessionId)
+            return {
+              sessionId,
+              status: sessionInfo.status || "active",
+              expiresAt: sessionInfo.expiresAt || new Date(Date.now() + 25 * 60 * 1000).toISOString(),
+              extensionLoaded: true,
+              currentUrl: sessionInfo.currentUrl || "https://example.com",
+            }
+          } catch (fallbackError) {
+            console.warn("Fallback API key also failed for session status:", fallbackError.message)
+          }
+        }
+        
         return {
           sessionId,
           status: "unknown",
@@ -599,6 +643,19 @@ setTimeout(() => {
       return true
     } catch (error) {
       console.error("Failed to terminate session:", error)
+      
+      // Try fallback API key if available
+      if (this.tryFallbackApiKey()) {
+        try {
+          console.log("Retrying session termination with fallback API key...")
+          await this.client.sessions.stop(sessionId)
+          console.log("Session stopped with fallback key for:", sessionId)
+          return true
+        } catch (fallbackError) {
+          console.error("Fallback API key also failed for termination:", fallbackError)
+        }
+      }
+      
       return false
     }
   }
@@ -703,6 +760,100 @@ setTimeout(() => {
         message: 'Action acknowledged (test environment limitations)',
         warning: 'Script execution simulated due to Hyperbrowser API limitations'
       }
+    }
+  }
+
+  /**
+   * Clean up expired sessions and update browser usage
+   * @param {Object} supabase - Supabase client instance
+   * @returns {Promise<Object>} Cleanup results
+   */
+  async cleanupExpiredSessions(supabase) {
+    try {
+      console.log('Starting expired session cleanup...')
+      
+      const now = new Date()
+      const { data: expiredSessions, error: fetchError } = await supabase
+        .from('browser_sessions')
+        .select('id, user_id, created_at, expires_at, remaining_minutes, status')
+        .eq('status', 'active')
+        .lt('expires_at', now.toISOString())
+
+      if (fetchError) {
+        console.error('Error fetching expired sessions:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+
+      if (!expiredSessions || expiredSessions.length === 0) {
+        console.log('No expired sessions found')
+        return { success: true, cleaned: 0 }
+      }
+
+      console.log(`Found ${expiredSessions.length} expired sessions to clean up`)
+
+      let cleanedCount = 0
+      const errors = []
+
+      for (const session of expiredSessions) {
+        try {
+          // Calculate actual minutes used
+          // Always record 1 minute used regardless of actual session duration
+          const actualMinutesUsed = 1
+
+          // Terminate the session
+          const terminated = await this.terminateSession(session.id)
+          if (!terminated) {
+            console.warn(`Failed to terminate session ${session.id}`)
+          }
+
+          // Update browser usage
+          if (actualMinutesUsed > 0) {
+            const { error: usageError } = await supabase.rpc('update_browser_usage', {
+              user_id: session.user_id,
+              minutes_used: actualMinutesUsed
+            })
+
+            if (usageError) {
+              console.error(`Error updating browser usage for session ${session.id}:`, usageError)
+              errors.push(`Usage update failed for session ${session.id}`)
+            }
+          }
+
+          // Mark session as expired in database
+          const { error: updateError } = await supabase
+            .from('browser_sessions')
+            .update({ 
+              status: 'expired',
+              terminated_at: now.toISOString(),
+              actual_minutes_used: actualMinutesUsed
+            })
+            .eq('id', session.id)
+
+          if (updateError) {
+            console.error(`Error updating session status for ${session.id}:`, updateError)
+            errors.push(`Status update failed for session ${session.id}`)
+          } else {
+            cleanedCount++
+            console.log(`Cleaned up session ${session.id}, used ${actualMinutesUsed} minutes`)
+          }
+
+        } catch (sessionError) {
+          console.error(`Error cleaning up session ${session.id}:`, sessionError)
+          errors.push(`Cleanup failed for session ${session.id}: ${sessionError.message}`)
+        }
+      }
+
+      console.log(`Session cleanup completed: ${cleanedCount} sessions cleaned, ${errors.length} errors`)
+
+      return {
+        success: true,
+        cleaned: cleanedCount,
+        errors: errors.length > 0 ? errors : undefined
+      }
+
+    } catch (error) {
+      console.error('Error during session cleanup:', error)
+      return { success: false, error: error.message }
     }
   }
 }

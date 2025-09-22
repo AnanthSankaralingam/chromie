@@ -85,6 +85,7 @@ Tracks LLM token usage per user.
 | `total_tokens`    | integer      | Total tokens = prompt + completion               |
 | `model`           | text         | Model used (e.g. 'gpt-4o')                        |
 | `monthly_reset`      | timestamptz  | DEFAULT now()                                    |
+| `browser_minutes`      | integer  | Total browser minutes                                |
 
 ---
 

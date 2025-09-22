@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings } from 'lucide-react'
+import { Save, Edit3, Settings, Code2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 
 export default function MonacoEditor({ 
   code, 
@@ -88,6 +89,27 @@ export default function MonacoEditor({
     }
   }
 
+  const handleFormat = () => {
+    if (!isJsonFile(fileName)) {
+      console.warn('Format button only works with JSON files')
+      return
+    }
+
+    try {
+      const formattedContent = formatJsonFile(fileName, content)
+      setContent(formattedContent)
+      setHasChanges(formattedContent !== code)
+      
+      // Focus the editor after formatting
+      if (editorRef.current) {
+        editorRef.current.focus()
+      }
+    } catch (error) {
+      console.error('Error formatting JSON:', error.message)
+      // You could add a toast notification here to show the error to the user
+    }
+  }
+
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor
 
@@ -137,6 +159,13 @@ export default function MonacoEditor({
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSave()
+    })
+
+    // Add format shortcut (Ctrl/Cmd + Shift + F)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, () => {
+      if (isJsonFile(fileName)) {
+        handleFormat()
+      }
     })
 
     // Set minimalistic dark theme
@@ -192,6 +221,17 @@ export default function MonacoEditor({
             <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
               {language}
             </span>
+            {isJsonFile(fileName) && (
+              <Button
+                onClick={handleFormat}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1"
+                title="Format JSON"
+              >
+                <Code2 className="h-3 w-3 mr-1" />
+                Format
+              </Button>
+            )}
             <Button
               onClick={handleSave}
               disabled={!hasChanges || isSaving}

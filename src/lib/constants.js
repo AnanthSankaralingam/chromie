@@ -1,20 +1,24 @@
-// Plan limits for token usage
+// Plan limits for token usage and browser testing
 export const PLAN_LIMITS = {
   free: { 
     monthly_tokens: 50000,
-    max_projects: 10 
+    max_projects: 10,
+    monthly_browser_minutes: 5
   },
   starter: { 
     monthly_tokens: 100000,
-    max_projects: 25 
+    max_projects: 25,
+    monthly_browser_minutes: 100
   },
   pro: { 
     monthly_tokens: 1000000,
-    max_projects: 50 
+    max_projects: 50,
+    monthly_browser_minutes: 250
   },
   enterprise: { 
     monthly_tokens: -1, // unlimited
-    max_projects: -1 
+    max_projects: -1,
+    monthly_browser_minutes: -1 // unlimited
   }
 }
 
@@ -24,4 +28,11 @@ export const DEFAULT_PLAN = 'free'
 // Model names used in the application
 export const OPENAI_MODELS = {
   GPT4O: 'gpt-4o'
+}
+
+// Browser session configuration
+export const BROWSER_SESSION_CONFIG = {
+  SESSION_DURATION_MINUTES: 1, // Maximum session duration
+  WARNING_TIME_MINUTES: 0.5, // Warning before session expires
+  CLEANUP_INTERVAL_MINUTES: 2 // How often to clean up expired sessions
 } 

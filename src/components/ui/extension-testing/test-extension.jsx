@@ -13,7 +13,7 @@ export default function useTestExtension(currentProjectId) {
     }
     
     cleanupAttempted.current = true
-    console.log("🧹 Cleaning up Hyperbrowser session:", sessionId)
+    console.log("🧹 Cleaning up browser session:", sessionId)
     
     try {
       const response = await fetch(`/api/projects/${projectId}/test-extension`, {
@@ -25,9 +25,16 @@ export default function useTestExtension(currentProjectId) {
       })
       
       if (response.ok) {
-        console.log("✅ Session cleanup successful")
+        const result = await response.json()
+        console.log("✅ Session cleanup successful", result)
+        
+        // Update browser usage indicator if available
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('browserUsageUpdated'))
+        }
       } else {
-        console.warn("⚠️ Session cleanup failed:", response.status)
+        const errorData = await response.json().catch(() => ({}))
+        console.warn("⚠️ Session cleanup failed:", response.status, errorData)
       }
     } catch (error) {
       console.error("❌ Error during session cleanup:", error)
@@ -126,6 +133,17 @@ export default function useTestExtension(currentProjectId) {
     cleanupAttempted.current = false // Reset for next session
   }
 
+  // Handle session expiry
+  const handleSessionExpire = async () => {
+    console.log("⏰ Session expired, cleaning up and closing modal")
+    if (testSessionData?.sessionId && currentProjectId) {
+      await cleanupSession(testSessionData.sessionId, currentProjectId)
+    }
+    setIsTestModalOpen(false)
+    setTestSessionData(null)
+    cleanupAttempted.current = false
+  }
+
   const handleRefreshTest = () => {
     if (testSessionData) {
       handleTestExtension()
@@ -138,6 +156,7 @@ export default function useTestExtension(currentProjectId) {
     isTestLoading,
     handleTestExtension,
     handleCloseTestModal,
-    handleRefreshTest
+    handleRefreshTest,
+    handleSessionExpire
   }
 } 
