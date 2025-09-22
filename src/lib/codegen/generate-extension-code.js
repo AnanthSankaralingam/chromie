@@ -82,51 +82,76 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  // Generate extension code with streaming - includes thinking and implementation in one call
+  // Generate extension code with streaming - first get thinking, then structured code
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const codeStream = await openai.chat.completions.create({
+  // Step 1: Get the thinking process with streaming
+  console.log("🧠 Starting thinking phase...")
+  const thinkingStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
       { 
         role: "system", 
-        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning. Then generate the complete extension code. End your response with valid JSON containing all the files in this exact format: {\"explanation\": \"...\", \"manifest.json\": \"...\", \"background.js\": \"...\", etc.}" 
+        content: "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2-3 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem." 
       },
-      { role: "user", content: finalPrompt },
+      { role: "user", content: `${finalPrompt}\n\nPlease think through this request step by step. Limit your analysis to 2-3 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.` },
     ],
     stream: true,
-    temperature: 0.2,
-    max_tokens: 15000,
+    temperature: 0.3,
+    max_tokens: 3000,
   })
 
-  let fullContent = ""
-  let isInJsonSection = false
+  let thinkingContent = ""
   
-  for await (const chunk of codeStream) {
+  for await (const chunk of thinkingStream) {
     const content = chunk.choices[0]?.delta?.content || ""
     if (content) {
-      fullContent += content
-      
-      // Check if we've reached the JSON section
-      if (!isInJsonSection && content.includes('{')) {
-        // Look for the start of JSON structure
-        const jsonStart = fullContent.lastIndexOf('{')
-        if (jsonStart > 0) {
-          isInJsonSection = true
-          yield { type: "thinking_complete", content: "Planning complete, generating files..." }
-        }
-      }
-      
-      if (!isInJsonSection) {
-        // Stream thinking content
-        yield { type: "thinking", content: content }
-      } else {
-        // Stream code generation progress
-        yield { type: "code", content: content }
-      }
+      thinkingContent += content
+      // Stream thinking content in real-time
+      yield { type: "thinking", content: content }
     }
   }
 
+  yield { type: "thinking_complete", content: thinkingContent }
+
+  // Step 2: Generate the structured code based on the thinking
+  console.log("💻 Starting code generation phase...")
+  const codeStream = await openai.chat.completions.create({
+    model: "o3",
+    messages: [
+      { 
+        role: "system", 
+        content: finalPrompt 
+      }
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "extension_implementation",
+        schema: {
+          type: "object",
+          properties: {
+            explanation: { type: "string" },
+            "manifest.json": {
+              oneOf: [{ type: "string" }, { type: "object" }],
+            },
+            "background.js": { type: "string" },
+            "content.js": { type: "string" },
+            "popup.html": { type: "string" },
+            "popup.js": { type: "string" },
+            "sidepanel.html": { type: "string" },
+            "sidepanel.js": { type: "string" },
+            "styles.css": { type: "string" },
+          },
+          required: ["explanation"],
+        },
+      },
+    },
+    temperature: 1,
+    max_completion_tokens: 15000,
+  })
+
+  let fullContent = codeStream.choices[0].message.content
   yield { type: "complete", content: fullContent }
   
   // Extract and stream the explanation from the coding completion
