@@ -301,6 +301,7 @@ export default function BuilderPage() {
               <EditorPanel 
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
+                allFiles={fileManagement.flatFiles}
               />
             </div>
           )}
@@ -359,6 +360,7 @@ export default function BuilderPage() {
               <EditorPanel 
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
+                allFiles={fileManagement.flatFiles}
               />
             </div>
           </div>
