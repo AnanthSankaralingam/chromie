@@ -3,7 +3,7 @@
 TODOs
 1. use response id for continued conversation. do not update supabase with it yet. (ananth)
 2. test and use o3, sonnet, etc.
-
+3. auto completions/suggestions for home page prompt input
 
 Security TODOs
 1. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
