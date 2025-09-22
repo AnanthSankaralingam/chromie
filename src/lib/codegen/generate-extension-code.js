@@ -25,6 +25,9 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
+  // Log the final coding prompt (non-stream)
+  console.log('🧾 Final coding prompt (non-stream):\n', finalPrompt)
+
   const requestConfig = {
     model: "gpt-4o",
     messages: [
@@ -82,11 +85,19 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
+  // Log the final coding prompt (stream)
+  console.log('🧾 Final coding prompt (stream):\n', finalPrompt)
+
   // Generate extension code with streaming - first get thinking, then structured code
   yield { type: "generating_code", content: "Starting code generation..." }
 
   // Step 1: Get the thinking process with streaming
   console.log("🧠 Starting thinking phase...")
+  // Log the thinking prompt messages for traceability
+  const thinkingSystem = "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2-3 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem."
+  const thinkingUser = `${finalPrompt}\n\nPlease think through this request step by step. Limit your analysis to 2-3 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.`
+  console.log('🧠 Thinking prompt (system):\n', thinkingSystem)
+  console.log('🧠 Thinking prompt (user):\n', thinkingUser)
   const thinkingStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
@@ -116,6 +127,9 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   // Step 2: Generate the structured code based on the thinking
   console.log("💻 Starting code generation phase...")
+  // Log the coding phase message role and prompt
+  console.log('💻 Coding prompt role: system')
+  console.log('💻 Coding prompt content (stream):\n', finalPrompt)
   const codeStream = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [

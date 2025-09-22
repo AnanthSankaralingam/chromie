@@ -15,6 +15,9 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     // Call the planning prompt to analyze the request
     const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
     
+    // Log the final planning prompt for debugging/tracing
+    console.log('🧾 Final planning prompt (NEW_EXT_PLANNING_PROMPT with USER_REQUEST):\n', planningPrompt)
+
     console.log("Calling planning prompt to analyze extension requirements...")
     
     const planningResponse = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {

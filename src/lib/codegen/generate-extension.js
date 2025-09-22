@@ -120,10 +120,10 @@ export async function generateChromeExtension({
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
-    if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
+    if (requirementsAnalysis.chromeAPIs && requirementsAnalysis.chromeAPIs.length > 0) {
       const apiDocs = []
       
-      for (const apiName of requirementsAnalysis.docAPIs) {
+      for (const apiName of requirementsAnalysis.chromeAPIs) {
         const apiResult = searchChromeExtensionAPI(apiName)
         if (!apiResult.error) {
           apiDocs.push(`
@@ -135,7 +135,6 @@ export async function generateChromeExtension({
 \`\`\`javascript
 ${apiResult.code_example || 'No example provided'}
 \`\`\`
-**Compatibility:** ${apiResult.compatibility || 'Chrome 88+'}
 **Manifest Version:** ${apiResult.manifest_version || 'V3'}
           `)
         } else {
@@ -567,13 +566,13 @@ export async function* generateChromeExtensionStream({
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
-    if (requirementsAnalysis.docAPIs && requirementsAnalysis.docAPIs.length > 0) {
+    if (requirementsAnalysis.chromeAPIs && requirementsAnalysis.chromeAPIs.length > 0) {
       yield { type: "fetching_apis", content: "fetching_apis" }
-      yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.docAPIs.join(', ')}` }
+      yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.chromeAPIs.join(', ')}` }
       
       const apiDocs = []
       
-      for (const apiName of requirementsAnalysis.docAPIs) {
+      for (const apiName of requirementsAnalysis.chromeAPIs) {
         const apiResult = searchChromeExtensionAPI(apiName)
         if (!apiResult.error) {
           apiDocs.push(`
@@ -585,7 +584,6 @@ export async function* generateChromeExtensionStream({
 \`\`\`javascript
 ${apiResult.code_example || 'No example provided'}
 \`\`\`
-**Compatibility:** ${apiResult.compatibility || 'Chrome 88+'}
 **Manifest Version:** ${apiResult.manifest_version || 'V3'}
           `)
         } else {
