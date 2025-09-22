@@ -104,7 +104,6 @@ export default function BrowserUsageIndicator({
           ({remainingBrowserMinutes} remaining)
         </span>
       )} */}
-
       {showDetails && (
         <div className="ml-2 text-xs opacity-75">
           {browserUsagePercentage}% used
