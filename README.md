@@ -2,10 +2,10 @@
 
 TODOs
 1. use response id for continued conversation. do not update supabase with it yet. (ananth)
-2. render html in editor
+2. ~render html in editor~ add modal saying how to use on first click
 3. token usage rendering bug
 4. test and use o3, sonnet, etc. (o3 better at complex reasoning, seems to overengineer a lot though - doing some linear algebra for UI element placement)
-5. auto completions/suggestions for home page prompt input (akshay - done, can revise list)
+5. ~auto completions/suggestions for home page prompt input (akshay - done, can revise list)~
 6. add chromie logo + unique styling to all generated extensions
 
 Security TODOs
