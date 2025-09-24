@@ -69,8 +69,18 @@ export async function generateChromeExtension({
   existingFiles = {},
   userProvidedUrl = null,
   skipScraping = false,
+  previousResponseId,
+  conversationTokenTotal,
+  modelOverride,
+  contextWindowMaxTokens,
 }) {
   try {
+    console.log('[generateChromeExtension] params', {
+      has_previousResponseId: Boolean(previousResponseId),
+      conversationTokenTotal,
+      modelOverride,
+      contextWindowMaxTokens
+    })
     let requirementsAnalysis
     let planningTokenUsage
 
@@ -197,20 +207,33 @@ ${apiResult.code_example || 'No example provided'}
       scraped_webpage_analysis: scrapedWebpageAnalysis
     }
     
-    // Add existing files context for modifications (excluding icon files)
-    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
-      // Filter out icon files from the context
-      const filteredFiles = {}
-      for (const [filename, content] of Object.entries(existingFiles)) {
-        // Skip icon files (png, jpg, jpeg, gif, svg, ico files)
-        if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
-          filteredFiles[filename] = content
+    // Add existing files context only if NOT using a previousResponseId
+    if (!previousResponseId) {
+      // Add existing files context for modifications (excluding icon files)
+      if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
+        // Filter out icon files from the context
+        const filteredFiles = {}
+        for (const [filename, content] of Object.entries(existingFiles)) {
+          // Skip icon files (png, jpg, jpeg, gif, svg, ico files)
+          if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
+            filteredFiles[filename] = content
+          }
         }
+        replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
+        console.log('[generateChromeExtension] included existing files context', { count: Object.keys(filteredFiles).length })
+      } else {
+        console.log('[generateChromeExtension] no existing files context needed')
       }
-      replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
+    } else {
+      console.log('[generateChromeExtension] skipping existing files context due to previousResponseId')
     }
     
-    const codingCompletion = await generateExtensionCode(selectedCodingPrompt, replacements)
+    const codingCompletion = await generateExtensionCode(
+      selectedCodingPrompt,
+      replacements,
+      false,
+      { previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens }
+    )
 
     // Preprocess the AI response to handle markdown-formatted JSON
     let aiResponse = codingCompletion.choices[0].message.content
@@ -311,10 +334,10 @@ if (typeof module !== 'undefined' && module.exports) {
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
       total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
-      model: "gpt-4o", // Use the primary model for tracking
+      model: codingCompletion?.tokenUsage?.model || "gpt-4o", // Use the model used for coding
       models: {
         planning: "gpt-oss-20b",
-        coding: "gpt-4o"
+        coding: codingCompletion?.tokenUsage?.model || "gpt-4o"
       }
     }
 
@@ -476,7 +499,9 @@ if (typeof module !== 'undefined' && module.exports) {
       files: filesOnly,
       stagehandScript: stagehandScript,
       sessionId,
-      tokenUsage: totalUsage
+      tokenUsage: totalUsage,
+      nextResponseId: codingCompletion?.nextResponseId || null,
+      tokensUsedThisRequest: codingCompletion?.tokensUsedThisRequest || codingCompletion?.usage?.total_tokens || 0
     }
 
   } catch (error) {
@@ -502,6 +527,10 @@ export async function* generateChromeExtensionStream({
   existingFiles = {},
   userProvidedUrl = null,
   skipScraping = false,
+  previousResponseId,
+  conversationTokenTotal,
+  modelOverride,
+  contextWindowMaxTokens,
 }) {
 
   try {
@@ -673,22 +702,24 @@ ${apiResult.code_example || 'No example provided'}
       scraped_webpage_analysis: scrapedWebpageAnalysis
     }
     
-    // Add existing files context for modifications (excluding icon files)
-    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
-      console.log("📁 Including existing files context for modification")
-      
-      // Filter out icon files from the context
-      const filteredFiles = {}
-      for (const [filename, content] of Object.entries(existingFiles)) {
-        // Skip icon files (png, jpg, jpeg, gif, svg, ico files)
-        if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
-          filteredFiles[filename] = content
+    // Add existing files context only if NOT using a previousResponseId
+    if (!previousResponseId) {
+      if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && Object.keys(existingFiles).length > 0) {
+        console.log("📁 Including existing files context for modification")
+        const filteredFiles = {}
+        for (const [filename, content] of Object.entries(existingFiles)) {
+          if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith('icons/')) {
+            filteredFiles[filename] = content
+          }
         }
+        replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
+        console.log(`📋 Context includes ${Object.keys(filteredFiles).length} existing files (excluding icons): ${Object.keys(filteredFiles).join(', ')}`)
+        yield { type: "context_ready", content: "context_ready" }
+      } else {
+        console.log('[generateChromeExtensionStream] no existing files context needed')
       }
-      
-      replacements.existing_files = JSON.stringify(filteredFiles, null, 2)
-      console.log(`📋 Context includes ${Object.keys(filteredFiles).length} existing files (excluding icons): ${Object.keys(filteredFiles).join(', ')}`)
-      yield { type: "context_ready", content: "context_ready" }
+    } else {
+      console.log('[generateChromeExtensionStream] skipping existing files context due to previousResponseId')
     }
     
     console.log("🚀 Starting streaming code generation...")
@@ -697,7 +728,13 @@ ${apiResult.code_example || 'No example provided'}
     yield { type: "phase", phase: "implementing", content: "Generating extension files and applying project updates." }
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
-    for await (const chunk of generateExtensionCodeStream(selectedCodingPrompt, replacements, sessionId, true)) {
+    for await (const chunk of generateExtensionCodeStream(
+      selectedCodingPrompt,
+      replacements,
+      sessionId,
+      true,
+      { previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens }
+    )) {
       yield chunk
     }
 

@@ -15,7 +15,8 @@ export default function StreamingChat({
   onCodeGenerated, 
   onGenerationStart, 
   onGenerationEnd, 
-  isProjectReady 
+  isProjectReady,
+  modelOverride
 }) {
   const [inputMessage, setInputMessage] = useState("")
   const [messages, setMessages] = useState([
@@ -36,6 +37,14 @@ export default function StreamingChat({
   const thinkingMessageIndexRef = useRef(null) // Track the thinking message index
   const explanationBufferRef = useRef("") // Buffer for accumulating final explanation tokens
   const sentGeneratingMessageRef = useRef(false) // Ensure generating message shows only once
+  const previousResponseIdRef = useRef(null)
+  const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
+
+  // Reset local-only conversation state on project change (navigation/refresh)
+  useEffect(() => {
+    previousResponseIdRef.current = null
+    setConversationTokenTotal(0)
+  }, [projectId])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -115,6 +124,15 @@ export default function StreamingChat({
       }
       
       const requestType = currentHasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
+      const hasPrev = Boolean(previousResponseIdRef.current)
+      const pathUsed = requestType === REQUEST_TYPES.ADD_TO_EXISTING && hasPrev ? 'responses_api' : 'manual_file_context'
+      console.log('[client/streaming-chat] generation params', { 
+        requestType, 
+        has_previousResponseId: hasPrev, 
+        previousResponseId: previousResponseIdRef.current,
+        pathUsed, 
+        modelOverride: modelOverride || null 
+      })
 
       // Start streaming response
       const response = await fetch("/api/generate/stream", {
@@ -126,6 +144,9 @@ export default function StreamingChat({
           prompt: prompt,
           projectId,
           requestType: requestType,
+          previousResponseId: previousResponseIdRef.current,
+          conversationTokenTotal,
+          modelOverride
         }),
       })
 
@@ -163,6 +184,29 @@ export default function StreamingChat({
                 case "start":
                   console.log("🚀 Stream started")
                   addNewAssistantMessage("Starting to analyze your request...")
+                  break
+                case "token_usage":
+                  if (typeof data.total === 'number') {
+                    setConversationTokenTotal(data.total)
+                    console.log('[client/streaming-chat] token_usage received', { total: data.total })
+                  }
+                  break
+                case "context_window":
+                  addNewAssistantMessage('Context limit reached. Please start a new conversation.')
+                  if (typeof data.total === 'number') {
+                    console.log('[client/streaming-chat] context-window stream handled', { total: data.total })
+                    setConversationTokenTotal(data.total)
+                  }
+                  // Do not continue processing further
+                  break
+                case "response_id":
+                  console.log('[client/streaming-chat] received response_id', { id: data.id, tokensUsedThisRequest: data.tokensUsedThisRequest })
+                  previousResponseIdRef.current = data.id
+                  if (typeof data.tokensUsedThisRequest === 'number') {
+                    const nextTotal = (conversationTokenTotal || 0) + data.tokensUsedThisRequest
+                    console.log('[client/streaming-chat] update totals', { id: data.id, tokensUsedThisRequest: data.tokensUsedThisRequest, nextTotal })
+                    setConversationTokenTotal(nextTotal)
+                  }
                   break
 
                 // Ignore intermediate status noise
@@ -348,6 +392,9 @@ export default function StreamingChat({
 
     try {
       // Start streaming response with URL
+      const hasPrev = Boolean(previousResponseIdRef.current)
+      const pathUsed = requestType === REQUEST_TYPES.ADD_TO_EXISTING && hasPrev ? 'responses_api' : 'manual_file_context'
+
       const response = await fetch("/api/generate/stream", {
         method: "POST",
         headers: {
@@ -358,7 +405,10 @@ export default function StreamingChat({
           projectId: projectId,
           requestType: requestType,
           userProvidedUrl: userUrl,
-          skipScraping: false
+          skipScraping: false,
+          previousResponseId: previousResponseIdRef.current,
+          conversationTokenTotal,
+          modelOverride
         }),
       })
 

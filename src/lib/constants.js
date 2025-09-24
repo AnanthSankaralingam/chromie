@@ -30,6 +30,11 @@ export const OPENAI_MODELS = {
   GPT4O: 'gpt-4o'
 }
 
+// OpenAI Responses API defaults
+export const OPENAI_RESPONSES_DEFAULT_MODEL = 'gpt-4o'
+export const RESPONSE_STORE_DEFAULT = true
+export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 120000
+
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {
   SESSION_DURATION_MINUTES: 1, // Maximum session duration

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtension } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
+import { isContextLimitError } from "@/lib/services/openai-responses"
 import { randomUUID } from "crypto"
 import fs from "fs"
 import path from "path"
@@ -20,7 +21,28 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens } = await request.json()
+
+    console.log('[api/generate] received', {
+      has_previousResponseId: Boolean(previousResponseId),
+      conversationTokenTotal_in: conversationTokenTotal ?? null,
+      modelOverride: modelOverride || null,
+      contextWindowMaxTokens: contextWindowMaxTokens || null
+    })
+
+    // Context window precheck for follow-ups
+    if (previousResponseId && contextWindowMaxTokens) {
+      const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+      console.log('[api/generate] context-window precheck', { estimatedTokensThisRequest, nextConversationTokenTotal, contextWindowMaxTokens })
+      if (nextConversationTokenTotal > contextWindowMaxTokens) {
+        return NextResponse.json({
+          errorType: 'context_window',
+          message: 'Context limit reached. Please start a new conversation.',
+          nextConversationTokenTotal
+        })
+      }
+    }
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -120,14 +142,33 @@ export async function POST(request) {
     console.log(`🔗 User provided URL: ${userProvidedUrl || 'none'}`)
     console.log(`⏭️ Skip scraping: ${skipScraping || false}`)
     
-    const result = await generateChromeExtension({
+    let result
+    try {
+      result = await generateChromeExtension({
       featureRequest: prompt,
       requestType,
       sessionId: projectId,
       existingFiles,
       userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
       skipScraping: !!skipScraping,
+      previousResponseId,
+      conversationTokenTotal,
+      modelOverride,
+      contextWindowMaxTokens
     })
+    } catch (err) {
+      if (isContextLimitError(err)) {
+        const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+        console.log('[api/generate] context-window error caught', { message: err?.message, nextConversationTokenTotal })
+        return NextResponse.json({
+          errorType: 'context_window',
+          message: 'Context limit reached. Please start a new conversation.',
+          nextConversationTokenTotal
+        })
+      }
+      throw err
+    }
 
     // Handle URL prompt requirement
     if (!result.success && result.requiresUrl) {
@@ -279,6 +320,17 @@ export async function POST(request) {
 
     console.log(`✅ Code generation completed successfully. Generated ${savedFiles.length} files.`)
     
+    // Compute tokens used this request if available
+    const tokensUsedThisRequest = result?.tokensUsedThisRequest ?? result?.tokenUsage?.total_tokens ?? 0
+    const nextResponseId = result?.nextResponseId || null
+
+    console.log('[api/generate] responding', {
+      conversationTokenTotal_out: (conversationTokenTotal || 0) + tokensUsedThisRequest,
+      tokensUsedThisRequest,
+      nextResponseId,
+      apiUsed: nextResponseId ? 'responses' : 'chat_completions'
+    })
+
     return NextResponse.json({
       success: true,
       explanation: result.explanation,
@@ -286,6 +338,8 @@ export async function POST(request) {
       files: savedFiles,
       filesGenerated: savedFiles.length,
       tokenUsage: result.tokenUsage || null,
+      nextResponseId,
+      tokensUsedThisRequest
     })
   } catch (error) {
     console.error("Error generating extension:", error)

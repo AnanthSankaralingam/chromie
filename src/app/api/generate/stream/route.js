@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
+import { isContextLimitError } from "@/lib/services/openai-responses"
 
 export async function POST(request) {
   const supabase = createClient()
@@ -17,7 +18,14 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens } = await request.json()
+
+    console.log('[api/generate/stream] received', {
+      has_previousResponseId: Boolean(previousResponseId),
+      conversationTokenTotal_in: conversationTokenTotal ?? null,
+      modelOverride: modelOverride || null,
+      contextWindowMaxTokens: contextWindowMaxTokens || null
+    })
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
@@ -167,6 +175,10 @@ export async function POST(request) {
             existingFiles,
             userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
             skipScraping: !!skipScraping,
+            previousResponseId,
+            conversationTokenTotal,
+            modelOverride,
+            contextWindowMaxTokens
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
@@ -185,6 +197,14 @@ export async function POST(request) {
           controller.close()
         } catch (error) {
           console.error("Error in streaming generation:", error)
+          if (isContextLimitError(error)) {
+            const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
+            const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+            const cw = JSON.stringify({ type: 'context_window', content: 'Context limit reached. Please start a new conversation.', total: nextConversationTokenTotal })
+            controller.enqueue(encoder.encode(`data: ${cw}\n\n`))
+            controller.close()
+            return
+          }
           const errorData = JSON.stringify({ type: "error", content: error.message })
           controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
           controller.close()

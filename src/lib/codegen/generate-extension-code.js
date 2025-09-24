@@ -1,6 +1,8 @@
 import OpenAI from "openai"
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
+import { continueResponse, createResponse } from "../services/openai-responses"
+import { OPENAI_RESPONSES_DEFAULT_MODEL } from "../constants"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,7 +15,8 @@ const openai = new OpenAI({
  * @param {boolean} stream - Whether to stream the response
  * @returns {Promise<Object>} Generated extension code and metadata
  */
-export async function generateExtensionCode(codingPrompt, replacements, stream = false) {
+export async function generateExtensionCode(codingPrompt, replacements, stream = false, options = {}) {
+  const { previousResponseId, conversationTokenTotal = 0, modelOverride, contextWindowMaxTokens } = options
   console.log("Generating extension code using coding prompt...")
   
   // Replace placeholders in the coding prompt
@@ -25,48 +28,132 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  // Log the final coding prompt (non-stream)
-  console.log('🧾 Final coding prompt (non-stream):\n', finalPrompt)
+  // console.log('🧾 Final coding prompt (non-stream):\n', finalPrompt)
 
-  const requestConfig = {
-    model: "gpt-4o",
-    messages: [
-      { role: "user", content: finalPrompt },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "extension_implementation",
-        schema: {
-          type: "object",
-          properties: {
-            explanation: { type: "string" },
-            "manifest.json": {
-              oneOf: [{ type: "string" }, { type: "object" }],
-            },
-            "background.js": { type: "string" },
-            "content.js": { type: "string" },
-            "popup.html": { type: "string" },
-            "popup.js": { type: "string" },
-            "sidepanel.html": { type: "string" },
-            "sidepanel.js": { type: "string" },
-            "styles.css": { type: "string" },
-          },
-          required: ["explanation"],
-        },
+  const modelUsed = modelOverride || "gpt-4o"
+  const jsonSchema = {
+    name: "extension_implementation",
+    schema: {
+      type: "object",
+      properties: {
+        explanation: { type: "string" },
+        "manifest.json": { type: "string" },
+        "background.js": { type: "string" },
+        "content.js": { type: "string" },
+        "popup.html": { type: "string" },
+        "popup.js": { type: "string" },
+        "sidepanel.html": { type: "string" },
+        "sidepanel.js": { type: "string" },
+        "styles.css": { type: "string" }
       },
-    },
-    temperature: 0.2,
-    max_tokens: 15000,
+      required: [
+        "explanation",
+        "manifest.json",
+        "background.js",
+        "content.js",
+        "popup.html",
+        "popup.js",
+        "sidepanel.html",
+        "sidepanel.js",
+        "styles.css"
+      ],
+      additionalProperties: false
+    }
+  }
+  
+
+  if (previousResponseId) {
+    // Precheck for context window if provided
+    if (contextWindowMaxTokens) {
+      const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+      console.log('[generateExtensionCode] context-window precheck', { estimatedTokensThisRequest, nextConversationTokenTotal, contextWindowMaxTokens })
+      if (nextConversationTokenTotal > contextWindowMaxTokens) {
+        return {
+          errorType: 'context_window',
+          message: 'Context limit reached. Please start a new conversation.',
+          nextConversationTokenTotal
+        }
+      }
+    }
+    console.log("[generateExtensionCode] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
+    try {
+      const response = await continueResponse({
+        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        previous_response_id: previousResponseId,
+        input: finalPrompt,
+        store: true,
+        response_format: jsonSchema,
+        temperature: 0.2,
+        max_output_tokens: 15000
+      })
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
+      console.log("[generateExtensionCode] tokens", { tokensUsedThisRequest, nextConversationTokenTotal, nextResponseId: response?.id })
+      // Return a shape compatible with existing callers
+      return {
+        choices: [
+          { message: { content: response?.output_text || "" } }
+        ],
+        usage: {
+          total_tokens: tokensUsedThisRequest
+        },
+        tokenUsage: {
+          total_tokens: tokensUsedThisRequest,
+          model: modelUsed
+        },
+        nextResponseId: response?.id,
+        tokensUsedThisRequest,
+        nextConversationTokenTotal
+      }
+    } catch (err) {
+      console.error("[generateExtensionCode] Responses API error", err?.message || err)
+      // Surface context-window error in a normalized shape
+      const { isContextLimitError } = await import('../services/openai-responses')
+      if (isContextLimitError(err)) {
+        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+        return {
+          errorType: 'context_window',
+          message: 'Context limit reached. Please start a new conversation.',
+          nextConversationTokenTotal
+        }
+      }
+      throw err
+    }
   }
 
-  if (stream) {
-    requestConfig.stream = true
+  console.log('[generateExtensionCode] Using Responses API (fresh)', { modelUsed })
+  try {
+    const response = await createResponse({
+      model: modelUsed,
+      input: finalPrompt,
+      store: true,
+      response_format: jsonSchema,
+      temperature: 0.2,
+      max_output_tokens: 15000
+    })
+    const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+    const nextResponseId = response?.id || null
+    console.log('[generateExtensionCode] responses fresh tokens', { tokensUsedThisRequest, nextResponseId })
+    return {
+      choices: [
+        { message: { content: response?.output_text || '' } }
+      ],
+      usage: {
+        total_tokens: tokensUsedThisRequest
+      },
+      tokenUsage: {
+        total_tokens: tokensUsedThisRequest,
+        model: modelUsed
+      },
+      tokensUsedThisRequest,
+      nextResponseId
+    }
+  } catch (err) {
+    console.error('[generateExtensionCode] Responses API fresh error', err?.message || err)
+    throw err
   }
-
-  const codingCompletion = await openai.chat.completions.create(requestConfig)
-
-  return codingCompletion
 }
 
 /**
@@ -76,7 +163,8 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
  * @param {boolean} skipThinking - Whether to skip the thinking phase (already done in planning)
  * @returns {AsyncGenerator} Stream of code generation
  */
-export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false) {
+export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false, options = {}) {
+  const { previousResponseId, conversationTokenTotal = 0, modelOverride, contextWindowMaxTokens } = options
   console.log("Generating extension code with streaming...")
   
   // Replace placeholders in the coding prompt
@@ -86,154 +174,336 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
   }
 
-  // Log the final coding prompt (stream)
-  console.log('🧾 Final coding prompt (stream):\n', finalPrompt)
+  // console.log('🧾 Final coding prompt (stream):\n', finalPrompt)
 
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  // Skip thinking phase if already done (e.g., from planning stream)
-  if (!skipThinking) {
-    // Step 1: Get the thinking process with streaming
-    console.log("🧠 Starting thinking phase...")
-    // Log the thinking prompt messages for traceability
-    const thinkingSystem = "You are an expert Chrome extension developer. Think through the user's request step by step, explaining your approach and reasoning in detail. Limit your analysis to 2-3 sentences, covering the most important details. Do NOT generate any code yet, just think through the problem."
-    const thinkingUser = `${finalPrompt}\n\nPlease think through this request step by step. Limit your analysis to 2-3 sentences, covering the most important details. Do not generate any code yet - just provide your detailed thinking process.`
-    console.log('🧠 Thinking prompt (system):\n', thinkingSystem)
-    console.log('🧠 Thinking prompt (user):\n', thinkingUser)
-    const thinkingStream = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { 
-          role: "system", 
-          content: thinkingSystem
-        },
-        { role: "user", content: thinkingUser },
-      ],
-      stream: true,
-      temperature: 0.3,
-      max_tokens: 3000,
-    })
+  const modelUsed = modelOverride || "gpt-4o"
 
-    let thinkingContent = ""
-    
-    for await (const chunk of thinkingStream) {
-      const content = chunk.choices[0]?.delta?.content || ""
-      if (content) {
-        thinkingContent += content
-        // Stream thinking content in real-time
-        yield { type: "thinking", content: content }
+  // Use Responses API for both new and follow-up requests
+  if (previousResponseId) {
+    console.log("[generateExtensionCodeStream] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
+    try {
+      const response = await continueResponse({
+        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        previous_response_id: previousResponseId,
+        input: finalPrompt,
+        store: true,
+        temperature: 0.2,
+        max_output_tokens: 15000,
+        response_format: {
+          name: "extension_implementation",
+          schema: {
+            type: "object",
+            properties: {
+              explanation: { type: "string" },
+              "manifest.json": { type: "string" },
+              "background.js": { type: "string" },
+              "content.js": { type: "string" },
+              "popup.html": { type: "string" },
+              "popup.js": { type: "string" },
+              "sidepanel.html": { type: "string" },
+              "sidepanel.js": { type: "string" },
+              "styles.css": { type: "string" }
+            },
+            required: ["explanation", "manifest.json", "background.js", "content.js", "popup.html", "popup.js", "sidepanel.html", "sidepanel.js", "styles.css"],
+            additionalProperties: false
+          }
+        }
+      })
+      
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
+      const nextResponseId = response?.id
+      
+      console.log("[generateExtensionCodeStream] Responses API tokens", { tokensUsedThisRequest, nextConversationTokenTotal, nextResponseId })
+      
+      // Send response_id data to frontend
+      yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
+      
+      // Process the response and yield completion
+      yield { type: "complete", content: response?.output_text || "" }
+      
+      // Extract and stream the explanation
+      let implementationResult
+      try {
+        let jsonContent = ""
+        
+        if (response?.output_text?.includes('```json')) {
+          const jsonMatch = response.output_text.match(/```json\s*([\s\S]*?)\s*```/)
+          if (jsonMatch) {
+            jsonContent = jsonMatch[1].trim()
+          }
+        } else if (response?.output_text?.includes('```')) {
+          const codeMatch = response.output_text.match(/```\s*([\s\S]*?)\s*```/)
+          if (codeMatch) {
+            jsonContent = codeMatch[1].trim()
+          }
+        } else {
+          const jsonStart = response.output_text.indexOf('{')
+          if (jsonStart !== -1) {
+            let braceCount = 0
+            let jsonEnd = jsonStart
+            for (let i = jsonStart; i < response.output_text.length; i++) {
+              if (response.output_text[i] === '{') braceCount++
+              if (response.output_text[i] === '}') braceCount--
+              if (braceCount === 0) {
+                jsonEnd = i + 1
+                break
+              }
+            }
+            jsonContent = response.output_text.substring(jsonStart, jsonEnd)
+          }
+        }
+        
+        if (jsonContent) {
+          implementationResult = JSON.parse(jsonContent)
+          if (implementationResult && implementationResult.explanation) {
+            console.log("📝 Extracted explanation from Responses API completion")
+            yield { type: "explanation", content: implementationResult.explanation }
+            yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error parsing explanation from Responses API completion:", error)
+        yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
       }
+      
+      // Process and save files (same as streaming version)
+      if (implementationResult && typeof implementationResult === 'object') {
+        console.log("🔄 Processing generated code for file saving...")
+        
+        const supabase = createClient()
+        
+        // Get predefined icons
+        const iconFiles = [
+          { file_path: "icons/icon16.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" },
+          { file_path: "icons/icon48.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" },
+          { file_path: "icons/icon128.png", content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" }
+        ]
+        
+        // Combine generated files with icons
+        const allFiles = { ...implementationResult }
+        iconFiles.forEach(icon => {
+          allFiles[icon.file_path] = icon.content
+        })
+        
+        // Add fallback HyperAgent script if not provided
+        if (!allFiles["hyperagent_test_script.js"]) {
+          console.log("📝 No HyperAgent script provided, using fallback")
+          allFiles["hyperagent_test_script.js"] = `// Fallback HyperAgent test script for Chrome extension testing
+// This is a minimal placeholder script that will be used when no specific
+// HyperAgent script is generated by the AI
+
+console.log("Starting HyperAgent test for Chrome Extension")
+
+// Basic test task - click extension icon and verify it loads
+const testTask = "Test the Chrome extension by clicking the extension icon and verifying it loads correctly"
+
+console.log("Test task:", testTask)
+
+// This is a placeholder script - the actual HyperAgent execution will be handled
+// by the Hyperbrowser service using this basic test task
+console.log("✅ HyperAgent test script loaded (fallback version)")
+
+// Export the test task for use by the HyperAgent service
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { testTask }
+}`
+        }
+        
+        // Remove explanation as it's not a file
+        delete allFiles.explanation
+        
+        console.log(`💾 Saving ${Object.keys(allFiles).length} files to database`)
+        
+        const savedFiles = []
+        const errors = []
+        
+        for (const [filePath, content] of Object.entries(allFiles)) {
+          try {
+            // First, try to update existing file
+            const { data: existingFile } = await supabase
+              .from("code_files")
+              .select("id")
+              .eq("project_id", sessionId)
+              .eq("file_path", filePath)
+              .single()
+            
+            if (existingFile) {
+              // Update existing file
+              const { error: updateError } = await supabase
+                .from("code_files")
+                .update({
+                  content: content,
+                  last_used_at: new Date().toISOString(),
+                })
+                .eq("id", existingFile.id)
+              
+              if (updateError) {
+                console.error(`Error updating file ${filePath}:`, updateError)
+                errors.push({ filePath, error: updateError })
+              } else {
+                savedFiles.push(filePath)
+              }
+            } else {
+              // Insert new file
+              const { error: insertError } = await supabase
+                .from("code_files")
+                .insert({
+                  id: randomUUID(),
+                  project_id: sessionId,
+                  file_path: filePath,
+                  content: content
+                })
+              
+              if (insertError) {
+                console.error(`Error inserting file ${filePath}:`, insertError)
+                errors.push({ filePath, error: insertError })
+              } else {
+                savedFiles.push(filePath)
+              }
+            }
+          } catch (fileError) {
+            console.error(`Exception handling file ${filePath}:`, fileError)
+            errors.push({ filePath, error: fileError })
+          }
+        }
+        
+        console.log(`✅ Saved ${savedFiles.length} files successfully`)
+        if (errors.length > 0) {
+          console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
+        }
+        
+        // Update project's has_generated_code flag
+        try {
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({ 
+              has_generated_code: true,
+              last_used_at: new Date().toISOString()
+            })
+            .eq('id', sessionId)
+          
+          if (updateError) {
+            console.error('❌ Error updating project has_generated_code:', updateError)
+          } else {
+            console.log('✅ Project has_generated_code updated successfully')
+          }
+        } catch (error) {
+          console.error('💥 Exception during project update:', error)
+        }
+        
+        yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+      }
+      
+      // Emit implementing phase completion summary
+      yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
+      return
+    } catch (err) {
+      console.error("[generateExtensionCodeStream] Responses API error", err?.message || err)
+      const { isContextLimitError } = await import('../services/openai-responses')
+      if (isContextLimitError(err)) {
+        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+        yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }
+        return
+      }
+      throw err
     }
-
-    yield { type: "thinking_complete", content: thinkingContent }
-  }
-
-  // Generate the structured code
-  console.log("💻 Starting code generation phase...")
-  // Log the coding phase message role and prompt
-  console.log('💻 Coding prompt role: system')
-  console.log('💻 Coding prompt content (stream):\n', finalPrompt)
-  const codeStream = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { 
-        role: "system", 
-        content: finalPrompt 
-      }
-    ],
+  } else {
+    // New request - use createResponse
+    console.log("[generateExtensionCodeStream] Using Responses API (new)", { modelUsed, hasPrevious: false })
+    try {
+      const response = await createResponse({
+        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        input: finalPrompt,
+        store: true,
+        temperature: 0.2,
+        max_output_tokens: 15000,
     response_format: {
-      type: "json_schema",
-      json_schema: {
         name: "extension_implementation",
         schema: {
           type: "object",
           properties: {
             explanation: { type: "string" },
-            "manifest.json": {
-              oneOf: [{ type: "string" }, { type: "object" }],
-            },
+              "manifest.json": { type: "string" },
             "background.js": { type: "string" },
             "content.js": { type: "string" },
             "popup.html": { type: "string" },
             "popup.js": { type: "string" },
             "sidepanel.html": { type: "string" },
             "sidepanel.js": { type: "string" },
-            "styles.css": { type: "string" },
-          },
-          required: ["explanation"],
-        },
-      },
-    },
-    temperature: 0.2,
-    max_completion_tokens: 15000,
-  })
-
-  let fullContent = codeStream.choices[0].message.content
-  yield { type: "complete", content: fullContent }
-  
-  // Extract and stream the explanation from the coding completion
+              "styles.css": { type: "string" }
+            },
+            required: ["explanation", "manifest.json", "background.js", "content.js", "popup.html", "popup.js", "sidepanel.html", "sidepanel.js", "styles.css"],
+            additionalProperties: false
+          }
+        }
+      })
+      
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
+      const nextResponseId = response?.id
+      
+      console.log("[generateExtensionCodeStream] Responses API tokens (new)", { tokensUsedThisRequest, nextConversationTokenTotal, nextResponseId })
+      
+      // Send response_id data to frontend
+      yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
+      
+      // Process the response and yield completion
+      yield { type: "complete", content: response?.output_text || "" }
+      
+      // Extract and stream the explanation
   let implementationResult
   try {
-    // Find the JSON section in the full content
     let jsonContent = ""
     
-    // Look for JSON block markers first
-    if (fullContent.includes('```json')) {
-      const jsonMatch = fullContent.match(/```json\s*([\s\S]*?)\s*```/)
+        if (response?.output_text?.includes('```json')) {
+          const jsonMatch = response.output_text.match(/```json\s*([\s\S]*?)\s*```/)
       if (jsonMatch) {
         jsonContent = jsonMatch[1].trim()
       }
-    } else if (fullContent.includes('```')) {
-      // Try generic code block
-      const codeMatch = fullContent.match(/```\s*([\s\S]*?)\s*```/)
+        } else if (response?.output_text?.includes('```')) {
+          const codeMatch = response.output_text.match(/```\s*([\s\S]*?)\s*```/)
       if (codeMatch) {
         jsonContent = codeMatch[1].trim()
       }
     } else {
-      // Find the largest JSON object in the content
-      const jsonStart = fullContent.indexOf('{')
-      if (jsonStart === -1) {
-        throw new Error("No JSON found in response")
-      }
-      
-      // Find the matching closing brace
+          const jsonStart = response.output_text.indexOf('{')
+          if (jsonStart !== -1) {
       let braceCount = 0
       let jsonEnd = jsonStart
-      for (let i = jsonStart; i < fullContent.length; i++) {
-        if (fullContent[i] === '{') braceCount++
-        if (fullContent[i] === '}') braceCount--
+            for (let i = jsonStart; i < response.output_text.length; i++) {
+              if (response.output_text[i] === '{') braceCount++
+              if (response.output_text[i] === '}') braceCount--
         if (braceCount === 0) {
           jsonEnd = i + 1
           break
         }
       }
-      
-      jsonContent = fullContent.substring(jsonStart, jsonEnd)
+            jsonContent = response.output_text.substring(jsonStart, jsonEnd)
+    }
     }
     
-    if (!jsonContent) {
-      throw new Error("No JSON content extracted")
-    }
-    
+        if (jsonContent) {
     implementationResult = JSON.parse(jsonContent)
     if (implementationResult && implementationResult.explanation) {
-      console.log("📝 Extracted explanation from coding completion")
+            console.log("📝 Extracted explanation from Responses API completion (new)")
       yield { type: "explanation", content: implementationResult.explanation }
-      // Also emit as planning phase summary for the UI phases view
       yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+          }
     }
   } catch (error) {
-    console.error("❌ Error parsing explanation from coding completion:", error)
+        console.error("❌ Error parsing explanation from Responses API completion (new):", error)
     yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
   }
   
-  // Process and save the generated files
-  try {
+      // Process and save files (same as follow-up version)
+      if (implementationResult && typeof implementationResult === 'object') {
     console.log("🔄 Processing generated code for file saving...")
     
-    if (implementationResult && typeof implementationResult === 'object') {
-      // Save files to database
       const supabase = createClient()
       
       // Get predefined icons
@@ -356,12 +626,22 @@ if (typeof module !== 'undefined' && module.exports) {
       }
       
       yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
-    }
-  } catch (error) {
-    console.error("❌ Error processing generated code:", error)
-    yield { type: "save_error", content: `Error saving files: ${error.message}` }
   }
   
   // Emit implementing phase completion summary
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
+      return
+    } catch (err) {
+      console.error("[generateExtensionCodeStream] Responses API error (new)", err?.message || err)
+      const { isContextLimitError } = await import('../services/openai-responses')
+      if (isContextLimitError(err)) {
+        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+        yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }
+        return
+      }
+      throw err
+    }
+  }
+
 }
