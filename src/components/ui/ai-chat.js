@@ -14,6 +14,8 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
   const [urlPromptData, setUrlPromptData] = useState(null)
   const [showUrlPrompt, setShowUrlPrompt] = useState(false)
   const [useStreaming, setUseStreaming] = useState(true) // Enable streaming with buffering fix
+  const [previousResponseId, setPreviousResponseId] = useState(null)
+  const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
   
   // Listen for URL prompt events from use-chat hook
   useEffect(() => {
@@ -55,6 +57,20 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     onGenerationEnd,
     isProjectReady
   })
+
+  useEffect(() => {
+    // Reset on navigation/refresh: local-only state
+    setPreviousResponseId(null)
+    setConversationTokenTotal(0)
+    console.log('[client/ai-chat] reset conversation state')
+  }, [projectId])
+
+  // Helper to start a fresh conversation from UI triggers if needed
+  const startNewConversation = () => {
+    setPreviousResponseId(null)
+    setConversationTokenTotal(0)
+    console.log('[client/ai-chat] user started new conversation: cleared response id and token total')
+  }
 
   // Show URL prompt modal when needed
   const showUrlPromptModal = (data, originalPrompt) => {
@@ -266,6 +282,10 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
             onGenerationStart={onGenerationStart}
             onGenerationEnd={onGenerationEnd}
             isProjectReady={isProjectReady}
+            previousResponseId={previousResponseId}
+            setPreviousResponseId={setPreviousResponseId}
+            conversationTokenTotal={conversationTokenTotal}
+            setConversationTokenTotal={setConversationTokenTotal}
           />
         </>
       )

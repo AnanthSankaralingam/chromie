@@ -15,8 +15,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     // Call the planning prompt to analyze the request
     const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
     
-    // Log the final planning prompt for debugging/tracing
-    console.log('🧾 Final planning prompt (NEW_EXT_PLANNING_PROMPT with USER_REQUEST):\n', planningPrompt)
+    // console.log('🧾 Final planning prompt (NEW_EXT_PLANNING_PROMPT with USER_REQUEST):\n', planningPrompt)
 
     console.log("Calling planning prompt to analyze extension requirements...")
     
@@ -51,7 +50,11 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     const planningCompletion = await planningResponse.json();
     
     // Preprocess the planning response to handle markdown-formatted JSON
-    let planningContent = planningCompletion.choices[0].message.content
+    let planningContent = planningCompletion.choices?.[0]?.message?.content
+    if (!planningContent) {
+      console.error('❌ Planning response missing content:', planningCompletion)
+      throw new Error('Planning API returned invalid response structure')
+    }
     console.log('🔍 Raw planning response:', planningContent.substring(0, 300) + '...')
     console.log('🔍 Raw planning response contains ```json:', planningContent.includes('```json'))
     console.log('🔍 Raw planning response contains ```:', planningContent.includes('```'))
