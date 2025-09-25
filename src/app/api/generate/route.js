@@ -105,8 +105,7 @@ export async function POST(request) {
 
     const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
     const effectiveTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
-
-    console.log(`User plan: ${userPlan}, Limit: ${planLimit}, Used (effective): ${effectiveTokensUsed}`)
+    console.log(`User plan: ${userPlan}, Limit: ${planLimit.monthly_tokens}, Used (effective): ${effectiveTokensUsed}`)
     console.log(`Monthly reset date: ${monthlyResetDate?.toISOString()}, Reset due: ${isResetDue}`)
 
     // Check if user has exceeded their limit (unless unlimited)

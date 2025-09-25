@@ -129,10 +129,10 @@ export async function batchScrapeWebpages(domains, userProvidedUrl = null, optio
     
     // Build detailed analysis from page data
     let detailedAnalysis = `## ${domain} Analysis${statusInfo}
-**URL:** ${scrapedData.url}
-**Title:** ${scrapedData.title}
-**Content:** ${scrapedData.content}
-**Timestamp:** ${scrapedData.timestamp}${errorInfo}`
+URL: ${scrapedData.url}
+Title: ${scrapedData.title}
+Content: ${scrapedData.content}
+Timestamp: ${scrapedData.timestamp}${errorInfo}`
 
     // Add detailed page analysis if available
     if (scrapedData.pageData) {
