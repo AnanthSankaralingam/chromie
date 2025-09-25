@@ -27,7 +27,8 @@ export async function GET() {
       .maybeSingle()
 
     const userPlan = billing?.plan || DEFAULT_PLAN
-    const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
+    const planData = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
+    const planLimit = planData.monthly_tokens
 
     // Fetch single per-user token usage with monthly reset logic
     const { data: existingUsage, error: tokenError } = await supabase
@@ -53,7 +54,7 @@ export async function GET() {
     const totalTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
     const totalBrowserMinutesUsed = isResetDue ? 0 : (existingUsage?.browser_minutes || 0)
     const usagePercentage = planLimit === -1 ? 0 : Math.round((totalTokensUsed / planLimit) * 100)
-    const browserUsagePercentage = planLimit.monthly_browser_minutes === -1 ? 0 : Math.round((totalBrowserMinutesUsed / planLimit.monthly_browser_minutes) * 100)
+    const browserUsagePercentage = planData.monthly_browser_minutes === -1 ? 0 : Math.round((totalBrowserMinutesUsed / planData.monthly_browser_minutes) * 100)
     const monthlyUsage = totalTokensUsed
 
     // If reset is due, update the record so UI reflects fresh cycle next calls
@@ -85,9 +86,9 @@ export async function GET() {
       resetDue: isResetDue,
       // Browser usage data
       totalBrowserMinutesUsed,
-      browserPlanLimit: planLimit.monthly_browser_minutes === -1 ? 'unlimited' : planLimit.monthly_browser_minutes,
+      browserPlanLimit: planData.monthly_browser_minutes === -1 ? 'unlimited' : planData.monthly_browser_minutes,
       browserUsagePercentage,
-      remainingBrowserMinutes: planLimit.monthly_browser_minutes === -1 ? 'unlimited' : Math.max(0, planLimit.monthly_browser_minutes - totalBrowserMinutesUsed),
+      remainingBrowserMinutes: planData.monthly_browser_minutes === -1 ? 'unlimited' : Math.max(0, planData.monthly_browser_minutes - totalBrowserMinutesUsed),
     })
   } catch (error) {
     console.error("Error getting token usage:", error)
