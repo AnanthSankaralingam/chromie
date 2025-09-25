@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/feedback/badge"
-import { Zap, AlertTriangle } from "lucide-react"
+import { Monitor, AlertTriangle } from "lucide-react"
 
-export default function TokenUsageDisplay() {
+export default function BrowserUsageDisplay() {
   const [tokenUsage, setTokenUsage] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -49,38 +49,37 @@ export default function TokenUsageDisplay() {
     return null
   }
 
-  const { totalTokensUsed, planLimit, usagePercentage, userPlan } = tokenUsage
-  const isUnlimited = planLimit === 'unlimited'
-  const isNearLimit = !isUnlimited && usagePercentage > 80
-  const isOverLimit = !isUnlimited && usagePercentage >= 100
+  const { totalBrowserMinutesUsed, browserPlanLimit, browserUsagePercentage } = tokenUsage
+  const isUnlimited = browserPlanLimit === 'unlimited'
+  const isNearLimit = !isUnlimited && browserUsagePercentage > 80
+  const isOverLimit = !isUnlimited && browserUsagePercentage >= 100
 
-  const formatTokens = (tokens) => {
-    if (tokens >= 1000000) {
-      return `${Math.round(tokens / 1000000)}M`
-    } else if (tokens >= 1000) {
-      return `${Math.round(tokens / 1000)}k`
+  const formatMinutes = (minutes) => {
+    if (minutes >= 1000) {
+      return `${Math.round(minutes / 1000)}k`
     }
-    return tokens.toString()
+    return minutes.toString()
   }
 
   return (
     <div className="flex items-center space-x-2">
-      <Zap className="h-4 w-4 text-yellow-400" />
+      <Monitor className="h-4 w-4 text-blue-400" />
       <div className="flex items-center space-x-1">
         <span className="text-sm text-slate-300">
-          {formatTokens(totalTokensUsed)}
+          {formatMinutes(totalBrowserMinutesUsed)}
         </span>
         {!isUnlimited && (
           <>
             <span className="text-sm text-slate-500">/</span>
             <span className="text-sm text-slate-300">
-              {formatTokens(planLimit)}
+              {formatMinutes(browserPlanLimit)}
             </span>
           </>
         )}
         {isUnlimited && (
           <span className="text-sm text-slate-500">/∞</span>
         )}
+        <span className="text-sm text-slate-500">min</span>
       </div>
       {isOverLimit && (
         <AlertTriangle className="h-4 w-4 text-red-400" />
@@ -88,18 +87,6 @@ export default function TokenUsageDisplay() {
       {isNearLimit && !isOverLimit && (
         <AlertTriangle className="h-4 w-4 text-yellow-400" />
       )}
-      <Badge 
-        variant="secondary" 
-        className={`text-xs ${
-          isOverLimit 
-            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-            : isNearLimit 
-            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-            : 'bg-green-500/10 text-green-400 border-green-500/20'
-        }`}
-      >
-        {userPlan}
-      </Badge>
     </div>
   )
-} 
+}

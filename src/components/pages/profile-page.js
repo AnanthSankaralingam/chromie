@@ -14,6 +14,7 @@ import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
+import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -355,17 +356,18 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Token Usage Section */}
+        {/* Usage Section */}
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="text-white flex items-center space-x-3">
               <Zap className="h-6 w-6" />
-              <span>Token Usage</span>
+              <span>Usage</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-4">
+            <div className="flex items-center justify-center py-4 space-x-8">
               <TokenUsageDisplay />
+              <BrowserUsageDisplay />
             </div>
           </CardContent>
         </Card>
