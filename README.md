@@ -2,7 +2,8 @@
 
 TODOs
 1. P0: billing - valid_until is 5 years in future
-2. 
+2. update prompt mandatory fields based on prompt selection; ie side panel doesnt need popup empty files
+3. add styling  
 
 
 Security TODOs
