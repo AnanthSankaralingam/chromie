@@ -42,12 +42,12 @@ Return a JSON object with the following structure:
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "content.js": "content script code as raw text (if needed)",
-  "popup.html": "popup HTML as raw text (if frontend_type is popup)",
-  "popup.js": "popup JavaScript as raw text (if frontend_type is popup)",
-  "popup.css": "popup styling as raw text (if frontend_type is popup)",
-  "sidepanel.html": "side panel HTML as raw text (if frontend_type is side_panel)",
-  "sidepanel.js": "side panel JavaScript as raw text (if frontend_type is side_panel)",
-  "sidepanel.css": "side panel styling as raw text (if frontend_type is side_panel)",
+  "popup.html": "popup HTML as raw text (if needed)",
+  "popup.js": "popup JavaScript as raw text (if needed)",
+  "popup.css": "popup styling as raw text (if needed)",
+  "sidepanel.html": "side panel HTML as raw text (if needed)",
+  "sidepanel.js": "side panel JavaScript as raw text (if needed)",
+  "sidepanel.css": "side panel styling as raw text (if needed)",
   "styles.css": "general styling as raw text (if needed)",
 }
 

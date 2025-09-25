@@ -122,7 +122,6 @@ export class HyperbrowserService {
         }
       }
       
-      console.log("Returning result:", result)
       return result
     } catch (error) {
       console.error("Failed to create Hyperbrowser test session:", error)

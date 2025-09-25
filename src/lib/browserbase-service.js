@@ -99,7 +99,6 @@ export class BrowserBaseService {
         pages: liveViewLinks?.pages || []
       }
       
-      console.log("Returning result:", result)
       return result
     } catch (error) {
       console.error("Failed to create BrowserBase test session:", error)
