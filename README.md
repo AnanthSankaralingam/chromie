@@ -1,5 +1,7 @@
 # chromie
 
+### v1 demo: https://youtu.be/5807ieV35kU?si=VqQ-1LQymLrTEPAL
+
 TODOs
 1. P0: billing - valid_until is 5 years in future
 2. update prompt mandatory fields based on prompt selection; ie side panel doesnt need popup empty files
