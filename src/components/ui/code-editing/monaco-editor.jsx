@@ -22,11 +22,13 @@ export default function MonacoEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [isHtmlPreview, setIsHtmlPreview] = useState(false)
   const [isPreviewInfoOpen, setIsPreviewInfoOpen] = useState(false)
+  const [hideActionButtonsUntilSave, setHideActionButtonsUntilSave] = useState(false)
 
   // Update content when code prop changes
   useEffect(() => {
     setContent(code)
     setHasChanges(false)
+    setHideActionButtonsUntilSave(false)
   }, [code])
 
   // Function to detect language from file extension
@@ -87,6 +89,7 @@ export default function MonacoEditor({
     try {
       await onSave(content)
       setHasChanges(false)
+      setHideActionButtonsUntilSave(false)
     } catch (error) {
       console.error('Error saving file:', error)
     } finally {
@@ -176,6 +179,7 @@ export default function MonacoEditor({
       const formattedContent = formatJsonFile(fileName, content)
       setContent(formattedContent)
       setHasChanges(formattedContent !== code)
+      setHideActionButtonsUntilSave(true)
       
       // Focus the editor after formatting
       if (editorRef.current) {
@@ -184,6 +188,33 @@ export default function MonacoEditor({
     } catch (error) {
       console.error('Error formatting JSON:', error.message)
       // You could add a toast notification here to show the error to the user
+    }
+  }
+
+  const handleBumpManifestVersion = () => {
+    const isManifest = (fileName || '').toLowerCase() === 'manifest.json'
+    if (!isManifest) return
+    try {
+      const parsed = JSON.parse(content || '{}')
+      const current = parsed?.version
+      const numeric = typeof current === 'number' ? current : parseFloat(String(current))
+      if (isNaN(numeric)) {
+        console.warn('[MonacoEditor] Could not parse manifest version:', current)
+        return
+      }
+      const bumped = Number((numeric + 0.1).toFixed(1))
+      // Chrome manifest expects version as a string
+      parsed.version = bumped.toFixed(1)
+      const updated = JSON.stringify(parsed, null, 2)
+      setContent(updated)
+      setHasChanges(updated !== code)
+      setHideActionButtonsUntilSave(true)
+      console.log('[MonacoEditor] Manifest version bumped', { from: current, to: parsed.version })
+      if (editorRef.current) {
+        editorRef.current.focus()
+      }
+    } catch (e) {
+      console.error('[MonacoEditor] Failed to bump manifest version:', e)
     }
   }
 
@@ -314,7 +345,7 @@ export default function MonacoEditor({
             <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
               {language}
             </span>
-            {isJsonFile(fileName) && (
+            {isJsonFile(fileName) && !hideActionButtonsUntilSave && (
               <Button
                 onClick={handleFormat}
                 size="sm"
@@ -323,6 +354,16 @@ export default function MonacoEditor({
               >
                 <Code2 className="h-3 w-3 mr-1" />
                 Format
+              </Button>
+            )}
+            {(fileName || '').toLowerCase() === 'manifest.json' && !hideActionButtonsUntilSave && (
+              <Button
+                onClick={handleBumpManifestVersion}
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1"
+                title="Increase manifest version by 0.1"
+              >
+                + Version
               </Button>
             )}
             {language === 'html' && (

@@ -4,6 +4,7 @@ import fs from "fs"
 import os from "os"
 import path from "path"
 import JSZip from "jszip"
+import { createClient } from "@supabase/supabase-js"
 
 export class HyperbrowserService {
   constructor() {
@@ -153,32 +154,80 @@ export class HyperbrowserService {
     console.log("Zipping extension files for upload:", files.length)
     
     // Validate and ensure required files are present
-    this.validateExtensionFiles(files)
+    await this.validateExtensionFiles(files)
     const validatedFiles = this.ensureRequiredFiles(files)
     
     const zip = new JSZip()
 
+    // Add all non-icon files directly
     for (const file of validatedFiles) {
       const filePath = file.file_path || file.path || file.name
       if (!filePath) continue
+      if (filePath.startsWith('icons/')) continue
       const content = file.content ?? ""
-      
-      // Check if this is an icon file (base64 encoded)
-      if (filePath.startsWith('icons/') && filePath.match(/\.(png|ico)$/i)) {
-        try {
-          // Convert base64 back to binary for icon files
-          const binaryContent = Buffer.from(content, 'base64')
-          zip.file(filePath, binaryContent)
-          console.log(`Added icon file to zip: ${filePath}`)
-        } catch (iconError) {
-          console.warn(`Failed to process icon ${filePath}:`, iconError)
-          // Fallback to text content if base64 conversion fails
-          zip.file(filePath, content)
-        }
-      } else {
-        // Regular text file
-        zip.file(filePath, content)
+      zip.file(filePath, content)
+    }
+
+    // Parse manifest for required icon paths
+    const manifestFile = validatedFiles.find(f => f.file_path === 'manifest.json')
+    let manifest
+    try {
+      manifest = JSON.parse(manifestFile.content)
+    } catch (e) {
+      throw new Error('Invalid manifest.json content')
+    }
+
+    const requiredIconPaths = new Set()
+    if (manifest && manifest.icons) {
+      for (const p of Object.values(manifest.icons)) {
+        if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
       }
+    }
+    if (manifest && manifest.action && manifest.action.default_icon) {
+      for (const p of Object.values(manifest.action.default_icon)) {
+        if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
+      }
+    }
+
+    const iconPaths = Array.from(requiredIconPaths)
+    if (iconPaths.length > 0) {
+      const SUPABASE_URL = process.env.SUPABASE_URL
+      const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for icon materialization')
+      }
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+      const { data: rows, error } = await supabase
+        .from('shared_icons')
+        .select('path_hint, visibility, content_base64')
+        .in('path_hint', iconPaths)
+        .eq('visibility', 'global')
+      if (error) {
+        throw new Error(`Failed to fetch shared icons: ${error.message}`)
+      }
+      const byPath = new Map((rows || []).map(r => [r.path_hint, r]))
+      const missing = []
+      for (const iconPath of iconPaths) {
+        const row = byPath.get(iconPath)
+        if (!row) {
+          console.error(`[hyperbrowser] Missing required icon in shared_icons: ${iconPath}`)
+          missing.push(iconPath)
+          continue
+        }
+        try {
+          const binary = Buffer.from(row.content_base64, 'base64')
+          zip.file(iconPath, binary)
+          console.log(`[hyperbrowser] Added shared icon to zip: ${iconPath}`)
+        } catch (e) {
+          console.error(`[hyperbrowser] Failed to decode icon ${iconPath}:`, e.message)
+          missing.push(iconPath)
+        }
+      }
+      if (missing.length > 0) {
+        throw new Error(`Missing required icons: ${missing.join(', ')}. Seed them into shared_icons or add a global fallback.`)
+      }
+    } else {
+      console.log('[hyperbrowser] No icon paths referenced in manifest')
     }
 
     const buffer = await zip.generateAsync({ type: "nodebuffer" })
@@ -214,7 +263,7 @@ export class HyperbrowserService {
    * Validate extension files and ensure required files are present
    * @param {Array<{file_path: string, content: string}>} files - Extension files
    */
-  validateExtensionFiles(files) {
+  async validateExtensionFiles(files) {
     console.log("Validating extension files...")
     
     // Check for manifest.json
@@ -280,13 +329,45 @@ export class HyperbrowserService {
         }
       }
       
-      // Check for icons
-      if (manifest.icons) {
-        for (const [size, iconPath] of Object.entries(manifest.icons)) {
-          const iconFile = files.find(f => f.file_path === iconPath)
-          if (!iconFile) {
-            console.warn(`Icon file '${iconPath}' declared in manifest but not found`)
-          }
+      // Ensure canonical icon mappings in manifest
+      if (!manifest.icons) manifest.icons = {}
+      if (!manifest.icons["16"]) manifest.icons["16"] = "icons/icon16.png"
+      if (!manifest.icons["48"]) manifest.icons["48"] = "icons/icon48.png"
+      if (!manifest.icons["128"]) manifest.icons["128"] = "icons/icon128.png"
+
+      if (manifest.action) {
+        if (!manifest.action.default_icon) manifest.action.default_icon = {}
+        if (!manifest.action.default_icon["16"]) manifest.action.default_icon["16"] = "icons/icon16.png"
+        if (!manifest.action.default_icon["48"]) manifest.action.default_icon["48"] = "icons/icon48.png"
+        if (!manifest.action.default_icon["128"]) manifest.action.default_icon["128"] = "icons/icon128.png"
+      }
+
+      // Validate required icons exist in shared_icons
+      const requiredIconPaths = new Set()
+      for (const p of Object.values(manifest.icons || {})) if (typeof p === 'string') requiredIconPaths.add(p)
+      if (manifest.action && manifest.action.default_icon) {
+        for (const p of Object.values(manifest.action.default_icon)) if (typeof p === 'string') requiredIconPaths.add(p)
+      }
+      const iconPaths = Array.from(requiredIconPaths).filter(p => p.startsWith('icons/'))
+      console.log('[validate] required icon paths', iconPaths)
+      if (iconPaths.length > 0) {
+        const SUPABASE_URL = process.env.SUPABASE_URL
+        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+          throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for icon validation')
+        }
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+        const { data: rows, error } = await supabase
+          .from('shared_icons')
+          .select('path_hint')
+          .in('path_hint', iconPaths)
+          .eq('visibility', 'global')
+        if (error) throw new Error(`Failed to validate shared icons: ${error.message}`)
+        const found = new Set((rows || []).map(r => r.path_hint))
+        const missing = iconPaths.filter(p => !found.has(p))
+        console.log('[validate] resolved icons', Array.from(found))
+        if (missing.length > 0) {
+          throw new Error(`Missing required icons in shared_icons: ${missing.join(', ')}. Seed them or adjust manifest.`)
         }
       }
       
@@ -315,18 +396,7 @@ export class HyperbrowserService {
     
     const manifest = JSON.parse(manifestFile.content)
     
-    // Ensure basic icons exist
-    const requiredIcons = ['icons/icon16.png', 'icons/icon48.png', 'icons/icon128.png']
-    for (const iconPath of requiredIcons) {
-      const iconFile = files.find(f => f.file_path === iconPath)
-      if (!iconFile) {
-        console.log(`Creating default icon: ${iconPath}`)
-        result.push({
-          file_path: iconPath,
-          content: this.createDefaultIconBase64(iconPath)
-        })
-      }
-    }
+    // Do not synthesize icon files anymore
     
     // Create missing popup files
     if (manifest.action && manifest.action.default_popup) {
@@ -382,15 +452,12 @@ export class HyperbrowserService {
       }
     }
     
-    // Ensure manifest has proper icon references
-    if (!manifest.icons) {
-      manifest.icons = {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-      }
-      
-      // Update the manifest file in result
+    // Ensure manifest has proper icon references, but don't add files
+    if (!manifest.icons) manifest.icons = {}
+    if (!manifest.icons["16"]) manifest.icons["16"] = "icons/icon16.png"
+    if (!manifest.icons["48"]) manifest.icons["48"] = "icons/icon48.png"
+    if (!manifest.icons["128"]) manifest.icons["128"] = "icons/icon128.png"
+    {
       const manifestIndex = result.findIndex(f => f.file_path === 'manifest.json')
       if (manifestIndex !== -1) {
         result[manifestIndex].content = JSON.stringify(manifest, null, 2)
@@ -398,14 +465,11 @@ export class HyperbrowserService {
     }
     
     // Ensure action has icon if it exists
-    if (manifest.action && !manifest.action.default_icon) {
-      manifest.action.default_icon = {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-      }
-      
-      // Update the manifest file in result
+    if (manifest.action) {
+      if (!manifest.action.default_icon) manifest.action.default_icon = {}
+      if (!manifest.action.default_icon["16"]) manifest.action.default_icon["16"] = "icons/icon16.png"
+      if (!manifest.action.default_icon["48"]) manifest.action.default_icon["48"] = "icons/icon48.png"
+      if (!manifest.action.default_icon["128"]) manifest.action.default_icon["128"] = "icons/icon128.png"
       const manifestIndex = result.findIndex(f => f.file_path === 'manifest.json')
       if (manifestIndex !== -1) {
         result[manifestIndex].content = JSON.stringify(manifest, null, 2)
