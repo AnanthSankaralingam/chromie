@@ -38,7 +38,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-pro"
+  const modelUsed = modelOverride || "gemini-2.5-flash"
   
   // Select the appropriate schema based on frontend type and request type
   const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')

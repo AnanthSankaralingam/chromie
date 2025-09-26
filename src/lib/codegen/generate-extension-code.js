@@ -37,7 +37,7 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
 
   // console.log('🧾 Final coding prompt (non-stream):\n', finalPrompt)
 
-  const modelUsed = modelOverride || "gemini-2.5-pro"
+  const modelUsed = modelOverride || "gemini-2.5-flash"
   
   // Select the appropriate schema based on frontend type and request type
   const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
