@@ -4,10 +4,11 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
+import PublishModal from "@/components/ui/modals/modal-publish"
 
 export default function AppBarBuilder({ 
   onTestExtension, 
@@ -22,6 +23,7 @@ export default function AppBarBuilder({
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isPublishOpen, setIsPublishOpen] = useState(false)
   const {
     isTestButtonHighlighted,
     isDownloadButtonHighlighted,
@@ -52,6 +54,11 @@ export default function AppBarBuilder({
   const handleDownloadClick = () => {
     stopAllHighlights()
     onDownloadZip?.()
+  }
+
+  const handlePublishClick = () => {
+    console.log('[publish] open modal')
+    setIsPublishOpen(true)
   }
 
   // Helper function to get user initials
@@ -112,6 +119,14 @@ export default function AppBarBuilder({
                   test extension
                 </Button>
                 <Button 
+                  onClick={handlePublishClick}
+                  disabled={isTestDisabled || isGenerating}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 transition-all duration-200 px-4 py-2 font-medium"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  publish
+                </Button>
+                <Button 
                   onClick={handleDownloadClick} 
                   disabled={isDownloadDisabled || isDownloading}
                   className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
@@ -165,6 +180,14 @@ export default function AppBarBuilder({
               test extension
             </Button>
             <Button
+              onClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              publish
+            </Button>
+            <Button
               onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
               disabled={isDownloadDisabled || isDownloading}
               className={`w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
@@ -175,6 +198,15 @@ export default function AppBarBuilder({
           </div>
         </div>
       )}
+      <PublishModal 
+        isOpen={isPublishOpen} 
+        onClose={() => setIsPublishOpen(false)} 
+        onConfirm={() => {
+          // TODO: implement zipping and publish to Chrome Web Store via supabase and oauth
+          console.log('[publish] confirm requested')
+          setIsPublishOpen(false)
+        }}
+      />
     </header>
   )
 } 
