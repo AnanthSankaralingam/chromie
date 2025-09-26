@@ -157,7 +157,7 @@ async function handleSubscriptionCreated(subscription) {
         plan: plan,
         status: subscription.status,
         created_at: new Date().toISOString(),
-        valid_until: new Date(subscription.current_period_end * 1000).toISOString()
+        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
       })
 
     if (billingError) {
@@ -207,7 +207,7 @@ async function handleSubscriptionUpdated(subscription) {
     .from('billing')
     .update({
       status: subscription.status,
-      valid_until: new Date(subscription.current_period_end * 1000).toISOString()
+      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
     })
     .eq('stripe_subscription_id', subscription.id)
 
@@ -245,7 +245,7 @@ async function handlePaymentSucceeded(invoice) {
     .from('billing')
     .update({
       status: 'active',
-      valid_until: new Date(invoice.period_end * 1000).toISOString()
+      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
     })
     .eq('stripe_subscription_id', invoice.subscription)
 

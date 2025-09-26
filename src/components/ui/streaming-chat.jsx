@@ -581,10 +581,98 @@ export default function StreamingChat({
       return newMessages
     })
     
-    // Continue generation with the URL using the stored request info
+    // Continue generation with or without URL using the stored request info
     const requestInfo = currentRequestRef.current
     if (requestInfo) {
-      await startGenerationWithUrl(requestInfo.prompt, userUrl, requestInfo.requestType, requestInfo.projectId)
+      if (userUrl === null) {
+        // User chose to skip scraping; call streaming API with skipScraping=true
+        try {
+          setIsGenerating(true)
+          if (onGenerationStart) {
+            onGenerationStart()
+          }
+
+          const response = await fetch("/api/generate/stream", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              prompt: requestInfo.prompt,
+              projectId: requestInfo.projectId,
+              requestType: requestInfo.requestType,
+              userProvidedUrl: null,
+              skipScraping: true
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ""
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ""
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  switch (data.type) {
+                    case "start":
+                      setStreamingMessage({ type: "status", content: "Analysis complete, now generating your extension...\nContinuing with extension generation..." })
+                      break
+                    case "explanation":
+                      if (data.content) {
+                        setPhaseSummaries(prev => ({ ...prev, explanation: data.content }))
+                      }
+                      break
+                    case "done":
+                      setStreamingMessage(null)
+                      const finalMessage = {
+                        role: "assistant",
+                        content: phaseSummaries.explanation || phaseSummaries.planning || "Extension code has been generated and saved to your project.",
+                      }
+                      setMessages(prev => [...prev, finalMessage])
+                      if (!hasGeneratedCode) {
+                        setHasGeneratedCode(true)
+                      }
+                      if (onCodeGenerated) {
+                        onCodeGenerated({ success: true })
+                      }
+                      break
+                    default:
+                      // ignore other statuses
+                      break
+                  }
+                } catch (e) {
+                  console.error('Error parsing stream data (skipScraping alt):', e)
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error continuing generation without URL (alt):', err)
+          setStreamingMessage({ type: "error", content: err.message })
+        } finally {
+          setIsGenerating(false)
+          setStreamingMessage(null)
+          currentRequestRef.current = null
+          if (onGenerationEnd) {
+            onGenerationEnd()
+          }
+        }
+      } else {
+        await startGenerationWithUrl(requestInfo.prompt, userUrl, requestInfo.requestType, requestInfo.projectId)
+      }
     }
   }
 
