@@ -30,7 +30,15 @@ export const OPENAI_MODELS = {
   GPT4O: 'gpt-4o'
 }
 
-// OpenAI Responses API defaults
+export const ANTHROPIC_MODELS = {
+  CLAUDE_HAIKU_35: 'claude-3-5-haiku-20241022'
+}
+
+// Default model for code generation
+export const CODE_GENERATION_DEFAULT_MODEL = 'claude-3-5-haiku-20241022'
+export const CODE_GENERATION_PROVIDER = 'anthropic'
+
+// OpenAI Responses API defaults (kept for backward compatibility)
 export const OPENAI_RESPONSES_DEFAULT_MODEL = 'gpt-4o'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 120000

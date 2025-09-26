@@ -292,6 +292,13 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       }
     }
 
+    // Validate and fix extension files for Claude compatibility
+    const { validateAndFixExtension } = await import('./extension-validator')
+    const validatedFiles = validateAndFixExtension(filesOnly)
+    
+    // Update filesOnly with validated files
+    Object.assign(filesOnly, validatedFiles)
+
     // Add fallback HyperAgent script if not provided
     // COMMENTED OUT: HyperAgent test script generation
     // if (!filesOnly["hyperagent_test_script.js"]) {
@@ -346,10 +353,10 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
       total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
-      model: codingCompletion?.tokenUsage?.model || "gpt-4o", // Use the model used for coding
+      model: codingCompletion?.tokenUsage?.model || "claude-3-5-haiku-20241022", // Use the model used for coding
       models: {
         planning: "gpt-oss-20b",
-        coding: codingCompletion?.tokenUsage?.model || "gpt-4o"
+        coding: codingCompletion?.tokenUsage?.model || "claude-3-5-haiku-20241022"
       }
     }
 

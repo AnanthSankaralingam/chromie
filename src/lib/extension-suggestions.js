@@ -18,7 +18,7 @@ export const extensionSuggestions = [
   {
     id: "note-taking",
     title: "Quick note taker",
-    description: "Develop a note-taking extension that allows users to quickly jot down thoughts, save snippets, and sync notes across devices",
+    description: "Develop a note-taking popup extension that allows users to quickly jot down thoughts, save links, and easily see their past notes. Include a generate summary button that creates a 2-3 sentence AI summary for the current page I'm looking at. Make it very interactive, stylish, and easy to use.",
     category: "Productivity", 
     keywords: ["notes", "notepad", "memo", "quick", "save", "text", "snippets"]
   },

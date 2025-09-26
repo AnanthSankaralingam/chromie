@@ -1,0 +1,203 @@
+{
+  "google_workspace_apis": [
+    {
+      "name": "google_workspace_calendar",
+      "namespace": "Google Calendar API",
+      "description": "Access and manage Google Calendar events, calendars, and settings. Create, update, delete events and manage calendar permissions.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/calendar",
+              "https://www.googleapis.com/auth/calendar.readonly",
+              "https://www.googleapis.com/auth/calendar.events"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Calendar API integration",
+        "code": "\n// Initialize Google Calendar API\nconst CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';\n\n// List calendars\nasync function listCalendars() {\n  const token = await getAuthToken();\n  const response = await fetch(`${CALENDAR_API_BASE}/users/me/calendarList`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Create calendar event\nasync function createEvent(calendarId, event) {\n  const token = await getAuthToken();\n  const response = await fetch(`${CALENDAR_API_BASE}/calendars/${calendarId}/events`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify(event)\n  });\n  return response.json();\n}\n\n// List upcoming events\nasync function listEvents(calendarId = 'primary', maxResults = 10) {\n  const token = await getAuthToken();\n  const timeMin = new Date().toISOString();\n  const url = `${CALENDAR_API_BASE}/calendars/${calendarId}/events?timeMin=${timeMin}&maxResults=${maxResults}&singleEvents=true&orderBy=startTime`;\n  \n  const response = await fetch(url, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Example: Create a meeting\nasync function createMeeting(title, startTime, endTime, attendees = []) {\n  const event = {\n    summary: title,\n    start: {\n      dateTime: startTime,\n      timeZone: 'America/Los_Angeles'\n    },\n    end: {\n      dateTime: endTime,\n      timeZone: 'America/Los_Angeles'\n    },\n    attendees: attendees.map(email => ({email}))\n  };\n  \n  return createEvent('primary', event);\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_gmail",
+      "namespace": "Gmail API",
+      "description": "Access and manage Gmail messages, threads, labels, and drafts. Send emails, manage inbox, and interact with Gmail data.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/gmail.readonly",
+              "https://www.googleapis.com/auth/gmail.send",
+              "https://www.googleapis.com/auth/gmail.modify"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Gmail API integration",
+        "code": "\n// Initialize Gmail API\nconst GMAIL_API_BASE = 'https://www.googleapis.com/gmail/v1';\n\n// List messages\nasync function listMessages(query = '', maxResults = 10) {\n  const token = await getAuthToken();\n  let url = `${GMAIL_API_BASE}/users/me/messages?maxResults=${maxResults}`;\n  if (query) url += `&q=${encodeURIComponent(query)}`;\n  \n  const response = await fetch(url, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Get message details\nasync function getMessage(messageId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${GMAIL_API_BASE}/users/me/messages/${messageId}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Send email\nasync function sendEmail(to, subject, body) {\n  const token = await getAuthToken();\n  \n  const email = [\n    `To: ${to}`,\n    `Subject: ${subject}`,\n    '',\n    body\n  ].join('\\n');\n  \n  const encodedEmail = btoa(email).replace(/\\+/g, '-').replace(/\\//g, '_');\n  \n  const response = await fetch(`${GMAIL_API_BASE}/users/me/messages/send`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      raw: encodedEmail\n    })\n  });\n  return response.json();\n}\n\n// Get unread count\nasync function getUnreadCount() {\n  const token = await getAuthToken();\n  const response = await fetch(`${GMAIL_API_BASE}/users/me/labels/UNREAD`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  const label = await response.json();\n  return label.messagesUnread || 0;\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_docs",
+      "namespace": "Google Docs API",
+      "description": "Access and manage Google Docs documents. Create, update, and format documents programmatically.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/documents",
+              "https://www.googleapis.com/auth/documents.readonly"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Docs API integration",
+        "code": "\n// Initialize Google Docs API\nconst DOCS_API_BASE = 'https://docs.googleapis.com/v1';\n\n// Create a new document\nasync function createDocument(title) {\n  const token = await getAuthToken();\n  const response = await fetch(`${DOCS_API_BASE}/documents`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      title: title\n    })\n  });\n  return response.json();\n}\n\n// Get document content\nasync function getDocument(documentId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${DOCS_API_BASE}/documents/${documentId}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Update document content\nasync function updateDocument(documentId, requests) {\n  const token = await getAuthToken();\n  const response = await fetch(`${DOCS_API_BASE}/documents/${documentId}:batchUpdate`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      requests: requests\n    })\n  });\n  return response.json();\n}\n\n// Add text to document\nasync function addTextToDocument(documentId, text, index = 1) {\n  const requests = [{\n    insertText: {\n      location: {\n        index: index\n      },\n      text: text\n    }\n  }];\n  return updateDocument(documentId, requests);\n}\n\n// Extract text content from document\nfunction extractTextFromDocument(document) {\n  let text = '';\n  if (document.body && document.body.content) {\n    document.body.content.forEach(element => {\n      if (element.paragraph) {\n        element.paragraph.elements.forEach(paragraphElement => {\n          if (paragraphElement.textRun) {\n            text += paragraphElement.textRun.content;\n          }\n        });\n      }\n    });\n  }\n  return text;\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_sheets",
+      "namespace": "Google Sheets API",
+      "description": "Access and manage Google Sheets spreadsheets. Read, write, and format spreadsheet data programmatically.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/spreadsheets",
+              "https://www.googleapis.com/auth/spreadsheets.readonly"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Sheets API integration",
+        "code": "\n// Initialize Google Sheets API\nconst SHEETS_API_BASE = 'https://sheets.googleapis.com/v4';\n\n// Create a new spreadsheet\nasync function createSpreadsheet(title) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SHEETS_API_BASE}/spreadsheets`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      properties: {\n        title: title\n      }\n    })\n  });\n  return response.json();\n}\n\n// Read values from spreadsheet\nasync function getSheetValues(spreadsheetId, range) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SHEETS_API_BASE}/spreadsheets/${spreadsheetId}/values/${range}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Write values to spreadsheet\nasync function updateSheetValues(spreadsheetId, range, values) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SHEETS_API_BASE}/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {\n    method: 'PUT',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      values: values\n    })\n  });\n  return response.json();\n}\n\n// Append values to spreadsheet\nasync function appendSheetValues(spreadsheetId, range, values) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SHEETS_API_BASE}/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=RAW`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      values: values\n    })\n  });\n  return response.json();\n}\n\n// Get spreadsheet metadata\nasync function getSpreadsheet(spreadsheetId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SHEETS_API_BASE}/spreadsheets/${spreadsheetId}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_slides",
+      "namespace": "Google Slides API",
+      "description": "Access and manage Google Slides presentations. Create, update, and format presentations programmatically.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/presentations",
+              "https://www.googleapis.com/auth/presentations.readonly"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Slides API integration",
+        "code": "\n// Initialize Google Slides API\nconst SLIDES_API_BASE = 'https://slides.googleapis.com/v1';\n\n// Create a new presentation\nasync function createPresentation(title) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SLIDES_API_BASE}/presentations`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      title: title\n    })\n  });\n  return response.json();\n}\n\n// Get presentation\nasync function getPresentation(presentationId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${SLIDES_API_BASE}/presentations/${presentationId}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Add slide to presentation\nasync function addSlide(presentationId, slideId) {\n  const token = await getAuthToken();\n  const requests = [{\n    createSlide: {\n      objectId: slideId,\n      slideLayoutReference: {\n        predefinedLayout: 'BLANK'\n      }\n    }\n  }];\n  \n  const response = await fetch(`${SLIDES_API_BASE}/presentations/${presentationId}:batchUpdate`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      requests: requests\n    })\n  });\n  return response.json();\n}\n\n// Add text to slide\nasync function addTextToSlide(presentationId, slideId, text) {\n  const token = await getAuthToken();\n  const textBoxId = 'textbox_' + Date.now();\n  \n  const requests = [\n    {\n      createShape: {\n        objectId: textBoxId,\n        shapeType: 'TEXT_BOX',\n        elementProperties: {\n          pageObjectId: slideId,\n          size: {\n            height: {magnitude: 200, unit: 'PT'},\n            width: {magnitude: 400, unit: 'PT'}\n          },\n          transform: {\n            scaleX: 1,\n            scaleY: 1,\n            translateX: 100,\n            translateY: 100,\n            unit: 'PT'\n          }\n        }\n      }\n    },\n    {\n      insertText: {\n        objectId: textBoxId,\n        text: text\n      }\n    }\n  ];\n  \n  const response = await fetch(`${SLIDES_API_BASE}/presentations/${presentationId}:batchUpdate`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      requests: requests\n    })\n  });\n  return response.json();\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_forms",
+      "namespace": "Google Forms API",
+      "description": "Access and manage Google Forms. Create forms, add questions, and collect responses programmatically.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/forms",
+              "https://www.googleapis.com/auth/forms.responses.readonly"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Forms API integration",
+        "code": "\n// Initialize Google Forms API\nconst FORMS_API_BASE = 'https://forms.googleapis.com/v1';\n\n// Create a new form\nasync function createForm(title, description = '') {\n  const token = await getAuthToken();\n  const response = await fetch(`${FORMS_API_BASE}/forms`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      info: {\n        title: title,\n        description: description\n      }\n    })\n  });\n  return response.json();\n}\n\n// Get form\nasync function getForm(formId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${FORMS_API_BASE}/forms/${formId}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Add question to form\nasync function addQuestionToForm(formId, question) {\n  const token = await getAuthToken();\n  const requests = [{\n    createItem: {\n      item: question,\n      location: {\n        index: 0\n      }\n    }\n  }];\n  \n  const response = await fetch(`${FORMS_API_BASE}/forms/${formId}:batchUpdate`, {\n    method: 'POST',\n    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      requests: requests\n    })\n  });\n  return response.json();\n}\n\n// Get form responses\nasync function getFormResponses(formId) {\n  const token = await getAuthToken();\n  const response = await fetch(`${FORMS_API_BASE}/forms/${formId}/responses`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Example: Create a simple text question\nfunction createTextQuestion(title, required = false) {\n  return {\n    title: title,\n    questionItem: {\n      question: {\n        required: required,\n        textQuestion: {\n          paragraph: false\n        }\n      }\n    }\n  };\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    },
+    {
+      "name": "google_workspace_admin",
+      "namespace": "Google Admin SDK",
+      "description": "Manage Google Workspace domains, users, groups, and organizational units. Administrative functions for Workspace.",
+      "permissions": {
+        "required": [
+          "identity"
+        ],
+        "manifest_example": {
+          "permissions": [
+            "identity"
+          ],
+          "oauth2": {
+            "client_id": "your-client-id.googleusercontent.com",
+            "scopes": [
+              "https://www.googleapis.com/auth/admin.directory.user.readonly",
+              "https://www.googleapis.com/auth/admin.directory.group.readonly",
+              "https://www.googleapis.com/auth/admin.directory.domain.readonly"
+            ]
+          }
+        }
+      },
+      "code_example": {
+        "description": "Google Admin SDK integration",
+        "code": "\n// Initialize Google Admin SDK\nconst ADMIN_API_BASE = 'https://admin.googleapis.com/admin/directory/v1';\n\n// List users in domain\nasync function listUsers(domain, maxResults = 100) {\n  const token = await getAuthToken();\n  const response = await fetch(`${ADMIN_API_BASE}/users?domain=${domain}&maxResults=${maxResults}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Get user information\nasync function getUser(userKey) {\n  const token = await getAuthToken();\n  const response = await fetch(`${ADMIN_API_BASE}/users/${userKey}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// List groups in domain\nasync function listGroups(domain, maxResults = 100) {\n  const token = await getAuthToken();\n  const response = await fetch(`${ADMIN_API_BASE}/groups?domain=${domain}&maxResults=${maxResults}`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// Get group members\nasync function getGroupMembers(groupKey) {\n  const token = await getAuthToken();\n  const response = await fetch(`${ADMIN_API_BASE}/groups/${groupKey}/members`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n\n// List organizational units\nasync function listOrganizationalUnits(customerId = 'my_customer') {\n  const token = await getAuthToken();\n  const response = await fetch(`${ADMIN_API_BASE}/customer/${customerId}/orgunits`, {\n    headers: {\n      'Authorization': `Bearer ${token}`\n    }\n  });\n  return response.json();\n}\n"
+      },
+      "compatibility": "Chrome 29+",
+      "manifest_version": "2, 3"
+    }
+  ]
+}

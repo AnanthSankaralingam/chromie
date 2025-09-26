@@ -1,7 +1,7 @@
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
-import { continueResponse, createResponse } from "../services/openai-responses"
-import { OPENAI_RESPONSES_DEFAULT_MODEL } from "../constants"
+import { continueResponse, createResponse } from "../services/anthropic-service"
+import { CODE_GENERATION_DEFAULT_MODEL, CODE_GENERATION_PROVIDER } from "../constants"
 import { selectResponseSchema } from "./response-schemas"
 
 /**
@@ -38,7 +38,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gpt-4o"
+  const modelUsed = modelOverride || CODE_GENERATION_DEFAULT_MODEL
   
   // Select the appropriate schema based on frontend type and request type
   const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
@@ -49,12 +49,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.log("[generateExtensionCodeStream] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
     try {
       const response = await continueResponse({
-        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        model: modelUsed,
         previous_response_id: previousResponseId,
         input: finalPrompt,
         store: true,
         temperature: 0.2,
-        max_output_tokens: 15000,
+        max_output_tokens: 4096,
         response_format: jsonSchema
       })
       
@@ -249,7 +249,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     } catch (err) {
       console.error("[generateExtensionCodeStream] Responses API error", err?.message || err)
-      const { isContextLimitError } = await import('../services/openai-responses')
+      const { isContextLimitError } = await import('../services/anthropic-service')
       if (isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
@@ -263,11 +263,11 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.log("[generateExtensionCodeStream] Using Responses API (new)", { modelUsed, hasPrevious: false })
     try {
       const response = await createResponse({
-        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        model: modelUsed,
         input: finalPrompt,
         store: true,
         temperature: 0.2,
-        max_output_tokens: 15000,
+        max_output_tokens: 4096,
         response_format: jsonSchema
       })
       
@@ -331,6 +331,13 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       // Process and save files (same as follow-up version)
       if (implementationResult && typeof implementationResult === 'object') {
     console.log("🔄 Processing generated code for file saving...")
+    
+    // Validate and fix extension files for Claude compatibility
+    const { validateAndFixExtension } = await import('./extension-validator')
+    const validatedResult = validateAndFixExtension(implementationResult)
+    
+    // Update implementationResult with validated files
+    Object.assign(implementationResult, validatedResult)
     
       const supabase = createClient()
       
@@ -462,7 +469,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     } catch (err) {
       console.error("[generateExtensionCodeStream] Responses API error (new)", err?.message || err)
-      const { isContextLimitError } = await import('../services/openai-responses')
+      const { isContextLimitError } = await import('../services/anthropic-service')
       if (isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
