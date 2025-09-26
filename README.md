@@ -2,14 +2,14 @@
 
 ##### v1 demo: https://youtu.be/5807ieV35kU?si=VqQ-1LQymLrTEPAL
 
-TODOs
+### TODOs
 1. ~P0: billing - valid_until is 5 years in future~
 2. ~update prompt mandatory fields based on prompt selection; ie side panel doesnt need popup empty files~
 3. add styling
 4. test product end to end, along with billing
 
 
-Model SxSxSxSxS (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
+### Model SxSxSxSxS (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
 
 use akshay-{model} branch and run "npm run dev" to test out each model, setting corresponding API key in env
 
