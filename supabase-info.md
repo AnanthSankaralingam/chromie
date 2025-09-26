@@ -89,6 +89,24 @@ Tracks LLM token usage per user.
 
 ---
 
+### 7. `shared_icons`
+Content-addressed, deduplicated icon storage shared across projects.
+
+| Column           | Type         | Details                                                     |
+|------------------|--------------|-------------------------------------------------------------|
+| `hash`           | text         | PK, sha256 of binary content (content-addressed key)        |
+| `path_hint`      | text         | NOT NULL; e.g., 'icons/icon16.png'                          |
+| `sizes`          | text[]       | NOT NULL, DEFAULT '{}'                                      |
+| `mime`           | text         | NOT NULL, DEFAULT 'image/png'                               |
+| `visibility`     | text         | NOT NULL, DEFAULT 'global' ('global' | 'project_only')      |
+| `content_base64` | text         | NOT NULL; base64-encoded file contents                      |
+| `created_at`     | timestamptz  | DEFAULT now()                                               |
+
+Additional indexes and constraints:
+- Unique on `(path_hint, visibility)` to prevent duplicates per visibility scope.
+
+---
+
 ## Project Limits by Plan
 
 | Plan    | Max Projects | Description                    |
@@ -184,6 +202,19 @@ SET project_count = (
 
 - Users can SELECT, UPDATE, DELETE billing rows only for themselves (`user_id = auth.uid()`).
 - Users can INSERT rows only for themselves (`user_id = auth.uid()`).
+
+### 6. `shared_icons`
+
+- RLS enabled on the table.
+- READ access allowed only where `visibility = 'global'`.
+- No default INSERT/UPDATE/DELETE rights are granted by this policy.
+
+Example policy (already applied):
+```sql
+create policy shared_icons_read_global
+  on public.shared_icons for select
+  using (visibility = 'global');
+```
 
 ---
 
