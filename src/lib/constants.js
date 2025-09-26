@@ -26,12 +26,12 @@ export const PLAN_LIMITS = {
 export const DEFAULT_PLAN = 'free'
 
 // Model names used in the application
-export const OPENAI_MODELS = {
-  GPT4O: 'gpt-4o'
+export const AI_MODELS = {
+  GEMINI_2_5_PRO: 'gemini-2.5-pro'
 }
 
-// OpenAI Responses API defaults
-export const OPENAI_RESPONSES_DEFAULT_MODEL = 'gpt-4o'
+// Google AI defaults
+export const DEFAULT_MODEL = 'gemini-2.5-pro'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 120000
 

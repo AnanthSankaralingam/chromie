@@ -1,7 +1,7 @@
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
-import { continueResponse, createResponse } from "../services/openai-responses"
-import { OPENAI_RESPONSES_DEFAULT_MODEL } from "../constants"
+import { continueResponse, createResponse } from "../services/google-ai"
+import { DEFAULT_MODEL } from "../constants"
 import { selectResponseSchema } from "./response-schemas"
 
 /**
@@ -38,7 +38,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gpt-4o"
+  const modelUsed = modelOverride || "gemini-2.5-pro"
   
   // Select the appropriate schema based on frontend type and request type
   const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
@@ -49,7 +49,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.log("[generateExtensionCodeStream] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
     try {
       const response = await continueResponse({
-        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        model: modelOverride || DEFAULT_MODEL,
         previous_response_id: previousResponseId,
         input: finalPrompt,
         store: true,
@@ -74,31 +74,32 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       let implementationResult
       try {
         let jsonContent = ""
+        const outputText = response?.output_text || ''
         
-        if (response?.output_text?.includes('```json')) {
-          const jsonMatch = response.output_text.match(/```json\s*([\s\S]*?)\s*```/)
+        if (typeof outputText === 'string' && outputText.includes('```json')) {
+          const jsonMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/)
           if (jsonMatch) {
             jsonContent = jsonMatch[1].trim()
           }
-        } else if (response?.output_text?.includes('```')) {
-          const codeMatch = response.output_text.match(/```\s*([\s\S]*?)\s*```/)
+        } else if (typeof outputText === 'string' && outputText.includes('```')) {
+          const codeMatch = outputText.match(/```\s*([\s\S]*?)\s*```/)
           if (codeMatch) {
             jsonContent = codeMatch[1].trim()
           }
         } else {
-          const jsonStart = response.output_text.indexOf('{')
+          const jsonStart = outputText.indexOf('{')
           if (jsonStart !== -1) {
             let braceCount = 0
             let jsonEnd = jsonStart
-            for (let i = jsonStart; i < response.output_text.length; i++) {
-              if (response.output_text[i] === '{') braceCount++
-              if (response.output_text[i] === '}') braceCount--
+            for (let i = jsonStart; i < outputText.length; i++) {
+              if (outputText[i] === '{') braceCount++
+              if (outputText[i] === '}') braceCount--
               if (braceCount === 0) {
                 jsonEnd = i + 1
                 break
               }
             }
-            jsonContent = response.output_text.substring(jsonStart, jsonEnd)
+            jsonContent = outputText.substring(jsonStart, jsonEnd)
           }
         }
         
@@ -249,7 +250,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     } catch (err) {
       console.error("[generateExtensionCodeStream] Responses API error", err?.message || err)
-      const { isContextLimitError } = await import('../services/openai-responses')
+      const { isContextLimitError } = await import('../services/google-ai')
       if (isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
@@ -263,7 +264,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.log("[generateExtensionCodeStream] Using Responses API (new)", { modelUsed, hasPrevious: false })
     try {
       const response = await createResponse({
-        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        model: modelOverride || DEFAULT_MODEL,
         input: finalPrompt,
         store: true,
         temperature: 0.2,
@@ -288,30 +289,32 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   try {
     let jsonContent = ""
     
-        if (response?.output_text?.includes('```json')) {
-          const jsonMatch = response.output_text.match(/```json\s*([\s\S]*?)\s*```/)
+        const outputText = response?.output_text || ''
+        
+        if (typeof outputText === 'string' && outputText.includes('```json')) {
+          const jsonMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/)
       if (jsonMatch) {
         jsonContent = jsonMatch[1].trim()
       }
-        } else if (response?.output_text?.includes('```')) {
-          const codeMatch = response.output_text.match(/```\s*([\s\S]*?)\s*```/)
+        } else if (typeof outputText === 'string' && outputText.includes('```')) {
+          const codeMatch = outputText.match(/```\s*([\s\S]*?)\s*```/)
       if (codeMatch) {
         jsonContent = codeMatch[1].trim()
       }
     } else {
-          const jsonStart = response.output_text.indexOf('{')
+          const jsonStart = outputText.indexOf('{')
           if (jsonStart !== -1) {
       let braceCount = 0
       let jsonEnd = jsonStart
-            for (let i = jsonStart; i < response.output_text.length; i++) {
-              if (response.output_text[i] === '{') braceCount++
-              if (response.output_text[i] === '}') braceCount--
+            for (let i = jsonStart; i < outputText.length; i++) {
+              if (outputText[i] === '{') braceCount++
+              if (outputText[i] === '}') braceCount--
         if (braceCount === 0) {
           jsonEnd = i + 1
           break
         }
       }
-            jsonContent = response.output_text.substring(jsonStart, jsonEnd)
+            jsonContent = outputText.substring(jsonStart, jsonEnd)
     }
     }
     
@@ -462,7 +465,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     } catch (err) {
       console.error("[generateExtensionCodeStream] Responses API error (new)", err?.message || err)
-      const { isContextLimitError } = await import('../services/openai-responses')
+      const { isContextLimitError } = await import('../services/google-ai')
       if (isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest

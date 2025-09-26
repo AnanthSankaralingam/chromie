@@ -249,6 +249,11 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
     // Preprocess the AI response to handle markdown-formatted JSON
     let aiResponse = codingCompletion.choices[0].message.content
     
+    // Ensure aiResponse is a string
+    if (typeof aiResponse !== 'string') {
+      aiResponse = String(aiResponse || '')
+    }
+    
     // Remove markdown code blocks if present
     if (aiResponse.includes('```json')) {
       const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/)
@@ -346,11 +351,11 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
       total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
-      model: codingCompletion?.tokenUsage?.model || "gpt-4o", // Use the model used for coding
-      models: {
-        planning: "gpt-oss-20b",
-        coding: codingCompletion?.tokenUsage?.model || "gpt-4o"
-      }
+        model: codingCompletion?.tokenUsage?.model || "gemini-2.5-pro", // Use the model used for coding
+        models: {
+          planning: "gpt-oss-20b",
+          coding: codingCompletion?.tokenUsage?.model || "gemini-2.5-pro"
+        }
     }
 
     // Update token usage in Supabase

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension-stream"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
-import { isContextLimitError } from "@/lib/services/openai-responses"
+import { isContextLimitError } from "@/lib/services/google-ai"
 
 export async function POST(request) {
   const supabase = createClient()
