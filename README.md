@@ -5,8 +5,9 @@
 ### TODOs
 1. ~P0: billing - valid_until is 5 years in future~
 2. ~update prompt mandatory fields based on prompt selection; ie side panel doesnt need popup empty files~
-3. add styling
+3. add styling - hardcode as much as possible
 4. test product end to end, along with billing
+5. functionality to publish extensions directly to chrome web store
 
 
 ### Model SxSxSxSxS (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
