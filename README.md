@@ -9,6 +9,21 @@ TODOs
 4. test product end to end, along with billing
 
 
+Model SxSxSxSxS (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
+use akshay-{model} branch and run "npm run dev" to test out each model, setting corresponding API key in env
+
+| Prompt | 4o | haiku 3.5 | 2.5 pro | 2.5 flash | deepseek |
+|-------|-------|-------|-------|-------|-------|
+|  Develop a note-taking popup extension that allows users to quickly jot down thoughts, save links, and easily see their past notes. Include a generate summary button that creates a 2-3 sentence AI summary for the current page I'm looking at. Make it very interactive, stylish, and easy to use. |  Basic save button works, nothing else really. No organized record of past notes. Low quality, not visually appealing. Summary feature doesn't work, nor does it request user for API key.   |  Better than 4o. Slightly better UI, ability to save URL. Understands that summary generation requires API key, but does not provide way for user to enter it. Some buggy behavior.   |  D1   |  E1   |  F1   |
+|  Create a calculator extension with basic and scientific functions, unit conversions, and calculation history  |  Disappointing. The trig and unit functions somewhat work, but can't do simple addition or clear values. UI is buggy. History does not work.   |  Disappointing. Shows a menu bar that lets you change between types (basic, scientific, conversion, history) but none of the functions actually work. UI is buggy. History does not work. |  D2   |  E2   |  F2   |
+|  Create a simple to-do list extension that helps users track tasks and manage productivity directly from their browser toolbar | Decent. Expected due to simplicity of prompt. Includes simple delete and add functionality. |  Decent. Expected due to simplicity of prompt. Some of the buttons have non-english symbols on them, which is weird. But they let you do a strikethrough or delete completed items, which is good.     |  D3   |  E3   |  F3   |
+|  Create a youtube video bookmarker extension   |  Bad. No overlay/button injection. After clicking popup and including details, it says saved, but cannot see saved anywhere.   |  Bad. No overlay/button injection. After clicking popup and including details, it says saved, but cannot see saved anywhere.   |  D4   |  E4   |  F4   |
+|  A5   |  B5   |  C5   |  D5   |  E5   |  F5   |
+
+
+
+
+
 Security TODOs
 1. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
 
