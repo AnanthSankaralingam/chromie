@@ -108,7 +108,7 @@ export async function POST(request) {
     console.log(`Monthly reset date: ${monthlyResetDate?.toISOString()}, Reset due: ${isResetDue}`)
 
     // Check if user has exceeded their limit (unless unlimited)
-    if (planLimit !== -1 && effectiveTokensUsed >= planLimit) {
+    if (planLimit.monthly_tokens !== -1 && effectiveTokensUsed >= planLimit.monthly_tokens) {
       return NextResponse.json({
         error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
       }, { status: 403 })
