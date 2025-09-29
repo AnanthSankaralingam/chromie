@@ -1,8 +1,8 @@
 // Plan limits for token usage and browser testing
 export const PLAN_LIMITS = {
   free: { 
-    monthly_tokens: 50000,
-    max_projects: 10,
+    monthly_tokens: 12000,
+    max_projects: 3,
     monthly_browser_minutes: 5
   },
   starter: { 

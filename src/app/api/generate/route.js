@@ -5,8 +5,7 @@ import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 import { isContextLimitError } from "@/lib/services/google-ai"
 import { randomUUID } from "crypto"
-import fs from "fs"
-import path from "path"
+ 
 
 export async function POST(request) {
   const supabase = createClient()
@@ -189,36 +188,9 @@ export async function POST(request) {
     const savedFiles = []
     const errors = []
 
-    // Automatically include icons folder for all extensions
-    const iconsDir = path.join(process.cwd(), 'icons')
-    const iconFiles = []
-    
-    try {
-      if (fs.existsSync(iconsDir)) {
-        const iconFilesList = fs.readdirSync(iconsDir)
-        for (const iconFile of iconFilesList) {
-          if (iconFile.endsWith('.png') || iconFile.endsWith('.ico')) {
-            const iconPath = path.join(iconsDir, iconFile)
-            const iconContent = fs.readFileSync(iconPath)
-            iconFiles.push({
-              file_path: `icons/${iconFile}`,
-              content: iconContent.toString('base64') // Store as base64 for binary files
-            })
-          }
-        }
-        console.log(`✅ Successfully included ${iconFiles.length} icon files in extension`)
-      } else {
-        console.warn('⚠️ Icons directory not found at:', iconsDir)
-      }
-    } catch (iconError) {
-      console.warn('⚠️ Could not read icons directory:', iconError.message)
-    }
-
-    // Combine generated files with icons
+    // Icons are no longer persisted per project; they'll be materialized at packaging time
+    console.log('[api/generate] Skipping per-project icon persistence; will materialize at packaging')
     const allFiles = { ...result.files }
-    iconFiles.forEach(icon => {
-      allFiles[icon.file_path] = icon.content
-    })
 
     for (const [filePath, content] of Object.entries(allFiles)) {
       try {

@@ -99,31 +99,21 @@ export async function POST(request) {
         return NextResponse.json({ error: "Failed to reset token usage" }, { status: 500 })
       }
 
-      // Update billing valid_until to extend subscription by 1 month
-      const { data: currentBilling } = await supabase
+      // Update billing valid_until to next month (aligned with token reset)
+      const nextMonth = new Date()
+      nextMonth.setMonth(nextMonth.getMonth() + 1)
+      
+      const { error: billingUpdateError } = await supabase
         .from('billing')
-        .select('valid_until')
+        .update({
+          valid_until: nextMonth.toISOString()
+        })
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single()
 
-      if (currentBilling?.valid_until) {
-        const currentValidUntil = new Date(currentBilling.valid_until)
-        const newValidUntil = new Date(currentValidUntil)
-        newValidUntil.setMonth(newValidUntil.getMonth() + 1)
-
-        const { error: billingUpdateError } = await supabase
-          .from('billing')
-          .update({
-            valid_until: newValidUntil.toISOString()
-          })
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-
-        if (billingUpdateError) {
-          console.error("Error updating billing valid_until:", billingUpdateError)
-          // Don't fail the request, just log the error
-        }
+      if (billingUpdateError) {
+        console.error("Error updating billing valid_until:", billingUpdateError)
+        // Don't fail the request, just log the error
       }
 
       console.log("✅ Monthly reset completed successfully")
