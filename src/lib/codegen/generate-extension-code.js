@@ -1,14 +1,10 @@
-import OpenAI from "openai"
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
-import { continueResponse, createResponse } from "../services/openai-responses"
-import { OPENAI_RESPONSES_DEFAULT_MODEL } from "../constants"
+import { continueResponse, createResponse } from "../services/google-ai"
+import { DEFAULT_MODEL } from "../constants"
 import { generateExtensionCodeStream } from "./generate-extension-code-stream"
-import { selectResponseSchema } from "./response-schemas"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
+import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
 
 /**
  * Generates Chrome extension code using the specified coding prompt
@@ -42,10 +38,13 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
 
   // console.log('🧾 Final coding prompt (non-stream):\n', finalPrompt)
 
-  const modelUsed = modelOverride || "gpt-4o"
+  const modelUsed = modelOverride || "gemini-2.5-pro"
   
   // Select the appropriate schema based on frontend type and request type
-  const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+  const isGoogleModel = typeof modelUsed === 'string' && modelUsed.toLowerCase().includes('gemini')
+  const jsonSchema = isGoogleModel
+    ? selectGeminiSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+    : selectOpenAISchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
   console.log(`Using schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
   
 
@@ -66,7 +65,7 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
     console.log("[generateExtensionCode] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
     try {
       const response = await continueResponse({
-        model: modelOverride || OPENAI_RESPONSES_DEFAULT_MODEL,
+        model: modelOverride || DEFAULT_MODEL,
         previous_response_id: previousResponseId,
         input: finalPrompt,
         store: true,
@@ -96,7 +95,7 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
     } catch (err) {
       console.error("[generateExtensionCode] Responses API error", err?.message || err)
       // Surface context-window error in a normalized shape
-      const { isContextLimitError } = await import('../services/openai-responses')
+      const { isContextLimitError } = await import('../services/google-ai')
       if (isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest

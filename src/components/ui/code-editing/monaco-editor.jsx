@@ -116,6 +116,54 @@ export default function MonacoEditor({
   }
 
   const buildHtmlSrcDoc = (raw) => {
+    // Build a map of icon path -> data URL for preview rendering
+    const buildIconDataUrlMap = () => {
+      const map = new Map()
+      try {
+        for (const f of (projectFiles || [])) {
+          if (typeof f?.file_path !== 'string') continue
+          if (!f.file_path.startsWith('icons/')) continue
+          if (!/\.png$/i.test(f.file_path)) continue
+          const base64 = typeof f.content === 'string' ? f.content : ''
+          if (!base64) continue
+          const dataUrl = `data:image/png;base64,${base64}`
+          map.set(f.file_path, dataUrl)
+        }
+      } catch (e) {
+        // non-blocking
+      }
+      return map
+    }
+
+    // Replace icon references (paths and chrome.runtime.getURL) with data URLs
+    const rewriteIconUrls = (html, iconMap) => {
+      try {
+        // Replace chrome.runtime.getURL('icons/xxx.png') and double-quote variant
+        html = html.replace(/chrome\.runtime\.getURL\(["'](icons\/[A-Za-z0-9-_]+\.png)["']\)/gi, (m, p1) => {
+          const url = iconMap.get(p1)
+          return url ? `'${url}'` : m
+        })
+
+        // Replace src/href attributes pointing to icons/*.png
+        html = html.replace(/(src|href)=(")([^"']*icons\/[A-Za-z0-9-_]+\.png)(")/gi, (m, attr, q1, path, q2) => {
+          const url = iconMap.get(path)
+          return url ? `${attr}=${q1}${url}${q2}` : m
+        })
+      } catch (e) {
+        // non-blocking
+      }
+      return html
+    }
+
+    // Inline linked styles and also inject styles.css if present
+    const getStylesCss = () => {
+      try {
+        const styles = (projectFiles || []).find(f => f.file_path === 'styles.css')
+        if (styles && typeof styles.content === 'string') return styles.content
+      } catch (e) {}
+      return ''
+    }
+
     const inlineLinkedStyles = (html) => {
       try {
         const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi
@@ -132,7 +180,7 @@ export default function MonacoEditor({
           }
           return stack.join('/')
         }
-        return html.replace(linkRegex, (match, href) => {
+        let withInlined = html.replace(linkRegex, (match, href) => {
           const resolved = resolvePath(href)
           const file = projectFiles.find(f => f.file_path === resolved)
           if (file && typeof file.content === 'string') {
@@ -140,25 +188,32 @@ export default function MonacoEditor({
           }
           return match
         })
+        // Also inject styles.css if available and not already present
+        const stylesCss = getStylesCss()
+        if (stylesCss) {
+          if (/<head[^>]*>/i.test(withInlined)) {
+            withInlined = withInlined.replace(/<head([^>]*)>/i, (m, attrs) => `<head${attrs}>\n<style>${stylesCss}</style>`)
+          } else {
+            withInlined = `<style>${stylesCss}</style>` + withInlined
+          }
+        }
+        return withInlined
       } catch (e) {
         return html
       }
     }
     const hasFullHtml = /<html[\s>]/i.test(raw) || /<body[\s>]/i.test(raw)
+    const iconMap = buildIconDataUrlMap()
     if (hasFullHtml) {
-      // Ensure a white background similar to extension rendering
-      // If user's HTML already sets background, their CSS may override this.
-      const withBg = `<!doctype html>` + raw.replace(
-        /<head(.*?)>/i,
-        (m) => `${m}\n<style>html, body { background: #ffffff !important; }</style>`
-      )
-      return inlineLinkedStyles(withBg)
+      const doc = `<!doctype html>` + raw
+      const withStyles = inlineLinkedStyles(doc)
+      return rewriteIconUrls(withStyles, iconMap)
     }
     const scaffold = `<!doctype html><html><head><meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root { color-scheme: light dark; }
-      html, body { height: 100%; background: #ffffff !important; }
+      html, body { height: 100%; }
       body { margin: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; line-height: 1.5; }
       img, video, canvas, svg { max-width: 100%; height: auto; }
       * { box-sizing: border-box; }
@@ -166,7 +221,8 @@ export default function MonacoEditor({
     </head><body>
       <div id="app">${raw}</div>
     </body></html>`
-    return inlineLinkedStyles(scaffold)
+    const withStyles = inlineLinkedStyles(scaffold)
+    return rewriteIconUrls(withStyles, iconMap)
   }
 
   const handleFormat = () => {

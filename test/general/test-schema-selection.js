@@ -1,5 +1,5 @@
 // Test script to verify schema selection is working correctly
-import { selectResponseSchema } from '../../src/lib/codegen/response-schemas.js'
+import { selectResponseSchema } from '../../src/lib/response-schemas/openai-response-schemas.js'
 
 console.log('Testing schema selection...\n')
 

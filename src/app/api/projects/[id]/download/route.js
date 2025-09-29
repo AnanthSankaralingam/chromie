@@ -83,14 +83,29 @@ export async function GET(request, { params }) {
     // Update manifest in zip
     zip.file('manifest.json', JSON.stringify(manifest, null, 2))
 
-    // Collect required icon paths
+    // Collect required icon paths from manifest and source files
     const requiredIconPaths = new Set()
+    // From manifest
     for (const p of Object.values(manifest.icons || {})) {
       if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
     }
     if (manifest.action && manifest.action.default_icon) {
       for (const p of Object.values(manifest.action.default_icon)) {
         if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
+      }
+    }
+    // From code files: scan for any 'icons/*.png' references, including chrome.runtime.getURL('icons/...')
+    const iconRefRegex = /icons\/[A-Za-z0-9-_]+\.png/gi
+    for (const f of files) {
+      if (typeof f.content !== 'string') continue
+      if (f.file_path.startsWith('icons/')) continue
+      const matches = f.content.match(iconRefRegex)
+      if (matches) {
+        for (const m of matches) {
+          // Normalize casing in set usage
+          const p = m.startsWith('icons/') ? m : `icons/${m}`
+          requiredIconPaths.add(p)
+        }
       }
     }
 

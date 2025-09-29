@@ -214,7 +214,7 @@ export default function HomePage() {
                       console.log('📋 Pasted content: resized textarea to', textareaRef.current?.style.height)
                     })
                   }}
-                  placeholder="type your extension idea and we'll bring it to life (or /command)"
+                  placeholder="type your extension idea and we'll bring it to life"
                   className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   ref={textareaRef}
                   disabled={isGenerating}
@@ -229,8 +229,8 @@ export default function HomePage() {
                   inputRef={textareaRef}
                 />
 
-                {/* Action Buttons */}
-                <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 flex items-center space-x-2 md:space-x-3">
+                {/* Action Buttons TODO enable attach files*/}
+                {/* <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 flex items-center space-x-2 md:space-x-3">
                   <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
                     <Paperclip className="h-4 w-4" />
                   </Button>
@@ -240,7 +240,7 @@ export default function HomePage() {
                   <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
                     <Edit3 className="h-4 w-4" />
                   </Button>
-                </div>
+                </div> */}
 
                 <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4">
                   <Button

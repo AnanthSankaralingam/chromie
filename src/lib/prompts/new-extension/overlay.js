@@ -78,6 +78,34 @@ MANDATORY: Use overlay injection pattern that creates floating UI elements on we
 </overlay_template>
 </overlay_implementation_requirements>
 
+<styling_requirements>
+MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics.
+
+Core Principles:
+- Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 10-16px
+- Use gradients, glassmorphism, shadows for depth
+- Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
+
+Color Schemes (choose ONE):
+1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
+2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+
+Components:
+- Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
+- Buttons: Padding 10-12px 18-24px | Radius 10-12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
+- Inputs: Padding 10px 14px | Radius 10px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
+- Cards: Padding 20-24px | Radius 16-20px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
+
+Premium Effects (MUST include):
+- Gradients on buttons/headers
+- Hover: scale(1.02) or translateY(-2px) + enhanced shadow
+- Backdrop-filter: blur(12px) for overlays/glass
+- Focus: Glowing ring with primary color
+- Layered shadows for realistic depth
+- Custom scrollbar styling (webkit-scrollbar)
+</styling_requirements>
+
 <api_key_usage>
 IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
 </api_key_usage>

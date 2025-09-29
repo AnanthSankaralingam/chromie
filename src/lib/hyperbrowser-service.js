@@ -178,6 +178,7 @@ export class HyperbrowserService {
     }
 
     const requiredIconPaths = new Set()
+    // From manifest
     if (manifest && manifest.icons) {
       for (const p of Object.values(manifest.icons)) {
         if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
@@ -186,6 +187,21 @@ export class HyperbrowserService {
     if (manifest && manifest.action && manifest.action.default_icon) {
       for (const p of Object.values(manifest.action.default_icon)) {
         if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
+      }
+    }
+    // From code files: scan for any 'icons/*.png' references, including chrome.runtime.getURL('icons/...')
+    const iconRefRegex = /icons\/[A-Za-z0-9-_]+\.png/gi
+    for (const f of validatedFiles) {
+      const filePath = f.file_path || f.path || f.name
+      if (!filePath || filePath.startsWith('icons/')) continue
+      const content = typeof f.content === 'string' ? f.content : ''
+      if (!content) continue
+      const matches = content.match(iconRefRegex)
+      if (matches) {
+        for (const m of matches) {
+          const p = m.startsWith('icons/') ? m : `icons/${m}`
+          requiredIconPaths.add(p)
+        }
       }
     }
 
