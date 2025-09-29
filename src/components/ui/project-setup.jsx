@@ -9,6 +9,7 @@ export default function useProjectSetup(user, isLoading) {
   const [currentProjectName, setCurrentProjectName] = useState('')
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
+  const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
 
   // Helper function to fetch project details
   const fetchProjectDetails = async (projectId) => {
@@ -44,6 +45,10 @@ export default function useProjectSetup(user, isLoading) {
         if (response.status === 403 && errorData.error === "Project limit reached") {
           setProjectLimitDetails(errorData.details)
           setIsProjectLimitModalOpen(true)
+          setIsSettingUpProject(false)
+          return
+        } else if (response.status === 403 && (errorData.error === 'Token usage limit exceeded' || (errorData.error || '').toLowerCase().includes('token usage'))) {
+          setIsTokenLimitModalOpen(true)
           setIsSettingUpProject(false)
           return
         }
@@ -165,6 +170,8 @@ export default function useProjectSetup(user, isLoading) {
     projectLimitDetails,
     setProjectLimitDetails,
     setIsProjectLimitModalOpen,
+    isTokenLimitModalOpen,
+    setIsTokenLimitModalOpen,
     handleUpgradePlan,
     handleManageProjects,
     setProjectSetupError,

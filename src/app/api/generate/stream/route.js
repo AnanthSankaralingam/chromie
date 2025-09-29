@@ -50,81 +50,51 @@ export async function POST(request) {
     }
 
 
-    // Check user's plan and token usage limits
-    const { data: billing, error: billingError } = await supabase
-      .from("billing")
-      .select("plan")
-      .eq("user_id", user.id)
-      .single()
-
-    if (billingError) {
-      console.error("Error fetching billing info:", billingError)
-    }
+    // Check user's plan and token usage limits (aggregated, monthly window)
+    const { data: billing } = await supabase
+      .from('billing')
+      .select('plan')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     const userPlan = billing?.plan || DEFAULT_PLAN
-    const planLimits = PLAN_LIMITS[userPlan]
+    const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
 
-    // Check token usage
-    const { data: tokenUsage, error: tokenError } = await supabase
-      .from("token_usage")
-      .select("total_tokens, monthly_reset")
-      .eq("user_id", user.id)
-      .single()
+    // Fetch all token usage rows and aggregate within monthly window
+    const { data: usageRows } = await supabase
+      .from('token_usage')
+      .select('id, total_tokens, monthly_reset, model')
+      .eq('user_id', user.id)
 
-    if (tokenError && tokenError.code !== 'PGRST116') {
-      console.error("Error fetching token usage:", tokenError)
-    }
-
-    const currentUsage = tokenUsage?.total_tokens || 0
-    const monthlyReset = tokenUsage?.monthly_reset || new Date().toISOString().split('T')[0]
-
-    // Check if monthly reset is needed
-    const today = new Date().toISOString().split('T')[0]
-    const shouldReset = monthlyReset !== today
-
-    if (shouldReset) {
-      console.log("🔄 Monthly token usage reset needed")
-      
-      // Reset token usage
-      const { error: tokenResetError } = await supabase
-        .from('token_usage')
-        .update({
-          total_tokens: 0,
-          monthly_reset: today
-        })
-        .eq('user_id', user.id)
-
-      if (tokenResetError) {
-        console.error("Error resetting token usage:", tokenResetError)
-        return NextResponse.json({ error: "Failed to reset token usage" }, { status: 500 })
+    const now = new Date()
+    let effectiveTokensUsed = 0
+    let debugRows = []
+    if (Array.isArray(usageRows) && usageRows.length > 0) {
+      for (const row of usageRows) {
+        let monthlyResetIso = row?.monthly_reset
+        if (!monthlyResetIso) {
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          monthlyResetIso = firstDayOfMonth.toISOString()
+        }
+        const monthlyResetDate = new Date(monthlyResetIso)
+        const resetDatePlusOneMonth = new Date(monthlyResetDate)
+        resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+        const isResetDue = now >= resetDatePlusOneMonth
+        const counted = isResetDue ? 0 : (row?.total_tokens || 0)
+        effectiveTokensUsed += counted
+        debugRows.push({ id: row.id, model: row.model || null, monthly_reset: monthlyResetIso, isResetDue, total_tokens: row.total_tokens || 0, counted })
       }
-
-      // Update billing valid_until to next month (aligned with token reset)
-      const nextMonth = new Date()
-      nextMonth.setMonth(nextMonth.getMonth() + 1)
-      
-      const { error: billingUpdateError } = await supabase
-        .from('billing')
-        .update({
-          valid_until: nextMonth.toISOString()
-        })
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-
-      if (billingUpdateError) {
-        console.error("Error updating billing valid_until:", billingUpdateError)
-        // Don't fail the request, just log the error
-      }
-
-      console.log("✅ Monthly reset completed successfully")
     }
+    console.log(`[api/generate/stream] token usage rows considered:`, debugRows)
+    console.log(`User plan: ${userPlan}, Limit: ${planLimit.monthly_tokens}, Used (effective aggregate): ${effectiveTokensUsed}`)
 
-    const effectiveUsage = shouldReset ? 0 : currentUsage
-
-    if (effectiveUsage >= planLimits.monthly_tokens) {
-      console.log(`❌ Token limit exceeded: ${effectiveUsage}/${planLimits.monthly_tokens}`)
-      return NextResponse.json({ 
-        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions." 
+    if (planLimit.monthly_tokens !== -1 && effectiveTokensUsed >= planLimit.monthly_tokens) {
+      console.log(`❌ Token limit exceeded: ${effectiveTokensUsed}/${planLimit.monthly_tokens}`)
+      return NextResponse.json({
+        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
       }, { status: 403 })
     }
 
