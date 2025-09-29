@@ -3,7 +3,8 @@ import { randomUUID } from "crypto"
 import { continueResponse, createResponse } from "../services/google-ai"
 import { DEFAULT_MODEL } from "../constants"
 import { generateExtensionCodeStream } from "./generate-extension-code-stream"
-import { selectResponseSchema } from "./response-schemas"
+import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
+import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
 
 /**
  * Generates Chrome extension code using the specified coding prompt
@@ -40,7 +41,10 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
   const modelUsed = modelOverride || "gemini-2.5-pro"
   
   // Select the appropriate schema based on frontend type and request type
-  const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+  const isGoogleModel = typeof modelUsed === 'string' && modelUsed.toLowerCase().includes('gemini')
+  const jsonSchema = isGoogleModel
+    ? selectGeminiSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+    : selectOpenAISchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
   console.log(`Using schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
   
 

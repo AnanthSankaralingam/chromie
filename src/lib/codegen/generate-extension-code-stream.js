@@ -2,7 +2,8 @@ import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
 import { continueResponse, createResponse } from "../services/google-ai"
 import { DEFAULT_MODEL } from "../constants"
-import { selectResponseSchema } from "./response-schemas"
+import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
+import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
 
 /**
  * Generates Chrome extension code with streaming support (without separate thinking phase)
@@ -41,7 +42,10 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   const modelUsed = modelOverride || "gemini-2.5-pro"
   
   // Select the appropriate schema based on frontend type and request type
-  const jsonSchema = selectResponseSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+  const isGoogleModel = typeof modelUsed === 'string' && modelUsed.toLowerCase().includes('gemini')
+  const jsonSchema = isGoogleModel
+    ? selectGeminiSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
+    : selectOpenAISchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
   console.log(`Using schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
 
   // Use Responses API for both new and follow-up requests
@@ -136,7 +140,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         const savedFiles = []
         const errors = []
         
-        for (const [filePath, content] of Object.entries(allFiles)) {
+        for (const [filePath, rawContent] of Object.entries(allFiles)) {
+          const content = normalizeGeneratedFileContent(rawContent)
           try {
             // First, try to update existing file
             const { data: existingFile } = await supabase
@@ -342,7 +347,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       const savedFiles = []
       const errors = []
       
-      for (const [filePath, content] of Object.entries(allFiles)) {
+      for (const [filePath, rawContent] of Object.entries(allFiles)) {
+        const content = normalizeGeneratedFileContent(rawContent)
         try {
           // First, try to update existing file
           const { data: existingFile } = await supabase

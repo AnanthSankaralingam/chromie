@@ -1,5 +1,5 @@
 // google-ai.js
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import {
   DEFAULT_MODEL,
   RESPONSE_STORE_DEFAULT,
@@ -8,14 +8,6 @@ import {
 
 // Stateless wrapper for Google Generative AI
 // createResponse and continueResponse both call the Gemini API
-
-function logCreate({ model, has_previous_context, store }) {
-  console.log('[google-ai] create', {
-    model,
-    has_previous_context: Boolean(has_previous_context),
-    store
-  })
-}
 
 function logError(err) {
   // Attempt to normalize Google AI error shape
@@ -53,7 +45,7 @@ function getClient() {
   if (!apiKey) {
     throw new Error('GOOGLE_AI_API_KEY environment variable is required')
   }
-  return new GoogleGenerativeAI(apiKey)
+  return new GoogleGenAI({ apiKey })
 }
 
 function normalizeInput(input) {
@@ -75,8 +67,6 @@ function normalizeInput(input) {
   return String(input)
 }
 
-// Removed unused helper functions since we're handling response formatting directly in generateContent
-
 export async function generateContent({ model, input, response_format, temperature, max_output_tokens, conversation_history } = {}) {
   const client = getClient()
   const effectiveModel = model || DEFAULT_MODEL
@@ -88,22 +78,7 @@ export async function generateContent({ model, input, response_format, temperatu
       has_response_format: Boolean(response_format)
     })
     
-    const genModel = client.getGenerativeModel({ 
-      model: effectiveModel,
-      generationConfig: {
-        temperature: temperature || 0.2,
-        maxOutputTokens: max_output_tokens || 15000,
-        ...(response_format ? { responseMimeType: "application/json" } : {})
-      }
-    })
-
     let prompt = normalizeInput(input)
-    
-    // Add JSON schema instruction if provided
-    if (response_format) {
-      const schemaInstruction = `\n\nPlease respond with valid JSON that matches this schema: ${JSON.stringify(response_format.schema || response_format)}`
-      prompt += schemaInstruction
-    }
     
     // Add conversation history if provided
     if (conversation_history && conversation_history.length > 0) {
@@ -111,8 +86,17 @@ export async function generateContent({ model, input, response_format, temperatu
       prompt = `Previous conversation:\n${historyText}\n\nNew request:\n${prompt}`
     }
 
-    const result = await genModel.generateContent(prompt)
-    const response = await result.response
+    const result = await client.models.generateContent({
+      model: effectiveModel,
+      contents: prompt,
+      config: {
+        temperature: temperature || 0.2,
+        maxOutputTokens: max_output_tokens || 15000,
+        ...(response_format ? { responseMimeType: "application/json" } : {}),
+        ...(response_format && response_format.schema ? { responseSchema: response_format.schema } : {})
+      }
+    })
+    const response = result
     
     // Extract text properly for usage calculation
     let responseText = ''
@@ -120,10 +104,48 @@ export async function generateContent({ model, input, response_format, temperatu
       responseText = response.text()
     } else if (typeof response?.text === 'string') {
       responseText = response.text
-    } else if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      responseText = response.candidates[0].content.parts[0].text
     }
     
+    // If a schema was requested, attempt to normalize to valid JSON text
+    if (response_format) {
+      try {
+        // First try a direct parse
+        let parsed
+        try {
+          parsed = JSON.parse(responseText)
+        } catch (_) {
+          // Try to extract the largest JSON object/array substring
+          const firstCurly = responseText.indexOf('{')
+          const firstBracket = responseText.indexOf('[')
+          const start = (firstCurly === -1) ? firstBracket : (firstBracket === -1 ? firstCurly : Math.min(firstCurly, firstBracket))
+          if (start !== -1) {
+            let depth = 0
+            let end = -1
+            const openChar = responseText[start]
+            const closeChar = openChar === '{' ? '}' : ']'
+            for (let i = start; i < responseText.length; i++) {
+              const ch = responseText[i]
+              if (ch === openChar) depth++
+              if (ch === closeChar) depth--
+              if (depth === 0) {
+                end = i + 1
+                break
+              }
+            }
+            if (end !== -1) {
+              const candidate = responseText.slice(start, end)
+              parsed = JSON.parse(candidate)
+            }
+          }
+        }
+        if (parsed !== undefined) {
+          responseText = JSON.stringify(parsed)
+        }
+      } catch (e) {
+        console.warn('[google-ai] schema JSON normalization failed; returning raw text:', e?.message || e)
+      }
+    }
+
     // Calculate approximate usage (Gemini doesn't provide exact token counts like OpenAI)
     const inputTokens = Math.ceil(prompt.length / 4)
     const outputTokens = Math.ceil(responseText.length / 4)
