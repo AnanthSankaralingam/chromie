@@ -78,17 +78,21 @@ export async function generateContent({ model, input, response_format, temperatu
       has_response_format: Boolean(response_format)
     })
     
-    let prompt = normalizeInput(input)
-    
-    // Add conversation history if provided
-    if (conversation_history && conversation_history.length > 0) {
-      const historyText = conversation_history.map(msg => `${msg.role}: ${msg.content}`).join('\n\n')
-      prompt = `Previous conversation:\n${historyText}\n\nNew request:\n${prompt}`
-    }
+    // Build chat history for multi-turn conversations
+    const history = Array.isArray(conversation_history) ? conversation_history.map(msg => {
+      const text = (msg?.content ?? msg?.text ?? '').toString()
+      let role = 'user'
+      if (msg?.role === 'assistant' || msg?.role === 'model') role = 'model'
+      else if (msg?.role === 'system') role = 'user'
+      return {
+        role,
+        parts: [{ text: msg?.role === 'system' ? `(system) ${text}` : text }]
+      }
+    }) : []
 
-    const result = await client.models.generateContent({
+    const chat = client.chats.create({
       model: effectiveModel,
-      contents: prompt,
+      history,
       config: {
         temperature: temperature || 0.2,
         maxOutputTokens: max_output_tokens || 15000,
@@ -96,7 +100,9 @@ export async function generateContent({ model, input, response_format, temperatu
         ...(response_format && response_format.schema ? { responseSchema: response_format.schema } : {})
       }
     })
-    const response = result
+
+    const prompt = normalizeInput(input)
+    const response = await chat.sendMessage({ message: prompt })
     
     // Extract text properly for usage calculation
     let responseText = ''
@@ -182,9 +188,6 @@ export async function continueResponse({ model, previous_response_id, input, sto
   const conversation_history = []
   if (previous_context) {
     conversation_history.push({ role: 'assistant', content: previous_context })
-  }
-  if (previous_response_id) {
-    conversation_history.push({ role: 'system', content: `Previous response ID: ${previous_response_id}` })
   }
   
   return await generateContent({

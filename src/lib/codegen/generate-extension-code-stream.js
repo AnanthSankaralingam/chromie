@@ -5,6 +5,19 @@ import { DEFAULT_MODEL } from "../constants"
 import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
 import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
 
+function normalizeGeneratedFileContent(str) {
+  try {
+    if (typeof str !== "string") return str
+    let out = str.replace(/\r\n/g, "\n")
+    out = out.replace(/[ \t]+$/gm, "")
+    out = out.replace(/\n{3,}/g, "\n\n")
+    out = out.trim()
+    return out
+  } catch (_) {
+    return str
+  }
+}
+
 /**
  * Generates Chrome extension code with streaming support (without separate thinking phase)
  * @param {string} codingPrompt - The coding prompt to use
