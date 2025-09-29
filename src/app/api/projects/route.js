@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
 
 export async function GET() {
   const supabase = createClient()
@@ -88,17 +89,12 @@ export async function POST(request) {
       .limit(1)
       .single()
 
-    const currentPlan = billing?.plan || 'free'
+    const currentPlan = billing?.plan || DEFAULT_PLAN
     const currentProjectCount = profile?.project_count || 0
 
-    // Define project limits by plan
-    const planLimits = {
-      free: 10,
-      starter: 25,
-      pro: 50
-    }
-
-    const maxProjects = planLimits[currentPlan] || 10
+    // Align project limits with PLAN_LIMITS
+    const planLimit = PLAN_LIMITS[currentPlan] || PLAN_LIMITS[DEFAULT_PLAN]
+    const maxProjects = planLimit.max_projects
 
     // Check if user has reached their project limit
     if (currentProjectCount >= maxProjects) {
@@ -111,6 +107,38 @@ export async function POST(request) {
           maxProjects,
           nextPlan: currentPlan === 'free' ? 'starter' : currentPlan === 'starter' ? 'pro' : null
         }
+      }, { status: 403 })
+    }
+
+    // Enforce token usage BEFORE project creation (aggregate across monthly window)
+    const { data: usageRows } = await supabase
+      .from('token_usage')
+      .select('id, total_tokens, monthly_reset, model')
+      .eq('user_id', user.id)
+
+    const now = new Date()
+    let effectiveTokensUsed = 0
+    if (Array.isArray(usageRows) && usageRows.length > 0) {
+      for (const row of usageRows) {
+        let monthlyResetIso = row?.monthly_reset
+        if (!monthlyResetIso) {
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          monthlyResetIso = firstDayOfMonth.toISOString()
+        }
+        const monthlyResetDate = new Date(monthlyResetIso)
+        const resetDatePlusOneMonth = new Date(monthlyResetDate)
+        resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+        const isResetDue = now >= resetDatePlusOneMonth
+        const counted = isResetDue ? 0 : (row?.total_tokens || 0)
+        effectiveTokensUsed += counted
+      }
+    }
+
+    if (planLimit.monthly_tokens !== -1 && effectiveTokensUsed >= planLimit.monthly_tokens) {
+      console.log(`[projects POST] ❌ Token limit exceeded pre-creation: ${effectiveTokensUsed}/${planLimit.monthly_tokens}`)
+      return NextResponse.json({
+        error: "Token usage limit exceeded",
+        details: { effectiveTokensUsed, limit: planLimit.monthly_tokens }
       }, { status: 403 })
     }
 

@@ -7,6 +7,7 @@ import ChatMessage from "@/components/ui/chat/chat-message"
 import ChatInput from "@/components/ui/chat/chat-input"
 import ModalUrlPrompt from "@/components/ui/modals/modal-url-prompt"
 import StreamingChat from "@/components/ui/chat/streaming-chat"
+import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import { useChat } from "@/hooks/use-chat"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 
@@ -16,6 +17,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
   const [useStreaming, setUseStreaming] = useState(true) // Enable streaming with buffering fix
   const [previousResponseId, setPreviousResponseId] = useState(null)
   const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
+  const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
   
   // Listen for URL prompt events from use-chat hook
   useEffect(() => {
@@ -155,6 +157,8 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
 
       // Handle different response scenarios
       if (response.status === 403) {
+        // Show token usage modal if exceeded
+        setShowTokenLimitModal(true)
         content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping - no chat message needed
@@ -355,6 +359,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
           onGenerationEnd={onGenerationEnd}
         />
       )}
+      <TokenUsageAlert isOpen={showTokenLimitModal} onClose={() => setShowTokenLimitModal(false)} />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { LoadingState, ErrorState } from "@/components/ui/feedback/loading-error
 import ProjectFilesPanel from "@/components/ui/project-files-panel"
 import EditorPanel from "@/components/ui/code-editing/editor-panel"
 import useProjectSetup from "@/components/ui/project-setup"
+import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import useFileManagement from "@/components/ui/file-management"
 import useResizablePanels from "@/components/ui/resizable-panels"
 import useTestExtension from "@/components/ui/extension-testing/test-extension"
@@ -396,6 +397,9 @@ export default function BuilderPage() {
           onDeleteProject={projectSetup.handleManageProjects}
         />
       )}
+
+      {/* Token Usage Modal */}
+      <TokenUsageAlert isOpen={projectSetup.isTokenLimitModalOpen} onClose={() => projectSetup.setIsTokenLimitModalOpen(false)} />
     </>
   )
 }

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
+import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 
 export default function HomePage() {
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
+  const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const router = useRouter()
   const textareaRef = useRef(null)
@@ -100,7 +102,7 @@ export default function HomePage() {
         }),
       })
 
-      if (!response.ok) {
+    if (!response.ok) {
         const errorData = await response.json()
         
         if (response.status === 403 && errorData.error === "Project limit reached") {
@@ -109,6 +111,10 @@ export default function HomePage() {
           setIsProjectLimitModalOpen(true)
           setIsGenerating(false)
           return
+      } else if (response.status === 403 && (errorData.error === 'Token usage limit exceeded' || (errorData.error || '').toLowerCase().includes('token usage'))) {
+        setIsTokenLimitModalOpen(true)
+        setIsGenerating(false)
+        return
         }
         
         throw new Error(errorData.error || "Failed to create project")
@@ -280,6 +286,9 @@ export default function HomePage() {
           onDeleteProject={handleManageProjects}
         />
       )}
+
+      {/* Token Usage Modal */}
+      <TokenUsageAlert isOpen={isTokenLimitModalOpen} onClose={() => setIsTokenLimitModalOpen(false)} />
     </>
   )
 }

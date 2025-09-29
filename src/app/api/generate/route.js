@@ -79,33 +79,34 @@ export async function POST(request) {
     const userPlan = billing?.plan || DEFAULT_PLAN
     const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
 
-    // Fetch global per-user token usage with monthly reset logic
-    const { data: existingUsage } = await supabase
+    // Fetch all token usage rows for the user and aggregate with monthly reset logic
+    const { data: usageRows } = await supabase
       .from('token_usage')
       .select('id, total_tokens, monthly_reset, model')
       .eq('user_id', user.id)
-      .maybeSingle()
-
 
     const now = new Date()
-    // If no monthly_reset exists, calculate it as beginning of current month
-    let effectiveMonthlyReset = existingUsage?.monthly_reset
-    if (!effectiveMonthlyReset) {
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      effectiveMonthlyReset = firstDayOfMonth.toISOString()
+    // Sum tokens across all rows that are not past their monthly reset
+    let effectiveTokensUsed = 0
+    let debugRows = []
+    if (Array.isArray(usageRows) && usageRows.length > 0) {
+      for (const row of usageRows) {
+        let monthlyResetIso = row?.monthly_reset
+        if (!monthlyResetIso) {
+          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          monthlyResetIso = firstDayOfMonth.toISOString()
+        }
+        const monthlyResetDate = new Date(monthlyResetIso)
+        const resetDatePlusOneMonth = new Date(monthlyResetDate)
+        resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+        const isResetDue = now >= resetDatePlusOneMonth
+        const counted = isResetDue ? 0 : (row?.total_tokens || 0)
+        effectiveTokensUsed += counted
+        debugRows.push({ id: row.id, model: row.model || null, monthly_reset: monthlyResetIso, isResetDue, total_tokens: row.total_tokens || 0, counted })
+      }
     }
-    
-    const monthlyResetDate = effectiveMonthlyReset ? new Date(effectiveMonthlyReset) : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-
-    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
-    const effectiveTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
-    console.log(`User plan: ${userPlan}, Limit: ${planLimit.monthly_tokens}, Used (effective): ${effectiveTokensUsed}`)
-    console.log(`Monthly reset date: ${monthlyResetDate?.toISOString()}, Reset due: ${isResetDue}`)
+    console.log(`[api/generate] token usage rows considered:`, debugRows)
+    console.log(`User plan: ${userPlan}, Limit: ${planLimit.monthly_tokens}, Used (effective aggregate): ${effectiveTokensUsed}`)
 
     // Check if user has exceeded their limit (unless unlimited)
     if (planLimit.monthly_tokens !== -1 && effectiveTokensUsed >= planLimit.monthly_tokens) {
