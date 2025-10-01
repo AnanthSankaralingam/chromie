@@ -14,9 +14,13 @@ P1
 
 P2
 6. test product end to end, along with billing
-7. functionality to publish extensions directly to chrome web store
+7. functionality to publish extensions directly to chrome web store (when unblocked)
+8. stop button in generation, rewrite earlier messages in chat
 
-Soft Launch: start posting chromie-built Chrome extenisons on Reddit and other socials. We can get downloads and subtle visibility like this. After making successive posts, social algos will favor us more for final post.
+#### Launch Plan:
+1. start posting chromie-built Chrome extenisons on Reddit, X and other socials. We can get downloads and subtle visibility like this.
+2. After making successive posts, social algos will favor us more for final post. Coordinate and make multiple big posts telling people to join
+3. Post on product hunt and LinkedIn. Viral on product hunt is possible if we time and market it right.
 
 
 
