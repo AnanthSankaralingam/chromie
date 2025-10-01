@@ -3,14 +3,37 @@
 ##### v1 demo: https://youtu.be/5807ieV35kU?si=VqQ-1LQymLrTEPAL
 
 ### TODOs
-1. ~P0: billing - valid_until is 5 years in future~
-2. ~update prompt mandatory fields based on prompt selection; ie side panel doesnt need popup empty files~
-3. add styling - hardcode as much as possible
-4. test product end to end, along with billing
-5. functionality to publish extensions directly to chrome web store
+P0
+1. ~stream thinking output, update UX to keep user engaged~
+2. allow users to buy more tokens rather than subscribing. should be simple, just subtract from token usage and reset monthly_reset
+3. modular conversation history. gemini and anthropic can use OpenAI chat completions SDK so we can easily switch between models 
+
+P1
+4. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
+5. allow user input for env variables
+
+P2
+6. test product end to end, along with billing
+7. functionality to publish extensions directly to chrome web store (when unblocked)
+8. stop button in generation, rewrite earlier messages in chat
+
+#### Launch Plan:
+1. start posting chromie-built Chrome extenisons on Reddit, X and other socials. We can get downloads and subtle visibility like this.
+2. After making successive posts, social algos will favor us more for final post. Coordinate and make multiple big posts telling people to join
+3. Post on product hunt and LinkedIn. Viral on product hunt is possible if we time and market it right.
 
 
-### Model SxSxSxSxS (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
+
+
+
+
+
+
+
+
+
+### Model Comparison (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
+TODO: try o3 with low temperature, sonnet 4.5, gpt4.1, deepseek-coder ...
 
 use akshay-{model} branch and run "npm run dev" to test out each model, setting corresponding API key in env
 
