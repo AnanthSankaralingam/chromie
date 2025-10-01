@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Play, Settings, Bookmark, Download, ToggleLeft, ToggleRight, Bell, Layers, Monitor, Palette, Zap, Wifi } from "lucide-react"
+import { Play, Settings, Bookmark, Download, ToggleLeft, ToggleRight, Bell, Layers, Monitor, Palette, Zap, Wifi, ExternalLink, AlertTriangle } from "lucide-react"
 
 function ExtensionPopupRenderer({ 
   extensionFiles = [], 
@@ -12,6 +12,8 @@ function ExtensionPopupRenderer({
 }) {
   const [popupContent, setPopupContent] = useState(null)
   const [popupStyles, setPopupStyles] = useState("")
+  const [cspError, setCspError] = useState(false)
+  const [usePopupWindow, setUsePopupWindow] = useState(false)
   const iframeRef = useRef(null)
 
   useEffect(() => {
@@ -39,6 +41,21 @@ function ExtensionPopupRenderer({
       css: !!popupCSS,
       manifest: !!manifest
     })
+
+    // Check if any content contains CSP-restricted sites
+    const allContent = [
+      popupHTML?.content,
+      sidePanelHTML?.content,
+      contentJS?.content,
+      manifest?.content
+    ].filter(Boolean).join(' ')
+
+    const hasCSPRestrictions = isCSPRestricted(allContent)
+    setUsePopupWindow(hasCSPRestrictions)
+
+    if (hasCSPRestrictions) {
+      console.log("CSP-restricted content detected, will use popup window")
+    }
 
     if (popupHTML) {
       // Handle popup-based extensions
@@ -159,10 +176,76 @@ function ExtensionPopupRenderer({
     return features.length > 0 ? features : ['Injects custom functionality into web pages']
   }
 
+  // Check if content contains CSP-restricted sites
+  const isCSPRestricted = (content) => {
+    if (!content) return false
+    
+    const cspRestrictedSites = [
+      'chatgpt.com',
+      'claude.ai',
+      'bard.google.com',
+      'openai.com',
+      'anthropic.com'
+    ]
+    
+    return cspRestrictedSites.some(site => content.toLowerCase().includes(site))
+  }
+
+  // Open popup window with content
+  const openPopupWindow = (content, title = 'Extension Popup') => {
+    const popupWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes')
+    
+    if (popupWindow) {
+      popupWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 16px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+            }
+          </style>
+        </head>
+        <body>
+          ${content}
+        </body>
+        </html>
+      `)
+      popupWindow.document.close()
+      popupWindow.focus()
+      
+      // Set up communication with popup
+      const checkClosed = setInterval(() => {
+        if (popupWindow.closed) {
+          clearInterval(checkClosed)
+          console.log('Popup window closed')
+        }
+      }, 1000)
+    }
+    
+    return popupWindow
+  }
+
   const getBasePopupStyles = () => `
     <style>
-      body {
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
         margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      body {
         padding: 16px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
@@ -171,15 +254,26 @@ function ExtensionPopupRenderer({
         background: white;
         width: 300px;
         min-height: 200px;
-        box-sizing: border-box;
+        border-radius: 12px;
+        overflow: hidden;
       }
     </style>
   `
 
   const getBaseSidePanelStyles = () => `
     <style>
-      body {
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
         margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      body {
         padding: 16px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 13px;
@@ -188,7 +282,8 @@ function ExtensionPopupRenderer({
         background: white;
         width: 320px;
         min-height: 300px;
-        box-sizing: border-box;
+        border-radius: 12px;
+        overflow: hidden;
       }
       h1, h2, h3 { margin-top: 0; }
     </style>
@@ -200,8 +295,18 @@ function ExtensionPopupRenderer({
     <head>
       <meta charset="utf-8">
       <style>
-        body {
+        * {
+          box-sizing: border-box;
+        }
+        html, body {
           margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        body {
           padding: 20px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 14px;
@@ -211,7 +316,8 @@ function ExtensionPopupRenderer({
           color: white;
           width: 300px;
           min-height: 250px;
-          box-sizing: border-box;
+          border-radius: 12px;
+          overflow: hidden;
         }
         .header {
           text-align: center;
@@ -281,8 +387,18 @@ function ExtensionPopupRenderer({
     <head>
       <meta charset="utf-8">
       <style>
-        body {
+        * {
+          box-sizing: border-box;
+        }
+        html, body {
           margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        body {
           padding: 20px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 14px;
@@ -292,7 +408,8 @@ function ExtensionPopupRenderer({
           color: white;
           width: 300px;
           min-height: 200px;
-          box-sizing: border-box;
+          border-radius: 12px;
+          overflow: hidden;
         }
         .header {
           text-align: center;
@@ -437,11 +554,74 @@ function ExtensionPopupRenderer({
     )
   }
 
+  const handleIframeError = () => {
+    setCspError(true)
+  }
+
+  const openInNewWindow = () => {
+    const newWindow = window.open('', '_blank', 'width=800,height=600')
+    if (newWindow) {
+      newWindow.document.write(popupContent)
+      newWindow.document.close()
+    }
+  }
+
+  if (cspError) {
+    return (
+      <div className="h-full flex flex-col bg-white">
+        <div className="flex-1 min-h-0 p-4 overflow-auto">
+          <div className="border border-red-200 rounded-xl overflow-hidden shadow-lg bg-red-50">
+            <div className="p-6 text-center">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Content Security Policy Error</h3>
+              <p className="text-red-600 mb-4">
+                This extension popup cannot be displayed due to security restrictions.
+              </p>
+              <Button 
+                onClick={openInNewWindow}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in New Window
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (usePopupWindow) {
+    return (
+      <div className="h-full flex flex-col bg-white">
+        <div className="flex-1 min-h-0 p-4 overflow-auto">
+          <div className="border border-blue-200 rounded-xl overflow-hidden shadow-lg bg-blue-50">
+            <div className="p-6 text-center">
+              <ExternalLink className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-blue-800 mb-2">Popup Window Required</h3>
+              <p className="text-blue-600 mb-4">
+                This extension contains content that cannot be embedded due to security restrictions.
+                Click below to open it in a popup window.
+              </p>
+              <Button 
+                onClick={() => openPopupWindow(popupContent, 'Extension Popup')}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in Popup Window
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Popup Iframe */}
       <div className="flex-1 min-h-0 p-4 overflow-auto">
-        <div className="border border-gray-200 rounded-lg overflow-auto shadow-sm">
+        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-white">
           <iframe
             ref={iframeRef}
             srcDoc={popupContent}
@@ -451,8 +631,12 @@ function ExtensionPopupRenderer({
             style={{ 
               background: 'white',
               minHeight: '400px',
-              height: 'auto'
+              height: 'auto',
+              borderRadius: '12px',
+              border: 'none',
+              outline: 'none'
             }}
+            onError={handleIframeError}
           />
         </div>
       </div>

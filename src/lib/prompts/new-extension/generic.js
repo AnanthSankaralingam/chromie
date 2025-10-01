@@ -24,7 +24,7 @@ Frontend Type: {frontend_type}
 MANDATORY: Create cutting-edge styles with modern, premium aesthetics for any UI components.
 
 Core Principles:
-- Popup: 340-400px | Side panel: Full height, 400-500px width | Spacing: 12px, 16px, 20px, 24px | Border-radius: 10-16px
+- Popup: 340-400px | Side panel: Full height, 400-500px width | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
 - Use gradients, glassmorphism, shadows for depth
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
@@ -35,9 +35,9 @@ Color Schemes (choose ONE):
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 10-12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 10px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
-- Cards: Padding 20-24px | Radius 16-20px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
+- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
+- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
+- Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
 
 Premium Effects (MUST include):
 - Gradients on buttons/headers
