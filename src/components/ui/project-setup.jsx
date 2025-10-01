@@ -25,6 +25,19 @@ export default function useProjectSetup(user, isLoading) {
     return null
   }
 
+  // Public: refresh current project's details (e.g., name/description) from API
+  const refreshCurrentProjectDetails = async () => {
+    try {
+      if (!currentProjectId) return
+      const project = await fetchProjectDetails(currentProjectId)
+      if (project) {
+        setCurrentProjectName(project.name)
+      }
+    } catch (error) {
+      console.error('Error refreshing current project details:', error)
+    }
+  }
+
   const createDefaultProject = async () => {
     try {
       console.log('Creating default project...')
@@ -175,6 +188,7 @@ export default function useProjectSetup(user, isLoading) {
     handleUpgradePlan,
     handleManageProjects,
     setProjectSetupError,
-    checkAndSetupProject
+    checkAndSetupProject,
+    refreshCurrentProjectDetails
   }
 } 

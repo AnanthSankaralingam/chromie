@@ -9,6 +9,55 @@ export default function ProjectFilesPanel({
   searchQuery,
   onSearchChange
 }) {
+  // Listen for global selection/focus events
+  if (typeof window !== 'undefined') {
+    // Auto-select a file being written/updated
+    window.__chromie_selectFileListener ||= (e) => {
+      try {
+        const targetPath = e?.detail?.file_path
+        if (!targetPath || !Array.isArray(fileStructure)) return
+        const findInTree = (items) => {
+          for (const item of items) {
+            if (item.type === 'file' && (item.fullPath === targetPath || item.file_path === targetPath || item.name === targetPath)) return item
+            if (item.type === 'folder' && item.children) {
+              const hit = findInTree(item.children)
+              if (hit) return hit
+            }
+          }
+          return null
+        }
+        const file = findInTree(fileStructure)
+        if (file) onFileSelect(file)
+      } catch (_) {}
+    }
+    if (!window.__chromie_selectFileBound) {
+      window.addEventListener('editor:selectFile', window.__chromie_selectFileListener)
+      window.__chromie_selectFileBound = true
+    }
+
+    // Focus manifest.json on completion
+    window.__chromie_focusManifestListener ||= () => {
+      try {
+        if (!Array.isArray(fileStructure)) return
+        const findManifest = (items) => {
+          for (const item of items) {
+            if (item.type === 'file' && String(item.name).toLowerCase() === 'manifest.json') return item
+            if (item.type === 'folder' && item.children) {
+              const hit = findManifest(item.children)
+              if (hit) return hit
+            }
+          }
+          return null
+        }
+        const manifest = findManifest(fileStructure)
+        if (manifest) onFileSelect(manifest)
+      } catch (_) {}
+    }
+    if (!window.__chromie_focusManifestBound) {
+      window.addEventListener('editor:focusManifest', window.__chromie_focusManifestListener)
+      window.__chromie_focusManifestBound = true
+    }
+  }
   return (
     <div className="h-full lg:border-r border-white/10 bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up flex flex-col">
       <div className="p-3 sm:p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 flex-shrink-0">

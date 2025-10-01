@@ -200,10 +200,51 @@ export async function continueResponse({ model, previous_response_id, input, sto
   })
 }
 
+// Streaming with Gemini thoughts enabled
+export async function* generateContentStreamWithThoughts({ model, input, temperature, max_output_tokens } = {}) {
+  const client = getClient()
+  const effectiveModel = model || DEFAULT_MODEL
+  const prompt = normalizeInput(input)
+  try {
+    const response = await client.models.generateContentStream({
+      model: effectiveModel,
+      contents: prompt,
+      config: {
+        thinkingConfig: {
+          includeThoughts: true,
+        },
+        temperature: temperature || 0.2,
+        maxOutputTokens: max_output_tokens || 15000,
+      },
+    })
+
+    for await (const chunk of response) {
+      try {
+        const parts = chunk?.candidates?.[0]?.content?.parts || []
+        for (const part of parts) {
+          const text = part?.text
+          if (!text) continue
+          if (part?.thought) {
+            yield { type: 'thinking_chunk', text }
+          } else {
+            yield { type: 'answer_chunk', text }
+          }
+        }
+      } catch (inner) {
+        // Non-fatal: skip malformed chunk
+      }
+    }
+  } catch (err) {
+    logError(err)
+    throw err
+  }
+}
+
 export default {
   generateContent,
   createResponse,
   continueResponse,
+  generateContentStreamWithThoughts,
   isContextLimitError,
   CONTEXT_WINDOW_MAX_TOKENS_DEFAULT
 }

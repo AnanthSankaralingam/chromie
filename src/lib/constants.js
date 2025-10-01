@@ -27,11 +27,12 @@ export const DEFAULT_PLAN = 'free'
 
 // Model names used in the application
 export const AI_MODELS = {
-  GEMINI_2_5_PRO: 'gemini-2.5-pro'
+  GEMINI_2_5_PRO: 'gemini-2.5-pro',
+  GEMINI_2_5_FLASH: 'gemini-2.5-flash'
 }
 
 // Google AI defaults
-export const DEFAULT_MODEL = 'gemini-2.5-pro'
+export const DEFAULT_MODEL = 'gemini-2.5-flash'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 120000
 

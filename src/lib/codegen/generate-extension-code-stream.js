@@ -1,6 +1,6 @@
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
-import { continueResponse, createResponse } from "../services/google-ai"
+import { continueResponse, createResponse, generateContentStreamWithThoughts } from "../services/google-ai"
 import { DEFAULT_MODEL } from "../constants"
 import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
 import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
@@ -249,6 +249,127 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     // New request - use createResponse
     console.log("[generateExtensionCodeStream] Using Responses API (new)", { modelUsed, hasPrevious: false })
     try {
+      // Stream thoughts and answer chunks with Gemini when available
+      if ((modelOverride || DEFAULT_MODEL).toLowerCase().includes('gemini')) {
+        // Forward thinking vs answer chunks to frontend
+        let combinedText = ''
+        for await (const s of generateContentStreamWithThoughts({
+          model: modelOverride || DEFAULT_MODEL,
+          input: finalPrompt,
+          temperature: 0.2,
+          max_output_tokens: 15000
+        })) {
+          if (s?.type === 'thinking_chunk') {
+            yield { type: 'thinking', content: s.text }
+          } else if (s?.type === 'answer_chunk') {
+            combinedText += s.text
+          }
+        }
+        // After stream completes, continue with normal parsing using combinedText
+        const response = {
+          output_text: combinedText,
+          usage: { total_tokens: Math.ceil((finalPrompt.length + combinedText.length) / 4), total: Math.ceil((finalPrompt.length + combinedText.length) / 4) }
+        }
+        // fall through to existing parsing below using this response
+        
+        // Extract and stream the explanation
+        let implementationResult
+        try {
+          let jsonContent = ""
+          const outputText = response?.output_text || ''
+          if (typeof outputText === 'string' && outputText.includes('```json')) {
+            const jsonMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/)
+            if (jsonMatch) {
+              jsonContent = jsonMatch[1].trim()
+            }
+          } else if (typeof outputText === 'string' && outputText.includes('```')) {
+            const codeMatch = outputText.match(/```\s*([\s\S]*?)\s*```/)
+            if (codeMatch) {
+              jsonContent = codeMatch[1].trim()
+            }
+          } else {
+            const jsonStart = outputText.indexOf('{')
+            if (jsonStart !== -1) {
+              let braceCount = 0
+              let jsonEnd = jsonStart
+              for (let i = jsonStart; i < outputText.length; i++) {
+                if (outputText[i] === '{') braceCount++
+                if (outputText[i] === '}') braceCount--
+                if (braceCount === 0) {
+                  jsonEnd = i + 1
+                  break
+                }
+              }
+              jsonContent = outputText.substring(jsonStart, jsonEnd)
+            }
+          }
+          if (jsonContent) {
+            implementationResult = JSON.parse(jsonContent)
+            if (implementationResult && implementationResult.explanation) {
+              console.log("📝 Extracted explanation from Gemini stream (new)")
+              yield { type: "explanation", content: implementationResult.explanation }
+              yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+            }
+          }
+        } catch (error) {
+          console.error("❌ Error parsing explanation from Gemini stream (new):", error)
+          yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+        }
+        // Process and save files (reuse existing logic)
+        if (implementationResult && typeof implementationResult === 'object') {
+          console.log("🔄 Processing generated code for file saving...")
+          const supabase = (await import('../supabase/server')).createClient()
+          console.log('[codegen-stream] Skipping per-project icon persistence; will materialize at packaging')
+          const allFiles = { ...implementationResult }
+          delete allFiles.explanation
+          console.log(`💾 Saving ${Object.keys(allFiles).length} files to database`)
+          const savedFiles = []
+          const errors = []
+          for (const [filePath, rawContent] of Object.entries(allFiles)) {
+            const content = normalizeGeneratedFileContent(rawContent)
+            try {
+              const { data: existingFile } = await supabase
+                .from("code_files")
+                .select("id")
+                .eq("project_id", sessionId)
+                .eq("file_path", filePath)
+                .single()
+              if (existingFile) {
+                const { error: updateError } = await supabase
+                  .from("code_files")
+                  .update({ content, last_used_at: new Date().toISOString() })
+                  .eq("id", existingFile.id)
+                if (updateError) { errors.push({ filePath, error: updateError }) } else { savedFiles.push(filePath) }
+              } else {
+                const { error: insertError } = await supabase
+                  .from("code_files")
+                  .insert({ id: (await import('crypto')).randomUUID(), project_id: sessionId, file_path: filePath, content })
+                if (insertError) { errors.push({ filePath, error: insertError }) } else { savedFiles.push(filePath) }
+              }
+            } catch (fileError) {
+              errors.push({ filePath, error: fileError })
+            }
+          }
+          console.log(`✅ Saved ${savedFiles.length} files successfully`)
+          if (errors.length > 0) {
+            console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
+          }
+          try {
+            const supabase = (await import('../supabase/server')).createClient()
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({ has_generated_code: true, last_used_at: new Date().toISOString() })
+              .eq('id', sessionId)
+            if (updateError) { console.error('❌ Error updating project has_generated_code:', updateError) }
+          } catch (err) {
+            console.error('💥 Exception during project update:', err)
+          }
+          yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+        }
+        yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
+        return
+      }
+
       const response = await createResponse({
         model: modelOverride || DEFAULT_MODEL,
         input: finalPrompt,
@@ -326,31 +447,6 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       // Icons are no longer persisted per project; they'll be materialized at packaging time
       console.log('[codegen-stream] Skipping per-project icon persistence; will materialize at packaging')
       const allFiles = { ...implementationResult }
-      
-      // Add fallback HyperAgent script if not provided
-      // COMMENTED OUT: HyperAgent test script generation
-      // if (!allFiles["hyperagent_test_script.js"]) {
-      //   console.log("📝 No HyperAgent script provided, using fallback")
-      //   allFiles["hyperagent_test_script.js"] = `// Fallback HyperAgent test script for Chrome extension testing
-      // // This is a minimal placeholder script that will be used when no specific
-      // // HyperAgent script is generated by the AI
-      // 
-      // console.log("Starting HyperAgent test for Chrome Extension")
-      // 
-      // // Basic test task - click extension icon and verify it loads
-      // const testTask = "Test the Chrome extension by clicking the extension icon and verifying it loads correctly"
-      // 
-      // console.log("Test task:", testTask)
-      // 
-      // // This is a placeholder script - the actual HyperAgent execution will be handled
-      // // by the Hyperbrowser service using this basic test task
-      // console.log("✅ HyperAgent test script loaded (fallback version)")
-      // 
-      // // Export the test task for use by the HyperAgent service
-      // if (typeof module !== 'undefined' && module.exports) {
-      //   module.exports = { testTask }
-      // }`
-      // }
       
       // Remove explanation as it's not a file
       delete allFiles.explanation

@@ -2,6 +2,19 @@ import { FileCode } from "lucide-react"
 import MonacoEditor from "./monaco-editor"
 
 export default function EditorPanel({ selectedFile, onFileSave, allFiles }) {
+  // Focus editor panel on external file selection signal
+  if (typeof window !== 'undefined') {
+    window.__chromie_focusManifestToEditor ||= () => {
+      try {
+        // no-op here; ProjectFilesPanel will update selectedFile, and this component will render Monaco
+        // we can add future hooks if needed
+      } catch (_) {}
+    }
+    if (!window.__chromie_focusManifestToEditorBound) {
+      window.addEventListener('editor:focusManifest', window.__chromie_focusManifestToEditor)
+      window.__chromie_focusManifestToEditorBound = true
+    }
+  }
   if (selectedFile) {
     return (
       <MonacoEditor 

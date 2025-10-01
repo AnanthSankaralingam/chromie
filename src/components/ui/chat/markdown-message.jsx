@@ -1,96 +1,123 @@
 "use client"
 
-// Simple markdown parser for basic formatting
-const parseMarkdown = (text) => {
-  if (!text) return text
-  
-  
-  // Convert markdown to HTML
-  let html = text
-    // Headers
-    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mb-2 text-white border-b border-slate-600 pb-1">$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-3 text-white border-b border-slate-600 pb-1">$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4 text-white border-b border-slate-600 pb-1">$1</h1>')
-    
-    // Bold and italic - debug each step
-    .replace(/\*\*([^*]+)\*\*/g, (match, p1) => {
-      return '<strong class="font-semibold text-white">' + p1 + '</strong>'
-    })
-    .replace(/\*([^*]+)\*/g, (match, p1) => {
-      return '<em class="italic text-slate-300">' + p1 + '</em>'
-    })
-    
-    // Code blocks
-    .replace(/```([\s\S]*?)```/g, '<pre class="bg-slate-800 border border-slate-600 rounded-lg p-3 my-3 overflow-x-auto"><code class="text-sm text-green-400 font-mono">$1</code></pre>')
-    
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-2 py-1 rounded text-sm text-green-400 font-mono border border-slate-600">$1</code>')
-    
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline transition-colors">$1</a>')
-    
-    // Blockquotes
-    .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-purple-500 pl-4 py-2 my-3 bg-purple-500/10 italic text-slate-300">$1</blockquote>')
-    
-    // Lists
-    .replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">• $1</li>')
-    .replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">• $1</li>')
-    .replace(/^(\d+)\. (.*$)/gim, '<li class="ml-4 mb-1">$1. $2</li>')
-    
-    // Line breaks
-    .replace(/\n/g, '<br />')
-    
-    // Wrap lists in ul/ol tags (simple approach)
-    .replace(/(<li.*<\/li>)/g, '<ul class="list-none space-y-1 my-3">$1</ul>')
-    
-    // Clean up multiple ul tags
-    .replace(/<\/ul>\s*<ul[^>]*>/g, '')
-    
-    // Paragraphs (simple approach)
-    .replace(/([^<]+)(?=<br \/>|$)/g, '<p class="mb-3 leading-relaxed">$1</p>')
-    
-    // Clean up empty paragraphs
-    .replace(/<p class="mb-3 leading-relaxed"><br \/><\/p>/g, '')
-    .replace(/<p class="mb-3 leading-relaxed"><\/p>/g, '')
-    
-    // Clean up multiple br tags
-    .replace(/(<br \/>\s*){2,}/g, '<br />')
-    
-    // Clean up leading/trailing br tags
-    .replace(/^(<br \/>\s*)+/, '')
-    .replace(/(<br \/>\s*)+$/, '')
-  
-  return html
-}
+// Markdown message component with adaptive typing
+import { useEffect, useMemo, useRef, useState } from "react"
+import { parseMarkdown } from "./markdown-parser"
 
-// Markdown message component
-export default function MarkdownMessage({ content }) {
-  const html = parseMarkdown(content)
-  
-  // Temporary test - hardcode the expected output
-  const testHtml = content.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
-  
+export default function MarkdownMessage({ content, typingCancelSignal }) {
+  const fullHtml = useMemo(() => parseMarkdown(content), [content])
+  const [displayHtml, setDisplayHtml] = useState("")
+  const [isTyping, setIsTyping] = useState(false)
+  const timerRef = useRef(null)
+  const indexRef = useRef(0)
+  const tokensRef = useRef([])
+
+  // Tokenize by sentence first, then by words to allow adaptive batching
+  const tokenize = (text) => {
+    const sentences = text.split(/(?<=[.!?])\s+/)
+    const result = []
+    for (const s of sentences) {
+      const parts = s.split(/(\s+)/)
+      for (const p of parts) {
+        if (p) result.push(p)
+      }
+      result.push(" ")
+    }
+    return result
+  }
+
+  // Start typing effect whenever content changes
+  useEffect(() => {
+    // Cancel any previous timers
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    const html = parseMarkdown(content)
+    const raw = content || ""
+    // If content contains formatting (markdown or HTML), render immediately to avoid partial tag artifacts
+    const hasFormatting = /[`*_#>\[\]\(\)]|<[^>]+>/m.test(raw)
+    if (hasFormatting) {
+      setIsTyping(false)
+      setDisplayHtml(html)
+      return
+    }
+    tokensRef.current = tokenize(raw)
+    indexRef.current = 0
+    setDisplayHtml("")
+    setIsTyping(false)
+
+    const step = () => {
+      // Adaptive batch size: grow with message length
+      const total = tokensRef.current.length
+      const base = total < 40 ? 1 : total < 120 ? 2 : total < 250 ? 4 : 6
+      const batchSize = base
+
+      const nextIndex = Math.min(indexRef.current + batchSize, total)
+      const slice = tokensRef.current.slice(0, nextIndex).join("")
+      indexRef.current = nextIndex
+      // During typing, render plain text to avoid partial HTML artifacts
+      setIsTyping(true)
+      setDisplayHtml(slice)
+
+      if (nextIndex < total) {
+        // Interval adapts slightly with size: shorter delays for longer texts
+        const delay = total < 40 ? 35 : total < 120 ? 22 : total < 250 ? 16 : 12
+        timerRef.current = setTimeout(step, delay)
+      } else {
+        setIsTyping(false)
+        setDisplayHtml(html)
+      }
+    }
+
+    // For very short strings, render immediately
+    if ((content || "").length <= 3) {
+      setDisplayHtml(html)
+      return
+    }
+
+    timerRef.current = setTimeout(step, 10)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [content])
+
+  // Cancel typing immediately on external signal and flush full content
+  useEffect(() => {
+    if (typingCancelSignal === undefined) return
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setIsTyping(false)
+    setDisplayHtml(fullHtml)
+  }, [typingCancelSignal, fullHtml])
+
   return (
-    <div 
-      className="text-sm prose prose-invert max-w-none"
-      style={{
-        '--tw-prose-body': 'rgb(203 213 225)',
-        '--tw-prose-headings': 'rgb(255 255 255)',
-        '--tw-prose-links': 'rgb(96 165 250)',
-        '--tw-prose-bold': 'rgb(255 255 255)',
-        '--tw-prose-counters': 'rgb(148 163 184)',
-        '--tw-prose-bullets': 'rgb(148 163 184)',
-        '--tw-prose-hr': 'rgb(71 85 105)',
-        '--tw-prose-quotes': 'rgb(148 163 184)',
-        '--tw-prose-quote-borders': 'rgb(71 85 105)',
-        '--tw-prose-captions': 'rgb(148 163 184)',
-        '--tw-prose-code': 'rgb(34 197 94)',
-        '--tw-prose-pre-code': 'rgb(34 197 94)',
-        '--tw-prose-pre-bg': 'rgb(30 41 59)',
-        '--tw-prose-th-borders': 'rgb(71 85 105)',
-        '--tw-prose-td-borders': 'rgb(71 85 105)',
-      }}
-      dangerouslySetInnerHTML={{ __html: testHtml }}
-    />
+    isTyping ? (
+      <div className="text-sm whitespace-pre-wrap">{displayHtml}</div>
+    ) : (
+      <div 
+        className="text-sm prose prose-invert max-w-none"
+        style={{
+          '--tw-prose-body': 'rgb(203 213 225)',
+          '--tw-prose-headings': 'rgb(255 255 255)',
+          '--tw-prose-links': 'rgb(96 165 250)',
+          '--tw-prose-bold': 'rgb(255 255 255)',
+          '--tw-prose-counters': 'rgb(148 163 184)',
+          '--tw-prose-bullets': 'rgb(148 163 184)',
+          '--tw-prose-hr': 'rgb(71 85 105)',
+          '--tw-prose-quotes': 'rgb(148 163 184)',
+          '--tw-prose-quote-borders': 'rgb(71 85 105)',
+          '--tw-prose-captions': 'rgb(148 163 184)',
+          '--tw-prose-code': 'rgb(34 197 94)',
+          '--tw-prose-pre-code': 'rgb(34 197 94)',
+          '--tw-prose-pre-bg': 'rgb(30 41 59)',
+          '--tw-prose-th-borders': 'rgb(71 85 105)',
+          '--tw-prose-td-borders': 'rgb(71 85 105)',
+        }}
+        dangerouslySetInnerHTML={{ __html: displayHtml || fullHtml }}
+      />
+    )
   )
-} 
+}

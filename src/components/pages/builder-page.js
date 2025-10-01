@@ -260,6 +260,8 @@ export default function BuilderPage() {
                 onCodeGenerated={async (response) => {
                   await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                   setIsGenerating(false)
+                  // Refresh project details (name/description) after generation updates
+                  await projectSetup.refreshCurrentProjectDetails?.()
                   
                   // Auto-select manifest.json file after code generation and switch to files tab
                   setTimeout(() => {
@@ -320,6 +322,8 @@ export default function BuilderPage() {
               onCodeGenerated={async (response) => {
                 await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                 setIsGenerating(false)
+                // Refresh project details (name/description) after generation updates
+                await projectSetup.refreshCurrentProjectDetails?.()
                 
                 // Auto-select manifest.json file after code generation
                 setTimeout(() => {

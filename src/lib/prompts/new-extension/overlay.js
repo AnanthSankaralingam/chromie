@@ -146,3 +146,5 @@ File Format Rules:
 - Add proper event listeners and cleanup
 </implementation_guidelines>
 `;
+
+//TODO mention web accessible resources and to use icons/* as needed
