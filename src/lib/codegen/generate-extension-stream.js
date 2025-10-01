@@ -281,7 +281,21 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(', ')}...
         requestType: requestType
       }
     )) {
-      yield chunk
+      // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'
+      if (chunk?.type === 'thinking') {
+        // Pass through as-is to UI which already handles thinking buffer
+        yield chunk
+      } else if (chunk?.type === 'answer_chunk' || chunk?.type === 'thinking_chunk') {
+        // Normalize to existing types for UI: forward thinking as 'thinking'
+        if (chunk.type === 'thinking_chunk') {
+          yield { type: 'thinking', content: chunk.text }
+        } else {
+          // answer chunks will be concatenated in downstream parser
+          yield { type: 'phase', phase: 'implementing', content: '' }
+        }
+      } else {
+        yield chunk
+      }
     }
 
     yield { type: "generation_complete", content: "generation_complete" }

@@ -1,12 +1,13 @@
 {
-  "name": "my-v0-project",
+  "name": "chromie",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "test:md": "node ./test/utils/markdown-parser.test.js"
   },
   "dependencies": {
     "@browserbasehq/sdk": "^2.6.0",

@@ -366,6 +366,22 @@ export default function MonacoEditor({
     }
   }
 
+  // Listen only to external selection to bring focus to Monaco
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const focusOnSelect = () => {
+      try {
+        if (editorRef.current) editorRef.current.focus()
+      } catch (_) {}
+    }
+    window.addEventListener('editor:selectFile', focusOnSelect)
+    window.addEventListener('editor:focusManifest', focusOnSelect)
+    return () => {
+      window.removeEventListener('editor:selectFile', focusOnSelect)
+      window.removeEventListener('editor:focusManifest', focusOnSelect)
+    }
+  }, [])
+
   return (
     <div className={`flex flex-col h-full ${className}`}>
       <Dialog open={isPreviewInfoOpen} onOpenChange={setIsPreviewInfoOpen}>

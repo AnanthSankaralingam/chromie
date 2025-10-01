@@ -3,7 +3,7 @@
 import { Bot, User } from "lucide-react"
 import MarkdownMessage from "./markdown-message"
 
-export default function ChatMessage({ message, index }) {
+export default function ChatMessage({ message, index, typingCancelSignal }) {
   return (
     <div
       className={`flex items-start space-x-3 ${
@@ -29,7 +29,7 @@ export default function ChatMessage({ message, index }) {
         }`}
       >
         {message.role === "assistant" ? (
-          <MarkdownMessage content={message.content} />
+          <MarkdownMessage content={message.content} typingCancelSignal={typingCancelSignal} />
         ) : (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         )}

@@ -47,7 +47,6 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json"
     ],
     propertyOrdering: [
-      "explanation",
       "manifest.json",
       "background.js",
       "content.js",
@@ -57,7 +56,8 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
       "sidepanel.js",
       "overlay.html",
       "overlay.js",
-      "styles.css"
+      "styles.css",
+      "explanation"
     ]
   }
 }
@@ -76,13 +76,13 @@ export const SIDEPANEL_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json"
     ],
     propertyOrdering: [
-      "explanation",
       "manifest.json",
       "background.js",
       "content.js",
       "sidepanel.html",
       "sidepanel.js",
-      "styles.css"
+      "styles.css",
+      "explanation"
     ]
   }
 }
@@ -101,13 +101,13 @@ export const POPUP_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json"
     ],
     propertyOrdering: [
-      "explanation",
       "manifest.json",
       "content.js",
       "background.js",
       "popup.html",
       "popup.js",
-      "styles.css"
+      "styles.css",
+      "explanation"
     ]
   }
 }
@@ -126,13 +126,13 @@ export const OVERLAY_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json"
     ],
     propertyOrdering: [
-      "explanation",
       "manifest.json",
       "content.js",
       "background.js",
       "overlay.html",
       "overlay.js",
-      "styles.css"
+      "styles.css",
+      "explanation"
     ]
   }
 }
@@ -152,7 +152,6 @@ export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json"
     ],
     propertyOrdering: [
-      "explanation",
       "manifest.json",
       "background.js",
       "content.js",
@@ -160,7 +159,8 @@ export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
       "popup.js",
       "sidepanel.html",
       "sidepanel.js",
-      "styles.css"
+      "styles.css",
+      "explanation"
     ]
   }
 }

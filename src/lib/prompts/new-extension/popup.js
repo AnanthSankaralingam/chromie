@@ -111,7 +111,7 @@ icons/world.png, icons/youtube.png
 </icon_configuration>
 
 <output_requirements>
-Return a JSON object with the following structure:
+Return a JSON object with the following structure exactly as shown:
 {
   "explanation": "BRIEF markdown explanation of how the extension works and testing instructions",
   "manifest.json": {valid JSON object},
