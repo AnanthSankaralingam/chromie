@@ -3,8 +3,31 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtension } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
-import { isContextLimitError } from "@/lib/services/google-ai"
+import { llmService } from "@/lib/services/llm-service"
 import { randomUUID } from "crypto"
+
+/**
+ * Get the default provider based on environment variables
+ * Priority: GOOGLE_AI_API_KEY > OPENAI_API_KEY > ANTHROPIC_API_KEY
+ * @returns {string} Provider name
+ */
+function getDefaultProvider() {
+  if (process.env.GOOGLE_AI_API_KEY) return 'gemini'
+  if (process.env.OPENAI_API_KEY) return 'openai'
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+  return 'gemini' // fallback to gemini
+}
+
+/**
+ * Check if an error is a context limit error using the unified service
+ * @param {Error} error - Error to check
+ * @param {string} provider - Provider name
+ * @returns {boolean} Whether it's a context limit error
+ */
+function isContextLimitError(error, provider) {
+  const adapter = llmService.providerRegistry.getAdapter(provider)
+  return adapter && adapter.isContextLimitError && adapter.isContextLimitError(error)
+}
  
 
 export async function POST(request) {
@@ -134,12 +157,16 @@ export async function POST(request) {
       console.log("🆕 New extension request - no existing files needed")
     }
 
-    // Generate extension code using OpenAI
+    // Get default provider for error handling
+    const defaultProvider = getDefaultProvider()
+    
+    // Generate extension code using unified service
     console.log(`🚀 Calling generateExtension with request type: ${requestType}`)
     console.log(`📝 Feature request: ${prompt}`)
     console.log(`📁 Existing files count: ${Object.keys(existingFiles).length}`)
     console.log(`🔗 User provided URL: ${userProvidedUrl || 'none'}`)
     console.log(`⏭️ Skip scraping: ${skipScraping || false}`)
+    console.log(`🤖 Default provider: ${defaultProvider}`)
     
     let result
     try {
@@ -156,7 +183,7 @@ export async function POST(request) {
       contextWindowMaxTokens
     })
     } catch (err) {
-      if (isContextLimitError(err)) {
+      if (isContextLimitError(err, defaultProvider)) {
         const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         console.log('[api/generate] context-window error caught', { message: err?.message, nextConversationTokenTotal })

@@ -3,7 +3,30 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension-stream"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
-import { isContextLimitError } from "@/lib/services/google-ai"
+import { llmService } from "@/lib/services/llm-service"
+
+/**
+ * Get the default provider based on environment variables
+ * Priority: GOOGLE_AI_API_KEY > OPENAI_API_KEY > ANTHROPIC_API_KEY
+ * @returns {string} Provider name
+ */
+function getDefaultProvider() {
+  if (process.env.GOOGLE_AI_API_KEY) return 'gemini'
+  if (process.env.OPENAI_API_KEY) return 'openai'
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
+  return 'gemini' // fallback to gemini
+}
+
+/**
+ * Check if an error is a context limit error using the unified service
+ * @param {Error} error - Error to check
+ * @param {string} provider - Provider name
+ * @returns {boolean} Whether it's a context limit error
+ */
+function isContextLimitError(error, provider) {
+  const adapter = llmService.providerRegistry.getAdapter(provider)
+  return adapter && adapter.isContextLimitError && adapter.isContextLimitError(error)
+}
 
 export async function POST(request) {
   const supabase = createClient()
@@ -117,6 +140,10 @@ export async function POST(request) {
       console.log("🆕 New extension request - no existing files needed")
     }
 
+    // Get default provider for error handling
+    const defaultProvider = getDefaultProvider()
+    console.log(`🤖 Using default provider: ${defaultProvider}`)
+
     // Create a readable stream
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
@@ -157,7 +184,7 @@ export async function POST(request) {
           controller.close()
         } catch (error) {
           console.error("Error in streaming generation:", error)
-          if (isContextLimitError(error)) {
+          if (isContextLimitError(error, defaultProvider)) {
             const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
             const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
             const cw = JSON.stringify({ type: 'context_window', content: 'Context limit reached. Please start a new conversation.', total: nextConversationTokenTotal })

@@ -286,9 +286,9 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(', ')}...
         // Pass through as-is to UI which already handles thinking buffer
         yield chunk
       } else if (chunk?.type === 'answer_chunk' || chunk?.type === 'thinking_chunk') {
-        // Normalize to existing types for UI: forward thinking as 'thinking'
+        // Normalize to existing types for UI: forward thinking_chunk as 'thinking_chunk'
         if (chunk.type === 'thinking_chunk') {
-          yield { type: 'thinking', content: chunk.text }
+          yield { type: 'thinking_chunk', content: chunk.content }
         } else {
           // answer chunks will be concatenated in downstream parser
           yield { type: 'phase', phase: 'implementing', content: '' }
