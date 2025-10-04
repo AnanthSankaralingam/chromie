@@ -360,10 +360,10 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       prompt_tokens: (planningTokenUsage?.prompt_tokens || 0) + (codingCompletion.usage?.prompt_tokens || 0),
       completion_tokens: (planningTokenUsage?.completion_tokens || 0) + (codingCompletion.usage?.completion_tokens || 0),
       total_tokens: (planningTokenUsage?.total_tokens || 0) + (codingCompletion.usage?.total_tokens || 0),
-        model: codingCompletion?.tokenUsage?.model || "gemini-2.5-pro", // Use the model used for coding
+        model: codingCompletion?.tokenUsage?.model || "gemini-2.5-flash", // Use the model used for coding
         models: {
           planning: "gpt-oss-20b",
-          coding: codingCompletion?.tokenUsage?.model || "gemini-2.5-pro"
+          coding: codingCompletion?.tokenUsage?.model || "gemini-2.5-flash"
         }
     }
 

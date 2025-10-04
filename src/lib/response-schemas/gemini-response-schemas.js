@@ -166,6 +166,59 @@ export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
 }
 
 /**
+ * Converts a Gemini Type-based schema to OpenAI-compatible format
+ * @param {Object} geminiSchema - Gemini schema object with Type-based properties
+ * @returns {Object} OpenAI-compatible schema object
+ */
+export function convertToOpenAIFormat(geminiSchema) {
+  if (!geminiSchema || !geminiSchema.schema) {
+    throw new Error('Invalid Gemini schema provided')
+  }
+
+  const convertType = (type) => {
+    switch (type) {
+      case Type.STRING:
+        return 'string'
+      case Type.NUMBER:
+        return 'number'
+      case Type.BOOLEAN:
+        return 'boolean'
+      case Type.OBJECT:
+        return 'object'
+      case Type.ARRAY:
+        return 'array'
+      default:
+        return 'string' // fallback
+    }
+  }
+
+  const convertProperties = (properties) => {
+    const converted = {}
+    for (const [key, value] of Object.entries(properties)) {
+      if (value && typeof value === 'object' && value.type) {
+        converted[key] = {
+          type: convertType(value.type),
+          description: value.description || ''
+        }
+      } else {
+        converted[key] = { type: 'string' }
+      }
+    }
+    return converted
+  }
+
+  return {
+    name: geminiSchema.name,
+    schema: {
+      type: 'object',
+      properties: convertProperties(geminiSchema.schema.properties || {}),
+      required: geminiSchema.schema.required || [],
+      additionalProperties: false
+    }
+  }
+}
+
+/**
  * Selects the appropriate response schema based on frontend type and request type
  * Returns a Gemini Type-based schema object
  * @param {string} frontendType - The frontend type (side_panel, popup, overlay, generic)

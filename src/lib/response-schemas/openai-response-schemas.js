@@ -146,6 +146,31 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
   }
   
   /**
+   * Converts an OpenAI schema to OpenAI-compatible format (identity function)
+   * This function exists for consistency with the unified schema system
+   * @param {Object} openaiSchema - OpenAI schema object
+   * @returns {Object} OpenAI-compatible schema object (same as input)
+   */
+  export function convertToOpenAIFormat(openaiSchema) {
+    if (!openaiSchema || !openaiSchema.schema) {
+      throw new Error('Invalid OpenAI schema provided')
+    }
+
+    // OpenAI schemas are already in the correct format, just return as-is
+    return {
+      name: openaiSchema.name,
+      schema: {
+        type: openaiSchema.schema.type || 'object',
+        properties: openaiSchema.schema.properties || {},
+        required: openaiSchema.schema.required || [],
+        additionalProperties: openaiSchema.schema.additionalProperties !== undefined 
+          ? openaiSchema.schema.additionalProperties 
+          : false
+      }
+    }
+  }
+
+  /**
    * Selects the appropriate response schema based on frontend type and request type
    * @param {string} frontendType - The frontend type (side_panel, popup, overlay, generic)
    * @param {string} requestType - The request type (NEW_EXTENSION, ADD_TO_EXISTING)

@@ -25,16 +25,25 @@ export const PLAN_LIMITS = {
 // Default plan for users without billing info
 export const DEFAULT_PLAN = 'free'
 
-// Model names used in the application
-export const AI_MODELS = {
-  GEMINI_2_5_PRO: 'gemini-2.5-pro',
-  GEMINI_2_5_FLASH: 'gemini-2.5-flash'
+// Unified LLM Service defaults
+export const DEFAULT_MODEL = 'gemini-2.5-flash'
+export const DEFAULT_PROVIDER = 'gemini'
+export const RESPONSE_STORE_DEFAULT = true
+export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
+
+// Supported providers
+export const SUPPORTED_PROVIDERS = {
+  GEMINI: 'gemini',
+  OPENAI: 'openai',
+  ANTHROPIC: 'anthropic'
 }
 
-// Google AI defaults
-export const DEFAULT_MODEL = 'gemini-2.5-flash'
-export const RESPONSE_STORE_DEFAULT = true
-export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 120000
+// Default models for each provider
+export const DEFAULT_MODELS = {
+  gemini: 'gemini-2.5-flash',
+  openai: 'o3',
+  anthropic: 'claude-3-5-sonnet-20241022'
+}
 
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {

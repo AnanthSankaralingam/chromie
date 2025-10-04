@@ -1,9 +1,8 @@
 import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
-import { continueResponse, createResponse, generateContentStreamWithThoughts } from "../services/google-ai"
+import { llmService } from "../services/llm-service"
+import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
 import { DEFAULT_MODEL } from "../constants"
-import { selectResponseSchema as selectOpenAISchema } from "../response-schemas/openai-response-schemas"
-import { selectResponseSchema as selectGeminiSchema } from "../response-schemas/gemini-response-schemas"
 
 function normalizeGeneratedFileContent(str) {
   try {
@@ -52,27 +51,38 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-pro"
+  const modelUsed = modelOverride || "gemini-2.5-flash"
   
-  // Select the appropriate schema based on frontend type and request type
-  const isGoogleModel = typeof modelUsed === 'string' && modelUsed.toLowerCase().includes('gemini')
-  const jsonSchema = isGoogleModel
-    ? selectGeminiSchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
-    : selectOpenAISchema(frontendType || 'generic', requestType || 'NEW_EXTENSION')
-  console.log(`Using schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
+  // Determine provider from model name
+  const getProviderFromModel = (model) => {
+    if (typeof model === 'string') {
+      if (model.toLowerCase().includes('gemini')) return 'gemini'
+      if (model.toLowerCase().includes('claude')) return 'anthropic'
+      if (model.toLowerCase().includes('gpt')) return 'openai'
+    }
+    return 'gemini' // default fallback
+  }
+  
+  const provider = getProviderFromModel(modelUsed)
+  
+  // Select the appropriate schema using unified schema system
+  const jsonSchema = selectUnifiedSchema(provider, frontendType || 'generic', requestType || 'NEW_EXTENSION')
+  console.log(`Using ${provider} provider with schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
 
   // Use Responses API for both new and follow-up requests
   if (previousResponseId) {
     console.log("[generateExtensionCodeStream] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
     try {
-      const response = await continueResponse({
+      const response = await llmService.continueResponse({
+        provider,
         model: modelOverride || DEFAULT_MODEL,
         previous_response_id: previousResponseId,
         input: finalPrompt,
         store: true,
         temperature: 0.2,
         max_output_tokens: 15000,
-        response_format: jsonSchema
+        response_format: jsonSchema,
+        session_id: sessionId
       })
       
       const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
@@ -235,9 +245,10 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
       return
     } catch (err) {
-      console.error("[generateExtensionCodeStream] Responses API error", err?.message || err)
-      const { isContextLimitError } = await import('../services/google-ai')
-      if (isContextLimitError(err)) {
+      console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
+      // Check for context limit error using the adapter's method
+      const adapter = llmService.providerRegistry.getAdapter(provider)
+      if (adapter && adapter.isContextLimitError && adapter.isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }
@@ -250,19 +261,21 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.log("[generateExtensionCodeStream] Using Responses API (new)", { modelUsed, hasPrevious: false })
     try {
       // Stream thoughts and answer chunks with Gemini when available
-      if ((modelOverride || DEFAULT_MODEL).toLowerCase().includes('gemini')) {
+      if (provider === 'gemini') {
         // Forward thinking vs answer chunks to frontend
         let combinedText = ''
-        for await (const s of generateContentStreamWithThoughts({
+        for await (const s of llmService.streamResponse({
+          provider,
           model: modelOverride || DEFAULT_MODEL,
           input: finalPrompt,
           temperature: 0.2,
-          max_output_tokens: 15000
+          max_output_tokens: 15000,
+          session_id: sessionId
         })) {
           if (s?.type === 'thinking_chunk') {
-            yield { type: 'thinking', content: s.text }
-          } else if (s?.type === 'answer_chunk') {
-            combinedText += s.text
+            yield { type: 'thinking_chunk', content: s.content }
+          } else if (s?.type === 'answer_chunk' || s?.type === 'content') {
+            combinedText += s.content
           }
         }
         // After stream completes, continue with normal parsing using combinedText
@@ -370,13 +383,15 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         return
       }
 
-      const response = await createResponse({
+      const response = await llmService.createResponse({
+        provider,
         model: modelOverride || DEFAULT_MODEL,
         input: finalPrompt,
         store: true,
         temperature: 0.2,
         max_output_tokens: 15000,
-        response_format: jsonSchema
+        response_format: jsonSchema,
+        session_id: sessionId
       })
       
       const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
@@ -538,9 +553,10 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
       return
     } catch (err) {
-      console.error("[generateExtensionCodeStream] Responses API error (new)", err?.message || err)
-      const { isContextLimitError } = await import('../services/google-ai')
-      if (isContextLimitError(err)) {
+      console.error("[generateExtensionCodeStream] LLM Service error (new)", err?.message || err)
+      // Check for context limit error using the adapter's method
+      const adapter = llmService.providerRegistry.getAdapter(provider)
+      if (adapter && adapter.isContextLimitError && adapter.isContextLimitError(err)) {
         const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }

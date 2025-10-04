@@ -48,6 +48,7 @@ export default function StreamingChat({
   const thinkingTimerRef = useRef(null)
   const thinkingTokensRef = useRef([])
   const thinkingIdxRef = useRef(0)
+  const thinkingChunkCountRef = useRef(0)
 
   // Reset local-only conversation state on project change (navigation/refresh)
   useEffect(() => {
@@ -80,6 +81,14 @@ export default function StreamingChat({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Debug: Track modelThinkingFull changes
+  useEffect(() => {
+    console.log('[streaming-chat] modelThinkingFull changed:', {
+      length: modelThinkingFull?.length || 0,
+      content: modelThinkingFull?.substring(0, 100) + '...'
+    })
+  }, [modelThinkingFull])
 
   // Adaptive typing for model thinking panel (slightly larger batches)
   useEffect(() => {
@@ -147,6 +156,7 @@ export default function StreamingChat({
     setModelThinkingDisplay("")
     thinkingTokensRef.current = []
     thinkingIdxRef.current = 0
+    thinkingChunkCountRef.current = 0
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null }
 
     if (onGenerationStart) {
@@ -230,10 +240,20 @@ export default function StreamingChat({
 
               switch (data.type) {
                 case "thinking_chunk":
-                  // Append Gemini thinking text and start typing if not running
-                  if (typeof data.text === 'string' && data.text.length > 0) {
-                    setModelThinkingFull(prev => prev + data.text)
-                    if (!isModelThinkingOpen) setIsModelThinkingOpen(false) // keep collapsed by default; user can expand
+                case "thinking":
+                  // Append Gemini thinking text to model thinking panel
+                  console.log('[streaming-chat] received thinking event:', data.type, data)
+                  console.log('[streaming-chat] thinking content length:', data.content?.length || 0)
+                  console.log('[streaming-chat] current modelThinkingFull length:', modelThinkingFull.length)
+                  if (typeof data.content === 'string' && data.content.length > 0) {
+                    thinkingChunkCountRef.current += 1
+                    setModelThinkingFull(prev => {
+                      const newContent = prev + data.content
+                      console.log('[streaming-chat] updated modelThinkingFull length:', newContent.length, 'chunk count:', thinkingChunkCountRef.current)
+                      return newContent
+                    })
+                    // Keep thinking panel collapsed by default; user can expand
+                    console.log('[streaming-chat] thinking chunk received, modelThinkingFull should be visible')
                   }
                   break
                 case "start":
@@ -274,62 +294,6 @@ export default function StreamingChat({
                 case "scraping_skipped":
                 case "context_ready":
                 case "generation_starting":
-                  break
-
-                case "thinking":
-                  // Buffer thinking content into a single message
-                  if (data.content) {
-                    console.log("🧠 Thinking token received, buffer length:", thinkingBufferRef.current.length)
-                    thinkingBufferRef.current += data.content
-                    
-                    // Always check if a thinking message already exists first
-                    setMessages(prev => {
-                      const updated = [...prev]
-                      const existingThinkingIndex = updated.findIndex(msg => msg.isThinking)
-                      
-                      if (existingThinkingIndex !== -1) {
-                        console.log("📝 Updating existing thinking message at index:", existingThinkingIndex)
-                        // Update existing thinking message
-                        updated[existingThinkingIndex] = {
-                          ...updated[existingThinkingIndex],
-                          content: "Designing your extension...\n\n" + thinkingBufferRef.current.trim()
-                        }
-                        return updated
-                      } else {
-                        console.log("✨ Creating new thinking message")
-                        // Create new thinking message only if none exists
-                        const newMessage = {
-                          role: "assistant",
-                          content: "Designing your extension...\n\n" + thinkingBufferRef.current.trim(),
-                          isThinking: true // Mark this as the thinking message
-                        }
-                        thinkingMessageIndexRef.current = prev.length
-                        return [...prev, newMessage]
-                      }
-                    })
-                  }
-                  break
-
-                case "thinking_complete":
-                  // Remove the thinking flag from the current thinking message
-                  setMessages(prev => {
-                    const updated = [...prev]
-                    const thinkingIndex = updated.findIndex(msg => msg.isThinking)
-                    if (thinkingIndex !== -1) {
-                      updated[thinkingIndex] = {
-                        ...updated[thinkingIndex],
-                        isThinking: false // Remove the thinking flag
-                      }
-                    }
-                    return updated
-                  })
-                  
-                  // Reset thinking buffer and index for next generation
-                  thinkingBufferRef.current = ""
-                  thinkingMessageIndexRef.current = null
-                  
-                  addNewAssistantMessage("Analysis complete, generating extension...")
-                  
                   break
 
                 case "phase":
@@ -544,63 +508,6 @@ export default function StreamingChat({
                 case "scraping_skipped":
                 case "context_ready":
                 case "generation_starting":
-                  break
-
-                case "thinking":
-                  // Buffer thinking content into a single message
-                  if (data.content) {
-                    console.log("🧠 Thinking token received, buffer length:", thinkingBufferRef.current.length)
-                    thinkingBufferRef.current += data.content
-                    
-                    // Always check if a thinking message already exists first
-                    setMessages(prev => {
-                      const updated = [...prev]
-                      const existingThinkingIndex = updated.findIndex(msg => msg.isThinking)
-                      
-                      if (existingThinkingIndex !== -1) {
-                        console.log("📝 Updating existing thinking message at index:", existingThinkingIndex)
-                        // Update existing thinking message
-                        updated[existingThinkingIndex] = {
-                          ...updated[existingThinkingIndex],
-                          content: "Designing your extension...\n\n" + thinkingBufferRef.current.trim()
-                        }
-                        return updated
-                      } else {
-                        console.log("✨ Creating new thinking message")
-                        // Create new thinking message only if none exists
-                        const newMessage = {
-                          role: "assistant",
-                          content: "Designing your extension...\n\n" + thinkingBufferRef.current.trim(),
-                          isThinking: true // Mark this as the thinking message
-                        }
-                        thinkingMessageIndexRef.current = prev.length
-                        return [...prev, newMessage]
-                      }
-                    })
-                  }
-                  break
-
-                case "thinking_complete":
-                  // Remove the thinking flag from the current thinking message
-                  setMessages(prev => {
-                    const updated = [...prev]
-                    const thinkingIndex = updated.findIndex(msg => msg.isThinking)
-                    if (thinkingIndex !== -1) {
-                      updated[thinkingIndex] = {
-                        ...updated[thinkingIndex],
-                        isThinking: false // Remove the thinking flag
-                      }
-                    }
-                    return updated
-                  })
-                  
-                  // Reset thinking buffer and index for next generation
-                  thinkingBufferRef.current = ""
-                  thinkingMessageIndexRef.current = null
-                  
-                  // Show the final thinking summary
-                  addNewAssistantMessage("Analysis complete, now generating your extension...")
-                
                   break
 
                 case "phase":
@@ -843,7 +750,20 @@ export default function StreamingChat({
         )}
         
         {/* Collapsible Model Thinking Panel (Gemini) */}
-        {(modelThinkingDisplay || modelThinkingFull) && (
+        {(() => {
+          const hasContent = !!(modelThinkingDisplay || modelThinkingFull)
+          const forceShow = thinkingChunkCountRef.current > 0 // Force show if we have chunks
+          const shouldShow = hasContent || forceShow
+          console.log('[streaming-chat] thinking panel render check:', {
+            hasContent,
+            forceShow,
+            shouldShow,
+            modelThinkingDisplay: modelThinkingDisplay?.length || 0,
+            modelThinkingFull: modelThinkingFull?.length || 0,
+            chunkCount: thinkingChunkCountRef.current
+          })
+          return shouldShow
+        })() && (
           <div className="mt-2">
             <button
               type="button"
@@ -851,12 +771,12 @@ export default function StreamingChat({
               onClick={() => setIsModelThinkingOpen(!isModelThinkingOpen)}
               aria-expanded={isModelThinkingOpen}
             >
-              <span>Model thoughts</span>
+              <span>Model thoughts ({thinkingChunkCountRef.current} chunks)</span>
               {isModelThinkingOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </button>
             {isModelThinkingOpen && (
               <div className="mt-2 p-3 rounded-lg border border-yellow-500/20 bg-yellow-900/10 text-yellow-200 text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto font-mono">
-                {modelThinkingDisplay || modelThinkingFull}
+                {modelThinkingDisplay || modelThinkingFull || `Debug: No content yet. Chunks: ${thinkingChunkCountRef.current}`}
               </div>
             )}
           </div>
