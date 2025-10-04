@@ -8,7 +8,7 @@ P0
 2. allow users to buy more tokens rather than subscribing. should be simple, just subtract from token usage and reset monthly_reset
 3. modular conversation history. gemini and anthropic can use OpenAI chat completions SDK so we can easily switch between models 
 
-P1
+P1 <br>
 4. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
 5. allow user input for env variables
 
