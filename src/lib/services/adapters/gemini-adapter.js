@@ -166,7 +166,6 @@ export class GeminiAdapter {
               console.log('[gemini-adapter] yielding thinking chunk:', text.substring(0, 100) + '...')
               yield { type: 'thinking_chunk', content: text }
             } else {
-              console.log('[gemini-adapter] yielding answer chunk:', text.substring(0, 100) + '...')
               yield { type: 'answer_chunk', content: text }
             }
           }

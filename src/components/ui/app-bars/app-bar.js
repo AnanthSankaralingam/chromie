@@ -31,18 +31,21 @@ export default function AppBar() {
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Link href="/" className="text-slate-300 hover:text-white transition-colors">
-                <Image 
-                  src="/chromie-logo-1.png" 
-                  alt="Chromie AI Logo" 
-                  width={20} 
-                  height={20}
-                />
-              </Link>
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <Link href="/" className="text-slate-300 hover:text-white transition-colors">
+                  <Image 
+                    src="/chromie-logo-1.png" 
+                    alt="Chromie AI Logo" 
+                    width={40} 
+                    height={40}
+                    className="object-contain"
+                  />
+                </Link>
+              </div>
             </div>
-            <Link href="/" className="text-xl font-bold text-white">chromie ai</Link>
+            <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">chromie</Link>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8">

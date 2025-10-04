@@ -266,8 +266,22 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
     try {
       implementationResult = JSON.parse(aiResponse)
     } catch (parseError) {
-      // Try to salvage largest JSON object by bracket scanning
-      try {
+      console.log('⚠️ Initial JSON parsing failed, attempting recovery...')
+      
+      // Try to extract JSON from code fences first
+      let jsonContent = ""
+      if (aiResponse.includes('```json')) {
+        const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/)
+        if (jsonMatch) {
+          jsonContent = jsonMatch[1].trim()
+        }
+      } else if (aiResponse.includes('```')) {
+        const codeMatch = aiResponse.match(/```\s*([\s\S]*?)\s*```/)
+        if (codeMatch) {
+          jsonContent = codeMatch[1].trim()
+        }
+      } else {
+        // Try to salvage largest JSON object by bracket scanning
         const firstCurly = aiResponse.indexOf('{')
         const firstBracket = aiResponse.indexOf('[')
         const start = (firstCurly === -1) ? firstBracket : (firstBracket === -1 ? firstCurly : Math.min(firstCurly, firstBracket))
@@ -283,11 +297,65 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
             if (depth === 0) { end = i + 1; break }
           }
           if (end !== -1) {
-            const candidate = aiResponse.slice(start, end)
-            implementationResult = JSON.parse(candidate)
+            jsonContent = aiResponse.slice(start, end)
           }
         }
-      } catch (_) {}
+      }
+      
+      // Try to fix common JSON issues
+      if (jsonContent) {
+        try {
+          // Fix unterminated strings by adding quotes at the end
+          let fixedJson = jsonContent
+          
+          // Count quotes to see if we have unterminated strings
+          const quoteCount = (fixedJson.match(/"/g) || []).length
+          if (quoteCount % 2 !== 0) {
+            // Add a closing quote at the end
+            fixedJson = fixedJson + '"'
+          }
+          
+          // Try to fix common escape issues
+          fixedJson = fixedJson.replace(/\\n/g, '\\n')
+          fixedJson = fixedJson.replace(/\\t/g, '\\t')
+          fixedJson = fixedJson.replace(/\\r/g, '\\r')
+          
+          implementationResult = JSON.parse(fixedJson)
+          console.log('✅ Successfully recovered JSON from malformed response')
+        } catch (recoveryError) {
+          console.log('⚠️ JSON recovery failed, trying basic bracket matching...')
+          
+          // Last resort: try to extract just the main object
+          const start = jsonContent.indexOf('{')
+          if (start !== -1) {
+            let braceCount = 0
+            let end = start
+            for (let i = start; i < jsonContent.length; i++) {
+              if (jsonContent[i] === '{') braceCount++
+              if (jsonContent[i] === '}') braceCount--
+              if (braceCount === 0) {
+                end = i + 1
+                break
+              }
+            }
+            if (end > start) {
+              try {
+                const candidate = jsonContent.substring(start, end)
+                implementationResult = JSON.parse(candidate)
+                console.log('✅ Successfully extracted JSON using bracket matching')
+              } catch (finalError) {
+                console.error('❌ All JSON recovery attempts failed')
+                console.error('❌ Original error:', parseError.message)
+                console.error('❌ Recovery error:', recoveryError.message)
+                console.error('❌ Final error:', finalError.message)
+                console.error('❌ Failed content preview:', aiResponse.substring(0, 1000) + '...')
+                throw parseError
+              }
+            }
+          }
+        }
+      }
+      
       if (!implementationResult) {
         console.error('❌ JSON parsing failed:', parseError.message)
         console.error('❌ Failed to parse this content:', aiResponse.substring(0, 500) + '...')
