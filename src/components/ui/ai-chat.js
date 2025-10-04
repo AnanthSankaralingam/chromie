@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bot } from "lucide-react"
 import ChatHeader from "@/components/ui/chat/chat-header"
 import ChatMessage from "@/components/ui/chat/chat-message"
 import ChatInput from "@/components/ui/chat/chat-input"
@@ -321,14 +320,15 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
           <ChatMessage key={index} message={message} index={index} />
         ))}
         {isGenerating && (
-          <div className="flex items-start space-x-3">
-            <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0">
-              <Bot className="h-4 w-4 text-white" />
-            </div>
-            <div className="bg-slate-700/50 border border-slate-600/50 p-3 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent" />
-                <span className="text-sm text-slate-300">generating code...</span>
+          <div className="flex justify-start">
+            <div className="max-w-[80%] p-4 rounded-2xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-400/30 shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+                <span className="text-sm text-white font-medium">generating code...</span>
               </div>
             </div>
           </div>

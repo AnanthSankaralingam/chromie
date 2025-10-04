@@ -11,6 +11,7 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
+import TypingSuggestions from "@/components/ui/typing-suggestions"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isTypingSuggestionsActive, setIsTypingSuggestionsActive] = useState(true)
   const router = useRouter()
   const textareaRef = useRef(null)
 
@@ -67,6 +69,9 @@ export default function HomePage() {
   }
 
   const handleTextareaFocus = () => {
+    // Stop typing suggestions when user focuses on input
+    setIsTypingSuggestionsActive(false)
+    
     // Show suggestions if there's existing text
     if (prompt.trim().length >= 2) {
       setShowSuggestions(true)
@@ -76,6 +81,11 @@ export default function HomePage() {
   const handleTextareaBlur = () => {
     // Don't hide suggestions immediately to allow clicking on them
     // The autocomplete component handles hiding via click outside
+    
+    // Restart typing suggestions when user blurs and textarea is empty
+    if (!prompt.trim()) {
+      setIsTypingSuggestionsActive(true)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -220,11 +230,25 @@ export default function HomePage() {
                       console.log('📋 Pasted content: resized textarea to', textareaRef.current?.style.height)
                     })
                   }}
-                  placeholder="type your extension idea and we'll bring it to life"
+                  placeholder=""
                   className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   ref={textareaRef}
                   disabled={isGenerating}
                 />
+
+                {/* Typing Suggestions - only show when textarea is empty and not focused */}
+                {!prompt && !isGenerating && (
+                  <div className="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none z-10">
+                    <TypingSuggestions 
+                      className="text-base md:text-lg text-slate-500"
+                      typingSpeed={50}
+                      pauseDuration={3000}
+                      eraseSpeed={30}
+                      erasePause={1500}
+                      isActive={isTypingSuggestionsActive}
+                    />
+                  </div>
+                )}
 
                 {/* Tab Complete Suggestions */}
                 <TabCompleteSuggestions

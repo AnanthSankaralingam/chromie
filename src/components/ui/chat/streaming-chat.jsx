@@ -45,6 +45,7 @@ export default function StreamingChat({
   const [isModelThinkingOpen, setIsModelThinkingOpen] = useState(false)
   const [modelThinkingFull, setModelThinkingFull] = useState("")
   const [modelThinkingDisplay, setModelThinkingDisplay] = useState("")
+  const [isGenerationComplete, setIsGenerationComplete] = useState(false)
   const thinkingTimerRef = useRef(null)
   const thinkingTokensRef = useRef([])
   const thinkingIdxRef = useRef(0)
@@ -81,14 +82,6 @@ export default function StreamingChat({
   useEffect(() => {
     scrollToBottom()
   }, [messages])
-
-  // Debug: Track modelThinkingFull changes
-  useEffect(() => {
-    console.log('[streaming-chat] modelThinkingFull changed:', {
-      length: modelThinkingFull?.length || 0,
-      content: modelThinkingFull?.substring(0, 100) + '...'
-    })
-  }, [modelThinkingFull])
 
   // Adaptive typing for model thinking panel (slightly larger batches)
   useEffect(() => {
@@ -154,6 +147,7 @@ export default function StreamingChat({
     setIsModelThinkingOpen(false)
     setModelThinkingFull("")
     setModelThinkingDisplay("")
+    setIsGenerationComplete(false)
     thinkingTokensRef.current = []
     thinkingIdxRef.current = 0
     thinkingChunkCountRef.current = 0
@@ -184,13 +178,6 @@ export default function StreamingChat({
       const requestType = currentHasGeneratedCode ? REQUEST_TYPES.ADD_TO_EXISTING : REQUEST_TYPES.NEW_EXTENSION
       const hasPrev = Boolean(previousResponseIdRef.current)
       const pathUsed = requestType === REQUEST_TYPES.ADD_TO_EXISTING && hasPrev ? 'responses_api' : 'manual_file_context'
-      console.log('[client/streaming-chat] generation params', { 
-        requestType, 
-        has_previousResponseId: hasPrev, 
-        previousResponseId: previousResponseIdRef.current,
-        pathUsed, 
-        modelOverride: modelOverride || null 
-      })
 
       // Start streaming response
       const response = await fetch("/api/generate/stream", {
@@ -242,44 +229,34 @@ export default function StreamingChat({
                 case "thinking_chunk":
                 case "thinking":
                   // Append Gemini thinking text to model thinking panel
-                  console.log('[streaming-chat] received thinking event:', data.type, data)
-                  console.log('[streaming-chat] thinking content length:', data.content?.length || 0)
-                  console.log('[streaming-chat] current modelThinkingFull length:', modelThinkingFull.length)
                   if (typeof data.content === 'string' && data.content.length > 0) {
                     thinkingChunkCountRef.current += 1
                     setModelThinkingFull(prev => {
                       const newContent = prev + data.content
-                      console.log('[streaming-chat] updated modelThinkingFull length:', newContent.length, 'chunk count:', thinkingChunkCountRef.current)
                       return newContent
                     })
                     // Keep thinking panel collapsed by default; user can expand
-                    console.log('[streaming-chat] thinking chunk received, modelThinkingFull should be visible')
                   }
                   break
                 case "start":
-                  console.log("🚀 Stream started")
                   addNewAssistantMessage("Starting to analyze your request...")
                   break
                 case "token_usage":
                   if (typeof data.total === 'number') {
                     setConversationTokenTotal(data.total)
-                    console.log('[client/streaming-chat] token_usage received', { total: data.total })
                   }
                   break
                 case "context_window":
                   addNewAssistantMessage('Context limit reached. Please start a new conversation.')
                   if (typeof data.total === 'number') {
-                    console.log('[client/streaming-chat] context-window stream handled', { total: data.total })
                     setConversationTokenTotal(data.total)
                   }
                   // Do not continue processing further
                   break
                 case "response_id":
-                  console.log('[client/streaming-chat] received response_id', { id: data.id, tokensUsedThisRequest: data.tokensUsedThisRequest })
                   previousResponseIdRef.current = data.id
                   if (typeof data.tokensUsedThisRequest === 'number') {
                     const nextTotal = (conversationTokenTotal || 0) + data.tokensUsedThisRequest
-                    console.log('[client/streaming-chat] update totals', { id: data.id, tokensUsedThisRequest: data.tokensUsedThisRequest, nextTotal })
                     setConversationTokenTotal(nextTotal)
                   }
                   break
@@ -370,6 +347,9 @@ export default function StreamingChat({
                     explanationBufferRef.current = ""
                   }
 
+                  // Mark generation as complete to hide model thoughts
+                  setIsGenerationComplete(true)
+
                   // Mark that code has been generated
                   if (!hasGeneratedCode) {
                     setHasGeneratedCode(true)
@@ -382,6 +362,11 @@ export default function StreamingChat({
                   // Call auto-generate complete callback if this was an auto-generation
                   if (autoGeneratePrompt && onAutoGenerateComplete) {
                     onAutoGenerateComplete()
+                  }
+                  
+                  // Clear input message after auto-generation completes
+                  if (autoGeneratePrompt) {
+                    setInputMessage("")
                   }
                   
                   // Reset message tracking
@@ -419,6 +404,11 @@ export default function StreamingChat({
       currentAssistantMessageRef.current = null
       // Ensure any typing is cancelled on end/error
       setTypingCancelSignal((v) => v + 1)
+      
+      // Clear input message after auto-generation completes (even on error)
+      if (autoGeneratePrompt) {
+        setInputMessage("")
+      }
       
       if (onGenerationEnd) {
         onGenerationEnd()
@@ -494,7 +484,6 @@ export default function StreamingChat({
 
               switch (data.type) {
                 case "start":
-                  console.log("🚀 Stream started")
                   addNewAssistantMessage("Starting to analyze your request...")
                   break
 
@@ -546,6 +535,9 @@ export default function StreamingChat({
                     explanationBufferRef.current = ""
                   }
 
+                  // Mark generation as complete to hide model thoughts
+                  setIsGenerationComplete(true)
+
                   // Mark that code has been generated
                   if (!hasGeneratedCode) {
                     setHasGeneratedCode(true)
@@ -558,6 +550,11 @@ export default function StreamingChat({
                   // Call auto-generate complete callback if this was an auto-generation
                   if (autoGeneratePrompt && onAutoGenerateComplete) {
                     onAutoGenerateComplete()
+                  }
+                  
+                  // Clear input message after auto-generation completes
+                  if (autoGeneratePrompt) {
+                    setInputMessage("")
                   }
                   
                   // Reset message tracking
@@ -672,6 +669,8 @@ export default function StreamingChat({
                         setMessages(prev => [...prev, { role: "assistant", content: "Here's what I've built for you:\n\n" + explanationBufferRef.current.trim() }])
                         explanationBufferRef.current = ""
                       }
+                      // Mark generation as complete to hide model thoughts
+                      setIsGenerationComplete(true)
                       if (!hasGeneratedCode) {
                         setHasGeneratedCode(true)
                       }
@@ -736,14 +735,14 @@ export default function StreamingChat({
         {/* Show typing indicator when generating */}
         {isGenerating && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] p-3 rounded-lg bg-slate-700/50 text-gray-200 border border-slate-600">
-              <div className="flex items-center space-x-2">
+            <div className="max-w-[80%] p-4 rounded-2xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-400/30 shadow-lg">
+              <div className="flex items-center space-x-3">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
-                <span className="text-sm text-gray-400">thinking...</span>
+                <span className="text-sm text-white font-medium">thinking...</span>
               </div>
             </div>
           </div>
@@ -753,15 +752,7 @@ export default function StreamingChat({
         {(() => {
           const hasContent = !!(modelThinkingDisplay || modelThinkingFull)
           const forceShow = thinkingChunkCountRef.current > 0 // Force show if we have chunks
-          const shouldShow = hasContent || forceShow
-          console.log('[streaming-chat] thinking panel render check:', {
-            hasContent,
-            forceShow,
-            shouldShow,
-            modelThinkingDisplay: modelThinkingDisplay?.length || 0,
-            modelThinkingFull: modelThinkingFull?.length || 0,
-            chunkCount: thinkingChunkCountRef.current
-          })
+          const shouldShow = (hasContent || forceShow) && !isGenerationComplete
           return shouldShow
         })() && (
           <div className="mt-2">
@@ -775,8 +766,8 @@ export default function StreamingChat({
               {isModelThinkingOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </button>
             {isModelThinkingOpen && (
-              <div className="mt-2 p-3 rounded-lg border border-yellow-500/20 bg-yellow-900/10 text-yellow-200 text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto font-mono">
-                {modelThinkingDisplay || modelThinkingFull || `Debug: No content yet. Chunks: ${thinkingChunkCountRef.current}`}
+              <div className="mt-2 p-3 rounded-lg border border-slate-500/20 bg-slate-800/20 text-white text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
+                {modelThinkingDisplay || modelThinkingFull}
               </div>
             )}
           </div>

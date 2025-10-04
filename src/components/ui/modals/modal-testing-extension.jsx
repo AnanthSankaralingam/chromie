@@ -110,7 +110,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Preparing live view...</h3>
-                <p className="text-gray-600">Connecting to your Browserbase session</p>
+                <p className="text-gray-600">Connecting to your browser session</p>
               </div>
             </div>
           ) : liveUrl ? (

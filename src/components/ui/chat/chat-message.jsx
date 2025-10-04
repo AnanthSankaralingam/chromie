@@ -1,9 +1,13 @@
 "use client"
 
-import { Bot, User } from "lucide-react"
 import MarkdownMessage from "./markdown-message"
 
 export default function ChatMessage({ message, index, typingCancelSignal }) {
+  // Check if this is a final explanation message (contains "Here's what I've built for you")
+  const isFinalExplanation = message.role === "assistant" && 
+    message.content && 
+    message.content.includes("Here's what I've built for you")
+
   return (
     <div
       className={`flex items-start space-x-3 ${
@@ -11,21 +15,12 @@ export default function ChatMessage({ message, index, typingCancelSignal }) {
       }`}
     >
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          message.role === "user" ? "bg-blue-500" : "bg-purple-500"
-        }`}
-      >
-        {message.role === "user" ? (
-          <User className="h-4 w-4 text-white" />
-        ) : (
-          <Bot className="h-4 w-4 text-white" />
-        )}
-      </div>
-      <div
-        className={`max-w-[80%] p-3 rounded-lg ${
+        className={`max-w-[80%] p-4 rounded-2xl ${
           message.role === "user"
-            ? "bg-blue-500/10 border border-blue-500/20 text-blue-100"
-            : "bg-slate-700/50 border border-slate-600/50 text-slate-200"
+            ? "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-400/30 text-blue-100 backdrop-blur-sm shadow-lg"
+            : isFinalExplanation
+            ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 text-white backdrop-blur-sm shadow-xl ring-2 ring-green-400/20"
+            : "bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-slate-200 backdrop-blur-sm shadow-lg"
         }`}
       >
         {message.role === "assistant" ? (

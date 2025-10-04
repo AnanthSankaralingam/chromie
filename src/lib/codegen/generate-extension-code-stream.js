@@ -51,7 +51,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-flash"
+  const modelUsed = modelOverride || "gemini-2.5-flash-lite"
   
   // Determine provider from model name
   const getProviderFromModel = (model) => {
@@ -63,6 +63,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     return 'gemini' // default fallback
   }
   
+  // Get the provider from the model
   const provider = getProviderFromModel(modelUsed)
   
   // Select the appropriate schema using unified schema system
@@ -71,7 +72,6 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   // Use Responses API for both new and follow-up requests
   if (previousResponseId) {
-    console.log("[generateExtensionCodeStream] Using Responses API (follow-up)", { modelUsed, hasPrevious: true })
     try {
       const response = await llmService.continueResponse({
         provider,

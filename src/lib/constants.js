@@ -26,7 +26,7 @@ export const PLAN_LIMITS = {
 export const DEFAULT_PLAN = 'free'
 
 // Unified LLM Service defaults
-export const DEFAULT_MODEL = 'gemini-2.5-flash'
+export const DEFAULT_MODEL = 'gemini-2.5-flash-lite'
 export const DEFAULT_PROVIDER = 'gemini'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
