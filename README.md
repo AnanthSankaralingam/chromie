@@ -3,23 +3,24 @@
 ##### v1 demo: https://youtu.be/5807ieV35kU?si=VqQ-1LQymLrTEPAL
 
 ### TODOs
-P0
-2. allow users to buy more tokens rather than subscribing. should be simple, just subtract from token usage and reset monthly_reset
-3. fix schema mandatory fields 
+P0 <br>
+1. Share extension link: add share button to app-bar-builder. on share, create a custom link for that user's project. on click, it should route to a new page at /share where users, after signing up, can download the extension. we can teach about extensions and market chromie here as well.
+2. Pricing update to tiered packages instead of subscriptions
+3. Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit. consider authentication use cases.
+4. Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.
+5. fix schema mandatory fields 
 
 P1 <br>
-4. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-5. allow user input for env variables
+1. Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.
+2. Auth in hyperbrowser
+3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
+4. allow user input for env variables
 
-P2
-6. test product end to end, along with billing
-7. functionality to publish extensions directly to chrome web store (when unblocked)
-8. stop button in generation, rewrite earlier messages in chat
-
-#### Launch Plan:
-1. start posting chromie-built Chrome extenisons on Reddit, X and other socials. We can get downloads and subtle visibility like this.
-2. After making successive posts, social algos will favor us more for final post. Coordinate and make multiple big posts telling people to join
-3. Post on product hunt and LinkedIn. Viral on product hunt is possible if we time and market it right.
+P2 <br>
+1. test product end to end, along with billing
+2. functionality to publish extensions directly to chrome web store (when unblocked)
+3. stop button in generation, rewrite earlier messages in chat
+4. Email on signup
 
 
 
@@ -27,10 +28,7 @@ P2
 
 
 
-
-
-
-
+<br>
 ### Model Comparison (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
 TODO: try o3 with low temperature, sonnet 4.5, gpt4.1, deepseek-coder ...
 
