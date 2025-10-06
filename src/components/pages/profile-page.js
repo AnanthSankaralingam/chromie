@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, AlertTriangle, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject } from "@/lib/utils"
@@ -226,9 +226,8 @@ export default function ProfilePage() {
         {/* User Profile Section */}
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center space-x-3">
-              <User className="h-6 w-6" />
-              <span>Profile Information</span>
+            <CardTitle className="text-white">
+              Profile Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -267,9 +266,8 @@ export default function ProfilePage() {
         {/* Billing Section */}
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center space-x-3">
-              <CreditCard className="h-6 w-6" />
-              <span>Billing & Subscription</span>
+            <CardTitle className="text-white">
+              Billing & Subscription
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -359,9 +357,8 @@ export default function ProfilePage() {
         {/* Usage Section */}
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
-            <CardTitle className="text-white flex items-center space-x-3">
-              <Zap className="h-6 w-6" />
-              <span>Usage</span>
+            <CardTitle className="text-white">
+              Usage
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -485,51 +482,42 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="bg-red-500/10 backdrop-blur-sm border-red-500/20">
-          <CardHeader>
-            <CardTitle className="text-red-400 flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Account Actions</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Sign Out
+        {/* Sign Out Button */}
+        <div className="flex justify-center pt-4">
+          <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500">
+                Sign Out
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-slate-800 border-slate-700">
+              <DialogHeader>
+                <DialogTitle className="text-red-400">Sign Out</DialogTitle>
+                <DialogDescription className="text-slate-300">
+                  Are you sure you want to sign out?
+                  Your projects and data will remain safe and you can sign back in anytime.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  onClick={() => setSignOutDialogOpen(false)}
+                  className="text-slate-300 hover:text-white"
+                >
+                  Cancel
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-800 border-slate-700">
-                <DialogHeader>
-                  <DialogTitle className="text-red-400">Sign Out</DialogTitle>
-                  <DialogDescription className="text-slate-300">
-                    Are you sure you want to sign out?
-                    Your projects and data will remain safe and you can sign back in anytime.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setSignOutDialogOpen(false)}
-                    className="text-slate-300 hover:text-white"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteAccount}
-                    disabled={isDeleting}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {isDeleting ? 'Signing out...' : 'Sign Out'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {isDeleting ? 'Signing out...' : 'Sign Out'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Project Deletion Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

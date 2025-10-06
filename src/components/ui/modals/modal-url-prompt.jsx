@@ -42,29 +42,29 @@ export default function ModalUrlPrompt({
     });
     
     modal.innerHTML = `
-      <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center;">
-        <div class="url-prompt-container" style="background: #ffffff; color: #111827; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 16px; width: 92%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
-          <div class="url-prompt-header" style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px;">
-            <div style="font-size: 14px; font-weight: 600;">Website URL</div>
-            <button id="cancelUrlPrompt" aria-label="Close" style="background: transparent; border: none; color: #6b7280; font-size: 18px; cursor: pointer; line-height: 1;">×</button>
+      <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; backdrop-blur-sm;">
+        <div class="url-prompt-container" style="background: #1e293b; color: #f1f5f9; border: 1px solid #475569; border-radius: 12px; padding: 20px; width: 92%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+          <div class="url-prompt-header" style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="font-size: 16px; font-weight: 600; color: #f1f5f9;">Website URL</div>
+            <button id="cancelUrlPrompt" aria-label="Close" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; border-radius: 4px; hover:bg-slate-600;">×</button>
           </div>
 
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
+          <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
 
           ${suggestedUrl ? `
-            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer; margin-bottom: 10px;">
+            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #7c3aed, #2563eb); color: white; border: 1px solid #6366f1; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
               <span style="opacity:.9;">Suggested:</span>
               <strong style="font-weight:600;">${new URL(suggestedUrl).hostname}</strong>
             </button>
           ` : ''}
 
-          <div class="option-group" style="margin-bottom: 12px;">
-            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" style="width: 100%; padding: 10px 12px; background:#ffffff; color:#111827; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; outline: none;" />
+          <div class="option-group" style="margin-bottom: 16px;">
+            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" style="width: 100%; padding: 12px 16px; background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
           </div>
 
-          <div style="display:flex; gap:8px; align-items:center; justify-content: space-between;">
-            <button id="useCustomUrl" style="flex:1; background: linear-gradient(90deg,#7c3aed,#2563eb); color: white; border: none; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer;">Continue</button>
-            <button id="noScraping" style="background: #f3f4f6; color:#374151; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 13px; cursor: pointer;">Skip</button>
+          <div style="display:flex; gap:12px; align-items:center; justify-content: space-between;">
+            <button id="useCustomUrl" style="flex:1; background: linear-gradient(90deg,#7c3aed,#2563eb); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; font-weight: 500;">Continue</button>
+            <button id="noScraping" style="background: #475569; color: #f1f5f9; border: 1px solid #64748b; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; font-weight: 500;">Skip</button>
           </div>
         </div>
       </div>

@@ -36,6 +36,7 @@ export default function BuilderPage() {
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
   const [hasTestedExtension, setHasTestedExtension] = useState(false)
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
+  const [isPageVisible, setIsPageVisible] = useState(true)
 
   // Custom hooks
   const projectSetup = useProjectSetup(user, isLoading)
@@ -164,6 +165,46 @@ export default function BuilderPage() {
     }
   }, [testExtension.isTestModalOpen, hasGeneratedCode])
 
+  // Track page visibility to detect when user switches tabs or minimizes browser
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden)
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
+  // Play notification sound when code generation completes and user is not on the page
+  const playNotificationSound = () => {
+    if (!isPageVisible) {
+      try {
+        // Create a soft, pleasant notification sound
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        // Soft, gentle tone
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
+        
+        // Fade in and out for a pleasant sound
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+        gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.05)
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3)
+        
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.3)
+      } catch (error) {
+        // Silently fail if audio context is not available
+        console.log('Audio notification not available')
+      }
+    }
+  }
+
   const handleFileSelect = (file) => {
     setSelectedFile(file)
   }
@@ -269,6 +310,9 @@ export default function BuilderPage() {
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
                   
+                  // Play notification sound if user is not on the page
+                  playNotificationSound()
+                  
                   // Auto-select manifest.json file after code generation and switch to files tab
                   setTimeout(() => {
                     const manifestFile = fileManagement.findManifestFile()
@@ -330,6 +374,9 @@ export default function BuilderPage() {
                 setIsGenerating(false)
                 // Refresh project details (name/description) after generation updates
                 await projectSetup.refreshCurrentProjectDetails?.()
+                
+                // Play notification sound if user is not on the page
+                playNotificationSound()
                 
                 // Auto-select manifest.json file after code generation
                 setTimeout(() => {
@@ -415,6 +462,8 @@ export default function BuilderPage() {
       <OnboardingModal
         isOpen={onboardingModal.isModalOpen}
         onClose={onboardingModal.hideModal}
+        currentStep={onboardingModal.currentStep}
+        onNext={onboardingModal.goToNextStep}
       />
     </>
   )
