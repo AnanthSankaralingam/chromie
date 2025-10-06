@@ -4,15 +4,7 @@
 
 ### TODOs
 P0
-1. ~stream thinking output, update UX to keep user engaged~
 2. allow users to buy more tokens rather than subscribing. should be simple, just subtract from token usage and reset monthly_reset
-3. ~modular conversation history. gemini and anthropic can use OpenAI chat completions SDK so we can easily switch between models. still default gemini~
-4. UX updates
-⦁	chrome logo instead of robot. fix logo in app bar. remove icons from chat and have them floating?
-⦁	prompt persistence in chat
-⦁	modal telling users to test the extension. do it as soon as user lands on /builder
-⦁	force sign in after initial request?
-
 
 P1 <br>
 4. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
