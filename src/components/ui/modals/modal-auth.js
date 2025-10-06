@@ -63,6 +63,12 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
       // Store the redirect destination in sessionStorage for the callback
       sessionStorage.setItem('auth_redirect_destination', finalRedirect)
       
+      // Check if there's a pending prompt and preserve it
+      const pendingPrompt = sessionStorage.getItem('pending_prompt')
+      if (pendingPrompt) {
+        console.log('🔍 Preserving pending prompt during auth flow:', JSON.parse(pendingPrompt))
+      }
+      
       console.log('🔍 Starting OAuth flow with auth callback URL:', authCallbackUrl)
       console.log('🔍 Final redirect destination stored in sessionStorage:', finalRedirect)
       
@@ -154,7 +160,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
                 </span>
               </Button>
 
-              <div className="text-center">
+              {/* <div className="text-center">
                 <p className="text-slate-400 text-sm">
                   {isSignUp ? "Already have an account? " : "Don't have an account? "}
                   <button
@@ -164,7 +170,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
                     {isSignUp ? "Sign in" : "Sign up"}
                   </button>
                 </p>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </div>

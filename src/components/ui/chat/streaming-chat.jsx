@@ -50,6 +50,9 @@ export default function StreamingChat({
   const thinkingTokensRef = useRef([])
   const thinkingIdxRef = useRef(0)
   const thinkingChunkCountRef = useRef(0)
+  // Planning progress state
+  const [planningProgress, setPlanningProgress] = useState(null)
+  const [currentPlanningPhase, setCurrentPlanningPhase] = useState(null)
 
   // Reset local-only conversation state on project change (navigation/refresh)
   useEffect(() => {
@@ -152,6 +155,9 @@ export default function StreamingChat({
     thinkingIdxRef.current = 0
     thinkingChunkCountRef.current = 0
     if (thinkingTimerRef.current) { clearTimeout(thinkingTimerRef.current); thinkingTimerRef.current = null }
+    // Reset planning progress state
+    setPlanningProgress(null)
+    setCurrentPlanningPhase(null)
 
     if (onGenerationStart) {
       onGenerationStart()
@@ -238,8 +244,18 @@ export default function StreamingChat({
                     // Keep thinking panel collapsed by default; user can expand
                   }
                   break
+                case "planning_progress":
+                  // Handle planning progress updates
+                  if (data.phase && data.content) {
+                    setCurrentPlanningPhase(data.phase)
+                    setPlanningProgress(data.content)
+                  }
+                  break
                 case "start":
-                  addNewAssistantMessage("Starting to analyze your request...")
+                  // Only add the start message if we haven't generated code yet
+                  if (!hasGeneratedCode) {
+                    addNewAssistantMessage("Starting to analyze your request...")
+                  }
                   break
                 case "token_usage":
                   if (typeof data.total === 'number') {
@@ -349,6 +365,9 @@ export default function StreamingChat({
 
                   // Mark generation as complete to hide model thoughts
                   setIsGenerationComplete(true)
+                  // Clear planning progress when generation is complete
+                  setPlanningProgress(null)
+                  setCurrentPlanningPhase(null)
 
                   // Mark that code has been generated
                   if (!hasGeneratedCode) {
@@ -425,6 +444,9 @@ export default function StreamingChat({
     currentAssistantMessageRef.current = null
     thinkingBufferRef.current = ""
     thinkingMessageIndexRef.current = null
+    // Reset planning progress state
+    setPlanningProgress(null)
+    setCurrentPlanningPhase(null)
 
     if (onGenerationStart) {
       onGenerationStart()
@@ -484,7 +506,17 @@ export default function StreamingChat({
 
               switch (data.type) {
                 case "start":
-                  addNewAssistantMessage("Starting to analyze your request...")
+                  // Only add the start message if we haven't generated code yet
+                  if (!hasGeneratedCode) {
+                    addNewAssistantMessage("Starting to analyze your request...")
+                  }
+                  break
+                case "planning_progress":
+                  // Handle planning progress updates
+                  if (data.phase && data.content) {
+                    setCurrentPlanningPhase(data.phase)
+                    setPlanningProgress(data.content)
+                  }
                   break
 
                 // Ignore intermediate status noise
@@ -537,6 +569,9 @@ export default function StreamingChat({
 
                   // Mark generation as complete to hide model thoughts
                   setIsGenerationComplete(true)
+                  // Clear planning progress when generation is complete
+                  setPlanningProgress(null)
+                  setCurrentPlanningPhase(null)
 
                   // Mark that code has been generated
                   if (!hasGeneratedCode) {
@@ -659,6 +694,13 @@ export default function StreamingChat({
                       // show concise transition
                       setMessages(prev => [...prev, { role: "assistant", content: "Analysis complete, now generating your extension...\nContinuing with extension generation..." }])
                       break
+                    case "planning_progress":
+                      // Handle planning progress updates
+                      if (data.phase && data.content) {
+                        setCurrentPlanningPhase(data.phase)
+                        setPlanningProgress(data.content)
+                      }
+                      break
                     case "explanation":
                       if (data.content) {
                         explanationBufferRef.current += data.content
@@ -671,6 +713,9 @@ export default function StreamingChat({
                       }
                       // Mark generation as complete to hide model thoughts
                       setIsGenerationComplete(true)
+                      // Clear planning progress when generation is complete
+                      setPlanningProgress(null)
+                      setCurrentPlanningPhase(null)
                       if (!hasGeneratedCode) {
                         setHasGeneratedCode(true)
                       }
@@ -743,6 +788,30 @@ export default function StreamingChat({
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
                 <span className="text-sm text-white font-medium">thinking...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show planning progress when available */}
+        {planningProgress && currentPlanningPhase && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] p-4 rounded-2xl bg-gradient-to-r from-slate-600/20 to-slate-700/20 backdrop-blur-sm border border-slate-500/30 shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-slate-300 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-300 uppercase tracking-wide">
+                    {currentPlanningPhase === 'analysis' && 'Planning'}
+                    {currentPlanningPhase === 'documentation' && 'Documentation'}
+                    {currentPlanningPhase === 'scraping' && 'Web Analysis'}
+                    {!['analysis', 'documentation', 'scraping'].includes(currentPlanningPhase) && 'Planning'}
+                  </span>
+                  <span className="text-sm text-white font-medium">{planningProgress}</span>
+                </div>
               </div>
             </div>
           </div>

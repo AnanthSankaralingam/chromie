@@ -6,7 +6,7 @@ import AuthHandler from "@/components/AuthHandler";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Chromie AI - Chrome Extension Builder",
+  title: "chromie - Chrome Extension Builder",
   description: "Build Chrome extensions with AI - no coding required",
   icons: {
     icon: '/chromie-logo-1.png',

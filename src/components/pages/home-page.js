@@ -93,6 +93,19 @@ export default function HomePage() {
     if (!prompt.trim()) return
 
     if (!user) {
+      // Save prompt to sessionStorage and URL params before showing auth modal
+      const promptData = {
+        prompt: prompt.trim(),
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem('pending_prompt', JSON.stringify(promptData))
+      
+      // Also add prompt to URL params for backup
+      const url = new URL(window.location)
+      url.searchParams.set('prompt', encodeURIComponent(prompt.trim()))
+      window.history.replaceState({}, '', url.toString())
+      
+      console.log('💾 Saved prompt before auth:', promptData)
       setIsAuthModalOpen(true)
       return
     }
@@ -176,6 +189,49 @@ export default function HomePage() {
 
   useEffect(() => {
     resizeTextarea()
+  }, [])
+
+  // Restore prompt from URL params or sessionStorage on component mount
+  useEffect(() => {
+    const restorePrompt = () => {
+      // First try to get prompt from URL params
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlPrompt = urlParams.get('prompt')
+      
+      if (urlPrompt) {
+        const decodedPrompt = decodeURIComponent(urlPrompt)
+        setPrompt(decodedPrompt)
+        console.log('🔄 Restored prompt from URL params:', decodedPrompt)
+        
+        // Clean up URL params
+        const url = new URL(window.location)
+        url.searchParams.delete('prompt')
+        window.history.replaceState({}, '', url.toString())
+        return
+      }
+      
+      // Fallback to sessionStorage
+      const savedPromptData = sessionStorage.getItem('pending_prompt')
+      if (savedPromptData) {
+        try {
+          const { prompt: savedPrompt, timestamp } = JSON.parse(savedPromptData)
+          // Only restore if prompt is less than 1 hour old
+          if (Date.now() - timestamp < 60 * 60 * 1000) {
+            setPrompt(savedPrompt)
+            console.log('🔄 Restored prompt from sessionStorage:', savedPrompt)
+          } else {
+            // Clean up old prompt
+            sessionStorage.removeItem('pending_prompt')
+            console.log('🧹 Cleaned up old prompt from sessionStorage')
+          }
+        } catch (error) {
+          console.error('Error parsing saved prompt:', error)
+          sessionStorage.removeItem('pending_prompt')
+        }
+      }
+    }
+    
+    restorePrompt()
   }, [])
 
   const handleUpgradePlan = () => {

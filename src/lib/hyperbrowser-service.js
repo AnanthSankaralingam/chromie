@@ -63,8 +63,7 @@ export class HyperbrowserService {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
-        // Removed premium features: solveCaptchas, recordSession, logSession
-        // These require paid plan and cause errors on free tier
+        timeoutMinutes: 1
       }
 
       // Add extension if available

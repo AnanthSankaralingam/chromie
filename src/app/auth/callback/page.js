@@ -33,7 +33,7 @@ function AuthCallbackContent() {
   }, [searchParams, router])
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       console.log(`AuthCallback: Attempt ${attempts + 1}/${maxAttempts}`)
       console.log('AuthCallback: isLoading:', isLoading, 'user:', !!user, 'session:', !!session)
       
@@ -65,6 +65,60 @@ function AuthCallbackContent() {
           
           updateProfile()
           
+          // Check for pending prompt and handle it
+          const pendingPromptData = sessionStorage.getItem('pending_prompt')
+          if (pendingPromptData) {
+            try {
+              const { prompt: savedPrompt, timestamp } = JSON.parse(pendingPromptData)
+              
+              // Only process if prompt is less than 1 hour old
+              if (Date.now() - timestamp < 60 * 60 * 1000) {
+                console.log('AuthCallback: Found pending prompt, creating project:', savedPrompt)
+                
+                // Create project with the saved prompt
+                const response = await fetch("/api/projects", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name: savedPrompt.slice(0, 50) + "...",
+                    description: savedPrompt,
+                  }),
+                })
+                
+                if (response.ok) {
+                  const { project } = await response.json()
+                  
+                  // Clean up the pending prompt
+                  sessionStorage.removeItem('pending_prompt')
+                  
+                  // Redirect to builder with autoGenerate
+                  const encodedPrompt = encodeURIComponent(savedPrompt)
+                  const builderUrl = `/builder?project=${project.id}&autoGenerate=${encodedPrompt}`
+                  
+                  console.log('AuthCallback: Created project and redirecting to builder:', {
+                    projectId: project.id,
+                    prompt: savedPrompt,
+                    builderUrl: builderUrl
+                  })
+                  
+                  router.push(builderUrl)
+                  return
+                } else {
+                  console.error('AuthCallback: Failed to create project with pending prompt')
+                  // Fall through to normal redirect
+                }
+              } else {
+                console.log('AuthCallback: Pending prompt expired, cleaning up')
+                sessionStorage.removeItem('pending_prompt')
+              }
+            } catch (error) {
+              console.error('AuthCallback: Error processing pending prompt:', error)
+              sessionStorage.removeItem('pending_prompt')
+            }
+          }
+          
           // Get redirect destination from sessionStorage or default to builder
           const redirectDestination = sessionStorage.getItem('auth_redirect_destination') || '/builder'
           sessionStorage.removeItem('auth_redirect_destination') // Clean up
@@ -93,11 +147,8 @@ function AuthCallbackContent() {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
         <h2 className="text-xl font-semibold mb-2">
-          Completing sign in...
+          Signing in...
         </h2>
-        <p className="text-slate-400">
-          Please wait while we set up your account.
-        </p>
       </div>
     </div>
   )
