@@ -65,8 +65,8 @@ export default function useFileManagement(currentProjectId, user) {
     try {
       const manifest = JSON.parse(manifestFile.content)
       return {
-        name: manifest.name || 'Chrome Extension',
-        description: manifest.description || 'A Chrome extension built with Chromie AI'
+        name: manifest.name || ' chromie Chrome Extension',
+        description: manifest.description || 'A Chrome extension built with chromie'
       }
     } catch (error) {
       console.error('Error parsing manifest.json:', error)

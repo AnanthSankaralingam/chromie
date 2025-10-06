@@ -130,8 +130,14 @@ export async function* analyzeExtensionRequirementsStream({ featureRequest }) {
   console.log(`Starting streaming requirements analysis for feature: ${featureRequest}`)
 
   try {
+    // Step 1: Initial analysis phase
+    yield { type: "planning_progress", phase: "analysis", content: "Analyzing your request and understanding requirements..." }
+    yield { type: "planning_progress", phase: "analysis", content: "Identifying the best frontend approach for your extension..." }
+    
     // Call the planning prompt to analyze the request
     const planningPrompt = NEW_EXT_PLANNING_PROMPT.replace('{USER_REQUEST}', featureRequest)
+    
+    yield { type: "planning_progress", phase: "analysis", content: "Preparing detailed implementation plan..." }
     
     console.log("Calling streaming planning prompt to analyze extension requirements...")
     
@@ -189,6 +195,9 @@ async function* parseStreamingPlanningResponse(planningResponse) {
     model: "gpt-oss-20b"
   }
   
+  // Yield progress updates during streaming
+  yield { type: "planning_progress", phase: "analysis", content: "Processing requirements with AI planning model..." }
+  
   // Simply collect the streaming response without trying to parse individual chunks
   const reader = planningResponse.body.getReader()
   const decoder = new TextDecoder()
@@ -213,6 +222,15 @@ async function* parseStreamingPlanningResponse(planningResponse) {
             
             if (content) {
               planningContent += content
+              
+              // Yield progress updates based on content length
+              if (planningContent.length > 100 && planningContent.length < 200) {
+                yield { type: "planning_progress", phase: "analysis", content: "Analyzing extension architecture and dependencies..." }
+              } else if (planningContent.length > 300 && planningContent.length < 500) {
+                yield { type: "planning_progress", phase: "analysis", content: "Determining required Chrome APIs and permissions..." }
+              } else if (planningContent.length > 600 && planningContent.length < 800) {
+                yield { type: "planning_progress", phase: "analysis", content: "Evaluating frontend approach and user interface needs..." }
+              }
             }
             
             // Update token usage if available
@@ -235,6 +253,8 @@ async function* parseStreamingPlanningResponse(planningResponse) {
     console.log('🔍 Complete planning response:', planningContent.substring(0, 300) + '...')
     console.log('🔍 Planning response contains ```json:', planningContent.includes('```json'))
     
+    yield { type: "planning_progress", phase: "analysis", content: "Finalizing analysis and extracting implementation details..." }
+    
     // Preprocess the planning response to handle markdown-formatted JSON
     let processedContent = planningContent
     
@@ -250,6 +270,8 @@ async function* parseStreamingPlanningResponse(planningResponse) {
         processedContent = codeMatch[1].trim()
       }
     }
+    
+    yield { type: "planning_progress", phase: "analysis", content: "Parsing requirements and preparing for code generation..." }
     
     // Parse the JSON - try standard parsing first, then manual extraction
     let requirementsAnalysis

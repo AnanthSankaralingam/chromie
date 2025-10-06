@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { useOnboarding } from "@/hooks/use-onboarding"
+import { useOnboardingModal } from "@/hooks/use-onboarding-modal"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
+import { OnboardingModal } from "@/components/ui/modals/onboarding"
 import AppBarBuilder from "@/components/ui/app-bars/app-bar-builder"
 import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
@@ -40,7 +41,7 @@ export default function BuilderPage() {
   const projectSetup = useProjectSetup(user, isLoading)
   const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
-  const { isOnboardingCompleted } = useOnboarding()
+  const onboardingModal = useOnboardingModal()
   
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
@@ -105,15 +106,15 @@ export default function BuilderPage() {
         }
       }
 
-      // Trigger test button highlight for first-time users after code generation
-      if (!hasGeneratedCode && !isOnboardingCompleted) {
+      // Trigger test button highlight after code generation
+      if (!hasGeneratedCode) {
         setHasGeneratedCode(true)
         setShouldStartTestHighlight(true)
         // Reset the highlight trigger after a short delay
         setTimeout(() => setShouldStartTestHighlight(false), 100)
       }
     }
-  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode, isOnboardingCompleted])
+  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
   // Check for autoGenerate prompt in URL
   useEffect(() => {
@@ -124,9 +125,14 @@ export default function BuilderPage() {
       if (autoGenerateFromUrl) {
         setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
         hasProcessedAutoGenerate.current = true
+        
+        // Check if we should show onboarding modal
+        if (onboardingModal.checkShouldShowModal(true)) {
+          onboardingModal.showModal()
+        }
       }
     }
-  }, [])
+  }, [onboardingModal.checkShouldShowModal, onboardingModal.showModal])
 
   // Trigger auto-generation when both prompt and project are ready
   useEffect(() => {
@@ -143,13 +149,13 @@ export default function BuilderPage() {
 
   // Track when user returns from testing to trigger download button highlight
   useEffect(() => {
-    if (!testExtension.isTestModalOpen && hasTestedExtension && hasGeneratedCode && !isOnboardingCompleted) {
+    if (!testExtension.isTestModalOpen && hasTestedExtension && hasGeneratedCode) {
       // User has returned from testing, trigger download button highlight
       setShouldStartDownloadHighlight(true)
       // Reset the highlight trigger after a short delay
       setTimeout(() => setShouldStartDownloadHighlight(false), 100)
     }
-  }, [testExtension.isTestModalOpen, hasTestedExtension, hasGeneratedCode, isOnboardingCompleted])
+  }, [testExtension.isTestModalOpen, hasTestedExtension, hasGeneratedCode])
 
   // Track when user opens test modal to mark that they've tested
   useEffect(() => {
@@ -404,6 +410,12 @@ export default function BuilderPage() {
 
       {/* Token Usage Modal */}
       <TokenUsageAlert isOpen={projectSetup.isTokenLimitModalOpen} onClose={() => projectSetup.setIsTokenLimitModalOpen(false)} />
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={onboardingModal.isModalOpen}
+        onClose={onboardingModal.hideModal}
+      />
     </>
   )
 }

@@ -37,7 +37,7 @@ export default function AppBar() {
                 <Link href="/" className="text-slate-300 hover:text-white transition-colors">
                   <Image 
                     src="/chromie-logo-1.png" 
-                    alt="Chromie AI Logo" 
+                    alt="chromie Logo" 
                     width={40} 
                     height={40}
                     className="object-contain"

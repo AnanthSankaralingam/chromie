@@ -86,6 +86,9 @@ export async function* generateChromeExtensionStream({
         if (chunk.type === "thinking" || chunk.type === "thinking_complete") {
           // Forward the thinking content directly from the planning stream
           yield chunk
+        } else if (chunk.type === "planning_progress") {
+          // Forward planning progress updates to the UI
+          yield chunk
         } else if (chunk.type === "analysis_complete") {
           requirementsAnalysis = chunk.requirements
           planningTokenUsage = chunk.tokenUsage
@@ -146,10 +149,14 @@ export async function* generateChromeExtensionStream({
     if (requirementsAnalysis.chromeAPIs && requirementsAnalysis.chromeAPIs.length > 0) {
       yield { type: "fetching_apis", content: "fetching_apis" }
       yield { type: "phase", phase: "planning", content: `Gathering docs for: ${requirementsAnalysis.chromeAPIs.join(', ')}` }
+      yield { type: "planning_progress", phase: "documentation", content: `Fetching documentation for ${requirementsAnalysis.chromeAPIs.length} Chrome APIs...` }
       
       const apiDocs = []
       
-      for (const apiName of requirementsAnalysis.chromeAPIs) {
+      for (let i = 0; i < requirementsAnalysis.chromeAPIs.length; i++) {
+        const apiName = requirementsAnalysis.chromeAPIs[i]
+        yield { type: "planning_progress", phase: "documentation", content: `Fetching documentation for chrome.${apiName} API...` }
+        
         const apiResult = searchChromeExtensionAPI(apiName)
         if (!apiResult.error) {
           apiDocs.push(`
@@ -174,6 +181,7 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(', ')}...
       chromeApiDocumentation = apiDocs.join('\n\n')
       yield { type: "apis_ready", content: "apis_ready" }
       yield { type: "phase", phase: "planning", content: "Chrome API references ready for prompt conditioning." }
+      yield { type: "planning_progress", phase: "documentation", content: "Chrome API documentation gathered successfully." }
     }
 
     // Step 3: Scrape webpages for analysis if needed and URL is provided
@@ -181,6 +189,7 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(', ')}...
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
       yield { type: "scraping", content: "scraping" }
       yield { type: "phase", phase: "planning", content: `Analyzing page structure at ${userProvidedUrl} for selectors and actions.` }
+      yield { type: "planning_progress", phase: "scraping", content: `Scraping web structure for ${userProvidedUrl}...` }
       
       scrapedWebpageAnalysis = await batchScrapeWebpages(
         requirementsAnalysis.webPageData, 
@@ -188,10 +197,12 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(', ')}...
       )
       yield { type: "scraping_complete", content: "scraping_complete" }
       yield { type: "phase", phase: "planning", content: "Website structure analysis ready for code generation." }
+      yield { type: "planning_progress", phase: "scraping", content: "Website analysis complete - extracted page structure and selectors." }
     } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
       scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
       yield { type: "scraping_skipped", content: "scraping_skipped" }
       yield { type: "phase", phase: "planning", content: "Skipping website analysis; proceeding with available context." }
+      yield { type: "planning_progress", phase: "scraping", content: "Skipping website analysis as requested." }
     } else {
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'
     }
