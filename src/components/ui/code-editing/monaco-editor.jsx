@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { Save, Edit3, Settings, Code2, Eye, Code } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
+import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
 
 export default function MonacoEditor({ 
   code, 
@@ -384,22 +384,10 @@ export default function MonacoEditor({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      <Dialog open={isPreviewInfoOpen} onOpenChange={setIsPreviewInfoOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>HTML Preview (Beta)</DialogTitle>
-            <DialogDescription>
-              This is a visual-only preview of your HTML. Interactivity, scripts, and extension APIs will not function here.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-3 text-sm text-slate-400">
-            For full functionality, try the simulated browser or install and test the generated extension in your browser.
-          </div>
-          <div className="mt-5 flex justify-end">
-            <Button onClick={() => setIsPreviewInfoOpen(false)} className="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1">Got it</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <HtmlPreviewInfoModal 
+        isOpen={isPreviewInfoOpen} 
+        onClose={() => setIsPreviewInfoOpen(false)} 
+      />
       {/* Editor Header */}
       {!readOnly && (
         <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-700/50">

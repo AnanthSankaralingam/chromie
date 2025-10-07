@@ -155,10 +155,7 @@ export default function ShareExtensionPage({ token }) {
         <CardContent className="space-y-8">
           {/* Download Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Download className="h-5 w-5 text-white" />
-              <h3 className="text-white text-lg font-semibold">Download Extension</h3>
-            </div>
+
           {!user ? (
             <div className="space-y-4">
               <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
