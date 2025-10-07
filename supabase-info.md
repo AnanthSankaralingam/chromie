@@ -89,7 +89,28 @@ Tracks LLM token usage per user.
 
 ---
 
-### 7. `shared_icons`
+### 7. `shared_links`
+Stores shareable links for projects with expiration and access tracking.
+
+| Column             | Type         | Details                                                     |
+|--------------------|--------------|-------------------------------------------------------------|
+| `id`               | uuid         | PK, DEFAULT gen_random_uuid()                               |
+| `project_id`       | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
+| `user_id`          | uuid         | FK → `profiles.id`, ON DELETE CASCADE                      |
+| `share_token`      | text         | NOT NULL, UNIQUE, secure random token for sharing           |
+| `expires_at`       | timestamptz  | NOT NULL, DEFAULT (now() + '24:00:00'::interval)           |
+| `download_count`   | integer      | DEFAULT 0, tracks number of downloads                      |
+| `is_active`        | boolean      | DEFAULT true, for soft deletion                             |
+| `created_at`       | timestamptz  | DEFAULT now()                                               |
+| `last_accessed_at` | timestamptz  | Tracks when link was last accessed                          |
+
+Additional indexes:
+- `idx_shared_links_token` on `share_token` for fast lookups
+- `idx_shared_links_project` on `project_id` for project queries
+
+---
+
+### 8. `shared_icons`
 Content-addressed, deduplicated icon storage shared across projects.
 
 | Column           | Type         | Details                                                     |
@@ -203,7 +224,13 @@ SET project_count = (
 - Users can SELECT, UPDATE, DELETE billing rows only for themselves (`user_id = auth.uid()`).
 - Users can INSERT rows only for themselves (`user_id = auth.uid()`).
 
-### 6. `shared_icons`
+### 7. `shared_links`
+
+- Users can SELECT, UPDATE, DELETE shared links only where `user_id = auth.uid()`.
+- Users can INSERT shared links only for their own projects (`user_id = auth.uid()`).
+- Public READ access allowed for active, non-expired links (for sharing functionality).
+
+### 8. `shared_icons`
 
 - RLS enabled on the table.
 - READ access allowed only where `visibility = 'global'`.
@@ -226,44 +253,3 @@ create policy shared_icons_read_global
 - **Project limits:** Automatically enforced based on user's subscription plan.
 - **Best practice:** All foreign keys are set to ON DELETE CASCADE for streamlined cleanup.
 - **Automatic counting:** Project counts are maintained automatically via database triggers.
-
----
-
-## Browserbase Integration
-
-The project now includes Browserbase integration for testing Chrome extensions in a real browser environment.
-
-### Required Environment Variables
-
-Add these to your `.env.local` file:
-
-```bash
-# Browserbase Configuration (for Chrome Extension Testing)
-# Get these from https://browserbase.com
-BROWSERBASE_API_KEY=bb_live_your_api_key_here
-BROWSERBASE_PROJECT_ID=prj_your_project_id_here
-```
-
-### How to Get Browserbase Credentials
-
-1. Go to [browserbase.com](https://browserbase.com) and create an account
-2. Create a new project in your Browserbase dashboard
-3. Copy the Project ID from your project settings
-4. Generate an API key from your account settings
-5. Add both values to your `.env.local` file
-
-### Features
-
-- **Real Browser Testing**: Test your extensions in actual Chrome browsers
-- **Live View**: Get iframe URLs to see your extension running in real-time
-- **Extension Upload**: Automatically packages and uploads your extension files
-- **Session Management**: Creates isolated browser sessions for each test
-
-### Usage
-
-When you click "Test Extension" in the builder, the app will:
-1. Package your extension files into a zip
-2. Upload to Browserbase
-3. Create a new browser session with your extension loaded
-4. Display the live browser in an iframe
-
