@@ -8,7 +8,8 @@ P0 <br>
 2. Pricing update to tiered packages instead of subscriptions
 3. Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit. consider authentication use cases.
 4. Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.
-5. fix schema mandatory fields 
+5. fix schema mandatory fields
+6. bug fix for token_usage measuring
 
 P1 <br>
 1. Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.
