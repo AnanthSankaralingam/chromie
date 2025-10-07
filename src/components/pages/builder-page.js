@@ -248,6 +248,7 @@ export default function BuilderPage() {
           onTestExtension={testExtension.handleTestExtension}
           onDownloadZip={downloadExtension.handleDownloadZip}
           onSignOut={handleSignOut}
+          projectId={projectSetup.currentProjectId}
           isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isGenerating={isGenerating}

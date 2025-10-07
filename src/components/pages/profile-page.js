@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject } from "@/lib/utils"
@@ -31,6 +31,10 @@ export default function ProfilePage() {
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [shares, setShares] = useState([])
+  const [sharesLoading, setSharesLoading] = useState(true)
+  const [copiedShareId, setCopiedShareId] = useState(null)
+  const [revokingShareId, setRevokingShareId] = useState(null)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -58,6 +62,24 @@ export default function ProfilePage() {
     }
   }
 
+  // Fetch user's shares
+  const fetchShares = async () => {
+    try {
+      setSharesLoading(true)
+      const response = await fetch('/api/shares')
+      if (response.ok) {
+        const data = await response.json()
+        setShares(data.shares || [])
+      } else {
+        console.error('Failed to fetch shares')
+      }
+    } catch (error) {
+      console.error('Error fetching shares:', error)
+    } finally {
+      setSharesLoading(false)
+    }
+  }
+
   // Fetch user's billing information
   const fetchBilling = async () => {
     try {
@@ -77,6 +99,7 @@ export default function ProfilePage() {
     if (user) {
       fetchProjects()
       fetchBilling()
+      fetchShares()
     }
   }, [user])
 
@@ -152,6 +175,51 @@ export default function ProfilePage() {
       // Fallback: sign out the user
       await supabase.auth.signOut()
       window.location.href = '/'
+    }
+  }
+
+  // Handle share link copy
+  const handleCopyShareLink = async (shareUrl, shareId) => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopiedShareId(shareId)
+      setTimeout(() => setCopiedShareId(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea")
+      textArea.value = shareUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textArea)
+      setCopiedShareId(shareId)
+      setTimeout(() => setCopiedShareId(null), 2000)
+    }
+  }
+
+  // Handle share revocation
+  const handleRevokeShare = async (projectId, shareId) => {
+    try {
+      setRevokingShareId(shareId)
+      const response = await fetch(`/api/projects/${projectId}/share`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Remove the share from local state
+        setShares(shares.filter(share => share.id !== shareId))
+        console.log('Share revoked successfully')
+      } else {
+        const errorData = await response.json()
+        console.error('Failed to revoke share:', errorData.error)
+        alert('Failed to revoke share. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error revoking share:', error)
+      alert('Error revoking share. Please try again.')
+    } finally {
+      setRevokingShareId(null)
     }
   }
 
@@ -475,6 +543,92 @@ export default function ProfilePage() {
                          </Button>
                        </div>
                      )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Shares Section */}
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center space-x-2">
+              <Share className="h-5 w-5" />
+              <span>Shared Extensions</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sharesLoading ? (
+              <div className="text-center py-8">
+                <div className="text-white">Loading shares...</div>
+              </div>
+            ) : shares.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-slate-300">No shared extensions yet. Share your projects from the builder!</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {shares.map((share) => (
+                  <div key={share.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <h3 className="text-white font-medium">{share.project.name}</h3>
+                          {share.project.description && (
+                            <p className="text-slate-400 text-sm">{share.project.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
+                            <span>Shared {formatDate(share.created_at)}</span>
+                            <span className="flex items-center space-x-1">
+                              <Download className="h-3 w-3" />
+                              <span>{share.download_count} downloads</span>
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
+                          Active
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCopyShareLink(share.share_url, share.id)}
+                        className="text-blue-400 hover:text-blue-300"
+                        title="Copy share link"
+                      >
+                        {copiedShareId === share.id ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => window.open(share.share_url, '_blank')}
+                        className="text-purple-400 hover:text-purple-300"
+                        title="View share page"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRevokeShare(share.project.id, share.id)}
+                        disabled={revokingShareId === share.id}
+                        className="text-red-400 hover:text-red-300"
+                        title="Revoke share link"
+                      >
+                        {revokingShareId === share.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-400 border-t-transparent"></div>
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

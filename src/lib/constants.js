@@ -50,4 +50,16 @@ export const BROWSER_SESSION_CONFIG = {
   SESSION_DURATION_MINUTES: 1, // Maximum session duration
   WARNING_TIME_MINUTES: 0.5, // Warning before session expires
   CLEANUP_INTERVAL_MINUTES: 2 // How often to clean up expired sessions
+}
+
+// Share link rate limiting
+export const SHARE_RATE_LIMITS = {
+  // Per user limits
+  MAX_SHARES_PER_USER: 10, // Maximum active shares per user
+  MAX_DOWNLOADS_PER_SHARE_PER_HOUR: 50, // Max downloads per share per hour
+  MAX_DOWNLOADS_PER_USER_PER_HOUR: 100, // Max downloads per user per hour
+  
+  // Share expiration (in days)
+  DEFAULT_SHARE_EXPIRY_DAYS: 30,
+  MAX_SHARE_EXPIRY_DAYS: 365
 } 

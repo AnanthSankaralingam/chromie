@@ -4,16 +4,19 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload, Share } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
+import { useShareExtension } from '@/hooks/use-share-extension'
 import PublishModal from "@/components/ui/modals/modal-publish"
+import ShareModal from "@/components/ui/modals/share-extension"
 
 export default function AppBarBuilder({ 
   onTestExtension, 
   onDownloadZip, 
   onSignOut, 
+  projectId,
   isTestDisabled = false,
   isDownloadDisabled = false,
   isGenerating = false,
@@ -31,6 +34,17 @@ export default function AppBarBuilder({
     startDownloadButtonHighlight,
     stopAllHighlights
   } = useOnboarding()
+  
+  const {
+    isShareModalOpen,
+    shareUrl,
+    isGenerating: isSharing,
+    error: shareError,
+    successMessage: shareSuccessMessage,
+    openShareModal,
+    closeShareModal,
+    generateShareLink
+  } = useShareExtension()
 
   // Handle highlight triggers
   useEffect(() => {
@@ -54,6 +68,17 @@ export default function AppBarBuilder({
   const handleDownloadClick = () => {
     stopAllHighlights()
     onDownloadZip?.()
+  }
+
+  const handleShareClick = () => {
+    stopAllHighlights()
+    openShareModal()
+  }
+
+  const handleShareConfirm = () => {
+    if (projectId) {
+      generateShareLink(projectId)
+    }
   }
 
   const handlePublishClick = () => {
@@ -127,6 +152,21 @@ export default function AppBarBuilder({
                   publish
                 </Button>
                 <Button 
+                  onClick={handleShareClick}
+                  disabled={!projectId || isSharing}
+                  className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-orange-500/25 transition-all duration-200 px-4 py-2 font-medium"
+                >
+                  <Share className="h-4 w-4 mr-2" />
+                  {isSharing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      sharing...
+                    </>
+                  ) : (
+                    "share"
+                  )}
+                </Button>
+                <Button 
                   onClick={handleDownloadClick} 
                   disabled={isDownloadDisabled || isDownloading}
                   className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
@@ -138,7 +178,7 @@ export default function AppBarBuilder({
                       downloading...
                     </>
                   ) : (
-                    "download zip"
+                    "download"
                   )}
                 </Button>
               </div>
@@ -177,7 +217,7 @@ export default function AppBarBuilder({
               className={`w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
             >
               <TestTube className="h-4 w-4 mr-2" />
-              test extension
+              test
             </Button>
             <Button
               onClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
@@ -186,6 +226,14 @@ export default function AppBarBuilder({
             >
               <Upload className="h-4 w-4 mr-2" />
               publish
+            </Button>
+            <Button
+              onClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
+              disabled={!projectId || isSharing}
+              className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Share className="h-4 w-4 mr-2" />
+              {isSharing ? "sharing..." : "share"}
             </Button>
             <Button
               onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
@@ -206,6 +254,15 @@ export default function AppBarBuilder({
           console.log('[publish] confirm requested')
           setIsPublishOpen(false)
         }}
+      />
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={closeShareModal} 
+        onConfirm={handleShareConfirm}
+        shareUrl={shareUrl}
+        isGenerating={isSharing}
+        error={shareError}
+        successMessage={shareSuccessMessage}
       />
     </header>
   )
