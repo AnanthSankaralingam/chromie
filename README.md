@@ -4,7 +4,7 @@
 
 ### TODOs
 P0 <br>
-1. Share extension link: add share button to app-bar-builder. on share, create a custom link for that user's project. on click, it should route to a new page at /share where users, after signing up, can download the extension. we can teach about extensions and market chromie here as well.
+1. ~ Share extension link: add share button to app-bar-builder. on share, create a custom link for that user's project. on click, it should route to a new page at /share where users, after signing up, can download the extension. we can teach about extensions and market chromie here as well. ~
 2. Pricing update to tiered packages instead of subscriptions
 3. Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit. consider authentication use cases.
 4. Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.
