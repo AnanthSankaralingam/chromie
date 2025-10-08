@@ -85,7 +85,7 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <Button 
-                    onClick={() => window.open('https://buy.stripe.com/test_7sY28q5gl0hyaW3gSq7kc01', '_blank')}
+                    onClick={() => window.open('https://buy.stripe.com/28EbJ0105e8o4xF6dM7kc02', '_blank')}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                   >
                     get started
@@ -124,7 +124,7 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <Button 
-                    onClick={() => window.open('https://buy.stripe.com/dRm00i7ot2pGd4b45E7kc03', '_blank')}
+                    onClick={() => window.open('https://buy.stripe.com/6oU4gydMRc0g8NVeKi7kc04', '_blank')}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     get started
