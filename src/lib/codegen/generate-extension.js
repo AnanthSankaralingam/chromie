@@ -116,18 +116,7 @@ export async function generateChromeExtension({
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
 
-    // Check if URL is required but not provided
-    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
-      return {
-        success: false,
-        requiresUrl: true,
-        message: `This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed.`,
-        detectedSites: requirementsAnalysis.webPageData,
-        detectedUrls: [],
-        featureRequest: featureRequest,
-        requestType: requestType
-      }
-    }
+    // No longer need URL prompt - we'll use domain names to lookup from Supabase directly
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
@@ -159,14 +148,16 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       chromeApiDocumentation = apiDocs.join('\n\n')
     }
 
-    // Step 3: Scrape webpages for analysis if needed and URL is provided
+    // Step 3: Scrape webpages for analysis if needed (from Supabase database)
     let scrapedWebpageAnalysis = null
-    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && userProvidedUrl && !skipScraping) {
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !skipScraping) {
+      // Use domain names directly - batchScrapeWebpages will query Supabase
+      // If userProvidedUrl is given, it will be used; otherwise domain is used
       scrapedWebpageAnalysis = await batchScrapeWebpages(
         requirementsAnalysis.webPageData, 
-        userProvidedUrl
+        userProvidedUrl || null
       )
-    } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && (skipScraping || !userProvidedUrl)) {
+    } else if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && skipScraping) {
       scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->'
     } else {
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->'

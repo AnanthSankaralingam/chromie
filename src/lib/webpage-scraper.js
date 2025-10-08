@@ -1,54 +1,93 @@
 /**
  * Webpage scraping functionality for Chrome extension builder
- * Uses AWS Lambda API Gateway for scraping
+ * Uses Supabase scraper table for cached webpage data
  */
 
-const SCRAPER_API_URL = 'https://8kwll6ihd6.execute-api.us-east-1.amazonaws.com/default/lambda-scraper-2'
+import { createClient } from './supabase/server'
 
 /**
- * Scrape webpage content using AWS Lambda API Gateway
- * @param {string} url - URL to scrape
- * @param {Object} options - Optional parameters for scraping
- * @param {number} options.max_pages - Maximum number of pages to scrape (default: 1)
- * @param {boolean} options.render - Whether to render JavaScript (default: false)
- * @returns {Promise<Object>} - Scraped data from the webpage
+ * Extract domain name from a URL
+ * @param {string} url - Full URL
+ * @returns {string} - Domain name (e.g., 'youtube.com')
  */
-export async function scrapeWebPage(url, options = {}) {
-  const { max_pages = 2, render = false } = options
-  console.log(`Scraping webpage at ${url} with options:`, { max_pages, render })
+function extractDomainName(url) {
+  if (!url) return null
   
   try {
-    const payload = {
-      url: url,
-      max_pages: max_pages,
-      render: render
-    }
-
-    const resp = await fetch(SCRAPER_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!resp.ok) {
-      throw new Error(`HTTP error! status: ${resp.status}`)
-    }
-
-    const outer = await resp.json()
-    
-    const body_raw = outer.body
-    let body
+    // Try standard URL parsing first
+    const urlObj = new URL(url)
+    // Remove www. prefix and return hostname
+    return urlObj.hostname.replace(/^www\./, '')
+  } catch (error) {
+    // URL parsing failed, try manual extraction
     try {
-      body = JSON.parse(body_raw)
-    } catch (error) {
-      body = { raw_body: body_raw }
+      // Add protocol if missing
+      let urlWithProtocol = url
+      if (!url.match(/^https?:\/\//)) {
+        urlWithProtocol = 'https://' + url
+      }
+      const urlObj = new URL(urlWithProtocol)
+      return urlObj.hostname.replace(/^www\./, '')
+    } catch (secondError) {
+      // Last resort: regex extraction
+      const match = url.match(/(?:https?:\/\/)?(?:www\.)?([^/:#?]+)/)
+      if (match && match[1]) {
+        return match[1]
+      }
+      // If all else fails, return the original (cleaned up)
+      return url.replace(/^www\./, '').split('/')[0].split(':')[0].split('?')[0]
     }
+  }
+}
 
-    console.log('Parsed scraper response:', JSON.stringify(body, null, 2))
+/**
+ * Query webpage data from Supabase scraper table
+ * @param {string} url - URL to get scraper data for
+ * @param {Object} options - Optional parameters (kept for compatibility)
+ * @returns {Promise<Object>} - Scraped data from the database
+ */
+export async function scrapeWebPage(url, options = {}) {
+  console.log(`Looking up webpage data for ${url}`)
+  
+  try {
+    // Extract domain name from URL
+    const domainName = extractDomainName(url)
+    console.log(`Extracted domain name: ${domainName}`)
     
-    // Handle the new scraper response structure with pages array
+    // Query Supabase for scraper data
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('scraper')
+      .select('scraper_output')
+      .eq('domain_name', domainName)
+      .maybeSingle()
+    
+    if (error) {
+      console.error(`❌ Database error querying scraper table for ${domainName}:`, error)
+      throw new Error(`Database lookup failed: ${error.message}`)
+    }
+    
+    if (!data) {
+      console.warn(`⚠️ No scraper data found in database for domain: ${domainName}`)
+      throw new Error(`No scraper data found for domain: ${domainName}`)
+    }
+    
+    if (!data.scraper_output) {
+      console.warn(`⚠️ Scraper data exists but scraper_output is empty for: ${domainName}`)
+      throw new Error(`Empty scraper data for domain: ${domainName}`)
+    }
+    
+    // Parse the scraper_output JSON
+    let body
+    if (typeof data.scraper_output === 'string') {
+      body = JSON.parse(data.scraper_output)
+    } else {
+      body = data.scraper_output
+    }
+    
+    console.log('Retrieved scraper data from database:', JSON.stringify(body, null, 2))
+    
+    // Handle the scraper response structure with pages array
     let pageData = null
     if (body.pages && body.pages.length > 0) {
       pageData = body.pages[0] // Use the first page
@@ -78,18 +117,18 @@ export async function scrapeWebPage(url, options = {}) {
       content: pageData ? `Page analysis for ${url}` : (body.content || `No content available for ${url}`),
       elements: elements,
       timestamp: new Date().toISOString(),
-      statusCode: outer.statusCode,
+      statusCode: 200, // Indicate success from database
       pageData: pageData, // Include the full page data for downstream use
       ...body // Include all additional data from the API response
     }
   } catch (error) {
-    console.error(`Error scraping ${url}:`, error)
+    console.error(`Error getting scraper data for ${url}:`, error)
     
     // Return fallback data in case of error
     return {
       url: url,
       title: `Error accessing ${url}`,
-      content: `Unable to scrape content from ${url}: ${error.message}`,
+      content: `Unable to get scraper data for ${url}: ${error.message}`,
       elements: [],
       timestamp: new Date().toISOString(),
       error: error.message
@@ -110,18 +149,13 @@ export async function batchScrapeWebpages(domains, userProvidedUrl = null, optio
     return '<!-- No specific websites targeted -->'
   }
 
-  if (!userProvidedUrl) {
-    console.log("⏸️ No user-provided URL - skipping webpage scraping")
-    return '<!-- Website analysis skipped - no URL provided -->'
-  }
-
-  console.log("🌐 Starting webpage scraping for:", domains, "with URL:", userProvidedUrl, "and options:", options)
+  console.log("🌐 Starting webpage data lookup for:", domains, "with URL:", userProvidedUrl, "and options:", options)
   const webpageData = []
   
   for (const domain of domains) {
-    // Use userProvidedUrl if available, otherwise construct from domain
+    // Use userProvidedUrl if available, otherwise construct from domain for database lookup
     const urlToScrape = userProvidedUrl || `https://${domain}`
-    console.log(`🔍 Scraping domain: ${domain} at URL: ${urlToScrape}`)
+    console.log(`🔍 Looking up domain: ${domain} with URL: ${urlToScrape}`)
     const scrapedData = await scrapeWebPage(urlToScrape, options)
     
     const statusInfo = scrapedData.statusCode ? ` (Status: ${scrapedData.statusCode})` : ''
@@ -141,10 +175,14 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
       // DOM Structure Analysis for Extension Development
       detailedAnalysis += `\n\n## DOM Structure Analysis`
       
-      // Interactive Elements with Selectors
+      // Interactive Elements with Selectors (limit to top 10 to reduce token usage)
       if (page.top_actions && page.top_actions.length > 0) {
         detailedAnalysis += `\n\n### Interactive Elements (Targetable for Extensions)`
-        page.top_actions.forEach((action, index) => {
+        const limitedActions = page.top_actions.slice(0, 10)
+        if (page.top_actions.length > 10) {
+          detailedAnalysis += ` (showing top 10 of ${page.top_actions.length})`
+        }
+        limitedActions.forEach((action, index) => {
           detailedAnalysis += `\n\n**Element ${index + 1}:**`
           detailedAnalysis += `\n- Type: ${action.kind}`
           detailedAnalysis += `\n- Text: "${action.text}"`
@@ -154,10 +192,14 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
         })
       }
       
-      // Form Elements with Detailed Structure
+      // Form Elements with Detailed Structure (limit to top 5)
       if (page.forms && page.forms.length > 0) {
         detailedAnalysis += `\n\n### Form Elements (For Data Extraction/Injection)`
-        page.forms.forEach((form, index) => {
+        const limitedForms = page.forms.slice(0, 5)
+        if (page.forms.length > 5) {
+          detailedAnalysis += ` (showing top 5 of ${page.forms.length})`
+        }
+        limitedForms.forEach((form, index) => {
           detailedAnalysis += `\n\n**Form ${index + 1}:**`
           detailedAnalysis += `\n- Method: ${form.method}`
           detailedAnalysis += `\n- Action: ${form.action}`
@@ -172,10 +214,14 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
         })
       }
       
-      // Content Structure Elements
+      // Content Structure Elements (limit to top 8)
       if (page.headings && page.headings.length > 0) {
         detailedAnalysis += `\n\n### Content Structure (For Content Analysis)`
-        page.headings.forEach((heading, index) => {
+        const limitedHeadings = page.headings.slice(0, 5)
+        if (page.headings.length > 5) {
+          detailedAnalysis += ` (showing top 5 of ${page.headings.length})`
+        }
+        limitedHeadings.forEach((heading, index) => {
           detailedAnalysis += `\n\n**Heading ${index + 1}:**`
           detailedAnalysis += `\n- Level: H${heading.level}`
           detailedAnalysis += `\n- Text: "${heading.text}"`
@@ -184,10 +230,14 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
         })
       }
       
-      // Landmark Elements (Accessibility & Structure)
+      // Landmark Elements (Accessibility & Structure) (limit to top 6)
       if (page.landmarks && page.landmarks.length > 0) {
         detailedAnalysis += `\n\n### Landmark Elements (Page Structure)`
-        page.landmarks.forEach((landmark, index) => {
+        const limitedLandmarks = page.landmarks.slice(0, 5)
+        if (page.landmarks.length > 5) {
+          detailedAnalysis += ` (showing top 5 of ${page.landmarks.length})`
+        }
+        limitedLandmarks.forEach((landmark, index) => {
           detailedAnalysis += `\n\n**Landmark ${index + 1}:**`
           detailedAnalysis += `\n- Role: ${landmark.role}`
           detailedAnalysis += `\n- Label: ${landmark.label || 'No label'}`
