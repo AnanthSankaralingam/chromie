@@ -43,6 +43,9 @@ export async function POST(request, { params }) {
       )
     }
 
+    // Extract user plan from limit check
+    const userPlan = limitCheck.plan
+
     // Load existing extension files for this project
     const { data: files, error: filesError } = await supabase
       .from("code_files")
@@ -57,30 +60,23 @@ export async function POST(request, { params }) {
     const extensionFiles = (files || []).map((f) => ({ file_path: f.file_path, content: f.content }))
 
     // Calculate session expiry - enforce 1 minute maximum for all sessions
+    const now = new Date()
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
     console.log("Creating session with existing extension files count:", extensionFiles.length)
     const session = await hyperbrowserService.createTestSession(extensionFiles, id)
 
-    // Store session information in database for tracking
-    const { error: sessionInsertError } = await supabase
-      .from('browser_sessions')
-      .insert({
-        id: session.sessionId,
-        user_id: user.id,
-        project_id: id,
-        created_at: now.toISOString(),
-        expires_at: sessionExpiryTime.toISOString(),
-        status: 'active',
-        plan: userPlan,
-        remaining_minutes: remainingMinutes
-      })
+    // Debug: Log session details after creation
+    console.log("🔍 Session created successfully:", {
+      sessionId: session.sessionId,
+      status: session.status,
+      liveViewUrl: session.liveViewUrl,
+      connectUrl: session.connectUrl
+    })
 
-    if (sessionInsertError) {
-      console.error('Error storing session info:', sessionInsertError)
-      // Don't fail the request, just log the error
-    }
+    // Skip database storage since browser_sessions table doesn't exist
+    console.log('Skipping database session storage (table does not exist)')
 
     console.log(`Session expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
 
@@ -117,18 +113,9 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
 
-    // Get session info to calculate actual minutes used
-    const { data: sessionInfo, error: sessionError } = await supabase
-      .from('browser_sessions')
-      .select('created_at, expires_at, remaining_minutes, status')
-      .eq('id', sessionId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (sessionError || !sessionInfo) {
-      console.warn('Session info not found in database:', sessionError)
-    }
-
+    // Skip database session lookup since browser_sessions table doesn't exist
+    console.log('Skipping database session lookup (table does not exist)')
+    
     // Always record 1 minute used regardless of actual session duration
     const actualMinutesUsed = 1
 
@@ -140,37 +127,57 @@ export async function DELETE(request, { params }) {
     // Update browser usage with actual minutes used
     if (actualMinutesUsed > 0) {
       try {
-        const { error: usageError } = await supabase.rpc('update_browser_usage', {
-          user_id: user.id,
-          minutes_used: actualMinutesUsed
-        })
+        // Check if user already has a token_usage record
+        const { data: existingUsage, error: fetchError } = await supabase
+          .from('token_usage')
+          .select('browser_minutes')
+          .eq('user_id', user.id)
+          .single()
 
-        if (usageError) {
-          console.error('Error updating browser usage:', usageError)
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
+          console.error('Error fetching existing usage:', fetchError)
+          return
+        }
+
+        if (existingUsage) {
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('token_usage')
+            .update({
+              browser_minutes: (existingUsage.browser_minutes || 0) + actualMinutesUsed
+            })
+            .eq('user_id', user.id)
+
+          if (updateError) {
+            console.error('Error updating browser usage:', updateError)
+          } else {
+            console.log(`Updated browser usage: +${actualMinutesUsed} minutes for user ${user.id}`)
+          }
         } else {
-          console.log(`Updated browser usage: +${actualMinutesUsed} minutes for user ${user.id}`)
+          // Create new record
+          const { error: insertError } = await supabase
+            .from('token_usage')
+            .insert({
+              user_id: user.id,
+              total_tokens: 0,
+              model: 'none',
+              monthly_reset: new Date().toISOString(),
+              browser_minutes: actualMinutesUsed
+            })
+
+          if (insertError) {
+            console.error('Error creating browser usage record:', insertError)
+          } else {
+            console.log(`Created browser usage: +${actualMinutesUsed} minutes for user ${user.id}`)
+          }
         }
       } catch (updateError) {
-        console.error('Error calling update_browser_usage function:', updateError)
+        console.error('Error updating browser usage:', updateError)
       }
     }
 
-    // Mark session as terminated in database
-    if (sessionInfo) {
-      const { error: updateError } = await supabase
-        .from('browser_sessions')
-        .update({ 
-          status: 'terminated',
-          terminated_at: new Date().toISOString(),
-          actual_minutes_used: actualMinutesUsed
-        })
-        .eq('id', sessionId)
-        .eq('user_id', user.id)
-
-      if (updateError) {
-        console.error('Error updating session status:', updateError)
-      }
-    }
+    // Skip database session update since browser_sessions table doesn't exist
+    console.log('Skipping database session update (table does not exist)')
 
     console.log(`Actual minutes used: ${actualMinutesUsed}`)
 

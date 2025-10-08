@@ -5,6 +5,16 @@ import os from "os"
 import path from "path"
 import JSZip from "jszip"
 import { createClient } from "@supabase/supabase-js"
+import { 
+  tryFallbackApiKey as tryFallback,
+  validateExtensionFiles,
+  ensureRequiredFiles,
+  createDefaultPopupHTML,
+  createDefaultSidePanelHTML,
+  createDefaultBackgroundJS,
+  createDefaultContentJS
+} from "@/lib/utils/hyperbrowser-utils"
+import { navigateToUrl as navigateToUrlUtil, getPlaywrightSessionContext as getPlaywrightContextUtil } from "@/lib/utils/browser-actions"
 
 export class HyperbrowserService {
   constructor() {
@@ -16,14 +26,13 @@ export class HyperbrowserService {
     }
   }
 
-  /**
-   * Try to reinitialize client with fallback API key
-   */
+  // Reinitialize client using fallback API key via util helper
   tryFallbackApiKey() {
+    const makeClient = (key) => new Hyperbrowser({ apiKey: key })
     if (this.fallbackApiKey && this.apiKey !== this.fallbackApiKey) {
       console.log("Trying fallback API key for Hyperbrowser")
       this.apiKey = this.fallbackApiKey
-      this.client = new Hyperbrowser({ apiKey: this.apiKey })
+      this.client = makeClient(this.apiKey)
       return true
     }
     return false
@@ -63,7 +72,7 @@ export class HyperbrowserService {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
-        timeoutMinutes: 1
+        timeoutMinutes: 3
       }
 
       // Add extension if available
@@ -122,6 +131,31 @@ export class HyperbrowserService {
         }
       }
       
+      // Wait for session to be fully ready before attempting navigation
+      console.log("Waiting for session to be ready...")
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Debug: Check session status before initial navigation
+      try {
+        const sessionCheck = await this.client.sessions.get(session.id)
+        console.log("🔍 Pre-initial-navigation session check:", {
+          id: sessionCheck.id,
+          status: sessionCheck.status,
+          closeReason: sessionCheck.closeReason,
+          endTime: sessionCheck.endTime
+        })
+      } catch (checkError) {
+        console.warn("Could not check session before initial navigation:", checkError.message)
+      }
+      
+      // Immediately navigate to chrome://extensions using Playwright
+      try {
+        await this.navigateToUrl(session.id, "chrome://extensions")
+        console.log("Navigated to chrome://extensions")
+      } catch (navErr) {
+        console.warn("Failed to navigate to chrome://extensions:", navErr?.message)
+      }
+      
       return result
     } catch (error) {
       console.error("Failed to create Hyperbrowser test session:", error)
@@ -142,6 +176,27 @@ export class HyperbrowserService {
   }
 
   /**
+   * Obtain a Playwright browser context connected to the Hyperbrowser session via CDP
+   * @param {string} sessionId
+   * @returns {Promise<{ browser: any, context: any, page: any }>} connected objects
+   */
+  async getPlaywrightSessionContext(sessionId) {
+    if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
+    return await getPlaywrightContextUtil(sessionId, this.apiKey)
+  }
+
+  /**
+   * Navigate the active page to a URL (thin wrapper around Playwright page.goto)
+   * @param {string} sessionId
+   * @param {string} url
+   * @returns {Promise<boolean>} success
+   */
+  async navigateToUrl(sessionId, url) {
+    if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
+    return await navigateToUrlUtil(sessionId, url, this.apiKey)
+  }
+
+  /**
    * Zip provided extension files to a temporary archive, upload to Hyperbrowser, then delete the temp file
    * @param {Array<{file_path: string, content: string}>} files - Flat list of files with paths and contents
    * @returns {Promise<string|null>} The uploaded extension ID
@@ -153,8 +208,8 @@ export class HyperbrowserService {
     console.log("Zipping extension files for upload:", files.length)
     
     // Validate and ensure required files are present
-    await this.validateExtensionFiles(files)
-    const validatedFiles = this.ensureRequiredFiles(files)
+      await validateExtensionFiles(files)
+      const validatedFiles = ensureRequiredFiles(files)
     
     const zip = new JSZip()
 
@@ -274,374 +329,7 @@ export class HyperbrowserService {
     }
   }
 
-  /**
-   * Validate extension files and ensure required files are present
-   * @param {Array<{file_path: string, content: string}>} files - Extension files
-   */
-  async validateExtensionFiles(files) {
-    console.log("Validating extension files...")
-    
-    // Check for manifest.json
-    const manifestFile = files.find(f => f.file_path === 'manifest.json')
-    if (!manifestFile) {
-      throw new Error("Extension must have a manifest.json file")
-    }
-    
-    // Validate manifest.json content
-    try {
-      const manifest = JSON.parse(manifestFile.content)
-      console.log("Manifest validation:", {
-        name: manifest.name,
-        version: manifest.version,
-        manifest_version: manifest.manifest_version
-      })
-      
-      // Ensure required fields
-      if (!manifest.name) {
-        throw new Error("manifest.json must have a 'name' field")
-      }
-      if (!manifest.version) {
-        throw new Error("manifest.json must have a 'version' field")
-      }
-      if (!manifest.manifest_version) {
-        throw new Error("manifest.json must have a 'manifest_version' field")
-      }
-      
-      // Check for required files based on manifest (warn instead of throw)
-      if (manifest.action && manifest.action.default_popup) {
-        const popupFile = files.find(f => f.file_path === manifest.action.default_popup)
-        if (!popupFile) {
-          console.warn(`⚠️ Popup file '${manifest.action.default_popup}' declared in manifest but not found - will create default`)
-        }
-      }
-      
-      if (manifest.side_panel && manifest.side_panel.default_path) {
-        const sidePanelFile = files.find(f => f.file_path === manifest.side_panel.default_path)
-        if (!sidePanelFile) {
-          console.warn(`⚠️ Side panel file '${manifest.side_panel.default_path}' declared in manifest but not found - will create default`)
-        }
-      }
-      
-      // Check for background script
-      if (manifest.background && manifest.background.service_worker) {
-        const backgroundFile = files.find(f => f.file_path === manifest.background.service_worker)
-        if (!backgroundFile) {
-          console.warn(`⚠️ Background script '${manifest.background.service_worker}' declared in manifest but not found - will create default`)
-        }
-      }
-      
-      // Check for content scripts
-      if (manifest.content_scripts) {
-        for (const script of manifest.content_scripts) {
-          if (script.js) {
-            for (const jsFile of script.js) {
-              const contentFile = files.find(f => f.file_path === jsFile)
-              if (!contentFile) {
-                console.warn(`⚠️ Content script '${jsFile}' declared in manifest but not found - will create default`)
-              }
-            }
-          }
-        }
-      }
-      
-      // Ensure canonical icon mappings in manifest
-      if (!manifest.icons) manifest.icons = {}
-      if (!manifest.icons["16"]) manifest.icons["16"] = "icons/icon16.png"
-      if (!manifest.icons["48"]) manifest.icons["48"] = "icons/icon48.png"
-      if (!manifest.icons["128"]) manifest.icons["128"] = "icons/icon128.png"
-
-      if (manifest.action) {
-        if (!manifest.action.default_icon) manifest.action.default_icon = {}
-        if (!manifest.action.default_icon["16"]) manifest.action.default_icon["16"] = "icons/icon16.png"
-        if (!manifest.action.default_icon["48"]) manifest.action.default_icon["48"] = "icons/icon48.png"
-        if (!manifest.action.default_icon["128"]) manifest.action.default_icon["128"] = "icons/icon128.png"
-      }
-
-      // Validate required icons exist in shared_icons
-      const requiredIconPaths = new Set()
-      for (const p of Object.values(manifest.icons || {})) if (typeof p === 'string') requiredIconPaths.add(p)
-      if (manifest.action && manifest.action.default_icon) {
-        for (const p of Object.values(manifest.action.default_icon)) if (typeof p === 'string') requiredIconPaths.add(p)
-      }
-      const iconPaths = Array.from(requiredIconPaths).filter(p => p.startsWith('icons/'))
-      console.log('[validate] required icon paths', iconPaths)
-      if (iconPaths.length > 0) {
-        const SUPABASE_URL = process.env.SUPABASE_URL
-        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-          throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for icon validation')
-        }
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-        const { data: rows, error } = await supabase
-          .from('shared_icons')
-          .select('path_hint')
-          .in('path_hint', iconPaths)
-          .eq('visibility', 'global')
-        if (error) throw new Error(`Failed to validate shared icons: ${error.message}`)
-        const found = new Set((rows || []).map(r => r.path_hint))
-        const missing = iconPaths.filter(p => !found.has(p))
-        console.log('[validate] resolved icons', Array.from(found))
-        if (missing.length > 0) {
-          throw new Error(`Missing required icons in shared_icons: ${missing.join(', ')}. Seed them or adjust manifest.`)
-        }
-      }
-      
-      console.log("✅ Extension files validation passed")
-      
-    } catch (error) {
-      console.error("❌ Extension validation failed:", error.message)
-      throw new Error(`Extension validation failed: ${error.message}`)
-    }
-  }
-
-  /**
-   * Ensure all required extension files are present, create defaults if missing
-   * @param {Array<{file_path: string, content: string}>} files - Extension files
-   * @returns {Array<{file_path: string, content: string}>} Files with required defaults added
-   */
-  ensureRequiredFiles(files) {
-    console.log("Ensuring required extension files...")
-    const result = [...files]
-    
-    // Check for manifest.json
-    const manifestFile = files.find(f => f.file_path === 'manifest.json')
-    if (!manifestFile) {
-      throw new Error("Extension must have a manifest.json file")
-    }
-    
-    const manifest = JSON.parse(manifestFile.content)
-    
-    // Do not synthesize icon files anymore
-    
-    // Create missing popup files
-    if (manifest.action && manifest.action.default_popup) {
-      const popupFile = files.find(f => f.file_path === manifest.action.default_popup)
-      if (!popupFile) {
-        console.log(`Creating default popup file: ${manifest.action.default_popup}`)
-        result.push({
-          file_path: manifest.action.default_popup,
-          content: this.createDefaultPopupHTML(manifest.name || 'Extension')
-        })
-      }
-    }
-    
-    // Create missing side panel files
-    if (manifest.side_panel && manifest.side_panel.default_path) {
-      const sidePanelFile = files.find(f => f.file_path === manifest.side_panel.default_path)
-      if (!sidePanelFile) {
-        console.log(`Creating default side panel file: ${manifest.side_panel.default_path}`)
-        result.push({
-          file_path: manifest.side_panel.default_path,
-          content: this.createDefaultSidePanelHTML(manifest.name || 'Extension')
-        })
-      }
-    }
-    
-    // Create missing background script
-    if (manifest.background && manifest.background.service_worker) {
-      const backgroundFile = files.find(f => f.file_path === manifest.background.service_worker)
-      if (!backgroundFile) {
-        console.log(`Creating default background script: ${manifest.background.service_worker}`)
-        result.push({
-          file_path: manifest.background.service_worker,
-          content: this.createDefaultBackgroundJS()
-        })
-      }
-    }
-    
-    // Create missing content scripts
-    if (manifest.content_scripts) {
-      for (const script of manifest.content_scripts) {
-        if (script.js) {
-          for (const jsFile of script.js) {
-            const contentFile = files.find(f => f.file_path === jsFile)
-            if (!contentFile) {
-              console.log(`Creating default content script: ${jsFile}`)
-              result.push({
-                file_path: jsFile,
-                content: this.createDefaultContentJS()
-              })
-            }
-          }
-        }
-      }
-    }
-    
-    // Ensure manifest has proper icon references, but don't add files
-    if (!manifest.icons) manifest.icons = {}
-    if (!manifest.icons["16"]) manifest.icons["16"] = "icons/icon16.png"
-    if (!manifest.icons["48"]) manifest.icons["48"] = "icons/icon48.png"
-    if (!manifest.icons["128"]) manifest.icons["128"] = "icons/icon128.png"
-    {
-      const manifestIndex = result.findIndex(f => f.file_path === 'manifest.json')
-      if (manifestIndex !== -1) {
-        result[manifestIndex].content = JSON.stringify(manifest, null, 2)
-      }
-    }
-    
-    // Ensure action has icon if it exists
-    if (manifest.action) {
-      if (!manifest.action.default_icon) manifest.action.default_icon = {}
-      if (!manifest.action.default_icon["16"]) manifest.action.default_icon["16"] = "icons/icon16.png"
-      if (!manifest.action.default_icon["48"]) manifest.action.default_icon["48"] = "icons/icon48.png"
-      if (!manifest.action.default_icon["128"]) manifest.action.default_icon["128"] = "icons/icon128.png"
-      const manifestIndex = result.findIndex(f => f.file_path === 'manifest.json')
-      if (manifestIndex !== -1) {
-        result[manifestIndex].content = JSON.stringify(manifest, null, 2)
-      }
-    }
-    
-    console.log("✅ Required files ensured")
-    return result
-  }
-
-  /**
-   * Create a default icon as base64
-   * @param {string} iconPath - Icon file path
-   * @returns {string} Base64 encoded icon
-   */
-  createDefaultIconBase64(iconPath) {
-    // Create a simple 1x1 transparent PNG as base64
-    // This is a minimal valid PNG that browsers can handle
-    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-  }
-
-  /**
-   * Create a default popup HTML file
-   * @param {string} extensionName - Name of the extension
-   * @returns {string} Default popup HTML content
-   */
-  createDefaultPopupHTML(extensionName) {
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      width: 300px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    .header h1 {
-      font-size: 18px;
-      margin: 0;
-      color: #333;
-    }
-    .content {
-      text-align: center;
-      color: #666;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${extensionName}</h1>
-  </div>
-  <div class="content">
-    <p>Extension popup loaded successfully!</p>
-  </div>
-</body>
-</html>`
-  }
-
-  /**
-   * Create a default side panel HTML file
-   * @param {string} extensionName - Name of the extension
-   * @returns {string} Default side panel HTML content
-   */
-  createDefaultSidePanelHTML(extensionName) {
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    .header h1 {
-      font-size: 18px;
-      margin: 0;
-      color: #333;
-    }
-    .content {
-      color: #666;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>${extensionName}</h1>
-  </div>
-  <div class="content">
-    <p>Extension side panel loaded successfully!</p>
-  </div>
-</body>
-</html>`
-  }
-
-  /**
-   * Create a default background script
-   * @returns {string} Default background script content
-   */
-  createDefaultBackgroundJS() {
-    return `// Background script for extension
-console.log('Extension background script loaded');
-
-// Handle extension installation
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed:', details);
-});
-
-// Handle messages from content scripts or popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Message received:', request);
-  sendResponse({ success: true });
-});`
-  }
-
-  /**
-   * Create a default content script
-   * @returns {string} Default content script content
-   */
-  createDefaultContentJS() {
-    return `// Content script for extension
-console.log('Extension content script loaded on:', window.location.href);
-
-// Example: Add a simple indicator to the page
-const indicator = document.createElement('div');
-indicator.style.cssText = \`
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #4CAF50;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  z-index: 999999;
-\`;
-indicator.textContent = 'Extension Active';
-document.body.appendChild(indicator);
-
-// Remove indicator after 3 seconds
-setTimeout(() => {
-  if (indicator.parentNode) {
-    indicator.parentNode.removeChild(indicator);
-  }
-}, 3000);`
-  }
+  // default content/markup helpers now provided by utils
 
   /**
    * Get session status
@@ -848,87 +536,8 @@ setTimeout(() => {
    */
   async cleanupExpiredSessions(supabase) {
     try {
-      console.log('Starting expired session cleanup...')
-      
-      const now = new Date()
-      const { data: expiredSessions, error: fetchError } = await supabase
-        .from('browser_sessions')
-        .select('id, user_id, created_at, expires_at, remaining_minutes, status')
-        .eq('status', 'active')
-        .lt('expires_at', now.toISOString())
-
-      if (fetchError) {
-        console.error('Error fetching expired sessions:', fetchError)
-        return { success: false, error: fetchError.message }
-      }
-
-      if (!expiredSessions || expiredSessions.length === 0) {
-        console.log('No expired sessions found')
-        return { success: true, cleaned: 0 }
-      }
-
-      console.log(`Found ${expiredSessions.length} expired sessions to clean up`)
-
-      let cleanedCount = 0
-      const errors = []
-
-      for (const session of expiredSessions) {
-        try {
-          // Calculate actual minutes used
-          // Always record 1 minute used regardless of actual session duration
-          const actualMinutesUsed = 1
-
-          // Terminate the session
-          const terminated = await this.terminateSession(session.id)
-          if (!terminated) {
-            console.warn(`Failed to terminate session ${session.id}`)
-          }
-
-          // Update browser usage
-          if (actualMinutesUsed > 0) {
-            const { error: usageError } = await supabase.rpc('update_browser_usage', {
-              user_id: session.user_id,
-              minutes_used: actualMinutesUsed
-            })
-
-            if (usageError) {
-              console.error(`Error updating browser usage for session ${session.id}:`, usageError)
-              errors.push(`Usage update failed for session ${session.id}`)
-            }
-          }
-
-          // Mark session as expired in database
-          const { error: updateError } = await supabase
-            .from('browser_sessions')
-            .update({ 
-              status: 'expired',
-              terminated_at: now.toISOString(),
-              actual_minutes_used: actualMinutesUsed
-            })
-            .eq('id', session.id)
-
-          if (updateError) {
-            console.error(`Error updating session status for ${session.id}:`, updateError)
-            errors.push(`Status update failed for session ${session.id}`)
-          } else {
-            cleanedCount++
-            console.log(`Cleaned up session ${session.id}, used ${actualMinutesUsed} minutes`)
-          }
-
-        } catch (sessionError) {
-          console.error(`Error cleaning up session ${session.id}:`, sessionError)
-          errors.push(`Cleanup failed for session ${session.id}: ${sessionError.message}`)
-        }
-      }
-
-      console.log(`Session cleanup completed: ${cleanedCount} sessions cleaned, ${errors.length} errors`)
-
-      return {
-        success: true,
-        cleaned: cleanedCount,
-        errors: errors.length > 0 ? errors : undefined
-      }
-
+      console.log('Skipping expired session cleanup - browser_sessions table does not exist')
+      return { success: true, cleaned: 0 }
     } catch (error) {
       console.error('Error during session cleanup:', error)
       return { success: false, error: error.message }

@@ -51,9 +51,9 @@ export const DEFAULT_MODELS = {
 
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {
-  SESSION_DURATION_MINUTES: 1, // Maximum session duration
-  WARNING_TIME_MINUTES: 0.5, // Warning before session expires
-  CLEANUP_INTERVAL_MINUTES: 2 // How often to clean up expired sessions
+  SESSION_DURATION_MINUTES: 3, // Maximum session duration
+  WARNING_TIME_MINUTES: 2.5, // Warning before session expires
+  CLEANUP_INTERVAL_MINUTES: 1.5 // How often to clean up expired sessions
 }
 
 // Share link rate limiting
