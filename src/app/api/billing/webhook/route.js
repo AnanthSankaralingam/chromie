@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { PLAN_LIMITS } from '@/lib/constants'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
 const supabase = createClient(
@@ -81,196 +82,241 @@ export async function POST(request) {
 }
 
 async function handleCheckoutSessionCompleted(session) {
-  // This function is kept for backward compatibility
   console.log('Checkout session completed:', session.id)
+  
+  const isOneTime = session.mode === 'payment' // vs 'subscription'
+  const customer = session.customer
+  const paymentIntent = session.payment_intent
+  
+  // Get line items to determine plan
+  const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
+  const priceId = lineItems.data[0]?.price?.id
+  
+  // Map Stripe price IDs to plans (get actual IDs from Stripe dashboard)
+  const PRICE_ID_MAP = {
+    'price_XXXSTARTER': 'starter',  // Replace with actual price IDs
+    'price_XXXPRO': 'pro',
+    'price_XXXLEGEND': 'legend'
+  }
+  
+  const plan = PRICE_ID_MAP[priceId] || 'starter'
+  
+  if (isOneTime) {
+    await handleOneTimePurchase(customer, plan, paymentIntent)
+  }
+  // Subscriptions handled by subscription.created event
+}
+
+async function handleOneTimePurchase(stripeCustomerId, plan, paymentIntentId) {
+  // Find user
+  const customer = await stripe.customers.retrieve(stripeCustomerId)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .ilike('email', customer.email)
+    .single()
+  
+  if (!profile) {
+    console.error('User not found for email:', customer.email)
+    return
+  }
+  
+  const limits = PLAN_LIMITS[plan]
+  
+  // Create purchase record (ledger)
+  const { error: purchaseError } = await supabase
+    .from('purchases')
+    .insert({
+      user_id: profile.id,
+      stripe_payment_intent_id: paymentIntentId,
+      plan,
+      purchase_type: 'one_time',
+      status: 'active',
+      tokens_purchased: limits.monthly_tokens,
+      browser_minutes_purchased: limits.monthly_browser_minutes,
+      projects_purchased: limits.max_projects,
+      expires_at: null // One-time purchases never expire
+    })
+  
+  if (purchaseError) {
+    console.error('Error creating purchase record:', purchaseError)
+    throw purchaseError
+  }
+  
+  // Update billing table for backwards compatibility
+  await supabase
+    .from('billing')
+    .upsert({
+      user_id: profile.id,
+      stripe_customer_id: stripeCustomerId,
+      plan,
+      status: 'active',
+      purchase_count: supabase.raw('COALESCE(purchase_count, 0) + 1'),
+      has_one_time_purchase: true
+    })
+  
+  console.log('One-time purchase recorded:', plan, 'for user:', profile.id)
 }
 
 async function handleSubscriptionCreated(subscription) {
   console.log('Subscription created:', subscription.id)
   
-  let plan = 'starter' // default
-  let userId = null
+  const priceId = subscription.items.data[0].price.id
+  const plan = 'legend' // Only Legend is subscription
   
-  // Determine plan based on price ID from the payment URLs
-  if (subscription.items && subscription.items.data.length > 0) {
-    const priceId = subscription.items.data[0].price.id
-    console.log('Price ID:', priceId)
-    
-    // Map price IDs to plans based on your Stripe setup
-    // You'll need to get the actual price IDs from your Stripe dashboard
-    // For now, using a simple mapping - update these with your actual price IDs
-    if (priceId.includes('price_') && (priceId.includes('pro') || priceId.includes('25'))) {
-      plan = 'pro'
-    } else {
-      plan = 'starter'
-    }
+  const customer = await stripe.customers.retrieve(subscription.customer)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .ilike('email', customer.email)
+    .single()
+  
+  if (!profile) {
+    console.error('User not found for subscription')
+    return
   }
   
-  // Get customer email to find user
-  if (subscription.customer) {
-    try {
-      const customer = await stripe.customers.retrieve(subscription.customer)
-      console.log('Customer email:', customer.email)
-      console.log('Customer ID:', customer.id)
-      
-      if (customer.email) {
-        // Find user by email in profiles table (case insensitive)
-        console.log('Searching for profile with email:', customer.email)
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .ilike('email', customer.email)
-          .single()
-        
-        if (profile) {
-          userId = profile.id
-          console.log('Found user:', userId, 'with email:', profile.email)
-        } else {
-          console.log('No profile found for email:', customer.email)
-          
-          // Let's also check what profiles exist
-          const { data: allProfiles, error: listError } = await supabase
-            .from('profiles')
-            .select('id, email')
-            .limit(5)
-          
-          if (allProfiles) {
-            console.log('Available profiles:', allProfiles.map(p => ({ id: p.id, email: p.email })))
-          }
-        }
-      } else {
-        console.log('No email found for customer:', customer.id)
-      }
-    } catch (error) {
-      console.error('Error retrieving customer:', error)
-    }
-  }
+  const limits = PLAN_LIMITS.legend
   
-  if (userId) {
-    // Update billing table
-    const { error: billingError } = await supabase
-      .from('billing')
-      .upsert({
-        user_id: userId,
-        stripe_customer_id: subscription.customer,
-        stripe_subscription_id: subscription.id,
-        plan: plan,
-        status: subscription.status,
-        created_at: new Date().toISOString(),
-        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-      })
-
-    if (billingError) {
-      console.error('Error updating billing record:', billingError)
-      throw billingError
-    }
-    
-    // Update profiles table with stripe_customer_id
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        stripe_customer_id: subscription.customer
-      })
-      .eq('id', userId)
-
-    if (profileError) {
-      console.error('Error updating profile:', profileError)
-      throw profileError
-    }
-    
-    // Reset token usage for the new plan
-    const { error: tokenResetError } = await supabase
-      .from('token_usage')
-      .update({
-        total_tokens: 0,
-        monthly_reset: new Date().toISOString().split('T')[0]
-      })
-      .eq('user_id', userId)
-
-    if (tokenResetError) {
-      console.error('Error resetting token usage on plan upgrade:', tokenResetError)
-      // Don't fail the webhook, just log the error
-    } else {
-      console.log('Successfully reset token usage for upgraded user:', userId)
-    }
-    
-    console.log('Successfully updated billing and profile for user:', userId)
-  } else {
-    console.log('Could not find user for subscription:', subscription.id)
-  }
+  // Create purchase record for subscription
+  await supabase
+    .from('purchases')
+    .insert({
+      user_id: profile.id,
+      stripe_subscription_id: subscription.id,
+      stripe_payment_intent_id: null,
+      plan: 'legend',
+      purchase_type: 'subscription',
+      status: 'active',
+      tokens_purchased: limits.monthly_tokens,
+      browser_minutes_purchased: limits.monthly_browser_minutes,
+      projects_purchased: limits.max_projects,
+      expires_at: new Date(subscription.current_period_end * 1000).toISOString()
+    })
+  
+  // Reset token usage for new billing cycle
+  const firstDayOfMonth = new Date()
+  firstDayOfMonth.setDate(1)
+  firstDayOfMonth.setHours(0, 0, 0, 0)
+  
+  await supabase
+    .from('token_usage')
+    .upsert({
+      user_id: profile.id,
+      total_tokens: 0,
+      browser_minutes: 0,
+      monthly_reset: firstDayOfMonth.toISOString()
+    })
+  
+  // Update billing table for backwards compatibility
+  await supabase
+    .from('billing')
+    .upsert({
+      user_id: profile.id,
+      stripe_customer_id: subscription.customer,
+      stripe_subscription_id: subscription.id,
+      plan: 'legend',
+      status: 'active',
+      valid_until: new Date(subscription.current_period_end * 1000).toISOString()
+    })
+  
+  console.log('Legend subscription created for user:', profile.id)
 }
 
 async function handleSubscriptionUpdated(subscription) {
   console.log('Subscription updated:', subscription.id)
   
-  const { error } = await supabase
+  // Update expires_at when subscription renews
+  await supabase
+    .from('purchases')
+    .update({
+      expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
+      status: subscription.status === 'active' ? 'active' : 'past_due'
+    })
+    .eq('stripe_subscription_id', subscription.id)
+  
+  // Update billing table for backwards compatibility
+  await supabase
     .from('billing')
     .update({
       status: subscription.status,
-      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+      valid_until: new Date(subscription.current_period_end * 1000).toISOString()
     })
     .eq('stripe_subscription_id', subscription.id)
-
-  if (error) {
-    console.error('Error updating subscription:', error)
-    throw error
-  } else {
-    console.log('Successfully updated subscription status')
-  }
 }
 
 async function handleSubscriptionDeleted(subscription) {
   console.log('Subscription deleted:', subscription.id)
   
-  const { error } = await supabase
+  // Mark subscription as canceled
+  await supabase
+    .from('purchases')
+    .update({ status: 'canceled' })
+    .eq('stripe_subscription_id', subscription.id)
+  
+  // Update billing table for backwards compatibility
+  await supabase
     .from('billing')
     .update({
       status: 'canceled',
       valid_until: new Date().toISOString()
     })
     .eq('stripe_subscription_id', subscription.id)
-
-  if (error) {
-    console.error('Error canceling subscription:', error)
-    throw error
-  } else {
-    console.log('Successfully canceled subscription')
-  }
+  
+  console.log('Subscription canceled:', subscription.id)
 }
 
 async function handlePaymentSucceeded(invoice) {
   console.log('Payment succeeded for invoice:', invoice.id)
   
-  const { error } = await supabase
-    .from('billing')
-    .update({
-      status: 'active',
-      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-    })
+  // On successful payment, reset usage for the new month
+  if (!invoice.subscription) return
+  
+  const { data: purchase } = await supabase
+    .from('purchases')
+    .select('user_id')
     .eq('stripe_subscription_id', invoice.subscription)
-
-  if (error) {
-    console.error('Error updating payment status:', error)
-    throw error
-  } else {
-    console.log('Successfully updated payment status to active')
+    .single()
+  
+  if (purchase) {
+    const firstDayOfMonth = new Date()
+    firstDayOfMonth.setDate(1)
+    firstDayOfMonth.setHours(0, 0, 0, 0)
+    
+    await supabase
+      .from('token_usage')
+      .update({
+        total_tokens: 0,
+        browser_minutes: 0,
+        monthly_reset: firstDayOfMonth.toISOString()
+      })
+      .eq('user_id', purchase.user_id)
+    
+    // Update billing table
+    await supabase
+      .from('billing')
+      .update({
+        status: 'active',
+        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .eq('stripe_subscription_id', invoice.subscription)
+    
+    console.log('Reset usage for Legend renewal:', purchase.user_id)
   }
 }
 
 async function handlePaymentFailed(invoice) {
   console.log('Payment failed for invoice:', invoice.id)
   
-  const { error } = await supabase
+  if (!invoice.subscription) return
+  
+  // Update billing table
+  await supabase
     .from('billing')
     .update({
       status: 'past_due'
     })
     .eq('stripe_subscription_id', invoice.subscription)
-
-  if (error) {
-    console.error('Error updating failed payment status:', error)
-    throw error
-  } else {
-    console.log('Successfully updated payment status to past_due')
-  }
-} 
+  
+  console.log('Successfully updated payment status to past_due')
+}

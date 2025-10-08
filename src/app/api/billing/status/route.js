@@ -13,23 +13,36 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Get the user's billing information
-  const { data: billing, error } = await supabase
+  // Get purchase history
+  const { data: purchases, error: purchasesError } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('purchased_at', { ascending: false })
+
+  if (purchasesError) {
+    console.error('Error fetching purchases:', purchasesError)
+    return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 })
+  }
+
+  // Get current billing record (backwards compatibility)
+  const { data: billing, error: billingError } = await supabase
     .from('billing')
     .select('*')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching billing:', error)
+  if (billingError) {
+    console.error('Error fetching billing:', billingError)
     return NextResponse.json({ error: 'Failed to fetch billing' }, { status: 500 })
   }
 
   return NextResponse.json({ 
     billing: billing || null,
+    purchases: purchases || [],
     user_id: user.id
   })
 } 

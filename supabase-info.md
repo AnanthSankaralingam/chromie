@@ -74,8 +74,40 @@ Not for credit card data — only foreign keys to Stripe.
 | `status`              | text         | e.g. 'active', 'past_due'                    |
 | `created_at`          | timestamptz  | DEFAULT now()                                |
 | `valid_until`         | timestamptz  | Optional, subscription expiry                |
+| `purchase_count`      | integer      | DEFAULT 0, tracks number of one-time purchases |
+| `has_one_time_purchase`| boolean     | DEFAULT false, indicates if user has one-time purchases |
 
-### 6. `token_usage`
+---
+
+### 6. `purchases` *(Purchase ledger)*
+Tracks all purchases (one-time and subscriptions) as a ledger.
+
+| Column                    | Type         | Details                                      |
+|---------------------------|--------------|----------------------------------------------|
+| `id`                      | uuid         | PK, DEFAULT gen_random_uuid()                |
+| `user_id`                 | uuid         | FK → `profiles.id`, ON DELETE CASCADE        |
+| `stripe_payment_intent_id`| text         | Stripe payment intent ID (one-time purchases) |
+| `stripe_subscription_id`  | text         | Stripe subscription ID (subscriptions)       |
+| `plan`                    | text         | 'starter', 'pro', 'legend'                   |
+| `purchase_type`           | text         | 'one_time' or 'subscription'                 |
+| `status`                  | text         | 'active', 'refunded', 'expired', 'canceled'  |
+| `tokens_purchased`        | bigint       | Tokens included in this purchase             |
+| `browser_minutes_purchased`| integer     | Browser minutes included in this purchase    |
+| `projects_purchased`      | integer      | Projects included in this purchase           |
+| `purchased_at`            | timestamptz  | When purchase was made                       |
+| `expires_at`              | timestamptz  | NULL for one-time, renewal date for subs     |
+| `created_at`              | timestamptz  | DEFAULT now()                                |
+| `updated_at`              | timestamptz  | DEFAULT now()                                |
+
+Additional indexes:
+- `idx_purchases_user_id` on `user_id` for user queries
+- `idx_purchases_user_status` on `(user_id, status)` for active purchases
+- `idx_purchases_stripe_payment_intent` on `stripe_payment_intent_id` for webhook lookups
+- `idx_purchases_stripe_subscription` on `stripe_subscription_id` for webhook lookups
+
+---
+
+### 7. `token_usage`
 Tracks LLM token usage per user.
 
 | Column            | Type         | Details                                           |
@@ -89,7 +121,7 @@ Tracks LLM token usage per user.
 
 ---
 
-### 7. `shared_links`
+### 8. `shared_links`
 Stores shareable links for projects with expiration and access tracking.
 
 | Column             | Type         | Details                                                     |
@@ -110,7 +142,7 @@ Additional indexes:
 
 ---
 
-### 8. `shared_icons`
+### 9. `shared_icons`
 Content-addressed, deduplicated icon storage shared across projects.
 
 | Column           | Type         | Details                                                     |
@@ -130,15 +162,67 @@ Additional indexes and constraints:
 
 ## Project Limits by Plan
 
-| Plan    | Max Projects | Description                    |
-|---------|--------------|--------------------------------|
-| free    | 10           | Basic tier with limited projects |
-| starter | 25           | Mid-tier with more projects    |
-| pro     | 50           | Premium tier with max projects |
+| Plan    | Max Projects | Tokens | Browser Minutes | Reset Type | Description                    |
+|---------|--------------|--------|-----------------|------------|--------------------------------|
+| free    | 1            | 40K    | 15              | monthly    | Basic tier with limited projects |
+| starter | 2            | 150K   | 30              | one-time   | One-time purchase package       |
+| pro     | 10           | 1M     | 120             | one-time   | One-time purchase package       |
+| legend  | 300          | 5M     | 240             | monthly    | Monthly subscription            |
 
 ---
 
 ## Required SQL Updates
+
+### 1. Create purchases table and update billing table
+
+Run these SQL commands in your Supabase SQL editor to implement the new pricing structure:
+
+```sql
+-- Create purchases table (purchase ledger)
+CREATE TABLE IF NOT EXISTS purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_subscription_id TEXT UNIQUE,
+  plan TEXT NOT NULL, -- 'starter', 'pro', 'legend'
+  purchase_type TEXT NOT NULL, -- 'one_time' or 'subscription'
+  status TEXT NOT NULL DEFAULT 'active', -- 'active', 'refunded', 'expired', 'canceled'
+  
+  -- Purchased limits (ledger - what they bought)
+  tokens_purchased BIGINT NOT NULL DEFAULT 0,
+  browser_minutes_purchased INTEGER NOT NULL DEFAULT 0,
+  projects_purchased INTEGER NOT NULL DEFAULT 0,
+  
+  -- Subscription tracking
+  purchased_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ, -- NULL for one-time, renewal date for Legend
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Create indexes for purchases table
+CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON purchases(user_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_user_status ON purchases(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_purchases_stripe_payment_intent ON purchases(stripe_payment_intent_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_stripe_subscription ON purchases(stripe_subscription_id);
+
+-- Enable RLS on purchases table
+ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for purchases
+CREATE POLICY purchases_user_select ON purchases 
+  FOR SELECT USING (user_id = auth.uid());
+  
+CREATE POLICY purchases_user_insert ON purchases 
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- Add new columns to billing table
+ALTER TABLE billing ADD COLUMN IF NOT EXISTS purchase_count INTEGER DEFAULT 0;
+ALTER TABLE billing ADD COLUMN IF NOT EXISTS has_one_time_purchase BOOLEAN DEFAULT false;
+```
+
+### 2. Project counting (existing)
 
 Run these SQL commands in your Supabase SQL editor to implement project counting:
 
@@ -224,13 +308,19 @@ SET project_count = (
 - Users can SELECT, UPDATE, DELETE billing rows only for themselves (`user_id = auth.uid()`).
 - Users can INSERT rows only for themselves (`user_id = auth.uid()`).
 
-### 7. `shared_links`
+### 6. `purchases`
+
+- Users can SELECT purchases only where `user_id = auth.uid()`.
+- Users can INSERT purchases only for themselves (`user_id = auth.uid()`).
+- No UPDATE/DELETE policies (purchases are immutable ledger entries).
+
+### 8. `shared_links`
 
 - Users can SELECT, UPDATE, DELETE shared links only where `user_id = auth.uid()`.
 - Users can INSERT shared links only for their own projects (`user_id = auth.uid()`).
 - Public READ access allowed for active, non-expired links (for sharing functionality).
 
-### 8. `shared_icons`
+### 9. `shared_icons`
 
 - RLS enabled on the table.
 - READ access allowed only where `visibility = 'global'`.

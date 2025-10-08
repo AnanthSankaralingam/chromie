@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
-import { PLAN_LIMITS, DEFAULT_PLAN, BROWSER_SESSION_CONFIG } from "@/lib/constants"
+import { checkLimit, formatLimitError } from "@/lib/limit-checker"
+import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -29,70 +30,18 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Check browser usage limits before creating session
-    const { data: billing } = await supabase
-      .from('billing')
-      .select('plan')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const userPlan = billing?.plan || DEFAULT_PLAN
-    const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
-
-    // Get current browser usage
-    const { data: usageData, error: usageError } = await supabase
-      .from('token_usage')
-      .select('browser_minutes, monthly_reset')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (usageError) {
-      console.error('Error fetching browser usage:', usageError)
-      return NextResponse.json({ error: "Failed to check browser usage limits" }, { status: 500 })
+    // Check browser minute limit using new limit checker
+    const sessionMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
+    
+    const limitCheck = await checkLimit(user.id, 'browserMinutes', sessionMinutes, supabase)
+    
+    if (!limitCheck.allowed) {
+      console.log(`[api/projects/test-extension] ❌ Browser minute limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
+      return NextResponse.json(
+        formatLimitError(limitCheck, 'browserMinutes'),
+        { status: 429 }
+      )
     }
-
-    // Check if monthly reset is due
-    const now = new Date()
-    const monthlyResetDate = usageData?.monthly_reset ? new Date(usageData.monthly_reset) : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
-    const currentBrowserMinutes = isResetDue ? 0 : (usageData?.browser_minutes || 0)
-
-    // Check if user has exceeded browser minute limit (but allow 1-minute sessions)
-    if (planLimit.monthly_browser_minutes !== -1 && currentBrowserMinutes >= planLimit.monthly_browser_minutes) {
-      return NextResponse.json({ 
-        error: "Browser testing limit exceeded", 
-        details: `You have used ${currentBrowserMinutes}/${planLimit.monthly_browser_minutes} browser minutes this month. Please upgrade your plan for more testing time.`,
-        limitExceeded: true,
-        currentUsage: currentBrowserMinutes,
-        limit: planLimit.monthly_browser_minutes,
-        plan: userPlan,
-        resetDate: monthlyResetDate ? monthlyResetDate.toISOString() : null
-      }, { status: 429 })
-    }
-
-    // Check if user has enough remaining minutes for a 1-minute session
-    if (planLimit.monthly_browser_minutes !== -1 && (planLimit.monthly_browser_minutes - currentBrowserMinutes) < BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES) {
-      return NextResponse.json({ 
-        error: "Insufficient browser testing time", 
-        details: `You need at least ${BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES} minute(s) remaining for a test session. You have ${planLimit.monthly_browser_minutes - currentBrowserMinutes} minutes left.`,
-        limitExceeded: true,
-        currentUsage: currentBrowserMinutes,
-        limit: planLimit.monthly_browser_minutes,
-        required: BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES,
-        plan: userPlan,
-        resetDate: monthlyResetDate ? monthlyResetDate.toISOString() : null
-      }, { status: 429 })
-    }
-
-    console.log(`Browser usage check - plan: ${userPlan}, limit: ${planLimit.monthly_browser_minutes}, used: ${currentBrowserMinutes}`)
 
     // Load existing extension files for this project
     const { data: files, error: filesError } = await supabase

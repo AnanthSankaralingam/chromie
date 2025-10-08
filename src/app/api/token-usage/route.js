@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
+import { getUserLimits } from "@/lib/limit-checker"
 import { randomUUID } from "crypto"
 
 export async function GET() {
@@ -16,79 +16,51 @@ export async function GET() {
   }
 
   try {
-    // Get user's plan
-    const { data: billing } = await supabase
-      .from('billing')
-      .select('plan')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const userPlan = billing?.plan || DEFAULT_PLAN
-    const planData = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
-    const planLimit = planData.monthly_tokens
-
-    // Fetch single per-user token usage with monthly reset logic
-    const { data: existingUsage, error: tokenError } = await supabase
-      .from('token_usage')
-      .select('id, total_tokens, monthly_reset, browser_minutes')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (tokenError) {
-      console.error('Error fetching token usage:', tokenError)
-      return NextResponse.json({ error: "Failed to fetch token usage" }, { status: 500 })
-    }
-
-    const now = new Date()
-    const monthlyResetDate = existingUsage?.monthly_reset ? new Date(existingUsage.monthly_reset) : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-
-    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
-    const totalTokensUsed = isResetDue ? 0 : (existingUsage?.total_tokens || 0)
-    const totalBrowserMinutesUsed = isResetDue ? 0 : (existingUsage?.browser_minutes || 0)
-    const usagePercentage = planLimit === -1 ? 0 : Math.round((totalTokensUsed / planLimit) * 100)
-    const browserUsagePercentage = planData.monthly_browser_minutes === -1 ? 0 : Math.round((totalBrowserMinutesUsed / planData.monthly_browser_minutes) * 100)
-    const monthlyUsage = totalTokensUsed
-
-    // If reset is due, update the record so UI reflects fresh cycle next calls
-    if (existingUsage?.id && isResetDue) {
-      // Align reset anchor with beginning of current month for consistency with generation endpoint
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      const { error: resetError } = await supabase
-        .from('token_usage')
-        .update({ total_tokens: 0, browser_minutes: 0, monthly_reset: firstDayOfMonth.toISOString() })
-        .eq('id', existingUsage.id)
-        .eq('user_id', user.id)
-
-      if (resetError) {
-        console.error('Error resetting monthly token usage:', resetError)
-      }
-    }
-
-    console.log(`Token usage - plan: ${userPlan}, limit: ${planLimit}, used: ${totalTokensUsed}, resetDue: ${isResetDue}`)
-    console.log(`Browser usage - limit: ${planLimit.monthly_browser_minutes}, used: ${totalBrowserMinutesUsed}`)
-
+    const userLimits = await getUserLimits(user.id, supabase)
+    
     return NextResponse.json({
-      totalTokensUsed,
-      planLimit: planLimit === -1 ? 'unlimited' : planLimit,
-      usagePercentage,
-      monthlyUsage,
-      userPlan,
-      remainingTokens: planLimit === -1 ? 'unlimited' : Math.max(0, planLimit - totalTokensUsed),
-      monthlyReset: monthlyResetDate ? monthlyResetDate.toISOString() : null,
-      resetDue: isResetDue,
-      // Browser usage data
-      totalBrowserMinutesUsed,
-      browserPlanLimit: planData.monthly_browser_minutes === -1 ? 'unlimited' : planData.monthly_browser_minutes,
-      browserUsagePercentage,
-      remainingBrowserMinutes: planData.monthly_browser_minutes === -1 ? 'unlimited' : Math.max(0, planData.monthly_browser_minutes - totalBrowserMinutesUsed),
+      plan: userLimits.plan,
+      planNames: userLimits.planNames, // For one-time bundles: ['starter', 'pro']
+      purchaseType: userLimits.purchaseType,
+      purchaseCount: userLimits.purchaseCount,
+      resetType: userLimits.resetType,
+      resetDate: userLimits.resetDate,
+      hasActiveLegend: userLimits.hasActiveLegend,
+      
+      limits: userLimits.limits,
+      usage: userLimits.usage,
+      
+      remaining: {
+        tokens: userLimits.limits.tokens - userLimits.usage.tokens,
+        browserMinutes: userLimits.limits.browserMinutes - userLimits.usage.browserMinutes,
+        projects: userLimits.limits.projects - userLimits.usage.projects
+      },
+      
+      percentages: {
+        tokens: Math.round((userLimits.usage.tokens / userLimits.limits.tokens) * 100),
+        browserMinutes: Math.round((userLimits.usage.browserMinutes / userLimits.limits.browserMinutes) * 100),
+        projects: Math.round((userLimits.usage.projects / userLimits.limits.projects) * 100)
+      },
+      
+      exhausted: userLimits.exhausted || {
+        tokens: false,
+        browserMinutes: false,
+        projects: false
+      },
+      
+      // Legacy fields for backwards compatibility
+      totalTokensUsed: userLimits.usage.tokens,
+      planLimit: userLimits.limits.tokens === -1 ? 'unlimited' : userLimits.limits.tokens,
+      usagePercentage: Math.round((userLimits.usage.tokens / userLimits.limits.tokens) * 100),
+      monthlyUsage: userLimits.usage.tokens,
+      userPlan: userLimits.plan,
+      remainingTokens: userLimits.limits.tokens === -1 ? 'unlimited' : Math.max(0, userLimits.limits.tokens - userLimits.usage.tokens),
+      monthlyReset: userLimits.resetDate,
+      resetDue: userLimits.resetType === 'monthly' && userLimits.resetDate ? new Date() >= new Date(userLimits.resetDate) : false,
+      totalBrowserMinutesUsed: userLimits.usage.browserMinutes,
+      browserPlanLimit: userLimits.limits.browserMinutes === -1 ? 'unlimited' : userLimits.limits.browserMinutes,
+      browserUsagePercentage: Math.round((userLimits.usage.browserMinutes / userLimits.limits.browserMinutes) * 100),
+      remainingBrowserMinutes: userLimits.limits.browserMinutes === -1 ? 'unlimited' : Math.max(0, userLimits.limits.browserMinutes - userLimits.usage.browserMinutes),
     })
   } catch (error) {
     console.error("Error getting token usage:", error)
