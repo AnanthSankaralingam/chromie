@@ -6,7 +6,7 @@
 P0 <br>
 1. ~Share extension link: add share button to app-bar-builder. on share, create a custom link for that user's project. on click, it should route to a new page at /share where users, after signing up, can download the extension. we can teach about extensions and market chromie here as well.~
 2. ~Pricing update to tiered packages instead of subscriptions~
-3. Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit. consider authentication use cases.
+3. ~Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit.~
 4. Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.
 5. fix schema mandatory fields
 6. bug fix for token_usage and browser minutes measuring. dont use estimated tokens
@@ -15,7 +15,8 @@ P1 <br>
 1. Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.
 2. Auth in hyperbrowser
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-4. allow user input for env variables
+4. UX: auto-format manifest, make icons available in "see HTML", chromie as default icon for extensions, auto-submit prompt after sign up 
+5. allow user input for env variables
 
 P2 <br>
 1. test product end to end, along with billing
