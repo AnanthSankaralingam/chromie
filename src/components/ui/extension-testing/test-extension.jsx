@@ -62,21 +62,12 @@ export default function useTestExtension(currentProjectId) {
       }
     }
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && testSessionData?.sessionId && currentProjectId) {
-        console.log("👁️ Page hidden, cleaning up session")
-        cleanupSession(testSessionData.sessionId, currentProjectId)
-      }
-    }
-
-    // Add event listeners
+    // Only add beforeunload listener - remove visibilitychange to allow tab switching
     window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     // Cleanup function
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [testSessionData?.sessionId, currentProjectId])
 
@@ -133,12 +124,10 @@ export default function useTestExtension(currentProjectId) {
     cleanupAttempted.current = false // Reset for next session
   }
 
-  // Handle session expiry
+  // Handle session expiry - just close modal, don't auto-cleanup
   const handleSessionExpire = async () => {
-    console.log("⏰ Session expired, cleaning up and closing modal")
-    if (testSessionData?.sessionId && currentProjectId) {
-      await cleanupSession(testSessionData.sessionId, currentProjectId)
-    }
+    console.log("⏰ Session timer expired - closing modal but keeping session alive")
+    // Don't automatically cleanup session - let user manually close when ready
     setIsTestModalOpen(false)
     setTestSessionData(null)
     cleanupAttempted.current = false

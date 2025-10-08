@@ -85,7 +85,7 @@ export default function AppBar() {
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <Link href="/builder">
+                <Link href="/profile">
                   <Button className="bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
                 </Link>
               </div>

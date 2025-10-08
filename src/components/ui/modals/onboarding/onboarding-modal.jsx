@@ -4,6 +4,7 @@ import TestStepModal from "./test-step-modal"
 import EditStepModal from "./edit-step-modal"
 import DownloadStepModal from "./download-step-modal"
 import PublishStepModal from "./publish-step-modal"
+import UrlNavigateStepModal from "./url-navigate-step-modal"
 
 export default function OnboardingModal({ 
   isOpen, 
@@ -16,6 +17,14 @@ export default function OnboardingModal({
     case 'test':
       return (
         <TestStepModal
+          isOpen={isOpen}
+          onClose={onClose}
+          onNext={onNext}
+        />
+      )
+    case 'url-navigate':
+      return (
+        <UrlNavigateStepModal
           isOpen={isOpen}
           onClose={onClose}
           onNext={onNext}

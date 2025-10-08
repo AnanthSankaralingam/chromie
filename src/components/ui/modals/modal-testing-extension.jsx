@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 
-export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false }) {
+export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false, projectId }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [urlInput, setUrlInput] = useState("")
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [navigationError, setNavigationError] = useState(null)
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -30,19 +33,63 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
   console.log("TestModal liveUrl:", liveUrl, "sessionData keys:", sessionData ? Object.keys(sessionData) : null)
+  console.log("URL input should be visible:", sessionData && sessionData.sessionId)
 
-  // Handle session expiry
+  // Handle session expiry - just show warning, don't auto-close
   const handleSessionExpire = () => {
     setSessionExpired(true)
-    // Auto-close modal after a brief delay to show expiry message
-    setTimeout(() => {
-      handleClose()
-    }, 2000)
+    console.log("⏰ Session timer expired - showing warning but keeping session alive")
+    // Don't auto-close modal - let user manually close when ready
   }
 
   // Handle cleanup when modal is closed
   const handleClose = () => {
     onClose()
+  }
+
+  // Handle URL navigation
+  const handleNavigate = async () => {
+    if (!urlInput.trim() || !sessionData?.sessionId || !projectId) {
+      setNavigationError("Missing URL, session, or project ID")
+      return
+    }
+
+    setIsNavigating(true)
+    setNavigationError(null)
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/test-extension/navigate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+          url: urlInput.trim()
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setUrlInput("") // Clear input on success
+        console.log("Navigation successful:", result)
+      } else {
+        setNavigationError(result.error || "Navigation failed")
+      }
+    } catch (error) {
+      console.error("Navigation error:", error)
+      setNavigationError("Failed to navigate to URL")
+    } finally {
+      setIsNavigating(false)
+    }
+  }
+
+  // Handle Enter key in URL input
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !isNavigating) {
+      handleNavigate()
+    }
   }
 
   return (
@@ -95,14 +142,63 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
           </div>
         </div>
 
+        {/* URL Navigation Section */}
+        {sessionData && sessionData.sessionId && !sessionExpired && (
+          <div className="p-4 border-b border-slate-600 bg-slate-700/30">
+            <div className="flex items-center space-x-3">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Paste URL to navigate..."
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isNavigating}
+                />
+                {navigationError && (
+                  <p className="text-red-400 text-xs mt-1">{navigationError}</p>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-slate-400 cursor-help" />
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                    You cannot directly paste into the testing browser from your local clipboard, so paste URLs here to navigate.
+                  </div>
+                </div>
+                <Button
+                  onClick={handleNavigate}
+                  disabled={!urlInput.trim() || isNavigating}
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isNavigating ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Navigation className="h-4 w-4" />
+                  )}
+                  {isNavigating ? "Navigating..." : "Navigate"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 relative">
           {sessionExpired ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-500/10">
-              <div className="text-center">
-                <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">Session Expired</h3>
-                <p className="text-slate-300">This session has reached its 1-minute limit and will close automatically.</p>
+            <div className="absolute inset-0 flex items-center justify-center bg-yellow-500/10">
+              <div className="text-center max-w-md">
+                <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Session Time Limit Reached</h3>
+                <p className="text-slate-300 mb-4">This session has reached its 1-minute limit, but you can continue using it. Close the modal when you're done testing.</p>
+                <Button
+                  onClick={handleClose}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                >
+                  Close Session
+                </Button>
               </div>
             </div>
           ) : isLoading || (isOpen && sessionData && !liveUrl) ? (

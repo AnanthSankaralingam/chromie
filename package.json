@@ -62,6 +62,7 @@
     "next-themes": "^0.4.4",
     "openai": "latest",
     "playwright": "^1.40.0",
+    "playwright-core": "^1.55.0",
     "prismjs": "^1.30.0",
     "react": "^18",
     "react-dom": "^18",
