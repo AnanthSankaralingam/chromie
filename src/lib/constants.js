@@ -1,24 +1,28 @@
 // Plan limits for token usage and browser testing
 export const PLAN_LIMITS = {
   free: { 
-    monthly_tokens: 12000,
-    max_projects: 3,
-    monthly_browser_minutes: 5
+    monthly_tokens: 40000,
+    max_projects: 1,
+    monthly_browser_minutes: 15,
+    reset_type: 'monthly'
   },
   starter: { 
-    monthly_tokens: 100000,
-    max_projects: 25,
-    monthly_browser_minutes: 100
+    monthly_tokens: 150000,
+    max_projects: 2,
+    monthly_browser_minutes: 30,
+    reset_type: 'one_time'
   },
   pro: { 
     monthly_tokens: 1000000,
-    max_projects: 50,
-    monthly_browser_minutes: 250
+    max_projects: 10,
+    monthly_browser_minutes: 120,
+    reset_type: 'one_time'
   },
-  enterprise: { 
-    monthly_tokens: -1, // unlimited
-    max_projects: -1,
-    monthly_browser_minutes: -1 // unlimited
+  legend: { 
+    monthly_tokens: 5000000,
+    max_projects: 300,
+    monthly_browser_minutes: 240,
+    reset_type: 'monthly'
   }
 }
 
@@ -62,4 +66,14 @@ export const SHARE_RATE_LIMITS = {
   // Share expiration (in days)
   DEFAULT_SHARE_EXPIRY_DAYS: 30,
   MAX_SHARE_EXPIRY_DAYS: 365
+}
+
+// One-time purchase configuration
+export const ONE_TIME_PURCHASE_PLANS = ['starter', 'pro']
+export const SUBSCRIPTION_PLANS = ['free', 'legend']
+
+// Plan reset types
+export const PLAN_RESET_TYPES = {
+  MONTHLY: 'monthly',
+  ONE_TIME: 'one_time'
 } 

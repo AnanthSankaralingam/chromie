@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtension } from "@/lib/codegen/generate-extension"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
-import { PLAN_LIMITS, DEFAULT_PLAN } from "@/lib/constants"
+import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { llmService } from "@/lib/services/llm-service"
 import { randomUUID } from "crypto"
 
@@ -89,53 +89,18 @@ export async function POST(request) {
     }
 
 
-    // Check user's plan and token usage limits
-    const { data: billing, error: billingError } = await supabase
-      .from('billing')
-      .select('plan')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const userPlan = billing?.plan || DEFAULT_PLAN
-    const planLimit = PLAN_LIMITS[userPlan] || PLAN_LIMITS[DEFAULT_PLAN]
-
-    // Fetch all token usage rows for the user and aggregate with monthly reset logic
-    const { data: usageRows } = await supabase
-      .from('token_usage')
-      .select('id, total_tokens, monthly_reset, model')
-      .eq('user_id', user.id)
-
-    const now = new Date()
-    // Sum tokens across all rows that are not past their monthly reset
-    let effectiveTokensUsed = 0
-    let debugRows = []
-    if (Array.isArray(usageRows) && usageRows.length > 0) {
-      for (const row of usageRows) {
-        let monthlyResetIso = row?.monthly_reset
-        if (!monthlyResetIso) {
-          const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-          monthlyResetIso = firstDayOfMonth.toISOString()
-        }
-        const monthlyResetDate = new Date(monthlyResetIso)
-        const resetDatePlusOneMonth = new Date(monthlyResetDate)
-        resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-        const isResetDue = now >= resetDatePlusOneMonth
-        const counted = isResetDue ? 0 : (row?.total_tokens || 0)
-        effectiveTokensUsed += counted
-        debugRows.push({ id: row.id, model: row.model || null, monthly_reset: monthlyResetIso, isResetDue, total_tokens: row.total_tokens || 0, counted })
-      }
-    }
-    console.log(`[api/generate] token usage rows considered:`, debugRows)
-    console.log(`User plan: ${userPlan}, Limit: ${planLimit.monthly_tokens}, Used (effective aggregate): ${effectiveTokensUsed}`)
-
-    // Check if user has exceeded their limit (unless unlimited)
-    if (planLimit.monthly_tokens !== -1 && effectiveTokensUsed >= planLimit.monthly_tokens) {
-      return NextResponse.json({
-        error: "Token usage limit exceeded for your plan. Please upgrade to continue generating extensions."
-      }, { status: 403 })
+    // Estimate tokens for this request (rough estimate)
+    const estimatedTokens = prompt.length * 2 // Adjust multiplier as needed
+    
+    // Check token limit using new limit checker
+    const limitCheck = await checkLimit(user.id, 'tokens', estimatedTokens, supabase)
+    
+    if (!limitCheck.allowed) {
+      console.log(`[api/generate] ❌ Token limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
+      return NextResponse.json(
+        formatLimitError(limitCheck, 'tokens'),
+        { status: 403 }
+      )
     }
 
     // Get existing files if this is an add-to-existing request
