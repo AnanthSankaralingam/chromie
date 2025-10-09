@@ -17,12 +17,15 @@ P1 <br>
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
 4. UX: auto-format manifest, make icons available in "see HTML", chromie as default icon for extensions, auto-submit prompt after sign up 
 5. allow user input for env variables
+6. submit feedback button
+7. database scalability - duplication and backups
 
 P2 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. stop button in generation, rewrite earlier messages in chat
 4. Email on signup
+5. Upload your own extension
 
 
 
