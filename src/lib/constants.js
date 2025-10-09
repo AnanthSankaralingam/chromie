@@ -44,7 +44,7 @@ export const SUPPORTED_PROVIDERS = {
 
 // Default models for each provider
 export const DEFAULT_MODELS = {
-  gemini: 'gemini-2.5-flash',
+  gemini: 'gemini-2.5-flash-lite',
   openai: 'o3',
   anthropic: 'claude-3-5-sonnet-20241022'
 }

@@ -85,7 +85,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         session_id: sessionId
       })
       
-      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
       const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
       const nextResponseId = response?.id
       
@@ -249,7 +249,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       // Check for context limit error using the adapter's method
       const adapter = llmService.providerRegistry.getAdapter(provider)
       if (adapter && adapter.isContextLimitError && adapter.isContextLimitError(err)) {
-        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+        const estimatedTokensThisRequest = 0 // No estimation - use exact values from response
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }
         return
@@ -264,6 +264,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       if (provider === 'gemini') {
         // Forward thinking vs answer chunks to frontend
         let combinedText = ''
+        let exactTokenUsage = null
+        
         for await (const s of llmService.streamResponse({
           provider,
           model: modelOverride || DEFAULT_MODEL,
@@ -276,13 +278,32 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             yield { type: 'thinking_chunk', content: s.content }
           } else if (s?.type === 'answer_chunk' || s?.type === 'content') {
             combinedText += s.content
+          } else if (s?.type === 'token_usage') {
+            // Capture exact token usage from Gemini streaming response
+            exactTokenUsage = s.usage
+            console.log('[generateExtensionCodeStream] Captured exact token usage from Gemini stream:', exactTokenUsage)
           }
         }
+        
         // After stream completes, continue with normal parsing using combinedText
         const response = {
           output_text: combinedText,
-          usage: { total_tokens: Math.ceil((finalPrompt.length + combinedText.length) / 4), total: Math.ceil((finalPrompt.length + combinedText.length) / 4) }
+          usage: exactTokenUsage || { total_tokens: 0, total: 0 }
         }
+        
+        // Calculate exact token usage for this request
+        const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
+        const nextResponseId = response?.id || null
+        
+        console.log("[generateExtensionCodeStream] Gemini streaming tokens", { tokensUsedThisRequest, nextConversationTokenTotal, nextResponseId })
+        
+        // Send response_id data to frontend
+        yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
+        
+        // Process the response and yield completion
+        yield { type: "complete", content: response?.output_text || "" }
+        
         // fall through to existing parsing below using this response
         
         // Extract and stream the explanation
@@ -394,7 +415,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         session_id: sessionId
       })
       
-      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
       const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
       const nextResponseId = response?.id
       
@@ -557,7 +578,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       // Check for context limit error using the adapter's method
       const adapter = llmService.providerRegistry.getAdapter(provider)
       if (adapter && adapter.isContextLimitError && adapter.isContextLimitError(err)) {
-        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
+        const estimatedTokensThisRequest = 0 // No estimation - use exact values from response
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: nextConversationTokenTotal }
         return

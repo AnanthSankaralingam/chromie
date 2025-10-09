@@ -10,7 +10,7 @@ export class GeminiAdapter {
       apiKey: process.env.GOOGLE_AI_API_KEY
     })
     
-    // Keep OpenAI client for non-streaming requests
+    // Keep OpenAI client for non-streaming requests if we're using it for followups
     this.client = new OpenAI({
       apiKey: process.env.GOOGLE_AI_API_KEY,
       baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
@@ -18,7 +18,7 @@ export class GeminiAdapter {
   }
 
   /**
-   * Create a response using Gemini API via OpenAI SDK
+   * Create a response using Gemini API via native SDK for exact token tracking
    * @param {Object} params - Request parameters
    * @returns {Promise<Object>} Response object
    */
@@ -38,27 +38,68 @@ export class GeminiAdapter {
         has_response_format: Boolean(response_format)
       })
 
-      // Normalize input to messages format
-      const messages = this.normalizeInput(input, conversation_history)
+      // Convert conversation history to Gemini format
+      const contents = this.convertToGeminiFormat(input, conversation_history)
 
-      // Build request payload
-      const payload = {
-        model,
-        messages,
+      // Build generation config
+      const generationConfig = {
         temperature,
-        max_tokens: max_output_tokens,
-        stream: false
+        maxOutputTokens: max_output_tokens
       }
 
-      // Handle response format
-      if (response_format) {
-        payload.response_format = this.normalizeResponseFormat(response_format)
+      // Only add thinking config for models that support it
+      if (model.includes('gemini-2.5') || model.includes('gemini-2.0')) {
+        generationConfig.thinkingConfig = {
+          includeThoughts: true
+        }
+        console.log('[gemini-adapter] Added thinkingConfig for model:', model)
+      } else {
+        console.log('[gemini-adapter] No thinkingConfig for model:', model)
       }
 
-      const response = await this.client.chat.completions.create(payload)
+      // Use native SDK for exact token tracking
+      const response = await this.genai.models.generateContent({
+        model: model,
+        contents: contents,
+        config: generationConfig
+      })
 
-      // Normalize response to match expected format
-      return this.normalizeResponse(response)
+      // Extract exact token usage
+      let totalTokens = 0
+      let thoughtsTokens = 0
+      let outputTokens = 0
+      let promptTokens = 0
+
+      if (response?.usageMetadata) {
+        thoughtsTokens = response.usageMetadata.thoughtsTokenCount || 0
+        outputTokens = response.usageMetadata.candidatesTokenCount || 0
+        promptTokens = response.usageMetadata.promptTokenCount || 0
+        totalTokens = thoughtsTokens + outputTokens + promptTokens
+        console.log(`[gemini-adapter] Exact token usage - Prompt: ${promptTokens}, Thoughts: ${thoughtsTokens}, Output: ${outputTokens}, Total: ${totalTokens}`)
+      }
+
+      // Extract content from response
+      const content = response?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const thoughts = response?.candidates?.[0]?.content?.parts?.find(part => part.thought)?.text || ''
+
+      // Return normalized response with exact token usage
+      return {
+        id: response?.candidates?.[0]?.finishReason || 'unknown',
+        output_text: content,
+        usage: {
+          prompt_tokens: promptTokens,
+          completion_tokens: outputTokens,
+          thoughts_tokens: thoughtsTokens,
+          total_tokens: totalTokens,
+          total: totalTokens
+        },
+        choices: [{
+          message: {
+            content: content,
+            thoughts: thoughts
+          }
+        }]
+      }
     } catch (error) {
       console.error('[gemini-adapter] createResponse error:', error)
       throw error
@@ -154,9 +195,21 @@ export class GeminiAdapter {
       })
       console.log('[gemini-adapter] generateContentStream response received')
 
+      let totalTokens = 0
+      let thoughtsTokens = 0
+      let outputTokens = 0
+
       // Process streaming response - simplified based on working version
       for await (const chunk of response) {
         try {
+          // Extract token usage from chunk if available
+          if (chunk?.usageMetadata) {
+            thoughtsTokens = chunk.usageMetadata.thoughtsTokenCount || 0
+            outputTokens = chunk.usageMetadata.candidatesTokenCount || 0
+            totalTokens = thoughtsTokens + outputTokens
+            console.log(`[gemini-adapter] Token usage - Thoughts: ${thoughtsTokens}, Output: ${outputTokens}, Total: ${totalTokens}`)
+          }
+
           const parts = chunk?.candidates?.[0]?.content?.parts || []
           for (const part of parts) {
             const text = part?.text
@@ -172,6 +225,20 @@ export class GeminiAdapter {
         } catch (inner) {
           // Non-fatal: skip malformed chunk
           console.warn('[gemini-adapter] skipping malformed chunk:', inner.message)
+        }
+      }
+
+      // Yield final token usage information
+      if (totalTokens > 0) {
+        yield { 
+          type: 'token_usage', 
+          usage: {
+            prompt_tokens: 0, // Gemini doesn't provide prompt token count in streaming
+            completion_tokens: outputTokens,
+            thoughts_tokens: thoughtsTokens,
+            total_tokens: totalTokens,
+            total: totalTokens
+          }
         }
       }
     } catch (error) {
@@ -319,6 +386,7 @@ export class GeminiAdapter {
     const message = (error?.message || '').toLowerCase()
     const code = (error?.code || error?.status)?.toString().toLowerCase()
     
+    //TODO use gemini token counter instead
     const keywords = [
       'context',
       'token',
