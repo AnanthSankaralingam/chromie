@@ -54,9 +54,7 @@ export async function POST(request) {
 
     // Context window precheck for follow-ups
     if (previousResponseId && contextWindowMaxTokens) {
-      const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
-      const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
-      console.log('[api/generate] context-window precheck', { estimatedTokensThisRequest, nextConversationTokenTotal, contextWindowMaxTokens })
+      const nextConversationTokenTotal = (conversationTokenTotal || 0) 
       if (nextConversationTokenTotal > contextWindowMaxTokens) {
         return NextResponse.json({
           errorType: 'context_window',
@@ -89,8 +87,8 @@ export async function POST(request) {
     }
 
 
-    // Estimate tokens for this request (rough estimate)
-    const estimatedTokens = prompt.length * 2 // Adjust multiplier as needed
+    // Use a minimal estimate for limit checking - actual tokens will be tracked exactly
+    const estimatedTokens = Math.ceil(prompt.length / 2) // Conservative estimate for limit checking only
     
     // Check token limit using new limit checker
     const limitCheck = await checkLimit(user.id, 'tokens', estimatedTokens, supabase)
@@ -149,7 +147,7 @@ export async function POST(request) {
     })
     } catch (err) {
       if (isContextLimitError(err, defaultProvider)) {
-        const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
+        const estimatedTokensThisRequest = 0 // No estimation - use exact values from response
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
         console.log('[api/generate] context-window error caught', { message: err?.message, nextConversationTokenTotal })
         return NextResponse.json({

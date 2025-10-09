@@ -83,7 +83,7 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
         max_output_tokens: 15000,
         session_id: options.sessionId || 'default-session'
       })
-      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || Math.ceil(finalPrompt.length / 4)
+      const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 4096
       const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
       console.log("[generateExtensionCode] tokens", { tokensUsedThisRequest, nextConversationTokenTotal, nextResponseId: response?.id })
       // Return a shape compatible with existing callers
@@ -107,8 +107,7 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
       // Surface context-window error in a normalized shape
       const adapter = llmService.providerRegistry.getAdapter(provider)
       if (adapter && adapter.isContextLimitError && adapter.isContextLimitError(err)) {
-        const estimatedTokensThisRequest = Math.ceil(finalPrompt.length / 4)
-        const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+        const nextConversationTokenTotal = (conversationTokenTotal || 0) 
         return {
           errorType: 'context_window',
           message: 'Context limit reached. Please start a new conversation.',

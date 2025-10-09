@@ -73,8 +73,8 @@ export async function POST(request) {
     }
 
 
-    // Estimate tokens for this request (rough estimate)
-    const estimatedTokens = prompt.length * 2 // Adjust multiplier as needed
+    // Use a minimal estimate for limit checking - actual tokens will be tracked exactly
+    const estimatedTokens = Math.ceil(prompt.length / 2) // Conservative estimate for limit checking only
     
     // Check token limit using new limit checker
     const limitCheck = await checkLimit(user.id, 'tokens', estimatedTokens, supabase)
@@ -151,8 +151,7 @@ export async function POST(request) {
         } catch (error) {
           console.error("Error in streaming generation:", error)
           if (isContextLimitError(error, defaultProvider)) {
-            const estimatedTokensThisRequest = Math.ceil((prompt || '').length / 4)
-            const nextConversationTokenTotal = (conversationTokenTotal || 0) + estimatedTokensThisRequest
+            const nextConversationTokenTotal = (conversationTokenTotal || 0) 
             const cw = JSON.stringify({ type: 'context_window', content: 'Context limit reached. Please start a new conversation.', total: nextConversationTokenTotal })
             controller.enqueue(encoder.encode(`data: ${cw}\n\n`))
             controller.close()
