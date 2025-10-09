@@ -9,7 +9,7 @@ P0 <br>
 3. ~Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit.~
 4. Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.
 5. fix schema mandatory fields
-6. bug fix for token_usage and browser minutes measuring. dont use estimated tokens
+6. bug fix for token_usage and browser minutes measuring. dont use estimated tokens. get thinking tokens too. 
 
 P1 <br>
 1. Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.
