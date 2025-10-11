@@ -116,7 +116,20 @@ export async function generateChromeExtension({
       throw new Error(`Request type ${requestType} not yet implemented`)
     }
 
-    // No longer need URL prompt - we'll use domain names to lookup from Supabase directly
+    // Check if URL is required but not provided - halt code generation if needed
+    if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0 && !userProvidedUrl && !skipScraping) {
+      console.log('🚫 URL required for scraping but not provided - halting code generation')
+      console.log('📋 Detected sites:', requirementsAnalysis.webPageData)
+      return {
+        success: false,
+        requiresUrl: true,
+        message: "This extension targets specific websites and would benefit from analyzing their structure. Please provide a URL or skip scraping.",
+        detectedSites: requirementsAnalysis.webPageData,
+        detectedUrls: requirementsAnalysis.webPageData.map(site => `https://${site}`),
+        featureRequest: featureRequest,
+        requestType: requestType
+      }
+    }
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = ""
