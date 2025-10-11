@@ -47,15 +47,30 @@ Examples:
 
 <scrapeWebPage>
 Identify if scrapeWebPage would be needed when:
-- Request targets specific websites (YouTube, GitHub, Amazon, etc.)
-- Need to understand website structure for content injection
-- Planning to modify or interact with specific page elements
-- Need to gather data from particular domains
-- User mentions working with specific site functionality
+- Request mentions ANY specific website name (YouTube, Twitter, Reddit, GitHub, Amazon, LinkedIn, Instagram, Facebook, TikTok, Netflix, etc.)
+- Request mentions "on [website]" or "for [website]"
+- Extension is designed to modify, enhance, or interact with a specific website
+- Extension needs to inject content, read data, or modify elements on a specific site
+- Extension is described as "[website] extension" or "[website] [feature]"
+- User wants to track, scrape, or analyze content from specific sites
+- Extension monitors or interacts with specific page elements or functionality
 
-Examples:
-- "YouTube extension" → would need YouTube URLs
-- "Amazon price tracker" → would need Amazon product pages
+IMPORTANT: If the request mentions a specific website by name, you MUST include it in webPageData.
+
+Examples that REQUIRE webPageData:
+- "YouTube extension" → ["youtube.com"]
+- "Amazon price tracker" → ["amazon.com"]
+- "Reddit comment highlighter" → ["reddit.com"]
+- "add feature to Twitter" → ["twitter.com"]
+- "improve GitHub interface" → ["github.com"]
+- "Instagram downloader" → ["instagram.com"]
+- "LinkedIn automation" → ["linkedin.com"]
+- "Netflix enhancer" → ["netflix.com"]
+
+Examples that DON'T need webPageData:
+- "dark mode for all websites" → [] (generic, works everywhere)
+- "bookmark manager" → [] (browser feature, not site-specific)
+- "password generator" → [] (standalone tool)
 </scrapeWebPage>
 </tool_analysis_guidelines>
 
@@ -109,9 +124,11 @@ You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all
 
 <tool_analysis>
 - If request mentions Chrome functionality (bookmarks, tabs, notifications, etc.) → Include relevant APIs in chromeAPIs array
-- If request targets specific websites → Set webPageData to ["domain.com"]
-- If request needs both → Include APIs and set webPageData accordingly
-- If request is generic web enhancement → Use empty arrays: chromeAPIs: [], webPageData: []
+- If request mentions ANY specific website name or is designed for a specific site → Set webPageData to ["domain.com"]
+- If request needs both Chrome APIs and site scraping → Include both arrays
+- If request is truly generic (works on all websites) → Use empty arrays: chromeAPIs: [], webPageData: []
+
+WARNING: Be conservative with empty webPageData. If there's ANY doubt about whether a specific website is targeted, include it in webPageData.
 </tool_analysis>
 </decision_guidelines>
 
