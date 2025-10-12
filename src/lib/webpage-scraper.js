@@ -70,9 +70,12 @@ export async function scrapeWebPage(url, options = {}) {
     let data = null
     let error = null
     let domainNameUsed = null;
+    let genericDomainNameAttempted = null; 
+    let specificDomainNameAttempted = null; // Store the specific domain name for scraper_misses
 
     // 1. Try with the more specific domain name (e.g., youtube.com/watch)
     const specificDomainName = extractDomainName(url, true)
+    specificDomainNameAttempted = specificDomainName; // Store the specific domain name
     console.log(`Attempting lookup with specific domain: ${specificDomainName}`)
     if (specificDomainName) {
       ({ data, error } = await supabase
@@ -86,12 +89,51 @@ export async function scrapeWebPage(url, options = {}) {
         console.log(`✅ Found scraper data for specific domain: ${specificDomainName}`)
       } else {
         console.warn(`⚠️ No specific scraper data found for: ${specificDomainName}. Error: ${error ? error.message : 'No data.'}`)
+        
+        // MODIFICATION: Track scraper misses for specific domains
+        if (specificDomainNameAttempted) {
+          console.log(`Attempting to record specific scraper miss for domain: ${specificDomainNameAttempted}`);
+          const { error: insertError } = await supabase
+            .from('scraper_misses')
+            .insert({ domain_name: specificDomainNameAttempted, count: 1 });
+
+          if (insertError) {
+            if (insertError.code === '23505') { // Unique violation
+              console.log(`Specific domain already exists. Incrementing count for ${specificDomainNameAttempted}.`);
+              const { data: existingMiss, error: selectError } = await supabase
+                .from('scraper_misses')
+                .select('count')
+                .eq('domain_name', specificDomainNameAttempted)
+                .single();
+
+              if (selectError) {
+                console.error('Error fetching existing specific scraper miss to update count:', selectError);
+              } else if (existingMiss) {
+                const { error: updateError } = await supabase
+                  .from('scraper_misses')
+                  .update({ count: existingMiss.count + 1 })
+                  .eq('domain_name', specificDomainNameAttempted);
+                
+                if (updateError) {
+                  console.error('Error incrementing specific scraper miss count:', updateError);
+                } else {
+                  console.log(`✅ Incremented specific scraper miss count for: ${specificDomainNameAttempted}`);
+                }
+              }
+            } else {
+              console.error(`❌ Error inserting into scraper_misses (specific domain):`, insertError);
+            }
+          } else {
+            console.log(`✅ Recorded new specific scraper miss for: ${specificDomainNameAttempted}`);
+          }
+        }
       }
     }
 
     // 2. If specific lookup failed, fall back to generic domain name (e.g., youtube.com)
     if (!data || !data.scraper_output) {
       const genericDomainName = extractDomainName(url, false)
+      genericDomainNameAttempted = genericDomainName; // Store the generic domain name
       console.log(`Falling back to generic domain lookup: ${genericDomainName}`)
       if (genericDomainName) {
         ({ data, error } = await supabase
@@ -105,6 +147,44 @@ export async function scrapeWebPage(url, options = {}) {
             console.log(`✅ Found scraper data for generic domain: ${genericDomainName}`)
         } else {
           console.warn(`⚠️ No scraper data found for generic domain: ${genericDomainName}. Error: ${error ? error.message : 'No data.'}`)
+
+          // MODIFICATION: Keep the existing logic for generic domain misses
+          if (genericDomainNameAttempted) {
+            console.log(`Attempting to record generic scraper miss for domain: ${genericDomainNameAttempted}`);
+            const { error: insertError } = await supabase
+              .from('scraper_misses')
+              .insert({ domain_name: genericDomainNameAttempted, count: 1 });
+
+            if (insertError) {
+              if (insertError.code === '23505') { // Unique violation
+                console.log(`Generic domain already exists. Incrementing count for ${genericDomainNameAttempted}.`);
+                const { data: existingMiss, error: selectError } = await supabase
+                  .from('scraper_misses')
+                  .select('count')
+                  .eq('domain_name', genericDomainNameAttempted)
+                  .single();
+
+                if (selectError) {
+                  console.error('Error fetching existing generic scraper miss to update count:', selectError);
+                } else if (existingMiss) {
+                  const { error: updateError } = await supabase
+                    .from('scraper_misses')
+                    .update({ count: existingMiss.count + 1 })
+                    .eq('domain_name', genericDomainNameAttempted);
+                  
+                  if (updateError) {
+                    console.error('Error incrementing generic scraper miss count:', updateError);
+                  } else {
+                    console.log(`✅ Incremented generic scraper miss count for: ${genericDomainNameAttempted}`);
+                  }
+                }
+              } else {
+                console.error(`❌ Error inserting into scraper_misses (generic domain):`, insertError);
+              }
+            } else {
+              console.log(`✅ Recorded new generic scraper miss for: ${genericDomainNameAttempted}`);
+            }
+          }
         }
       }
     }
@@ -188,7 +268,7 @@ URL: ${scrapedData.url}
 Title: ${scrapedData.title}
 Timestamp: ${scrapedData.timestamp}${errorInfo}`
 
-    // **MODIFIED LOGIC: Generate report from the new `majorElementsData` format**
+    // **MODIFIED LOGIC: Generate report from the new `major_elements` format**
     if (scrapedData.majorElementsData && Object.keys(scrapedData.majorElementsData).length > 0) {
       detailedAnalysis += `\n\n## Major Element Analysis`
       detailedAnalysis += `\nThis analysis identifies the most important structural and interactive elements on the page, which are ideal targets for a Chrome extension.`
