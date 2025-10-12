@@ -70,6 +70,7 @@ export async function scrapeWebPage(url, options = {}) {
     let data = null
     let error = null
     let domainNameUsed = null;
+    let genericDomainNameAttempted = null; // Store the generic domain name for scraper_misses
 
     // 1. Try with the more specific domain name (e.g., youtube.com/watch)
     const specificDomainName = extractDomainName(url, true)
@@ -92,6 +93,7 @@ export async function scrapeWebPage(url, options = {}) {
     // 2. If specific lookup failed, fall back to generic domain name (e.g., youtube.com)
     if (!data || !data.scraper_output) {
       const genericDomainName = extractDomainName(url, false)
+      genericDomainNameAttempted = genericDomainName; // Store the generic domain name
       console.log(`Falling back to generic domain lookup: ${genericDomainName}`)
       if (genericDomainName) {
         ({ data, error } = await supabase
@@ -115,6 +117,51 @@ export async function scrapeWebPage(url, options = {}) {
     }
     
     if (!data || !data.scraper_output) {
+      // If no data found after all attempts, insert a new record or update the existing one.
+      if (genericDomainNameAttempted) {
+        console.log(`Attempting to record scraper miss for domain: ${genericDomainNameAttempted}`);
+        
+        // Optimistically try to insert. This is the most common case for a new miss.
+        const { error: insertError } = await supabase
+          .from('scraper_misses')
+          .insert({ domain_name: genericDomainNameAttempted, count: 1 });
+
+        // If the insert failed, it might be because the domain already exists.
+        if (insertError) {
+          // The PostgreSQL error code '23505' indicates a unique_violation.
+          if (insertError.code === '23505') {
+            console.log(`Domain already exists. Incrementing count for ${genericDomainNameAttempted}.`);
+            
+            // Now we fetch the current count and update it.
+            const { data: existingMiss, error: selectError } = await supabase
+              .from('scraper_misses')
+              .select('count')
+              .eq('domain_name', genericDomainNameAttempted)
+              .single(); // Use .single() as we are sure it exists.
+
+            if (selectError) {
+              console.error('Error fetching existing scraper miss to update count:', selectError);
+            } else if (existingMiss) {
+              const { error: updateError } = await supabase
+                .from('scraper_misses')
+                .update({ count: existingMiss.count + 1 })
+                .eq('domain_name', genericDomainNameAttempted);
+              
+              if (updateError) {
+                console.error('Error incrementing scraper miss count:', updateError);
+              } else {
+                console.log(`✅ Incremented scraper miss count for: ${genericDomainNameAttempted}`);
+              }
+            }
+          } else {
+            // Log any other unexpected insert errors.
+            console.error(`❌ Error inserting into scraper_misses:`, insertError);
+          }
+        } else {
+          // The insert was successful.
+          console.log(`✅ Recorded new scraper miss for: ${genericDomainNameAttempted}`);
+        }
+      }
       throw new Error(`No scraper data found for URL: ${url} after trying both specific and generic domains.`)
     }
     
@@ -188,7 +235,7 @@ URL: ${scrapedData.url}
 Title: ${scrapedData.title}
 Timestamp: ${scrapedData.timestamp}${errorInfo}`
 
-    // **MODIFIED LOGIC: Generate report from the new `majorElementsData` format**
+    // **MODIFIED LOGIC: Generate report from the new `major_elements` format**
     if (scrapedData.majorElementsData && Object.keys(scrapedData.majorElementsData).length > 0) {
       detailedAnalysis += `\n\n## Major Element Analysis`
       detailedAnalysis += `\nThis analysis identifies the most important structural and interactive elements on the page, which are ideal targets for a Chrome extension.`
@@ -217,3 +264,4 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
   console.log("✅ Webpage analysis completed successfully")
   return webpageData.join('\n\n')
 }
+
