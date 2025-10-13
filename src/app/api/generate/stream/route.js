@@ -138,14 +138,20 @@ export async function POST(request) {
             
             // Check if URL is required
             if (chunk.type === "requires_url") {
+              console.log('[api/generate/stream] 📋 Detected requires_url chunk - will halt after this')
               requiresUrl = true
             }
           }
 
+          console.log('[api/generate/stream] Stream completed. requiresUrl:', requiresUrl)
+          
           // Only send completion signal if URL is not required
           if (!requiresUrl) {
+            console.log('[api/generate/stream] Sending done signal')
             const completionData = JSON.stringify({ type: "done", content: "Generation complete" })
             controller.enqueue(encoder.encode(`data: ${completionData}\n\n`))
+          } else {
+            console.log('[api/generate/stream] Skipping done signal - URL required')
           }
           controller.close()
         } catch (error) {

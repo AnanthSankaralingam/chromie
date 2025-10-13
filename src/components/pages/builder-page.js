@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useOnboardingModal } from "@/hooks/use-onboarding-modal"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import AIChat from "@/components/ui/ai-chat"
 import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -39,6 +40,7 @@ export default function BuilderPage() {
   const [isPageVisible, setIsPageVisible] = useState(true)
 
   // Custom hooks
+  const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
   const projectSetup = useProjectSetup(user, isLoading)
   const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
@@ -298,7 +300,7 @@ export default function BuilderPage() {
 
         {/* Mobile Single Panel View */}
         <div className="lg:hidden h-[calc(100vh-73px-49px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
-          {activeTab === 'chat' && (
+          {activeTab === 'chat' && isMobile && (
             <div className="h-full flex flex-col">
               <AIChat
                 projectId={projectSetup.currentProjectId}
@@ -365,36 +367,38 @@ export default function BuilderPage() {
         <div className="hidden lg:flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
           {/* Left Sidebar - AI Assistant */}
           <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
-            <AIChat
-              projectId={projectSetup.currentProjectId}
-              projectName={projectSetup.currentProjectName}
-              autoGeneratePrompt={autoGeneratePrompt}
-              onAutoGenerateComplete={handleAutoGenerateComplete}
-              onCodeGenerated={async (response) => {
-                await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
-                setIsGenerating(false)
-                // Refresh project details (name/description) after generation updates
-                await projectSetup.refreshCurrentProjectDetails?.()
-                
-                // Play notification sound if user is not on the page
-                playNotificationSound()
-                
-                // Auto-select manifest.json file after code generation
-                setTimeout(() => {
-                  const manifestFile = fileManagement.findManifestFile()
-                  if (manifestFile) {
-                    setSelectedFile(manifestFile)
-                  }
-                }, 500) // Small delay to ensure file structure is updated
-              }}
-              onGenerationStart={() => {
-                setIsGenerating(true)
-              }}
-              onGenerationEnd={() => {
-                setIsGenerating(false)
-              }}
-              isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
-            />
+            {!isMobile && (
+              <AIChat
+                projectId={projectSetup.currentProjectId}
+                projectName={projectSetup.currentProjectName}
+                autoGeneratePrompt={autoGeneratePrompt}
+                onAutoGenerateComplete={handleAutoGenerateComplete}
+                onCodeGenerated={async (response) => {
+                  await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
+                  setIsGenerating(false)
+                  // Refresh project details (name/description) after generation updates
+                  await projectSetup.refreshCurrentProjectDetails?.()
+                  
+                  // Play notification sound if user is not on the page
+                  playNotificationSound()
+                  
+                  // Auto-select manifest.json file after code generation
+                  setTimeout(() => {
+                    const manifestFile = fileManagement.findManifestFile()
+                    if (manifestFile) {
+                      setSelectedFile(manifestFile)
+                    }
+                  }, 500) // Small delay to ensure file structure is updated
+                }}
+                onGenerationStart={() => {
+                  setIsGenerating(true)
+                }}
+                onGenerationEnd={() => {
+                  setIsGenerating(false)
+                }}
+                isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+              />
+            )}
           </div>
 
           {/* Main Content Area with Resizable Panels */}
