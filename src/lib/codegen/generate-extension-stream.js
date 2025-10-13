@@ -209,6 +209,11 @@ export async function* generateChromeExtensionStream({
       !userProvidedUrl &&
       !skipScraping
     ) {
+      console.log('🚫 URL required for scraping but not provided - halting code generation (streaming)')
+      console.log('📋 Detected sites:', requirementsAnalysis.webPageData)
+      console.log('📋 userProvidedUrl:', userProvidedUrl)
+      console.log('📋 skipScraping:', skipScraping)
+      
       yield {
         type: "requires_url",
         content: "This extension would benefit from analyzing specific website structure. Please provide a URL or choose to skip.",
@@ -220,8 +225,12 @@ export async function* generateChromeExtensionStream({
           tokenUsage: planningTokenUsage,
         },
       };
+      
+      console.log('🛑 Returning from generator - should stop code generation')
       return; // Stop the generator until the user provides a URL.
     }
+    
+    console.log('✅ No URL required or URL already provided - continuing with code generation')
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = "";

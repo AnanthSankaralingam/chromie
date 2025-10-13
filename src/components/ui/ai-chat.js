@@ -35,6 +35,17 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     }
   }, [useStreaming])
   
+  // Only use the non-streaming chat hook when NOT in streaming mode
+  const chatHookResult = useChat({
+    projectId,
+    autoGeneratePrompt: useStreaming ? null : autoGeneratePrompt, // Only trigger auto-gen in non-streaming mode
+    onAutoGenerateComplete,
+    onCodeGenerated,
+    onGenerationStart,
+    onGenerationEnd,
+    isProjectReady
+  })
+  
   const {
     messages,
     setMessages,
@@ -49,15 +60,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     handleUrlSubmit,
     handleUrlCancel,
     scrollToBottom
-  } = useChat({
-    projectId,
-    autoGeneratePrompt,
-    onAutoGenerateComplete,
-    onCodeGenerated,
-    onGenerationStart,
-    onGenerationEnd,
-    isProjectReady
-  })
+  } = chatHookResult
 
   useEffect(() => {
     // Reset on navigation/refresh: local-only state

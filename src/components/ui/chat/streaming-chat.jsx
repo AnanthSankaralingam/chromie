@@ -136,8 +136,12 @@ export default function StreamingChat({
   }, [autoGeneratePrompt, isProjectReady, hasGeneratedCode, isGenerating])
 
   const startGeneration = async (prompt, isAutoGeneration = false) => {
-    if (isGenerating) return
+    if (isGenerating) {
+      console.log('⚠️ [StreamingChat] startGeneration called but already generating - ignoring')
+      return
+    }
     
+    console.log('🚀 [StreamingChat] Starting generation:', { prompt: prompt?.substring(0, 50), isAutoGeneration })
     setIsGenerating(true)
     
     // Reset current assistant message tracking
@@ -328,6 +332,7 @@ export default function StreamingChat({
 
                 case "requires_url":
                   // Handle URL requirement
+                  console.log('📋 Received requires_url signal:', data)
                   addNewAssistantMessage("I need to analyze a specific website to build this extension properly. Let me get that information from you...")
                   
                   // Store the current request info for URL continuation
@@ -337,19 +342,20 @@ export default function StreamingChat({
                     projectId: projectId
                   }
                   
-                  // Trigger URL prompt modal
+                  // Trigger URL prompt modal with detected sites from the response
                   setUrlPromptData({
                     data: {
                       requiresUrl: true,
-                      message: "This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed.",
-                      detectedSites: [],
-                      detectedUrls: [],
+                      message: data.content || "This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed.",
+                      detectedSites: data.detectedSites || [],
+                      detectedUrls: data.detectedUrls || [],
                       featureRequest: prompt,
                       requestType: requestType
                     },
                     originalPrompt: prompt
                   })
                   setShowUrlPrompt(true)
+                  console.log('✅ URL prompt modal should now be visible')
                   break
 
                 case "error":

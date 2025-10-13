@@ -102,6 +102,14 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
       model: "gpt-oss-20b"
     }
     
+    // Apply fallback website detection to catch any missed websites
+    const originalWebPageData = requirementsAnalysis.webPageData || []
+    requirementsAnalysis.webPageData = detectWebsitesInPrompt(featureRequest, originalWebPageData)
+    
+    if (requirementsAnalysis.webPageData.length > originalWebPageData.length) {
+      console.log(`✅ Fallback detection added ${requirementsAnalysis.webPageData.length - originalWebPageData.length} website(s)`)
+    }
+    
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
@@ -170,7 +178,7 @@ export async function* analyzeExtensionRequirementsStream({ featureRequest }) {
       throw new Error(`Fireworks API error: ${planningResponse.status} ${planningResponse.statusText}`);
     }
 
-    yield* parseStreamingPlanningResponse(planningResponse)
+    yield* parseStreamingPlanningResponse(planningResponse, featureRequest)
 
   } catch (error) {
     console.error("Error in streaming requirements analysis:", error)
@@ -182,9 +190,10 @@ export async function* analyzeExtensionRequirementsStream({ featureRequest }) {
 /**
  * Helper function to parse streaming planning response
  * @param {Response} planningResponse - Streaming response from Fireworks API
+ * @param {string} featureRequest - Original user feature request
  * @returns {AsyncGenerator} Stream of planning analysis and final requirements
  */
-async function* parseStreamingPlanningResponse(planningResponse) {
+async function* parseStreamingPlanningResponse(planningResponse, featureRequest) {
   console.log("🧠 Starting streaming planning analysis...")
   
   let planningContent = ""
@@ -300,6 +309,14 @@ async function* parseStreamingPlanningResponse(planningResponse) {
       yield { type: "thinking_complete", content: "Planning analysis complete" }
     }
     
+    // Apply fallback website detection to catch any missed websites
+    const originalWebPageData = requirementsAnalysis.webPageData || []
+    requirementsAnalysis.webPageData = detectWebsitesInPrompt(featureRequest, originalWebPageData)
+    
+    if (requirementsAnalysis.webPageData.length > originalWebPageData.length) {
+      console.log(`✅ Fallback detection added ${requirementsAnalysis.webPageData.length - originalWebPageData.length} website(s)`)
+    }
+    
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
@@ -358,4 +375,72 @@ function extractJsonFieldsManually(content) {
   if (content.includes('"bookmarks"')) analysis.chromeAPIs.push('bookmarks')
   
   return analysis
+}
+
+/**
+ * Fallback website detection - scans user prompt for common website names
+ * This runs AFTER the AI planning to catch any missed detections
+ * @param {string} userPrompt - Original user request
+ * @param {Array} existingWebPageData - Websites already detected by AI
+ * @returns {Array} Updated webPageData with any missed websites
+ */
+function detectWebsitesInPrompt(userPrompt, existingWebPageData = []) {
+  const prompt = userPrompt.toLowerCase()
+  
+  // Common website mappings (name -> domain)
+  const websiteMap = {
+    'youtube': 'youtube.com',
+    'twitter': 'twitter.com',
+    'x.com': 'x.com',
+    'reddit': 'reddit.com',
+    'github': 'github.com',
+    'amazon': 'amazon.com',
+    'linkedin': 'linkedin.com',
+    'instagram': 'instagram.com',
+    'facebook': 'facebook.com',
+    'tiktok': 'tiktok.com',
+    'netflix': 'netflix.com',
+    'spotify': 'spotify.com',
+    'pinterest': 'pinterest.com',
+    'ebay': 'ebay.com',
+    'wikipedia': 'wikipedia.org',
+    'google': 'google.com',
+    'gmail': 'mail.google.com',
+    'stackoverflow': 'stackoverflow.com',
+    'medium': 'medium.com',
+    'twitch': 'twitch.tv',
+    'discord': 'discord.com',
+    'slack': 'slack.com',
+    'notion': 'notion.so',
+    'figma': 'figma.com',
+    'canva': 'canva.com',
+    'dropbox': 'dropbox.com',
+    'trello': 'trello.com',
+    'asana': 'asana.com',
+    'zoom': 'zoom.us'
+  }
+  
+  const detectedWebsites = new Set(existingWebPageData)
+  
+  // Check for each website name in the prompt
+  for (const [name, domain] of Object.entries(websiteMap)) {
+    // Match word boundaries to avoid false positives
+    const regex = new RegExp(`\\b${name}\\b`, 'i')
+    if (regex.test(prompt)) {
+      detectedWebsites.add(domain)
+      console.log(`🔍 [Fallback Detection] Found "${name}" in prompt → adding ${domain}`)
+    }
+  }
+  
+  // Also check for direct domain mentions (e.g., "example.com")
+  const domainRegex = /\b([a-z0-9-]+\.[a-z]{2,})\b/gi
+  const domainMatches = prompt.match(domainRegex)
+  if (domainMatches) {
+    domainMatches.forEach(domain => {
+      detectedWebsites.add(domain.toLowerCase())
+      console.log(`🔍 [Fallback Detection] Found domain in prompt → adding ${domain}`)
+    })
+  }
+  
+  return Array.from(detectedWebsites)
 }
