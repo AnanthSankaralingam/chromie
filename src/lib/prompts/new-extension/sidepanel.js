@@ -15,6 +15,11 @@ Frontend Type: side_panel
 {chrome_api_documentation}
 </chrome_api_data>
 
+<workspace_api_data>
+<!-- This section will be populated with Google Workspace API documentation as needed -->
+{workspace_api_documentation}
+</workspace_api_data>
+
 <webpage_data>
 <!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
@@ -132,6 +137,12 @@ File Format Rules:
 - Create a comprehensive side panel interface
 - Implement proper messaging between panel and content scripts
 - Use Chrome APIs from the API data section if provided
+- Utilize Google Workspace APIs from the workspace API data section if provided (requires OAuth setup)
+- For Google Workspace APIs: ALWAYS include detailed OAuth setup instructions in explanation
+- For Google Workspace APIs: Show "Setup Required" state prominently in side panel when OAuth not configured
+- For Google Workspace APIs: Include authentication UI with sign-in button (text only, NO Google logo image) and status display
+- For Google Workspace APIs: Implement getGoogleToken() helper function with proper error handling
+- For Google Workspace APIs: Display setup instructions link or expandable section in panel
 - Target specific websites using webpage data if provided
 - Implement proper error handling, comments, and logging
 </implementation_guidelines>

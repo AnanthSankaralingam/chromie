@@ -51,7 +51,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-flash-lite"
+  const modelUsed = modelOverride || "gemini-2.5-pro"
   
   // Determine provider from model name
   const getProviderFromModel = (model) => {

@@ -15,6 +15,11 @@ Frontend Type: {frontend_type}
 {chrome_api_documentation}
 </chrome_api_data>
 
+<workspace_api_data>
+<!-- This section will be populated with Google Workspace API documentation as needed -->
+{workspace_api_documentation}
+</workspace_api_data>
+
 <webpage_data>
 <!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
@@ -71,7 +76,7 @@ Never use relative paths directly in HTML img tags.
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "Brief markdown explanation of how the extension works and testing instructions",
+  "explanation": "Brief markdown explanation of how the extension works and testing instructions. IF USING GOOGLE WORKSPACE APIs, MUST include complete OAuth setup instructions with step-by-step guide for getting Client ID from Google Cloud Console.",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "content.js": "content script code as raw text (if needed)",
@@ -87,13 +92,84 @@ File Format Rules:
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 - Only include files relevant to the chosen frontend type
+
+CRITICAL for Google Workspace APIs:
+- The explanation MUST emphasize "Ready to Use Immediately" with Chromie's shared OAuth
+- Make it VERY clear NO setup is required for personal use - just load and sign in
+- Explain that publishing is optional and only needed if sharing publicly
+- Include publishing instructions as optional "advanced" section
+- Show that extension works out-of-the-box with "Sign in with Google"
+- Be encouraging and emphasize simplicity
 </output_requirements>
+
+<google_workspace_authentication>
+CRITICAL: When using Google Workspace APIs, implement a user-friendly "Sign in with Google" flow:
+
+**Manifest Configuration:**
+- Include "identity" permission
+- Add oauth2 object with client_id and scopes
+- Use Chromie's shared OAuth Client ID (will be provided in workspace API documentation)
+- Extension works immediately for personal use!
+
+**Authentication Implementation:**
+Implement signInWithGoogle() function that:
+- Uses chrome.identity.getAuthToken with interactive:true
+- Returns a Promise that resolves with the token
+- Handles errors gracefully (user canceled, OAuth not configured, etc.)
+- Stores token for reuse
+
+Implement signOut() function that:
+- Removes cached token with chrome.identity.removeCachedAuthToken
+- Revokes token on Google's servers
+- Clears local auth state
+
+**UI Requirements:**
+Create THREE distinct UI states:
+
+1. NOT SIGNED IN: Show "Sign in with Google" button (Google-branded styling)
+2. SIGNED IN: Show user email and "Sign Out" button + main extension features
+3. SETUP REQUIRED: Only shown if OAuth misconfigured (rare with Chromie's shared OAuth)
+
+On extension load, check auth silently (interactive:false) to auto-show signed-in state if already authenticated.
+
+**Google Button Styling:**
+IMPORTANT: Do NOT use any Google logo images (not available in icon set).
+Create a TEXT-ONLY button that says "Sign in with Google" or "🔵 Sign in with Google" using emoji.
+Use white background, blue accent color (#4285f4), subtle border, hover effects.
+Make it look professional and trustworthy with CSS styling only.
+
+**Explanation Requirements:**
+The extension explanation MUST emphasize:
+- "Ready to Use Immediately" - no setup needed
+- Just load extension and click "Sign in with Google"  
+- Works out of the box for personal use
+- Publishing to Chrome Web Store is optional (advanced users only)
+- Include clear step-by-step usage instructions
+- Mention that it uses Chromie's shared OAuth (optional to set up own for publishing)
+
+**Error Handling:**
+- Handle "user canceled" gracefully - just let them try again
+- API errors should show friendly messages with retry button
+- Network errors should suggest checking connection
+- OAuth misconfiguration is rare (Chromie provides valid OAuth)
+
+**Important Notes:**
+- Extensions use Chromie's shared OAuth Client ID
+- Pre-approved for common workspace scopes
+- Users can immediately sign in without any setup
+- Professional, familiar Google sign-in experience
+</google_workspace_authentication>
 
 <implementation_guidelines>
 - Create stunning, modern UI that feels premium and polished
 - Implement the core functionality described in the user's feature request
 - Use the specified frontend type exclusively - do not mix frontend patterns
 - Utilize Chrome APIs from the API data section if provided
+- Utilize Google Workspace APIs from the workspace API data section if provided (requires OAuth setup)
+- For Google Workspace APIs: ALWAYS include detailed OAuth setup instructions in explanation
+- For Google Workspace APIs: Implement error handling that detects missing OAuth configuration
+- For Google Workspace APIs: Show "Setup Required" UI state when OAuth not configured
+- For Google Workspace APIs: Include getGoogleToken() helper function with proper error handling
 - Target specific websites using webpage data if provided
 - Ensure proper manifest.json configuration for the chosen frontend type
 - Include appropriate permissions based on required functionality

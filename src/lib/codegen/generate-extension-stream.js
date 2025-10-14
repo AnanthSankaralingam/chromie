@@ -9,6 +9,7 @@ import { analyzeExtensionRequirementsStream } from "./preprocessing";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
 
 const chromeApisData = require('../chrome_extension_apis.json');
+const workspaceApisData = require('../google_workspace_apis.json');
 
 function searchChromeExtensionAPI(apiName) {
   if (!apiName || typeof apiName !== "string") {
@@ -45,6 +46,44 @@ function searchChromeExtensionAPI(apiName) {
     description: api.description,
     code_example: api.code_example,
     compatibility: api.compatibility,
+  };
+}
+
+function searchGoogleWorkspaceAPI(apiName) {
+  if (!apiName || typeof apiName !== "string") {
+    return {
+      error: "Invalid API name provided. Please provide a valid string.",
+      available_apis: workspaceApisData.google_workspace_apis.apis.map((api) => api.service),
+    };
+  }
+
+  const searchTerm = apiName.toLowerCase().trim();
+
+  // Search for exact match by service name first
+  let api = workspaceApisData.google_workspace_apis.apis.find((api) => api.service.toLowerCase() === searchTerm);
+
+  // If no exact match, search by name
+  if (!api) {
+    api = workspaceApisData.google_workspace_apis.apis.find((api) => api.name.toLowerCase().includes(searchTerm));
+  }
+
+  if (!api) {
+    return {
+      error: `Google Workspace API "${apiName}" not found.`,
+      available_apis: workspaceApisData.google_workspace_apis.apis.map((api) => api.service),
+      total_apis: workspaceApisData.google_workspace_apis.metadata.total_apis,
+      categories: workspaceApisData.google_workspace_apis.metadata.categories,
+    };
+  }
+
+  return {
+    name: api.name,
+    service: api.service,
+    description: api.description,
+    authentication: api.authentication,
+    common_use_cases: api.common_use_cases,
+    code_example: api.code_example,
+    key_methods: api.key_methods,
   };
 }
 
@@ -302,6 +341,120 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
       };
     }
 
+    // Step 2b: Fetch Google Workspace API documentation for required APIs
+    let workspaceApiDocumentation = "";
+    if (requirementsAnalysis.workspaceAPIs && requirementsAnalysis.workspaceAPIs.length > 0) {
+      yield {
+        type: "fetching_apis",
+        content: "fetching_workspace_apis"
+      };
+      yield {
+        type: "phase",
+        phase: "planning",
+        content: `Gathering Google Workspace API docs for: ${requirementsAnalysis.workspaceAPIs.join(", ")}`,
+      };
+      yield {
+        type: "planning_progress",
+        phase: "documentation",
+        content: `Fetching documentation for ${requirementsAnalysis.workspaceAPIs.length} Google Workspace APIs...`,
+      };
+
+      const workspaceApiDocs = [];
+
+      for (let i = 0; i < requirementsAnalysis.workspaceAPIs.length; i++) {
+        const apiName = requirementsAnalysis.workspaceAPIs[i];
+        yield {
+          type: "planning_progress",
+          phase: "documentation",
+          content: `Fetching documentation for Google ${apiName} API...`,
+        };
+
+        const apiResult = searchGoogleWorkspaceAPI(apiName);
+        if (!apiResult.error) {
+          workspaceApiDocs.push(`
+## ${apiResult.name}
+Service: ${apiResult.service}
+Description: ${apiResult.description || "No description available"}
+
+Authentication: ${apiResult.authentication?.method || "OAuth 2.0"}
+Required Scopes:
+${apiResult.authentication?.scopes?.map(scope => `- ${scope}`).join("\n") || "- No scopes required"}
+
+Common Use Cases:
+${apiResult.common_use_cases?.map(useCase => `- ${useCase}`).join("\n") || "- General API access"}
+
+Key Methods:
+${apiResult.key_methods?.map(method => `- ${method}`).join("\n") || "- See documentation"}
+
+Code Example:
+\`\`\`javascript
+${apiResult.code_example?.code || "No example provided"}
+\`\`\`
+
+Note: This API requires OAuth 2.0 authentication using chrome.identity API.
+Include "identity" in Chrome API permissions and configure OAuth in manifest.json.
+`);
+        } else {
+          workspaceApiDocs.push(`
+## ${apiName} API
+Error: ${apiResult.error}
+Available APIs: ${apiResult.available_apis?.join(", ")}...
+`);
+        }
+      }
+
+      // Add OAuth configuration instructions at the beginning
+      const oauthClientId = process.env.CHROMIE_OAUTH_CLIENT_ID || "CHROMIE_SHARED_CLIENT_ID.apps.googleusercontent.com";
+      const oauthSetupInstructions = `
+## 🔐 OAuth Configuration for Google Workspace APIs
+
+**IMPORTANT: Use Chromie's Shared OAuth Client ID**
+
+For the manifest.json, configure OAuth as follows:
+
+\`\`\`json
+{
+  "oauth2": {
+    "client_id": "${oauthClientId}",
+    "scopes": [/* include required scopes below */]
+  },
+  "permissions": ["identity"],
+  "host_permissions": ["https://www.googleapis.com/*"]
+}
+\`\`\`
+
+This extension is pre-configured with Chromie's shared OAuth credentials and will work immediately for users!
+Users just need to load the extension and click "Sign in with Google" - no setup required.
+
+Required Scopes (include all that apply):
+${workspaceApiDocs.map(doc => {
+  const apiMatch = doc.match(/Service: (\w+)/);
+  const scopesMatch = doc.match(/Required Scopes:\n((?:- https:\/\/[^\n]+\n?)+)/);
+  if (apiMatch && scopesMatch) {
+    return `\n// For ${apiMatch[1]} API:\n${scopesMatch[1]}`;
+  }
+  return '';
+}).filter(Boolean).join('\n')}
+
+`;
+
+      workspaceApiDocumentation = oauthSetupInstructions + "\n\n---\n\n" + workspaceApiDocs.join("\n\n");
+      yield {
+        type: "workspace_apis_ready",
+        content: "workspace_apis_ready"
+      };
+      yield {
+        type: "phase",
+        phase: "planning",
+        content: "Google Workspace API references ready for prompt conditioning.",
+      };
+      yield {
+        type: "planning_progress",
+        phase: "documentation",
+        content: "Google Workspace API documentation gathered successfully.",
+      };
+    }
+
     // Step 3: Scrape webpages for analysis if needed (now with simplified logic)
     let scrapedWebpageAnalysis = null;
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0) {
@@ -425,6 +578,7 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
       user_feature_request: finalUserPrompt,
       ext_name: requirementsAnalysis.ext_name,
       chrome_api_documentation: chromeApiDocumentation || "",
+      workspace_api_documentation: workspaceApiDocumentation || "",
       scraped_webpage_analysis: scrapedWebpageAnalysis,
     };
 

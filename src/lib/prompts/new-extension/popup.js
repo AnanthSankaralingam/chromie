@@ -15,6 +15,11 @@ Frontend Type: popup
 {chrome_api_documentation}
 </chrome_api_data>
 
+<workspace_api_data>
+<!-- This section will be populated with Google Workspace API documentation as needed -->
+{workspace_api_documentation}
+</workspace_api_data>
+
 <webpage_data>
 <!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
@@ -132,6 +137,16 @@ File Format Rules:
 - Create a stunning, modern popup interface that feels premium and polished
 - Implement quick actions and controls users expect
 - Use Chrome APIs from the API data section if provided
+- Utilize Google Workspace APIs from the workspace API data section if provided (requires OAuth setup)
+- For Google Workspace APIs: Create THREE UI states:
+  1. "Sign in with Google" button (default - for users who haven't signed in yet)
+  2. Main extension interface with "Sign Out" option (after user signs in)
+  3. "Developer Setup Required" message (only if OAuth Client ID not configured)
+- For Google Workspace APIs: Make the sign-in flow smooth and user-friendly
+- For Google Workspace APIs: Use Google-branded button styling (white background, blue #4285f4 color, NO logo image - text only)
+- For Google Workspace APIs: Handle authentication silently on subsequent opens if already signed in
+- For Google Workspace APIs: Show user email/profile after sign-in for trust
+- For Google Workspace APIs: In explanation, clearly separate "For Users" (simple) vs "For Developers" (setup required)
 - Target specific websites using webpage data if provided
 - Design for the popup's expected dimensions
 - Implement proper error handling, comments, and logging

@@ -15,6 +15,11 @@ Frontend Type: overlay
 {chrome_api_documentation}
 </chrome_api_data>
 
+<workspace_api_data>
+<!-- This section will be populated with Google Workspace API documentation as needed -->
+{workspace_api_documentation}
+</workspace_api_data>
+
 <webpage_data>
 <!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
@@ -140,6 +145,12 @@ File Format Rules:
 - Create a robust overlay that works on all websites
 - Implement the core functionality described in the extension details
 - Use Chrome APIs from the API data section if provided
+- Utilize Google Workspace APIs from the workspace API data section if provided (requires OAuth setup)
+- For Google Workspace APIs: ALWAYS include detailed OAuth setup instructions in explanation
+- For Google Workspace APIs: Show authentication button (text only, NO Google logo image) in overlay when OAuth not configured
+- For Google Workspace APIs: Display clear error states like "Setup Required - Click for Instructions"
+- For Google Workspace APIs: Implement getGoogleToken() helper function with proper error handling
+- For Google Workspace APIs: Handle auth errors gracefully with overlay notifications
 - Target specific websites using webpage data if provided
 - Implement proper error handling, comments, and logging
 - Ensure the overlay is visually appealing and user-friendly

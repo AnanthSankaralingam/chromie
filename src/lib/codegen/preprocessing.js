@@ -113,6 +113,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
+      workspaceAPIs: requirementsAnalysis.workspaceAPIs || [],
       webPageData: requirementsAnalysis.webPageData,
       ext_name: requirementsAnalysis.ext_name
     })
@@ -320,6 +321,7 @@ async function* parseStreamingPlanningResponse(planningResponse, featureRequest)
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
+      workspaceAPIs: requirementsAnalysis.workspaceAPIs || [],
       webPageData: requirementsAnalysis.webPageData,
       ext_name: requirementsAnalysis.ext_name
     })
@@ -349,6 +351,7 @@ function extractJsonFieldsManually(content) {
     plan: "Extension analysis and planning complete.",
     frontend_type: "generic",
     chromeAPIs: [],
+    workspaceAPIs: [],
     webPageData: [],
     ext_name: "Chrome Extension",
     enhanced_prompt: content.substring(0, 200) + "..." // Use part of the content as fallback
@@ -373,6 +376,11 @@ function extractJsonFieldsManually(content) {
   if (content.includes('"storage"')) analysis.chromeAPIs.push('storage')
   if (content.includes('"tabs"')) analysis.chromeAPIs.push('tabs')
   if (content.includes('"bookmarks"')) analysis.chromeAPIs.push('bookmarks')
+  
+  // Extract workspace APIs
+  if (content.includes('"gmail"')) analysis.workspaceAPIs.push('gmail')
+  if (content.includes('"drive"')) analysis.workspaceAPIs.push('drive')
+  if (content.includes('"calendar"')) analysis.workspaceAPIs.push('calendar')
   
   return analysis
 }

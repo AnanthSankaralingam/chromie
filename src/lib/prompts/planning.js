@@ -45,6 +45,31 @@ Examples:
 - "user authentication" → would need "identity"
 </getExtensionDocs>
 
+<getWorkspaceAPIs>
+Identify if Google Workspace APIs would be needed when:
+- Request mentions Gmail, Google Drive, Google Calendar, Google Docs, Google Sheets, Google Forms, Google Slides, Google Tasks, Google Chat, Google Contacts, or any Google Workspace app
+- User wants to read, send, organize, or manage emails
+- User wants to access, create, or manage files in Google Drive
+- User wants to create, read, or manage calendar events
+- User wants to create or edit Google Docs, Sheets, Slides, or Forms
+- User wants to manage tasks or to-do lists
+- User wants to access contacts or user profile information
+- User wants to send messages or interact with Google Chat
+- Extension needs OAuth authentication with Google services
+
+Examples:
+- "organize my Gmail" → would need "gmail"
+- "save to Google Drive" → would need "drive"
+- "add to my calendar" → would need "calendar"
+- "create a Google Doc" → would need "docs"
+- "update spreadsheet" → would need "sheets"
+- "send email" → would need "gmail"
+- "access my contacts" → would need "people"
+- "manage my tasks" → would need "tasks"
+
+IMPORTANT: If the request mentions ANY Google Workspace app or functionality, include the corresponding API in workspaceAPIs array.
+</getWorkspaceAPIs>
+
 <scrapeWebPage>
 Identify if scrapeWebPage would be needed when:
 - Request mentions ANY specific website name (YouTube, Twitter, Reddit, GitHub, Amazon, LinkedIn, Instagram, Facebook, TikTok, Netflix, etc.)
@@ -96,9 +121,10 @@ You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all
 
 <output_schema>
 {
-  "plan": "Think through the user's request step by step, explaining your approach and reasoning in detail. Cover the most important implementation details, Chrome APIs needed, UI approach, and any challenges. Write 2 sentences that show your expert analysis of the request. IMPORTANT: Do not use quotes within this text - use single quotes or avoid them entirely.",
+  "plan": "Think through the user's request step by step, explaining your approach and reasoning in detail. Cover the most important implementation details, Chrome APIs needed, Google Workspace APIs needed (if any), UI approach, and any challenges. Write 2 sentences that show your expert analysis of the request. IMPORTANT: Do not use quotes within this text - use single quotes or avoid them entirely.",
   "frontend_type": "popup | side_panel | overlay | generic",
-  "chromeAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
+  "chromeAPIs": ["array of Chrome API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
+  "workspaceAPIs": ["array of Google Workspace API names needed like 'gmail', 'drive', 'calendar', 'docs', 'sheets' or empty array []"],
   "webPageData": ["array of domains like 'youtube.com', 'twitter.com' or empty array if no specific sites needed"],
   "ext_name": "Descriptive extension name (3-5 words)",
   "enhanced_prompt": "Enhanced version of the user's original request with better prompt engineering for subsequent coding"
@@ -124,11 +150,13 @@ You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all
 
 <tool_analysis>
 - If request mentions Chrome functionality (bookmarks, tabs, notifications, etc.) → Include relevant APIs in chromeAPIs array
+- If request mentions Google Workspace apps (Gmail, Drive, Calendar, Docs, Sheets, etc.) → Include relevant APIs in workspaceAPIs array
 - If request mentions ANY specific website name or is designed for a specific site → Set webPageData to ["domain.com"]
-- If request needs both Chrome APIs and site scraping → Include both arrays
-- If request is truly generic (works on all websites) → Use empty arrays: chromeAPIs: [], webPageData: []
+- If request needs both Chrome APIs and Workspace APIs → Include both arrays
+- If request needs both APIs and site scraping → Include all relevant arrays
+- If request is truly generic (works on all websites, no specific APIs) → Use empty arrays: chromeAPIs: [], workspaceAPIs: [], webPageData: []
 
-WARNING: Be conservative with empty webPageData. If there's ANY doubt about whether a specific website is targeted, include it in webPageData.
+WARNING: Be conservative with empty arrays. If there's ANY doubt about whether a specific API or website is needed, include it.
 </tool_analysis>
 </decision_guidelines>
 
@@ -142,6 +170,7 @@ Output:
   "plan": "This productivity tracking request requires monitoring user activity across websites and storing time data persistently. I'll use Chrome's storage API to save tracking data and tabs API to monitor active websites. The extension should have a simple popup interface for viewing stats and setting goals, with background scripts handling the time tracking logic.",
   "frontend_type": "generic",
   "chromeAPIs": [],
+  "workspaceAPIs": [],
   "webPageData": [],
   "ext_name": "Productivity Tracker",
   "enhanced_prompt": "Create a comprehensive productivity tracking extension that monitors time spent on websites, tracks daily goals, and provides insights to help users improve their work habits and focus."
@@ -157,6 +186,7 @@ Output:
   "plan": "This bookmark access extension needs to retrieve and display Chrome bookmarks in an organized popup interface. I'll use the Chrome bookmarks API to fetch the bookmark tree and create a searchable, categorized menu. The popup should be lightweight and fast, with click handlers to open bookmarks in new tabs and keyboard navigation support.",
   "frontend_type": "popup",
   "chromeAPIs": ["bookmarks"],
+  "workspaceAPIs": [],
   "webPageData": [],
   "ext_name": "Quick Bookmark Access",
   "enhanced_prompt": "Build a Chrome extension that displays a well-organized, searchable bookmark menu in a popup when the extension icon is clicked, allowing users to quickly navigate to their saved websites with keyboard shortcuts and visual icons."
@@ -172,11 +202,44 @@ Output:
   "plan": "This YouTube bookmarking extension requires content script injection to add a bookmark button to video pages and use Chrome's bookmarks API to save videos with metadata. I'll need to analyze YouTube's DOM structure to position the button properly, extract video titles and URLs, and create a storage system for custom notes. The overlay approach will provide an in-page interface for managing saved videos.",
   "frontend_type": "overlay",
   "chromeAPIs": ["bookmarks"],
+  "workspaceAPIs": [],
   "webPageData": ["youtube.com"],
   "ext_name": "YouTube Video Bookmarker",
   "enhanced_prompt": "Create a YouTube-specific bookmarking extension that adds a prominent 'Bookmark' button to video pages, allows users to save videos with custom notes and tags, and provides an organized interface to manage and search through saved videos with timestamps and categories."
 }
 </example_request_3>
+
+<example_request_4>
+User: "Build an extension to quickly save emails from Gmail to Google Drive and add them to my calendar."
+Analysis: Needs Gmail API to read emails, Drive API to save files, Calendar API to create events
+Tool Requirements: gmail, drive, calendar APIs
+Output:
+{
+  "plan": "This Gmail integration extension will use Google Workspace APIs to access emails, save them as files to Drive, and create calendar events. The extension needs OAuth authentication with identity API for Google sign-in, then use Gmail API to fetch selected emails, Drive API to upload email content as documents, and Calendar API to schedule follow-ups. A popup interface will let users select emails and configure save options.",
+  "frontend_type": "popup",
+  "chromeAPIs": ["identity"],
+  "workspaceAPIs": ["gmail", "drive", "calendar"],
+  "webPageData": [],
+  "ext_name": "Gmail to Drive Saver",
+  "enhanced_prompt": "Create a Chrome extension that integrates with Gmail, Google Drive, and Google Calendar to let users quickly save important emails as Drive documents and automatically create calendar reminders for follow-up actions, with a simple popup interface for selecting emails and setting preferences."
+}
+</example_request_4>
+
+<example_request_5>
+User: "Create an extension to organize my inbox and automatically label important emails."
+Analysis: Needs Gmail API for email access and organization
+Tool Requirements: gmail API
+Output:
+{
+  "plan": "This Gmail organization extension will use the Gmail API to read user emails and apply intelligent labeling based on content analysis. The extension needs OAuth authentication through Chrome's identity API to access Gmail, then fetch recent emails, analyze their importance using pattern matching, and apply appropriate labels automatically. A side panel interface will show organization stats and let users customize labeling rules.",
+  "frontend_type": "side_panel",
+  "chromeAPIs": ["identity"],
+  "workspaceAPIs": ["gmail"],
+  "webPageData": [],
+  "ext_name": "Smart Gmail Organizer",
+  "enhanced_prompt": "Build a Chrome extension that uses the Gmail API to automatically organize and label emails based on importance, sender, and content patterns, with a side panel dashboard showing inbox stats and customizable labeling rules for better email management."
+}
+</example_request_5>
 </examples>
 
 <final_reminders>
