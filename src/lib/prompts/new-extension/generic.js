@@ -11,14 +11,17 @@ Frontend Type: {frontend_type}
 </extension_details>
 
 <chrome_api_data>
-<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
-<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
+
+<external_apis>
+IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
+{external_apis}
+</external_apis>
 
 <styling_requirements>
 MANDATORY: Create cutting-edge styles with modern, premium aesthetics for any UI components.
@@ -47,10 +50,6 @@ Premium Effects (MUST include):
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>
-
-<api_key_usage>
-IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
-</api_key_usage>
 
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:

@@ -28,6 +28,13 @@ export async function generateExtensionCode(codingPrompt, replacements, stream =
     console.log('Removed webpage_data section - no specific websites targeted')
   }
   
+  // Handle external_apis section conditionally - remove entire section if no APIs provided
+  if (!replacements.external_apis || replacements.external_apis === '') {
+    // Remove the entire external_apis section
+    finalPrompt = finalPrompt.replace(/<external_apis>[\s\S]*?<\/external_apis>/g, '')
+    console.log('Removed external_apis section - no APIs provided')
+  }
+  
   for (const [placeholder, value] of Object.entries(replacements)) {
     if (!placeholder.includes('icon')) {
       console.log(`Replacing ${placeholder} with ${value}`)

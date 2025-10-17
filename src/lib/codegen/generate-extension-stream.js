@@ -64,6 +64,7 @@ export async function* generateChromeExtensionStream({
   sessionId,
   existingFiles = {},
   userProvidedUrl = null,
+  userProvidedApis = null,
   skipScraping = false,
   previousResponseId,
   conversationTokenTotal,
@@ -231,6 +232,32 @@ export async function* generateChromeExtensionStream({
     }
     
     console.log('✅ No URL required or URL already provided - continuing with code generation')
+
+    // Check if external APIs are suggested and halt for user input
+    if (
+      requirementsAnalysis.suggestedAPIs &&
+      requirementsAnalysis.suggestedAPIs.length > 0 &&
+      !userProvidedApis
+    ) {
+      console.log('🔌 External APIs suggested but not provided - halting code generation (streaming)')
+      console.log('📋 Suggested APIs:', requirementsAnalysis.suggestedAPIs)
+      
+      yield {
+        type: "requires_api",
+        content: "This extension can be enhanced with external API endpoints. Please configure them or choose to skip.",
+        suggestedAPIs: requirementsAnalysis.suggestedAPIs,
+        // Pass back analysis data for subsequent calls
+        analysisData: {
+          requirements: requirementsAnalysis,
+          tokenUsage: planningTokenUsage,
+        },
+      };
+      
+      console.log('🛑 Returning from generator - should stop code generation for API input')
+      return; // Stop the generator until the user provides API endpoints.
+    }
+    
+    console.log('✅ No external APIs suggested or APIs already provided - continuing with code generation')
 
     // Step 2: Fetch Chrome API documentation for required APIs
     let chromeApiDocumentation = "";
@@ -421,11 +448,21 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
       )}...`
     );
 
+    // Format external APIs for prompt if provided
+    let externalApisContext = ''
+    if (userProvidedApis && userProvidedApis.length > 0) {
+      externalApisContext = userProvidedApis
+        .map(api => `${api.name}: ${api.endpoint}`)
+        .join('\n')
+      console.log('🔌 External APIs provided:', externalApisContext)
+    }
+
     const replacements = {
       user_feature_request: finalUserPrompt,
       ext_name: requirementsAnalysis.ext_name,
       chrome_api_documentation: chromeApiDocumentation || "",
       scraped_webpage_analysis: scrapedWebpageAnalysis,
+      external_apis: externalApisContext
     };
 
     // Add existing files context only if NOT using a previousResponseId

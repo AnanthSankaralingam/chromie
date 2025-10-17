@@ -41,7 +41,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens } = await request.json()
 
     console.log('[api/generate/stream] received', {
       has_previousResponseId: Boolean(previousResponseId),
@@ -127,6 +127,7 @@ export async function POST(request) {
             sessionId: projectId,
             existingFiles,
             userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
+            userProvidedApis: userProvidedApis || null,
             skipScraping: !!skipScraping,
             previousResponseId,
             conversationTokenTotal,

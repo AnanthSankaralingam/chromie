@@ -69,6 +69,7 @@ export async function generateChromeExtension({
   sessionId,
   existingFiles = {},
   userProvidedUrl = null,
+  userProvidedApis = null,
   skipScraping = false,
   previousResponseId,
   conversationTokenTotal,
@@ -208,11 +209,21 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
     const shouldUseEnhancedPrompt = featureRequest.length < 300 && requirementsAnalysis.enhanced_prompt
     const finalUserPrompt = shouldUseEnhancedPrompt ? requirementsAnalysis.enhanced_prompt : featureRequest
     
+    // Format external APIs for prompt if provided
+    let externalApisContext = ''
+    if (userProvidedApis && userProvidedApis.length > 0) {
+      externalApisContext = userProvidedApis
+        .map(api => `${api.name}: ${api.endpoint}`)
+        .join('\n')
+      console.log('🔌 External APIs provided:', externalApisContext)
+    }
+
     const replacements = {
       user_feature_request: finalUserPrompt,
       ext_name: requirementsAnalysis.ext_name,
       chrome_api_documentation: chromeApiDocumentation || '',
-      scraped_webpage_analysis: scrapedWebpageAnalysis
+      scraped_webpage_analysis: scrapedWebpageAnalysis,
+      external_apis: externalApisContext
     }
     
     // Add existing files context only if NOT using a previousResponseId
