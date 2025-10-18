@@ -9,7 +9,7 @@ P0 <br>
 3. ~Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit.~
 4. ~Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.~
 5. ~API Endpoint: detect extension requests that need an API, ask user what endpoint to use. Update prompts accordingly to ensure they use that endpoint and dont use optimized prompt.~
-6. fix schema mandatory fields
+6. fix schema mandatory fields so generic extensions don't generate empty files
 7. ~bug fix for token_usage and browser minutes measuring. dont use estimated tokens. get thinking tokens too.~
 
 P1 <br>
@@ -25,16 +25,25 @@ P2 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. stop button in generation, rewrite earlier messages in chat
-4. Email on signup
+4. welcome to chromie Email on signup
 5. Upload your own extension
 
 
+### BUGS
+1. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
+2. playwright actions don't work and user didn't start on chrome://extensions. Maybe switch to hyperagent if that's more reliable? Or generate testing hyperagent script and automatically run on browser open
+3. Test button is confusing: we need to remove it. In long term, we can maybe create a simple hyperagent script based on coding agent's explanation + manifest to create some automated page navigation to ease testing
+4. token tracking is not updating even though logs say they are
+5. Onboarding modal when routed to builder page should show 2-3 slides they can click through. Users need to know how to use the app.
+6. All icons/buttons on onboarding modals should match button from the app-bar-builder
+7. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
+8. project limits are not correctly enforced. free user can build up to 3 projects
+9. Verify you're a human on the simulated browser is annoying (not sure if we can do anything for that). In long term, we can store auth/tabs state by creating each user a persistent session id
+10. manifest is sometimes not auto formatted as json. run the "format" button flow as soon as it's available so users don't have to.
 
 
 
-
-
-<br>
+<br><br>
 ### Model Comparison (gpt 4o vs claude haiku 3.5 vs gemini 2.5 pro vs gemini 2.5 flash vs deepseek-reasoner
 TODO: try o3 with low temperature, sonnet 4.5, gpt4.1, deepseek-coder ...
 
