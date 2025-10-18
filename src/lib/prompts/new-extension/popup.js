@@ -11,14 +11,17 @@ Frontend Type: popup
 </extension_details>
 
 <chrome_api_data>
-<!-- This section will be populated as needed -->
 {chrome_api_documentation}
 </chrome_api_data>
 
 <webpage_data>
-<!-- This section will be populated as needed -->
 {scraped_webpage_analysis}
 </webpage_data>
+
+<external_apis>
+For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
+{external_apis}
+</external_apis>
 
 <popup_implementation_requirements>
 <popup_strategy>
@@ -92,10 +95,6 @@ Premium Effects (MUST include):
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>
-
-<api_key_usage>
-IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
-</api_key_usage>
 
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:

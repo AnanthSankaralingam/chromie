@@ -55,7 +55,7 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
       console.error('❌ Planning response missing content:', planningCompletion)
       throw new Error('Planning API returned invalid response structure')
     }
-    console.log('🔍 Raw planning response:', planningContent.substring(0, 300) + '...')
+    console.log('🔍 Raw planning response:', planningContent)
     console.log('🔍 Raw planning response contains ```json:', planningContent.includes('```json'))
     console.log('🔍 Raw planning response contains ```:', planningContent.includes('```'))
     
@@ -81,6 +81,16 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
         planningContent = fallbackMatch[1].trim()
         console.log('✅ Extracted content from generic code block in planning response')
       }
+    }
+    
+    // Try to fix common JSON formatting issues
+    if (planningContent.includes('plan":"') && !planningContent.includes('"plan":"')) {
+      console.log('🔄 Detected malformed JSON, attempting to fix...')
+      // Fix missing quotes around keys
+      planningContent = planningContent.replace(/(\w+):/g, '"$1":')
+      // Fix missing quotes around string values that don't already have them
+      planningContent = planningContent.replace(/:\s*([^",{\[\s][^",}\]\s]*?)([,}\]])/g, ': "$1"$2')
+      console.log('🔧 Applied JSON formatting fixes')
     }
     
     console.log('🔍 Processed planning response:', planningContent.substring(0, 200) + '...')
@@ -110,10 +120,15 @@ export async function analyzeExtensionRequirements({ featureRequest }) {
       console.log(`✅ Fallback detection added ${requirementsAnalysis.webPageData.length - originalWebPageData.length} website(s)`)
     }
     
+    // Extract suggested APIs for logging and processing
+    const originalSuggestedAPIs = requirementsAnalysis.suggestedAPIs || []
+    console.log('🔌 Suggested APIs:', originalSuggestedAPIs)
+    
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
       webPageData: requirementsAnalysis.webPageData,
+      suggestedAPIs: requirementsAnalysis.suggestedAPIs,
       ext_name: requirementsAnalysis.ext_name
     })
 
@@ -259,7 +274,7 @@ async function* parseStreamingPlanningResponse(planningResponse, featureRequest)
     }
     
     // Process the complete planning response
-    console.log('🔍 Complete planning response:', planningContent.substring(0, 300) + '...')
+    console.log('🔍 Complete planning response:', planningContent)
     console.log('🔍 Planning response contains ```json:', planningContent.includes('```json'))
     
     yield { type: "planning_progress", phase: "analysis", content: "Finalizing analysis and extracting implementation details..." }
@@ -278,6 +293,16 @@ async function* parseStreamingPlanningResponse(planningResponse, featureRequest)
       if (codeMatch) {
         processedContent = codeMatch[1].trim()
       }
+    }
+    
+    // Try to fix common JSON formatting issues
+    if (processedContent.includes('plan":"') && !processedContent.includes('"plan":"')) {
+      console.log('🔄 Detected malformed JSON in stream, attempting to fix...')
+      // Fix missing quotes around keys
+      processedContent = processedContent.replace(/(\w+):/g, '"$1":')
+      // Fix missing quotes around string values that don't already have them
+      processedContent = processedContent.replace(/:\s*([^",{\[\s][^",}\]\s]*?)([,}\]])/g, ': "$1"$2')
+      console.log('🔧 Applied JSON formatting fixes to stream')
     }
     
     yield { type: "planning_progress", phase: "analysis", content: "Parsing requirements and preparing for code generation..." }
@@ -317,10 +342,15 @@ async function* parseStreamingPlanningResponse(planningResponse, featureRequest)
       console.log(`✅ Fallback detection added ${requirementsAnalysis.webPageData.length - originalWebPageData.length} website(s)`)
     }
     
+    // Extract suggested APIs for logging and processing
+    const originalSuggestedAPIs = requirementsAnalysis.suggestedAPIs || []
+    console.log('🔌 Suggested APIs:', originalSuggestedAPIs)
+    
     console.log("Requirements analysis completed:", {
       frontend_type: requirementsAnalysis.frontend_type,
       docAPIs: requirementsAnalysis.chromeAPIs,
       webPageData: requirementsAnalysis.webPageData,
+      suggestedAPIs: requirementsAnalysis.suggestedAPIs,
       ext_name: requirementsAnalysis.ext_name
     })
 
@@ -350,6 +380,7 @@ function extractJsonFieldsManually(content) {
     frontend_type: "generic",
     chromeAPIs: [],
     webPageData: [],
+    suggestedAPIs: [],
     ext_name: "Chrome Extension",
     enhanced_prompt: content.substring(0, 200) + "..." // Use part of the content as fallback
   }
@@ -373,6 +404,29 @@ function extractJsonFieldsManually(content) {
   if (content.includes('"storage"')) analysis.chromeAPIs.push('storage')
   if (content.includes('"tabs"')) analysis.chromeAPIs.push('tabs')
   if (content.includes('"bookmarks"')) analysis.chromeAPIs.push('bookmarks')
+  
+  // Extract suggestedAPIs - look for the array structure
+  const suggestedApisMatch = content.match(/"suggestedAPIs"\s*:\s*\[(.*?)\]/s)
+  if (suggestedApisMatch) {
+    try {
+      // Try to parse the suggestedAPIs array
+      const apisArray = JSON.parse('[' + suggestedApisMatch[1] + ']')
+      analysis.suggestedAPIs = apisArray
+    } catch (e) {
+      // If parsing fails, try to extract individual API objects
+      const apiMatches = content.match(/\{"name"\s*:\s*"([^"]+)"\s*,\s*"endpoint"\s*:\s*"([^"]+)"\}/g)
+      if (apiMatches) {
+        analysis.suggestedAPIs = apiMatches.map(match => {
+          const nameMatch = match.match(/"name"\s*:\s*"([^"]+)"/)
+          const endpointMatch = match.match(/"endpoint"\s*:\s*"([^"]+)"/)
+          return {
+            name: nameMatch ? nameMatch[1] : 'Unknown API',
+            endpoint: endpointMatch ? endpointMatch[1] : 'https://api.example.com'
+          }
+        })
+      }
+    }
+  }
   
   return analysis
 }

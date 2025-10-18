@@ -207,7 +207,6 @@ export class GeminiAdapter {
             thoughtsTokens = chunk.usageMetadata.thoughtsTokenCount || 0
             outputTokens = chunk.usageMetadata.candidatesTokenCount || 0
             totalTokens = thoughtsTokens + outputTokens
-            console.log(`[gemini-adapter] Token usage - Thoughts: ${thoughtsTokens}, Output: ${outputTokens}, Total: ${totalTokens}`)
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []

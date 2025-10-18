@@ -79,13 +79,6 @@ export default function DownloadStepModal({
               {/* Action buttons */}
               <div className="flex justify-between pt-4">
                 <Button
-                  onClick={onClose}
-                  variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                >
-                  Skip for now
-                </Button>
-                <Button
                   onClick={onNext}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2"
                 >

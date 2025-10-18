@@ -79,13 +79,6 @@ export default function EditStepModal({
               {/* Action buttons */}
               <div className="flex justify-between pt-4">
                 <Button
-                  onClick={onClose}
-                  variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                >
-                  Skip for now
-                </Button>
-                <Button
                   onClick={onNext}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-2"
                 >

@@ -16,7 +16,7 @@ You must analyze what tools would be needed and include that information in your
 - Which websites or domains they're targeting (if any)
 - What type of user interface would work best
 - What Chrome APIs might be needed
-- What external data sources might be required
+- What external data sources or APIs might be required
 </requirements>
 
 <step_2>Determine the optimal frontend type unless mentioned by user:</step_2>
@@ -72,24 +72,21 @@ Examples that DON'T need webPageData:
 - "bookmark manager" → [] (browser feature, not site-specific)
 - "password generator" → [] (standalone tool)
 </scrapeWebPage>
+
+<suggestedAPIs>
+Identify external APIs that would enhance extension functionality and provide their exact endpoints:
+- AI/ChatGPT mentions → {"name": "OpenAI API", "endpoint": "https://api.openai.com/v1"}
+- Translation needed → {"name": "Google Translate API", "endpoint": "https://translation.googleapis.com/language/translate/v2"}
+- Weather data → {"name": "OpenWeather API", "endpoint": "https://api.openweathermap.org/data/2.5"} or {"name": "Weather API", "endpoint": "https://api.weatherapi.com/v1"}
+- Stock/market data → {"name": "Alpha Vantage", "endpoint": "https://www.alphavantage.co/query"} or {"name": "Finnhub API", "endpoint": "https://finnhub.io/api/v1"}
+- Email sending → {"name": "SendGrid API", "endpoint": "https://api.sendgrid.com/v3"} or {"name": "Mailgun API", "endpoint": "https://api.mailgun.net/v3"}
+
+If no external APIs are needed, return empty array.
+</suggestedAPIs>
 </tool_analysis_guidelines>
 
 <step_4>Generate structured output plan</step_4>
 </analysis_process>
-
-<tool_calling_examples>
-<example_1>
-User Request: "Create an extension that lets users bookmark YouTube videos with custom notes. When on a YouTube video page, show a 'Bookmark' button."
-Analysis: Needs Chrome bookmarks API + YouTube site structure understanding
-Tool Requirements: getExtensionDocs needed for "bookmarks" API, scrapeWebPage needed for "youtube.com"
-</example_1>
-
-<example_2>
-User Request: "Build an extension that changes the background color of any webpage to dark mode with a toggle button."
-Analysis: Generic web enhancement, no specific APIs or sites needed
-Tool Requirements: No tools needed - generic functionality
-</example_2>
-</tool_calling_examples>
 
 <output_requirements>
 You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all quotes inside string values are properly escaped with backslashes.
@@ -100,6 +97,7 @@ You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all
   "frontend_type": "popup | side_panel | overlay | generic",
   "chromeAPIs": ["array of API names needed like 'bookmarks', 'tabs', 'storage' or empty array []"],
   "webPageData": ["array of domains like 'youtube.com', 'twitter.com' or empty array if no specific sites needed"],
+  "suggestedAPIs": ["array of external API objects like {'name': 'OpenAI API', 'endpoint': 'https://api.openai.com/v1'} or empty array if none needed"],
   "ext_name": "Descriptive extension name (3-5 words)",
   "enhanced_prompt": "Enhanced version of the user's original request with better prompt engineering for subsequent coding"
 }
@@ -126,9 +124,8 @@ You MUST return a valid JSON object with this exact schema. CRITICAL: Ensure all
 - If request mentions Chrome functionality (bookmarks, tabs, notifications, etc.) → Include relevant APIs in chromeAPIs array
 - If request mentions ANY specific website name or is designed for a specific site → Set webPageData to ["domain.com"]
 - If request needs both Chrome APIs and site scraping → Include both arrays
-- If request is truly generic (works on all websites) → Use empty arrays: chromeAPIs: [], webPageData: []
-
-WARNING: Be conservative with empty webPageData. If there's ANY doubt about whether a specific website is targeted, include it in webPageData.
+- If request mentions external services (ChatGPT, weather data, maps, etc.) → Include in suggestedAPIs array
+- If request is truly generic (works on all websites) → Use empty arrays: chromeAPIs: [], webPageData: [], suggestedAPIs: []
 </tool_analysis>
 </decision_guidelines>
 
@@ -143,6 +140,7 @@ Output:
   "frontend_type": "generic",
   "chromeAPIs": [],
   "webPageData": [],
+  "suggestedAPIs": [],
   "ext_name": "Productivity Tracker",
   "enhanced_prompt": "Create a comprehensive productivity tracking extension that monitors time spent on websites, tracks daily goals, and provides insights to help users improve their work habits and focus."
 }
@@ -158,23 +156,25 @@ Output:
   "frontend_type": "popup",
   "chromeAPIs": ["bookmarks"],
   "webPageData": [],
+  "suggestedAPIs": [],
   "ext_name": "Quick Bookmark Access",
   "enhanced_prompt": "Build a Chrome extension that displays a well-organized, searchable bookmark menu in a popup when the extension icon is clicked, allowing users to quickly navigate to their saved websites with keyboard shortcuts and visual icons."
 }
 </example_request_2>
 
 <example_request_3>
-User: "Create an extension that lets users bookmark YouTube videos with custom notes. When on a YouTube video page, show a 'Bookmark' button."
-Analysis: Needs Chrome bookmarks API + YouTube site structure, page interaction needed
-Tool Requirements: bookmarks API + YouTube domain
+User: "Create an extension that uses AI to summarize YouTube videos with timestamps."
+Analysis: Needs YouTube site structure + external AI API
+Tool Requirements: YouTube domain + OpenAI API
 Output:
 {
-  "plan": "This YouTube bookmarking extension requires content script injection to add a bookmark button to video pages and use Chrome's bookmarks API to save videos with metadata. I'll need to analyze YouTube's DOM structure to position the button properly, extract video titles and URLs, and create a storage system for custom notes. The overlay approach will provide an in-page interface for managing saved videos.",
+  "plan": "This AI-powered YouTube summarization extension requires content script injection to extract video transcripts and use an external AI API to generate summaries. I'll integrate with OpenAI's API to process the transcript and return concise summaries with timestamps, using an overlay interface to display results on the video page. The extension will need secure API key management through Chrome's storage API.",
   "frontend_type": "overlay",
-  "chromeAPIs": ["bookmarks"],
+  "chromeAPIs": ["storage"],
   "webPageData": ["youtube.com"],
-  "ext_name": "YouTube Video Bookmarker",
-  "enhanced_prompt": "Create a YouTube-specific bookmarking extension that adds a prominent 'Bookmark' button to video pages, allows users to save videos with custom notes and tags, and provides an organized interface to manage and search through saved videos with timestamps and categories."
+  "suggestedAPIs": [{"name": "OpenAI API", "endpoint": "https://api.openai.com/v1"}],
+  "ext_name": "AI YouTube Summarizer",
+  "enhanced_prompt": "Create a YouTube extension that uses AI to automatically summarize video transcripts and provide timestamped summaries, with secure API key management and an intuitive interface for viewing summaries directly on video pages."
 }
 </example_request_3>
 </examples>
@@ -183,6 +183,7 @@ Output:
 - Always analyze what tool information would be needed for implementation
 - Default to "generic" as needed.
 - Be precise with API names and domain identification based on the actual request requirements
+- Include suggestedAPIs for any external services, APIs, or third-party integrations mentioned
 - Include only the specific APIs and domains that are actually needed
 - Generate realistic, descriptive names and enhanced prompts that maintain user intent while adding helpful detail for coding
 </final_reminders>

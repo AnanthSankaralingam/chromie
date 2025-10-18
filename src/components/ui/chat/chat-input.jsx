@@ -26,7 +26,7 @@ export default function ChatInput({
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={projectName ? `describe what you want to add or modify in ${projectName}...` : "describe what you want to add or modify..."}
+          placeholder={"describe what you want to add or modify..."}
           className="min-h-[80px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none"
         />
         <Button
