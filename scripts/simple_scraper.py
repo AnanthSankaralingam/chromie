@@ -13,6 +13,11 @@ from urllib.parse import urlparse # Added for filename generation
 from bs4 import BeautifulSoup, Tag
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
 import google.generativeai as genai
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ---------------------------
 # Data Structures
@@ -26,6 +31,20 @@ class ElementInfo:
     classes: list[str] = field(default_factory=list)
     role: str | None = None
     selector: str = ""
+
+# ---------------------------
+# Supabase Setup
+# ---------------------------
+
+def init_supabase() -> Client:
+    """Initialize and return Supabase client."""
+    supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if not supabase_url or not supabase_key:
+        raise ValueError("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in environment")
+    
+    return create_client(supabase_url, supabase_key)
 
 # ---------------------------
 # Helper Functions
@@ -72,6 +91,13 @@ def url_to_filename(url: str) -> str:
     domain = parsed_url.netloc.replace("www.", "").replace(".", "_")
     return f"{domain}_summary.json"
 
+def domain_to_url(domain_name: str) -> str:
+    """Converts a domain name to a full URL with https:// if not present."""
+    domain_name = domain_name.strip()
+    if not domain_name.startswith(('http://', 'https://')):
+        return f"https://{domain_name}"
+    return domain_name
+
 
 # ---------------------------
 # Core Logic
@@ -113,14 +139,14 @@ def find_balanced_elements(html_content: str) -> list[ElementInfo]:
 
 def generate_description_with_llm(element: ElementInfo, page_title: str) -> str:
     """Generates a description for a UI element using the Google Gemini API."""
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GOOGLE_AI_API_KEY")
     fallback_desc = f"A page element represented by a <{element.tag}> tag with ID '{element.id or 'none'}'."
 
     if not api_key:
-        logging.warning("GOOGLE_API_KEY not set. Using fallback description.")
+        logging.warning("GOOGLE_AI_API_KEY not set. Using fallback description.")
         return fallback_desc
 
-    try:
+    try:scripts/simple_scraper.py
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
 
@@ -177,7 +203,7 @@ def generate_page_summary(url: str) -> dict:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             logging.info("Navigating to page...")
-            page.goto(url, wait_until="networkidle", timeout=60000)
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
             
             page_title = page.title()
             html_content = page.content()
@@ -220,33 +246,92 @@ def generate_page_summary(url: str) -> dict:
 # ---------------------------
 
 def main():
-    """Main function to control the scraping batch process."""
+    """Main function to scrape domains from scraper_misses and save to scraper table."""
     
-    # --- EDIT THIS LIST WITH THE URLS YOU WANT TO SCRAPE ---
-    urls_to_scrape = [
-        "https://www.youtube.com/watch?v=5807ieV35kU"
-    ]
-    # ----------------------------------------------------
-
-    output_folder = "output"
-    os.makedirs(output_folder, exist_ok=True)
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-
-    for url in urls_to_scrape:
-        print("-" * 50)
+    
+    # Initialize Supabase client
+    try:
+        supabase = init_supabase()
+        logging.info("✓ Connected to Supabase")
+    except ValueError as e:
+        logging.error(f"Failed to initialize Supabase: {e}")
+        return
+    
+    # Fetch domains from scraper_misses table
+    try:
+        response = supabase.table("scraper_misses").select("domain_name, count").execute()
+        scraper_misses = response.data
+        logging.info(f"✓ Found {len(scraper_misses)} domains in scraper_misses table")
+    except Exception as e:
+        logging.error(f"Failed to fetch from scraper_misses: {e}")
+        return
+    
+    if not scraper_misses:
+        logging.info("No domains to scrape. Exiting.")
+        return
+    
+    # Process each domain
+    success_count = 0
+    error_count = 0
+    
+    for row in scraper_misses:
+        domain_name = row.get("domain_name")
+        count = row.get("count", 0)
+        
+        if not domain_name:
+            logging.warning("Skipping row with no domain_name")
+            continue
+        
+        print("=" * 60)
+        logging.info(f"Processing: {domain_name} (count: {count})")
+        print("=" * 60)
+        
+        # Convert domain to URL
+        url = domain_to_url(domain_name)
+        logging.info(f"Scraping URL: {url}")
+        
+        # Scrape the page
         page_summary = generate_page_summary(url)
         
         if "error" not in page_summary:
-            filename = url_to_filename(url)
-            output_path = os.path.join(output_folder, filename)
-            
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(page_summary, f, indent=4)
-            print(f"Success! Summary for {url} saved to {output_path}")
+            # Insert into scraper table
+            try:
+                insert_data = {
+                    "domain_name": domain_name,
+                    "scraper_output": page_summary,
+                    "source": "scraped"
+                }
+                
+                supabase.table("scraper").insert(insert_data).execute()
+                logging.info(f"✓ Successfully saved {domain_name} to scraper table")
+                
+                # Delete the row from scraper_misses after successful processing
+                try:
+                    supabase.table("scraper_misses").delete().eq("domain_name", domain_name).execute()
+                    logging.info(f"✓ Removed {domain_name} from scraper_misses table")
+                except Exception as delete_error:
+                    logging.warning(f"Failed to delete {domain_name} from scraper_misses: {delete_error}")
+                
+                success_count += 1
+                
+            except Exception as e:
+                logging.error(f"Failed to insert {domain_name} into scraper table: {e}")
+                error_count += 1
         else:
-            print(f"Error processing {url}: {page_summary['error']}")
-        print("-" * 50)
+            logging.error(f"Error processing {domain_name}: {page_summary['error']}")
+            error_count += 1
+        
+        print("-" * 60)
+    
+    # Summary
+    print("\n" + "=" * 60)
+    print("SCRAPING SUMMARY")
+    print("=" * 60)
+    print(f"Total domains processed: {len(scraper_misses)}")
+    print(f"Successful: {success_count}")
+    print(f"Errors: {error_count}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
