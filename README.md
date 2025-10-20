@@ -13,8 +13,8 @@ P0 <br>
 7. ~bug fix for token_usage and browser minutes measuring. dont use estimated tokens. get thinking tokens too.~
 
 P1 <br>
-1. Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.
-2. Auth in hyperbrowser
+1. ~Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.~
+2. Persistent in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
 4. UX: auto-format manifest, make icons available in "see HTML", chromie as default icon for extensions, auto-submit prompt after sign up 
 5. allow user input for env variables
