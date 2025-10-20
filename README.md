@@ -40,6 +40,7 @@ P2 <br>
 8. project limits are not correctly enforced. free user can build up to 3 projects
 9. Verify you're a human on the simulated browser is annoying (not sure if we can do anything for that). In long term, we can store auth/tabs state by creating each user a persistent session id
 10. manifest is sometimes not auto formatted as json. run the "format" button flow as soon as it's available so users don't have to.
+11. share link doesnt allow people to download. let them test in simulated browser post signup
 
 
 
