@@ -1,6 +1,17 @@
 // Browser control utilities for Hyperbrowser sessions
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 
+// Dynamic import helper to avoid bundling issues
+async function getPlaywrightChromium() {
+  try {
+    const { chromium } = await import('playwright-core')
+    return chromium
+  } catch (error) {
+    console.error("Failed to import playwright-core:", error.message)
+    throw error
+  }
+}
+
 /**
  * Obtain a Playwright browser context connected to the Hyperbrowser session via CDP
  * @param {string} sessionId
@@ -37,22 +48,65 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
   
   const wsEndpoint = sessionInfo.wsEndpoint || sessionInfo.connectUrl
   
+  console.log("Raw sessionInfo.wsEndpoint:", sessionInfo.wsEndpoint)
+  console.log("Raw sessionInfo.connectUrl:", sessionInfo.connectUrl)
+  console.log("Selected wsEndpoint:", wsEndpoint)
+  
   if (!wsEndpoint) {
     console.error("Session info:", sessionInfo)
     throw new Error(`Missing wsEndpoint for session ${sessionId}. Available fields: ${Object.keys(sessionInfo).join(', ')}`)
   }
   
   console.log("Connecting to wsEndpoint:", wsEndpoint)
+  console.log("wsEndpoint type:", typeof wsEndpoint)
+  console.log("wsEndpoint length:", wsEndpoint?.length)
+  
+  // Ensure wsEndpoint is a string
+  if (typeof wsEndpoint !== 'string') {
+    throw new Error(`wsEndpoint must be a string, got ${typeof wsEndpoint}: ${wsEndpoint}`)
+  }
   
   try {
-    const { chromium } = await import('playwright-core')
+    const chromium = await getPlaywrightChromium()
+    console.log("About to call chromium.connectOverCDP with:", wsEndpoint)
+    
+    // Try to parse the WebSocket URL to ensure it's valid
+    try {
+      const url = new URL(wsEndpoint)
+      console.log("Parsed WebSocket URL:", {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port,
+        pathname: url.pathname,
+        search: url.search
+      })
+    } catch (urlError) {
+      console.warn("Could not parse wsEndpoint as URL:", urlError.message)
+    }
+    
     const browser = await chromium.connectOverCDP(wsEndpoint)
     const context = browser.contexts()[0]
     const page = context.pages()[0] || (await context.newPage())
     return { browser, context, page }
   } catch (playwrightError) {
     console.error("Playwright connection failed:", playwrightError.message)
-    throw new Error(`Failed to connect to browser session: ${playwrightError.message}`)
+    console.error("Playwright error details:", playwrightError)
+    
+    // Try alternative connection method if available
+    try {
+      console.log("Attempting alternative connection method...")
+      const chromium = await getPlaywrightChromium()
+      
+      // Try connecting with a different approach
+      const browser = await chromium.connect(wsEndpoint)
+      const context = browser.contexts()[0]
+      const page = context.pages()[0] || (await context.newPage())
+      console.log("Alternative connection method succeeded")
+      return { browser, context, page }
+    } catch (altError) {
+      console.error("Alternative connection method also failed:", altError.message)
+      throw new Error(`Failed to connect to browser session: ${playwrightError.message}`)
+    }
   }
 }
 
@@ -137,8 +191,8 @@ export async function navigateToUrl(sessionId, url, apiKey) {
       
       // Format the URL - add protocol if missing
       let formattedUrl = url.trim()
-      if (!formattedUrl.match(/^https?:\/\//)) {
-        // If it doesn't start with http:// or https://, assume it's a search query or domain
+      if (!formattedUrl.match(/^https?:\/\//) && !formattedUrl.match(/^chrome:\/\//)) {
+        // If it doesn't start with http://, https://, or chrome://, assume it's a search query or domain
         if (formattedUrl.includes(' ') || formattedUrl.includes('.') && !formattedUrl.includes('/')) {
           // If it contains spaces or looks like a domain without path, treat as search
           formattedUrl = `https://www.google.com/search?q=${encodeURIComponent(formattedUrl)}`

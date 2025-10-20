@@ -95,7 +95,7 @@ export class HyperbrowserService {
                          session.liveViewUrl ||
                          session.liveUrl
       
-      console.log("Extracted liveViewUrl:", liveViewUrl)
+      console.log("Extracted liveViewUrl:")
       
       // If no live view URL is found, provide a fallback or error indication
       if (!liveViewUrl) {

@@ -312,7 +312,7 @@ export default function SideBySideTestModal({
                 className="absolute inset-0 w-full h-full border-0"
                 sandbox="allow-same-origin allow-scripts"
                 allow="clipboard-read; clipboard-write"
-                title="BrowserBase Session"
+                title="Test Environment Session"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">

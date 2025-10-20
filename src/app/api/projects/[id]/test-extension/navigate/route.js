@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+export const runtime = "nodejs"
 import { createClient } from "@/lib/supabase/server"
 import { navigateToUrl } from "@/lib/utils/browser-actions"
 
@@ -82,6 +83,7 @@ export async function POST(request, { params }) {
       if (fallbackApiKey && fallbackApiKey !== apiKey) {
         console.log("🔄 Trying debug with fallback API key...")
         try {
+          const { Hyperbrowser } = await import("@hyperbrowser/sdk")
           const fallbackClient = new Hyperbrowser({ apiKey: fallbackApiKey })
           const sessionInfo = await fallbackClient.sessions.get(sessionId)
           console.log("✅ Fallback API key worked for debug session lookup")
