@@ -2,12 +2,12 @@
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 
 // Dynamic import helper to avoid bundling issues
-async function getPlaywrightChromium() {
+async function getPuppeteerConnect() {
   try {
-    const { chromium } = await import('playwright-core')
-    return chromium
+    const { connect } = await import('puppeteer-core')
+    return connect
   } catch (error) {
-    console.error("Failed to import playwright-core:", error.message)
+    console.error("Failed to import puppeteer-core:", error.message)
     throw error
   }
 }
@@ -66,10 +66,11 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
     throw new Error(`wsEndpoint must be a string, got ${typeof wsEndpoint}: ${wsEndpoint}`)
   }
   
+  // Switch to Puppeteer connection per Hyperbrowser docs
   try {
-    const chromium = await getPlaywrightChromium()
-    console.log("About to call chromium.connectOverCDP with:", wsEndpoint)
-    
+    const puppeteerConnect = await getPuppeteerConnect()
+    console.log("About to call puppeteer.connect with:", wsEndpoint)
+
     // Try to parse the WebSocket URL to ensure it's valid
     try {
       const url = new URL(wsEndpoint)
@@ -83,30 +84,15 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
     } catch (urlError) {
       console.warn("Could not parse wsEndpoint as URL:", urlError.message)
     }
-    
-    const browser = await chromium.connectOverCDP(wsEndpoint)
-    const context = browser.contexts()[0]
-    const page = context.pages()[0] || (await context.newPage())
-    return { browser, context, page }
-  } catch (playwrightError) {
-    console.error("Playwright connection failed:", playwrightError.message)
-    console.error("Playwright error details:", playwrightError)
-    
-    // Try alternative connection method if available
-    try {
-      console.log("Attempting alternative connection method...")
-      const chromium = await getPlaywrightChromium()
-      
-      // Try connecting with a different approach
-      const browser = await chromium.connect(wsEndpoint)
-      const context = browser.contexts()[0]
-      const page = context.pages()[0] || (await context.newPage())
-      console.log("Alternative connection method succeeded")
-      return { browser, context, page }
-    } catch (altError) {
-      console.error("Alternative connection method also failed:", altError.message)
-      throw new Error(`Failed to connect to browser session: ${playwrightError.message}`)
-    }
+
+    const browser = await puppeteerConnect({ browserWSEndpoint: wsEndpoint })
+    const pages = await browser.pages()
+    const page = pages[0] || (await browser.newPage())
+    return { browser, page }
+  } catch (puppeteerError) {
+    console.error("Puppeteer connection failed:", puppeteerError.message)
+    console.error("Puppeteer error details:", puppeteerError)
+    throw new Error(`Failed to connect to browser session: ${puppeteerError.message}`)
   }
 }
 
@@ -182,13 +168,13 @@ export async function navigateToUrl(sessionId, url, apiKey) {
     console.log("⏳ Waiting for session to be fully ready...")
     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    // Use Playwright to navigate - open in new tab
+    // Use Puppeteer to navigate - open in new tab
     try {
-      const { page, context } = await getPlaywrightSessionContext(sessionId, apiKey)
-      
+      const { browser } = await getPlaywrightSessionContext(sessionId, apiKey)
+
       // Create a new tab for the navigation
-      const newPage = await context.newPage()
-      
+      const newPage = await browser.newPage()
+
       // Format the URL - add protocol if missing
       let formattedUrl = url.trim()
       if (!formattedUrl.match(/^https?:\/\//) && !formattedUrl.match(/^chrome:\/\//)) {
@@ -206,8 +192,8 @@ export async function navigateToUrl(sessionId, url, apiKey) {
       await newPage.goto(formattedUrl, { waitUntil: 'domcontentloaded', timeout: 30000 })
       console.log("Navigation successful to:", formattedUrl)
       return true
-    } catch (playwrightError) {
-      console.error("Playwright navigation failed:", playwrightError.message)
+    } catch (puppeteerNavError) {
+      console.error("Puppeteer navigation failed:", puppeteerNavError.message)
       // Fallback: just return true since the session is valid
       console.log(`✅ Session ${sessionId} is valid and ready for navigation to ${url}`)
       console.log(`🌐 Please navigate to ${url} manually in the browser window`)
