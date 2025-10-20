@@ -119,7 +119,7 @@ export async function navigateToUrl(sessionId, url, apiKey) {
       console.error("❌ Session lookup failed:", sessionError.message)
       console.error("Session error details:", sessionError)
       
-      // Try with fallback API key if available
+      // Try with fallback API key if it's available
       const fallbackApiKey = process.env.HYPERBROWSER_API_KEY_FALLBACK_1
       if (fallbackApiKey && fallbackApiKey !== apiKey) {
         console.log("🔄 Trying with fallback API key...")
