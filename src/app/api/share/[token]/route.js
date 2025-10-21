@@ -174,7 +174,7 @@ export async function GET(request, { params }) {
       share_info: {
         created_at: sharedProject.created_at,
         download_count: sharedProject.download_count,
-        share_url: `${process.env.NEXT_PUBLIC_SITE_URL}/share/${token}`
+        share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${token}`
       }
     })
 

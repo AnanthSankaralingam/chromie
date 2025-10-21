@@ -67,7 +67,7 @@ export async function GET(request) {
       download_count: share.download_count,
       is_active: share.is_active,
       project: share.projects,
-      share_url: `${process.env.NEXT_PUBLIC_SITE_URL}/share/${share.share_token}`
+      share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
     }))
 
     securityLog('info', 'User shares fetched', {
