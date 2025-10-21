@@ -4,13 +4,14 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload, Share, MessageSquare } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
 import { useShareExtension } from '@/hooks/use-share-extension'
 import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
+import ShareDropdown from "@/components/ui/share-dropdown"
 
 export default function AppBarBuilder({ 
   onTestExtension, 
@@ -148,44 +149,16 @@ export default function AppBarBuilder({
                   <TestTube className="h-4 w-4 mr-2" />
                   test extension
                 </Button>
-                <Button 
-                  onClick={handleDownloadClick} 
-                  disabled={isDownloadDisabled || isDownloading}
-                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {isDownloading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      downloading...
-                    </>
-                  ) : (
-                    "download"
-                  )}
-                </Button>
-                <Button 
-                  onClick={handlePublishClick}
-                  disabled={isTestDisabled || isGenerating}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 transition-all duration-200 px-4 py-2 font-medium"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  publish
-                </Button>
-                <Button 
-                  onClick={handleShareClick}
-                  disabled={!projectId || isSharing}
-                  className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-orange-500/25 transition-all duration-200 px-4 py-2 font-medium"
-                >
-                  <Share className="h-4 w-4 mr-2" />
-                  {isSharing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      sharing...
-                    </>
-                  ) : (
-                    "share"
-                  )}
-                </Button>
+                <ShareDropdown
+                  projectId={projectId}
+                  isDownloading={isDownloading}
+                  isSharing={isSharing}
+                  isGenerating={isGenerating}
+                  isTestDisabled={isTestDisabled}
+                  onDownloadZip={handleDownloadClick}
+                  onShareClick={handleShareClick}
+                  onPublishClick={handlePublishClick}
+                />
                 <Button 
                   onClick={handleFeedbackClick}
                   disabled={!projectId}
@@ -232,30 +205,19 @@ export default function AppBarBuilder({
               <TestTube className="h-4 w-4 mr-2" />
               test
             </Button>
-            <Button
-              onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
-              disabled={isDownloadDisabled || isDownloading}
-              className={`w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isDownloading ? "downloading..." : "download zip"}
-            </Button>
-            <Button
-              onClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
-              disabled={isTestDisabled || isGenerating}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              publish
-            </Button>
-            <Button
-              onClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
-              disabled={!projectId || isSharing}
-              className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Share className="h-4 w-4 mr-2" />
-              {isSharing ? "sharing..." : "share"}
-            </Button>
+            <div className="w-full">
+              <ShareDropdown
+                projectId={projectId}
+                isDownloading={isDownloading}
+                isSharing={isSharing}
+                isGenerating={isGenerating}
+                isTestDisabled={isTestDisabled}
+                onDownloadZip={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
+                onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
+                onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
+                className="w-full"
+              />
+            </div>
             <Button
               onClick={() => { handleFeedbackClick(); setIsMobileMenuOpen(false) }}
               disabled={!projectId}
