@@ -90,36 +90,47 @@ export async function GET(request, { params }) {
   }
 
   try {
+    // RLS policies now allow public access to shared data
+
     // Get shared project details
     const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_projects")
+      .from("shared_links")
       .select(`
         id,
         project_id,
         created_at,
         download_count,
         is_active,
-        projects!inner(
-          id,
-          name,
-          description
-        )
+        expires_at
       `)
       .eq("share_token", token)
       .eq("is_active", true)
+      .gt("expires_at", new Date().toISOString())
       .single()
 
     if (shareError || !sharedProject) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
     }
 
+    // Get project details (now works with proper RLS policies)
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select(`
+        id,
+        name,
+        description
+      `)
+      .eq("id", sharedProject.project_id)
+      .single()
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+
     // Check if share has expired
     if (sharedProject.expires_at && new Date() > new Date(sharedProject.expires_at)) {
       return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
-
-    // Rate limiting: Check download count for this share in the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     
     // For now, we'll use a simple approach - check if download count is reasonable
     // In a production environment, you'd want to track downloads per hour more precisely
@@ -133,7 +144,7 @@ export async function GET(request, { params }) {
       }, { status: 429 })
     }
 
-    // Get project files
+    // Get project files (now works with proper RLS policies)
     const { data: files, error: filesError } = await supabase
       .from("code_files")
       .select("file_path, content")
@@ -279,7 +290,7 @@ export async function GET(request, { params }) {
     }
 
     // Create safe filename
-    const safeProjectName = sharedProject.projects.name.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
+    const safeProjectName = project.name.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
     const filename = `chromie-shared-${safeProjectName}.zip`
 
     const processingTime = Date.now() - startTime

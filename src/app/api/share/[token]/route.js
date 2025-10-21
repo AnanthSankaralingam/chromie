@@ -56,22 +56,15 @@ export async function GET(request, { params }) {
         created_at,
         download_count,
         is_active,
-        expires_at,
-        projects!inner(
-          id,
-          name,
-          description,
-          created_at,
-          profiles!inner(
-            name,
-            email
-          )
-        )
+        expires_at
       `)
       .eq("share_token", token)
       .eq("is_active", true)
       .gt("expires_at", new Date().toISOString())
       .single()
+
+    console.log("sharedProject", sharedProject)
+    console.log("shareError", shareError)
 
     if (shareError || !sharedProject) {
       securityLog('warn', 'Share token not found', {
@@ -81,6 +74,52 @@ export async function GET(request, { params }) {
         clientIP
       })
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+    }
+
+    // Get project details (now works with proper RLS policies)
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select(`
+        id,
+        name,
+        description,
+        created_at,
+        user_id
+      `)
+      .eq("id", sharedProject.project_id)
+      .single()
+
+    if (projectError || !project) {
+      securityLog('warn', 'Project not found for share token', {
+        token: token?.substring(0, 8) + '...',
+        projectId: sharedProject.project_id,
+        error: projectError?.message,
+        userAgent,
+        clientIP
+      })
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+
+    // Get profile details (now works with proper RLS policies)
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select(`
+        name,
+        email
+      `)
+      .eq("id", project.user_id)
+      .single()
+
+    if (profileError || !profile) {
+      securityLog('warn', 'Profile not found for project', {
+        token: token?.substring(0, 8) + '...',
+        projectId: sharedProject.project_id,
+        userId: project.user_id,
+        error: profileError?.message,
+        userAgent,
+        clientIP
+      })
+      return NextResponse.json({ error: "Author information not found" }, { status: 404 })
     }
 
     // Check if share has expired
@@ -94,13 +133,15 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
 
-    // Get project files
+    // Get project files (now works with proper RLS policies)
     const { data: files, error: filesError } = await supabase
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
       .order("file_path")
 
+    console.log("Files query result:", { files: files?.length || 0, filesError })
+    
     if (filesError) {
       console.error("Error fetching project files:", filesError)
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
@@ -120,13 +161,13 @@ export async function GET(request, { params }) {
     // Return project details without sensitive information
     return NextResponse.json({
       project: {
-        id: sharedProject.projects.id,
-        name: sharedProject.projects.name,
-        description: sharedProject.projects.description,
-        created_at: sharedProject.projects.created_at,
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        created_at: project.created_at,
         author: {
-          name: sharedProject.projects.profiles.name,
-          email: sharedProject.projects.profiles.email
+          name: profile.name,
+          email: profile.email
         }
       },
       files: files || [],
@@ -201,12 +242,7 @@ export async function POST(request, { params }) {
         created_at,
         download_count,
         is_active,
-        expires_at,
-        projects!inner(
-          id,
-          name,
-          description
-        )
+        expires_at
       `)
       .eq("share_token", token)
       .eq("is_active", true)
@@ -215,6 +251,21 @@ export async function POST(request, { params }) {
 
     if (shareError || !sharedProject) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+    }
+
+    // Get project details (now works with proper RLS policies)
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select(`
+        id,
+        name,
+        description
+      `)
+      .eq("id", sharedProject.project_id)
+      .single()
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
     // Check if share has expired
@@ -233,8 +284,8 @@ export async function POST(request, { params }) {
       // Don't fail the request for this
     }
 
-    // Get project files
-    const { data: files, error: filesError } = await supabase
+    // Get project files (using service role to bypass RLS)
+    const { data: files, error: filesError } = await serviceSupabase
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
@@ -252,9 +303,9 @@ export async function POST(request, { params }) {
     // Return project data for zip generation
     return NextResponse.json({
       project: {
-        id: sharedProject.projects.id,
-        name: sharedProject.projects.name,
-        description: sharedProject.projects.description
+        id: project.id,
+        name: project.name,
+        description: project.description
       },
       files: files,
       download_count: sharedProject.download_count + 1
