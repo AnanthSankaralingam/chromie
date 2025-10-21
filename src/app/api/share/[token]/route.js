@@ -76,20 +76,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
     }
 
-    // Create service role client to bypass RLS for public access
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    let serviceSupabase = supabase
-    
-    if (supabaseUrl && serviceKey) {
-      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-      serviceSupabase = createServiceClient(supabaseUrl, serviceKey, {
-        auth: { persistSession: false }
-      })
-    }
-
-    // Get project details separately (using service role to bypass RLS)
-    const { data: project, error: projectError } = await serviceSupabase
+    // Get project details (now works with proper RLS policies)
+    const { data: project, error: projectError } = await supabase
       .from("projects")
       .select(`
         id,
@@ -112,8 +100,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Get profile details separately (using service role to bypass RLS)
-    const { data: profile, error: profileError } = await serviceSupabase
+    // Get profile details (now works with proper RLS policies)
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(`
         name,
@@ -145,8 +133,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
 
-    // Get project files (using service role to bypass RLS)
-    const { data: files, error: filesError } = await serviceSupabase
+    // Get project files (now works with proper RLS policies)
+    const { data: files, error: filesError } = await supabase
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
@@ -265,20 +253,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
     }
 
-    // Create service role client to bypass RLS for public access
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    let serviceSupabase = supabase
-    
-    if (supabaseUrl && serviceKey) {
-      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-      serviceSupabase = createServiceClient(supabaseUrl, serviceKey, {
-        auth: { persistSession: false }
-      })
-    }
-
-    // Get project details separately (using service role to bypass RLS)
-    const { data: project, error: projectError } = await serviceSupabase
+    // Get project details (now works with proper RLS policies)
+    const { data: project, error: projectError } = await supabase
       .from("projects")
       .select(`
         id,
