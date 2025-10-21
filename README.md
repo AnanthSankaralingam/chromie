@@ -4,43 +4,36 @@
 
 ### TODOs
 P0 <br>
-1. ~Share extension link: add share button to app-bar-builder. on share, create a custom link for that user's project. on click, it should route to a new page at /share where users, after signing up, can download the extension. we can teach about extensions and market chromie here as well.~
-2. ~Pricing update to tiered packages instead of subscriptions~
-3. ~Fix copy paste into hyperbrowser (maybe via hyperagent?). increase browser time limit.~
-4. ~Offline Scraper: create an offline job for popular links and create table in database. make sure to use only high accuracy, concise and well formatted structures to easily put in the prompt.~
-5. ~API Endpoint: detect extension requests that need an API, ask user what endpoint to use. Update prompts accordingly to ensure they use that endpoint and dont use optimized prompt.~
-6. fix schema mandatory fields so generic extensions don't generate empty files
-7. ~bug fix for token_usage and browser minutes measuring. dont use estimated tokens. get thinking tokens too.~
+1. Persistent sessions in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
+2. submit feedback button
+3. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
+4. fix schema mandatory fields so generic extensions don't generate empty files
+5. loading spinner while the testing browser loads
+6. extension name doesn't update after code gen done
+7. let users who receive a shared link test immediately in simulated browser post signup
 
 P1 <br>
-1. ~Online Scraper: update lambda function to call a scraper service (we can pay for it). Make sure only high quality outputs, maybe summarized by a call to Fireworks LLM.~
-2. Persistent in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
-3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-4. UX: auto-format manifest, make icons available in "see HTML", chromie as default icon for extensions, auto-submit prompt after sign up 
-5. allow user input for env variables
-6. submit feedback button
-7. database scalability - duplication and backups
-
-P2 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
-3. stop button in generation, rewrite earlier messages in chat
-4. welcome to chromie Email on signup
-5. Upload your own extension
+3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
+5. welcome to chromie Email on signup
+6. Upload your own extension/files
 
+P2. <br>
+1. integrate custom APIs (verify)
+2. integrate google oauth apis
 
 ### BUGS
 1. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
-2. playwright actions don't work and user didn't start on chrome://extensions. Maybe switch to hyperagent if that's more reliable? Or generate testing hyperagent script and automatically run on browser open
-3. Test button is confusing: we need to remove it. In long term, we can maybe create a simple hyperagent script based on coding agent's explanation + manifest to create some automated page navigation to ease testing
+3. Test button is confusing: we need to remove it or use it. In long term, we can maybe create a simple hyperagent script based on coding agent's explanation + manifest to create some automated page navigation to ease testing
 4. token tracking is not updating even though logs say they are
 5. Onboarding modal when routed to builder page should show 2-3 slides they can click through. Users need to know how to use the app.
 6. All icons/buttons on onboarding modals should match button from the app-bar-builder
-7. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
+7. icons arent always downloaded to the extension.
 8. project limits are not correctly enforced. free user can build up to 3 projects
-9. Verify you're a human on the simulated browser is annoying (not sure if we can do anything for that). In long term, we can store auth/tabs state by creating each user a persistent session id
+9. Verify you're a human on the simulated browser is annoying (not sure if we can do anything for that).
 10. manifest is sometimes not auto formatted as json. run the "format" button flow as soon as it's available so users don't have to.
-11. share link doesnt allow people to download. let them test in simulated browser post signup
+11. UX: auto-format manifest, chromie as default icon for extensions, auto-submit prompt after sign up 
 
 
 
