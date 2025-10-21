@@ -8,7 +8,6 @@ P0 <br>
 2. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
 3. fix schema mandatory fields so generic extensions don't generate empty files
 4. extension name doesn't update after code gen done
-5. let users who receive a shared link test immediately in simulated browser post signup
 
 P1 <br>
 1. test product end to end, along with billing
