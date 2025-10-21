@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
+import ProgressSpinner from "@/components/ui/loading/progress-spinner"
 
 export default function SideBySideTestModal({ 
   isOpen, 
@@ -13,6 +14,7 @@ export default function SideBySideTestModal({
   sessionData, 
   onRefresh, 
   isLoading = false,
+  loadingProgress = 0,
   projectId,
   extensionFiles = []
 }) {
@@ -23,6 +25,31 @@ export default function SideBySideTestModal({
   const [urlInput, setUrlInput] = useState("")
   const [isNavigating, setIsNavigating] = useState(false)
   const [navigationError, setNavigationError] = useState(null)
+  const [loadingStage, setLoadingStage] = useState(0)
+
+  // Define loading stages for browser initialization
+  const loadingStages = [
+    {
+      title: "Initializing Session",
+      description: "Creating a new browser session for testing your extension"
+    },
+    {
+      title: "Uploading Extension",
+      description: "Preparing and uploading your extension files to the browser"
+    },
+    {
+      title: "Loading Browser",
+      description: "Starting the browser environment with your extension installed"
+    },
+    {
+      title: "Establishing Connection",
+      description: "Connecting to the live browser view for testing"
+    },
+    {
+      title: "Ready for Testing",
+      description: "Your extension is loaded and ready to test!"
+    }
+  ]
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -31,6 +58,25 @@ export default function SideBySideTestModal({
       sessionStorage.setItem('session_' + sessionData.sessionId, JSON.stringify(sessionData))
     }
   }, [sessionData])
+
+  // Animate through stages like the original ProgressSpinner
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingStage(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setLoadingStage(prev => {
+        if (prev < loadingStages.length - 1) {
+          return prev + 1
+        }
+        return prev
+      })
+    }, 2000) // Progress every 2 seconds
+
+    return () => clearInterval(interval)
+  }, [isLoading, loadingStages.length])
 
   if (!isOpen) return null
 
@@ -291,7 +337,43 @@ export default function SideBySideTestModal({
                 </div>
               </div>
             ) : isLoading ? (
-              <BrowserTestingTutorial />
+              <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
+                <div className="text-center max-w-md">
+                  {/* Progress Bar */}
+                  <div className="mb-6">
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {loadingStage + 1} of {loadingStages.length} steps
+                    </p>
+                  </div>
+
+                  {/* Current Stage */}
+                  <div className="mb-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {loadingStages[loadingStage]?.title || "Initializing..."}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      {loadingStages[loadingStage]?.description || "Please wait while we prepare your testing environment"}
+                    </p>
+                  </div>
+
+                  {/* Simple Instructions */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h4 className="font-medium text-gray-900 mb-3">How to test your extension:</h4>
+                    <ul className="text-sm text-gray-600 space-y-2 text-left">
+                      <li>• Use the URL input to navigate to websites</li>
+                      <li>• Interact with pages to test your extension</li>
+                      <li>• Session expires after 1 minute</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center max-w-md">

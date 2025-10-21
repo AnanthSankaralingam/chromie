@@ -4,6 +4,7 @@ export default function useTestExtension(currentProjectId) {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testSessionData, setTestSessionData] = useState(null)
   const [isTestLoading, setIsTestLoading] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
   const cleanupAttempted = useRef(false)
 
   // Session cleanup function
@@ -84,16 +85,30 @@ export default function useTestExtension(currentProjectId) {
     }
 
     setIsTestLoading(true)
+    setLoadingProgress(0)
     setIsTestModalOpen(true)
     cleanupAttempted.current = false // Reset cleanup flag for new session
 
     try {
+      // Simulate progress updates during session creation
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev < 80) { // Don't go to 100% until we get the response
+            return prev + Math.random() * 15
+          }
+          return prev
+        })
+      }, 1000)
+
       const response = await fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       })
+
+      clearInterval(progressInterval)
+      setLoadingProgress(90)
 
       const data = await response.json()
 
@@ -103,6 +118,7 @@ export default function useTestExtension(currentProjectId) {
 
       console.log("Session data:", data.session)
       setTestSessionData(data.session)
+      setLoadingProgress(100)
       console.log("Test session created:", data.session.sessionId)
     } catch (error) {
       console.error("Error creating test session:", error)
@@ -143,6 +159,7 @@ export default function useTestExtension(currentProjectId) {
     isTestModalOpen,
     testSessionData,
     isTestLoading,
+    loadingProgress,
     handleTestExtension,
     handleCloseTestModal,
     handleRefreshTest,

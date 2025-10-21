@@ -484,6 +484,7 @@ export default function BuilderPage() {
         sessionData={testExtension.testSessionData}
         onRefresh={testExtension.handleRefreshTest}
         isLoading={testExtension.isTestLoading}
+        loadingProgress={testExtension.loadingProgress}
         projectId={projectSetup.currentProjectId}
         extensionFiles={fileManagement.flatFiles}
       />
