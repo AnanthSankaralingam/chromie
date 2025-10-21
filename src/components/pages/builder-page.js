@@ -21,6 +21,7 @@ import useResizablePanels from "@/components/ui/resizable-panels"
 import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
+import FeedbackModal from "@/components/ui/modals/feedback-modal"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -38,6 +39,8 @@ export default function BuilderPage() {
   const [hasTestedExtension, setHasTestedExtension] = useState(false)
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
   const [isPageVisible, setIsPageVisible] = useState(true)
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
 
   // Custom hooks
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
@@ -224,6 +227,43 @@ export default function BuilderPage() {
     window.location.href = '/'
   }
 
+  const handleFeedbackClick = () => {
+    setIsFeedbackModalOpen(true)
+  }
+
+  const handleFeedbackSubmit = async (feedbackData) => {
+    setIsSubmittingFeedback(true)
+    try {
+      const response = await fetch(`/api/projects/${feedbackData.projectId}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating: feedbackData.rating,
+          feedback: feedbackData.feedback
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit feedback')
+      }
+
+      const result = await response.json()
+      console.log('Feedback submitted successfully:', result)
+      
+      // You could show a success toast here if you have a toast system
+      alert('Thank you for your feedback!')
+      
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      alert('Failed to submit feedback. Please try again.')
+    } finally {
+      setIsSubmittingFeedback(false)
+    }
+  }
+
   // Show loading state
   if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
     return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
@@ -257,6 +297,7 @@ export default function BuilderPage() {
           isDownloading={downloadExtension.isDownloading}
           shouldStartTestHighlight={shouldStartTestHighlight}
           shouldStartDownloadHighlight={shouldStartDownloadHighlight}
+          onFeedbackClick={handleFeedbackClick}
         />
 
         {/* Mobile Tab Navigation */}
@@ -469,6 +510,15 @@ export default function BuilderPage() {
         onClose={onboardingModal.hideModal}
         currentStep={onboardingModal.currentStep}
         onNext={onboardingModal.goToNextStep}
+      />
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        onSubmit={handleFeedbackSubmit}
+        projectId={projectSetup.currentProjectId}
+        isLoading={isSubmittingFeedback}
       />
     </>
   )
