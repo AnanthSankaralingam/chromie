@@ -369,7 +369,7 @@ export default function SideBySideTestModal({
                     <ul className="text-sm text-gray-600 space-y-2 text-left">
                       <li>• Use the URL input to navigate to websites</li>
                       <li>• Interact with pages to test your extension</li>
-                      <li>• Session expires after 1 minute</li>
+                      <li>• Session expires after 3 minutes</li>
                     </ul>
                   </div>
                 </div>
