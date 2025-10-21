@@ -338,7 +338,7 @@ export default function SideBySideTestModal({
               </div>
             ) : isLoading ? (
               <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
-                <div className="text-center max-w-md">
+                <div className="text-center max-w-4xl w-full">
                   {/* Progress Bar */}
                   <div className="mb-6">
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
@@ -363,14 +363,57 @@ export default function SideBySideTestModal({
                     </p>
                   </div>
 
-                  {/* Simple Instructions */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-medium text-gray-900 mb-3">How to test your extension:</h4>
-                    <ul className="text-sm text-gray-600 space-y-2 text-left">
-                      <li>• Use the URL input to navigate to websites</li>
-                      <li>• Interact with pages to test your extension</li>
-                      <li>• Session expires after 3 minutes</li>
-                    </ul>
+                  {/* Detailed Instructions */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 text-center">How to test your extension:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Navigation & Testing Box */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center mb-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            <Navigation className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <h5 className="font-medium text-gray-900">Navigation & Testing</h5>
+                        </div>
+                        <ul className="text-sm text-gray-600 space-y-2">
+                          <li>• Use URL input to navigate</li>
+                          <li>• Click and interact naturally</li>
+                          <li>• Test on different websites</li>
+                          <li>• Use keyboard shortcuts</li>
+                        </ul>
+                      </div>
+                      
+                      {/* Extension Features Box */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center mb-3">
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                            <Eye className="h-4 w-4 text-green-600" />
+                          </div>
+                          <h5 className="font-medium text-gray-900">Extension Features</h5>
+                        </div>
+                        <ul className="text-sm text-gray-600 space-y-2">
+                          <li>• Extension is automatically loaded</li>
+                          <li>• Test popups and content scripts</li>
+                          <li>• Check behavior on different pages</li>
+                          <li>• Verify permissions work</li>
+                        </ul>
+                      </div>
+                      
+                      {/* Session Info Box */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center mb-3">
+                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                            <Info className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <h5 className="font-medium text-gray-900">Session Info</h5>
+                        </div>
+                        <ul className="text-sm text-gray-600 space-y-2">
+                          <li>• 3-minute session limit</li>
+                          <li>• Use "Test Extension" button</li>
+                          <li>• Close when done</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
