@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Zap, X } from "lucide-react"
+import { Zap } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 
 export default function AuthModal({ isOpen, onClose, redirectUrl }) {
@@ -107,13 +107,6 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
         <DialogTitle className="sr-only">Authentication</DialogTitle>
         <div className="sr-only">Sign in or create an account to continue building Chrome extensions</div>
         <div className="relative">
-          <button
-            onClick={onClose}
-            className="absolute -top-2 -right-2 w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-
           <Card className="bg-transparent border-none shadow-none">
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
