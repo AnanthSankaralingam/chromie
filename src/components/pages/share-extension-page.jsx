@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, User, Calendar, AlertCircle, Loader2, ExternalLink, LogIn, Lock, CheckCircle } from "lucide-react"
+import { Download, User, Calendar, AlertCircle, Loader2, ExternalLink, LogIn, Lock, CheckCircle, Play } from "lucide-react"
 import Link from "next/link"
 import { useSession } from '@/components/SessionProviderClient'
+import TestModal from '@/components/ui/modals/modal-testing-extension'
 
 export default function ShareExtensionPage({ token }) {
   const { user } = useSession()
@@ -14,6 +15,13 @@ export default function ShareExtensionPage({ token }) {
   const [error, setError] = useState(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState(null)
+  
+  // Test extension state
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false)
+  const [testSessionData, setTestSessionData] = useState(null)
+  const [isTestLoading, setIsTestLoading] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [testError, setTestError] = useState(null)
 
   useEffect(() => {
     if (token) {
@@ -88,6 +96,77 @@ export default function ShareExtensionPage({ token }) {
     } finally {
       setIsDownloading(false)
     }
+  }
+
+  const handleTestExtension = async () => {
+    if (!projectData?.project?.id) {
+      setTestError('No project data available')
+      return
+    }
+
+    setIsTestLoading(true)
+    setLoadingProgress(0)
+    setIsTestModalOpen(true)
+    setTestError(null)
+
+    try {
+      // Simulate progress updates during session creation
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev < 80) { // Don't go to 100% until we get the response
+            return prev + Math.random() * 15
+          }
+          return prev
+        })
+      }, 1000)
+
+      const response = await fetch(`/api/share/${token}/test`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      clearInterval(progressInterval)
+      setLoadingProgress(90)
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create test session")
+      }
+
+      console.log("Test session data:", data.session)
+      setTestSessionData(data.session)
+      setLoadingProgress(100)
+      console.log("Test session created:", data.session.sessionId)
+    } catch (error) {
+      console.error("Error creating test session:", error)
+      setTestError(error.message || "Failed to create test session")
+      setTestSessionData(null)
+    } finally {
+      setIsTestLoading(false)
+    }
+  }
+
+  const handleCloseTestModal = async () => {
+    if (testSessionData?.sessionId) {
+      try {
+        await fetch(`/api/share/${token}/test`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId: testSessionData.sessionId }),
+        })
+      } catch (error) {
+        console.error("Error cleaning up test session:", error)
+      }
+    }
+    
+    setIsTestModalOpen(false)
+    setTestSessionData(null)
+    setTestError(null)
   }
 
   const formatDate = (dateString) => {
@@ -177,21 +256,39 @@ export default function ShareExtensionPage({ token }) {
             </div>
           ) : (
             <div className="space-y-4">
-              <Button 
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  'Download Extension'
-                )}
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button 
+                  onClick={handleTestExtension}
+                  disabled={isTestLoading}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 font-medium"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  {isTestLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    'Test Extension'
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    'Download Extension'
+                  )}
+                </Button>
+              </div>
               
               {downloadError && (
                 <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
@@ -202,10 +299,23 @@ export default function ShareExtensionPage({ token }) {
                   <p className="text-red-300 text-sm">{downloadError}</p>
                 </div>
               )}
+              
+              {testError && (
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <AlertCircle className="h-4 w-4 text-red-400" />
+                    <span className="text-red-400 font-medium text-sm">Test Error</span>
+                  </div>
+                  <p className="text-red-300 text-sm">{testError}</p>
+                </div>
+              )}
             </div>
           )}
           
-          <div className="bg-slate-700/50 rounded-lg p-3">
+          <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
+            <p className="text-xs text-slate-400">
+              <strong>How to test:</strong> Click "Test Extension" to try the extension in a live browser environment. No installation required!
+            </p>
             <p className="text-xs text-slate-400">
               <strong>How to install:</strong> After downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">chrome://extensions/</Link>, extract the zip file and hit load unpacked in developer mode.
             </p>
@@ -254,7 +364,7 @@ export default function ShareExtensionPage({ token }) {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-                <span>Test from within the app</span>
+                <span>Test from within the app or on shared links</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
@@ -263,14 +373,25 @@ export default function ShareExtensionPage({ token }) {
             </div>
             
             <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-medium">
-              <Link href="/">
-                <ExternalLink className="h-4 w-4 mr-2" />
+              <Link href="/" className="flex items-center justify-center">
                 Start Building for Free
+                <ExternalLink className="h-4 w-4 ml-2" />
               </Link>
             </Button>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Test Extension Modal */}
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={handleCloseTestModal}
+        sessionData={testSessionData}
+        onRefresh={handleTestExtension}
+        isLoading={isTestLoading}
+        loadingProgress={loadingProgress}
+        projectId={projectData?.project?.id}
+      />
     </main>
   )
 }

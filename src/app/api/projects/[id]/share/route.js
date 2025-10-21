@@ -121,7 +121,7 @@ export async function POST(request, { params }) {
           id: existingShare.id,
           share_token: existingShare.share_token,
           created_at: existingShare.created_at,
-          share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${existingShare.share_token}`
+          share_url: `${process.env.NEXT_PUBLIC_SITE_URL}/share/${existingShare.share_token}`
         }
       })
     }
@@ -198,7 +198,7 @@ export async function POST(request, { params }) {
         id: share.id,
         share_token: share.share_token,
         created_at: share.created_at,
-        share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
+        share_url: `${process.env.NEXT_PUBLIC_SITE_URL}/share/${share.share_token}`
       }
     })
 
@@ -267,7 +267,7 @@ export async function GET(request, { params }) {
         created_at: share.created_at,
         download_count: share.download_count,
         is_active: share.is_active,
-        share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
+        share_url: `${process.env.NEXT_PUBLIC_SITE_URL}/share/${share.share_token}`
       }
     })
 
