@@ -61,7 +61,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
       title: "session info", 
       items: [
         "• 3-minute session limit",
-        "• use \"test extension\" button for ai-powered testing",
+        "• use \"test extension\" button for automated ai-agent testing",
         "• close when done"
       ]
     }
