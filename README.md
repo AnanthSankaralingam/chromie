@@ -5,7 +5,6 @@
 ### TODOs
 P0 <br>
 1. Persistent sessions in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
-2. submit feedback button
 3. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
 4. fix schema mandatory fields so generic extensions don't generate empty files
 5. loading spinner while the testing browser loads
