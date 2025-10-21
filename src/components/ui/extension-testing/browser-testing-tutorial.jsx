@@ -44,7 +44,7 @@ export default function BrowserTestingTutorial() {
             
             <div className="mt-12 p-6 bg-blue-50 rounded-lg">
               <p className="text-lg text-blue-800 text-center">
-                <strong>Pro tip:</strong> The session will automatically expire after 1 minute. 
+                <strong>Pro tip:</strong> The session will automatically expire after 3 minutes. 
               </p>
             </div>
           </div>

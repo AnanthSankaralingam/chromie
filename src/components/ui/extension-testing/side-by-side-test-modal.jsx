@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
+import ProgressSpinner from "@/components/ui/loading/progress-spinner"
 
 export default function SideBySideTestModal({ 
   isOpen, 
@@ -13,6 +14,7 @@ export default function SideBySideTestModal({
   sessionData, 
   onRefresh, 
   isLoading = false,
+  loadingProgress = 0,
   projectId,
   extensionFiles = []
 }) {
@@ -23,6 +25,59 @@ export default function SideBySideTestModal({
   const [urlInput, setUrlInput] = useState("")
   const [isNavigating, setIsNavigating] = useState(false)
   const [navigationError, setNavigationError] = useState(null)
+  const [loadingStage, setLoadingStage] = useState(0)
+
+  // Define loading stages for browser initialization
+  const loadingStages = [
+    {
+      title: "setting up browser",
+      description: "creating a new browser session for testing your extension"
+    },
+    {
+      title: "installing extension",
+      description: "preparing and uploading your extension files to the browser"
+    },
+    {
+      title: "ready for testing",
+      description: "your extension is loaded and ready to test!"
+    }
+  ]
+
+  // Define instruction boxes for each stage
+  const instructionBoxes = [
+    {
+      icon: Navigation,
+      iconColor: "blue",
+      title: "navigation & testing",
+      items: [
+        "• use url input to navigate",
+        "• click and interact naturally",
+        "• test on different websites",
+        "• use keyboard shortcuts"
+      ]
+    },
+    {
+      icon: Eye,
+      iconColor: "green", 
+      title: "extension features",
+      items: [
+        "• extension is automatically loaded",
+        "• test popups and content scripts",
+        "• check behavior on different pages",
+        "• verify permissions work"
+      ]
+    },
+    {
+      icon: Info,
+      iconColor: "purple",
+      title: "session info", 
+      items: [
+        "• 3-minute session limit",
+        "• use \"test extension\" button for automated ai-agent testing",
+        "• close when done"
+      ]
+    }
+  ]
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -31,6 +86,25 @@ export default function SideBySideTestModal({
       sessionStorage.setItem('session_' + sessionData.sessionId, JSON.stringify(sessionData))
     }
   }, [sessionData])
+
+  // Animate through stages like the original ProgressSpinner
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingStage(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setLoadingStage(prev => {
+        if (prev < loadingStages.length - 1) {
+          return prev + 1
+        }
+        return prev
+      })
+    }, 2000) // Progress every 2 seconds
+
+    return () => clearInterval(interval)
+  }, [isLoading, loadingStages.length])
 
   if (!isOpen) return null
 
@@ -291,7 +365,57 @@ export default function SideBySideTestModal({
                 </div>
               </div>
             ) : isLoading ? (
-              <BrowserTestingTutorial />
+              <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
+                <div className="text-center max-w-4xl w-full">
+                  {/* Progress Bar */}
+                  <div className="mb-6">
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {loadingStage + 1} of {loadingStages.length} steps
+                    </p>
+                  </div>
+
+                  {/* Current Stage */}
+                  <div className="mb-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {loadingStages[loadingStage]?.title || "Initializing..."}
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      {loadingStages[loadingStage]?.description || "Please wait while we prepare your testing environment"}
+                    </p>
+                  </div>
+
+                  {/* Dynamic Instructions - Show one box per stage */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
+                    <div className="flex justify-center">
+                      {instructionBoxes[loadingStage] && (
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
+                          <div className="flex items-center mb-4">
+                            <div className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}>
+                              {React.createElement(instructionBoxes[loadingStage].icon, {
+                                className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`
+                              })}
+                            </div>
+                            <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
+                          </div>
+                          <ul className="text-base text-gray-600 space-y-2 text-left">
+                            {instructionBoxes[loadingStage].items.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center max-w-md">
