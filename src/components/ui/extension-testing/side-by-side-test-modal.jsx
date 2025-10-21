@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -30,24 +30,52 @@ export default function SideBySideTestModal({
   // Define loading stages for browser initialization
   const loadingStages = [
     {
-      title: "Initializing Session",
-      description: "Creating a new browser session for testing your extension"
+      title: "setting up browser",
+      description: "creating a new browser session for testing your extension"
     },
     {
-      title: "Uploading Extension",
-      description: "Preparing and uploading your extension files to the browser"
+      title: "installing extension",
+      description: "preparing and uploading your extension files to the browser"
     },
     {
-      title: "Loading Browser",
-      description: "Starting the browser environment with your extension installed"
+      title: "ready for testing",
+      description: "your extension is loaded and ready to test!"
+    }
+  ]
+
+  // Define instruction boxes for each stage
+  const instructionBoxes = [
+    {
+      icon: Navigation,
+      iconColor: "blue",
+      title: "navigation & testing",
+      items: [
+        "• use url input to navigate",
+        "• click and interact naturally",
+        "• test on different websites",
+        "• use keyboard shortcuts"
+      ]
     },
     {
-      title: "Establishing Connection",
-      description: "Connecting to the live browser view for testing"
+      icon: Eye,
+      iconColor: "green", 
+      title: "extension features",
+      items: [
+        "• extension is automatically loaded",
+        "• test popups and content scripts",
+        "• check behavior on different pages",
+        "• verify permissions work"
+      ]
     },
     {
-      title: "Ready for Testing",
-      description: "Your extension is loaded and ready to test!"
+      icon: Info,
+      iconColor: "purple",
+      title: "session info", 
+      items: [
+        "• 3-minute session limit",
+        "• use \"test extension\" button for ai-powered testing",
+        "• close when done"
+      ]
     }
   ]
 
@@ -363,56 +391,27 @@ export default function SideBySideTestModal({
                     </p>
                   </div>
 
-                  {/* Detailed Instructions */}
+                  {/* Dynamic Instructions - Show one box per stage */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900 text-center">How to test your extension:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Navigation & Testing Box */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center mb-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                            <Navigation className="h-4 w-4 text-blue-600" />
+                    <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
+                    <div className="flex justify-center">
+                      {instructionBoxes[loadingStage] && (
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
+                          <div className="flex items-center mb-4">
+                            <div className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}>
+                              {React.createElement(instructionBoxes[loadingStage].icon, {
+                                className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`
+                              })}
+                            </div>
+                            <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
                           </div>
-                          <h5 className="font-medium text-gray-900">Navigation & Testing</h5>
+                          <ul className="text-base text-gray-600 space-y-2 text-left">
+                            {instructionBoxes[loadingStage].items.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="text-sm text-gray-600 space-y-2">
-                          <li>• Use URL input to navigate</li>
-                          <li>• Click and interact naturally</li>
-                          <li>• Test on different websites</li>
-                          <li>• Use keyboard shortcuts</li>
-                        </ul>
-                      </div>
-                      
-                      {/* Extension Features Box */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center mb-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                            <Eye className="h-4 w-4 text-green-600" />
-                          </div>
-                          <h5 className="font-medium text-gray-900">Extension Features</h5>
-                        </div>
-                        <ul className="text-sm text-gray-600 space-y-2">
-                          <li>• Extension is automatically loaded</li>
-                          <li>• Test popups and content scripts</li>
-                          <li>• Check behavior on different pages</li>
-                          <li>• Verify permissions work</li>
-                        </ul>
-                      </div>
-                      
-                      {/* Session Info Box */}
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center mb-3">
-                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                            <Info className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <h5 className="font-medium text-gray-900">Session Info</h5>
-                        </div>
-                        <ul className="text-sm text-gray-600 space-y-2">
-                          <li>• 3-minute session limit</li>
-                          <li>• Use "Test Extension" button</li>
-                          <li>• Close when done</li>
-                        </ul>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
