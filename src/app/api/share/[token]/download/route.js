@@ -90,36 +90,56 @@ export async function GET(request, { params }) {
   }
 
   try {
+    // Create service role client to bypass RLS for public access
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let serviceSupabase = supabase
+    
+    if (supabaseUrl && serviceKey) {
+      serviceSupabase = createServiceClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false }
+      })
+    }
+
     // Get shared project details
     const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_projects")
+      .from("shared_links")
       .select(`
         id,
         project_id,
         created_at,
         download_count,
         is_active,
-        projects!inner(
-          id,
-          name,
-          description
-        )
+        expires_at
       `)
       .eq("share_token", token)
       .eq("is_active", true)
+      .gt("expires_at", new Date().toISOString())
       .single()
 
     if (shareError || !sharedProject) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
     }
 
+    // Get project details separately (using service role to bypass RLS)
+    const { data: project, error: projectError } = await serviceSupabase
+      .from("projects")
+      .select(`
+        id,
+        name,
+        description
+      `)
+      .eq("id", sharedProject.project_id)
+      .single()
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 })
+    }
+
     // Check if share has expired
     if (sharedProject.expires_at && new Date() > new Date(sharedProject.expires_at)) {
       return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
-
-    // Rate limiting: Check download count for this share in the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     
     // For now, we'll use a simple approach - check if download count is reasonable
     // In a production environment, you'd want to track downloads per hour more precisely
@@ -133,8 +153,8 @@ export async function GET(request, { params }) {
       }, { status: 429 })
     }
 
-    // Get project files
-    const { data: files, error: filesError } = await supabase
+    // Get project files (using service role to bypass RLS)
+    const { data: files, error: filesError } = await serviceSupabase
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
@@ -279,7 +299,7 @@ export async function GET(request, { params }) {
     }
 
     // Create safe filename
-    const safeProjectName = sharedProject.projects.name.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
+    const safeProjectName = project.name.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase()
     const filename = `chromie-shared-${safeProjectName}.zip`
 
     const processingTime = Date.now() - startTime
