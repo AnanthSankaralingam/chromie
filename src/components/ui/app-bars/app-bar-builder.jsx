@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload, Share } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Upload, Share, MessageSquare } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -22,7 +22,8 @@ export default function AppBarBuilder({
   isGenerating = false,
   isDownloading = false,
   shouldStartTestHighlight = false,
-  shouldStartDownloadHighlight = false
+  shouldStartDownloadHighlight = false,
+  onFeedbackClick
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -86,6 +87,10 @@ export default function AppBarBuilder({
     setIsPublishOpen(true)
   }
 
+  const handleFeedbackClick = () => {
+    onFeedbackClick?.()
+  }
+
   // Helper function to get user initials
   const getUserInitials = (user) => {
     if (user?.user_metadata?.name) {
@@ -144,6 +149,21 @@ export default function AppBarBuilder({
                   test extension
                 </Button>
                 <Button 
+                  onClick={handleDownloadClick} 
+                  disabled={isDownloadDisabled || isDownloading}
+                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isDownloading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      downloading...
+                    </>
+                  ) : (
+                    "download"
+                  )}
+                </Button>
+                <Button 
                   onClick={handlePublishClick}
                   disabled={isTestDisabled || isGenerating}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 transition-all duration-200 px-4 py-2 font-medium"
@@ -167,19 +187,12 @@ export default function AppBarBuilder({
                   )}
                 </Button>
                 <Button 
-                  onClick={handleDownloadClick} 
-                  disabled={isDownloadDisabled || isDownloading}
-                  className={`bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-4 py-2 font-medium ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
+                  onClick={handleFeedbackClick}
+                  disabled={!projectId}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-indigo-500/25 transition-all duration-200 px-4 py-2 font-medium"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  {isDownloading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      downloading...
-                    </>
-                  ) : (
-                    "download"
-                  )}
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  feedback
                 </Button>
               </div>
               
@@ -220,6 +233,14 @@ export default function AppBarBuilder({
               test
             </Button>
             <Button
+              onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
+              disabled={isDownloadDisabled || isDownloading}
+              className={`w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isDownloading ? "downloading..." : "download zip"}
+            </Button>
+            <Button
               onClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -236,12 +257,12 @@ export default function AppBarBuilder({
               {isSharing ? "sharing..." : "share"}
             </Button>
             <Button
-              onClick={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
-              disabled={isDownloadDisabled || isDownloading}
-              className={`w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 ${isDownloadButtonHighlighted ? 'onboarding-pulse-download' : ''}`}
+              onClick={() => { handleFeedbackClick(); setIsMobileMenuOpen(false) }}
+              disabled={!projectId}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download className="h-4 w-4 mr-2" />
-              {isDownloading ? "downloading..." : "download zip"}
+              <MessageSquare className="h-4 w-4 mr-2" />
+              feedback
             </Button>
           </div>
         </div>
