@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
+import emailService from "@/lib/services/email-service"
 
 export async function GET() {
   const supabase = createClient()
@@ -62,6 +63,7 @@ export async function POST(request) {
           email: user.email,
           provider: user.app_metadata?.provider || 'google',
           project_count: 0,
+          welcome_email_sent: false,
           created_at: new Date().toISOString(),
           last_used_at: new Date().toISOString(),
         })
@@ -106,6 +108,40 @@ export async function POST(request) {
     }
 
     console.log("Successfully created project:", project.id)
+    
+    // Send welcome email for new users (first project creation)
+    if (!existingProfile) {
+      console.log("Sending welcome email to new user:", user.email)
+      try {
+        // Send welcome email asynchronously (don't wait for it)
+        emailService.sendWelcomeEmail(user).then(result => {
+          if (result.success) {
+            console.log("Welcome email sent successfully to:", user.email)
+            // Update the profile to mark welcome email as sent
+            supabase
+              .from("profiles")
+              .update({ 
+                welcome_email_sent: true,
+                welcome_email_sent_at: new Date().toISOString()
+              })
+              .eq("id", user.id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error("Error updating welcome email status:", error)
+                }
+              })
+          } else {
+            console.error("Failed to send welcome email:", result.error)
+          }
+        }).catch(error => {
+          console.error("Error sending welcome email:", error)
+        })
+      } catch (error) {
+        console.error("Error initiating welcome email:", error)
+        // Don't fail the project creation if email fails
+      }
+    }
+    
     return NextResponse.json({ project })
     
   } catch (err) {
