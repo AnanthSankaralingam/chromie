@@ -14,7 +14,8 @@ P1 <br>
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
 5. welcome to chromie Email on signup
-6. Upload your own extension/files
+6. dropdown to select a specific frontend type before code gen
+7. Upload your own extension/files
 
 P2. <br>
 1. integrate custom APIs (verify)
