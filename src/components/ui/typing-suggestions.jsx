@@ -19,7 +19,6 @@ const TypingSuggestions = ({
   const timeoutRef = useRef(null)
   const intervalRef = useRef(null)
 
-  // Get a curated list of inspiring suggestions from the extension suggestions
   const suggestions = [
     "a to-do list manager that helps you stay organized",
     "a password generator for secure online accounts", 
@@ -59,7 +58,6 @@ const TypingSuggestions = ({
   const eraseText = (textToErase, speed, onComplete) => {
     // Now we pass the text to erase as a parameter
     let index = textToErase.length
-    console.log('🗑️ Starting erase animation:', { textToErase, speed, currentLength: textToErase.length })
     
     intervalRef.current = setInterval(() => {
       if (index >= 0) {
@@ -89,33 +87,37 @@ const TypingSuggestions = ({
   const cycleSuggestions = () => {
     if (!isActive) return
 
-    const nextIndex = (currentIndex + 1) % suggestions.length
-    const nextSuggestion = suggestions[nextIndex]
-    setCurrentIndex(nextIndex)
-    setCurrentSuggestion(nextSuggestion)
-    
-    // Start typing the new suggestion
-    setIsErasing(false)
-    setIsTyping(true)
-    typeText(nextSuggestion, typingSpeed, () => {
-      setIsTyping(false)
+    setCurrentIndex(prevIndex => {
+      const nextIndex = (prevIndex + 1) % suggestions.length
+      const nextSuggestion = suggestions[nextIndex]
+      console.log('🔄 Cycling to suggestion:', { prevIndex, nextIndex, suggestion: nextSuggestion.slice(0, 50) + '...' })
+      setCurrentSuggestion(nextSuggestion)
       
-      // Wait before starting to erase
-      timeoutRef.current = setTimeout(() => {
-        if (!isActive) return
-        console.log('🔄 Starting erase phase for:', nextSuggestion)
-        setIsErasing(true)
+      // Start typing the new suggestion
+      setIsErasing(false)
+      setIsTyping(true)
+      typeText(nextSuggestion, typingSpeed, () => {
+        setIsTyping(false)
         
-        // Pass the full suggestion text to eraseText
-        eraseText(nextSuggestion, eraseSpeed, () => {
-          setIsErasing(false)
-          console.log('🔄 Erase phase completed, waiting before next cycle')
-          // Wait before starting next cycle
-          if (isActive) {
-            timeoutRef.current = setTimeout(cycleSuggestions, erasePause)
-          }
-        })
-      }, pauseDuration)
+        // Wait before starting to erase
+        timeoutRef.current = setTimeout(() => {
+          if (!isActive) return
+          console.log('🔄 Starting erase phase for:', nextSuggestion)
+          setIsErasing(true)
+          
+          // Pass the full suggestion text to eraseText
+          eraseText(nextSuggestion, eraseSpeed, () => {
+            setIsErasing(false)
+            console.log('🔄 Erase phase completed, waiting before next cycle')
+            // Wait before starting next cycle
+            if (isActive) {
+              timeoutRef.current = setTimeout(cycleSuggestions, erasePause)
+            }
+          })
+        }, pauseDuration)
+      })
+      
+      return nextIndex
     })
   }
 
