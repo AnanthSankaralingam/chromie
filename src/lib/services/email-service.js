@@ -22,7 +22,7 @@ export class EmailService {
       const { data, error } = await resend.emails.send({
         from: this.from,
         to: [user.email],
-        subject: 'Welcome to Chromie! 🎉',
+        subject: 'welcome to chromie! 🎉',
         html: this.generateWelcomeEmailHTML(user),
         text: this.generateWelcomeEmailText(user)
       })
@@ -55,7 +55,7 @@ export class EmailService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Chromie!</title>
+    <title>welcome to chromie!</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -212,7 +212,7 @@ export class EmailService {
         .cta-button {
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            color: #ffffff !important;
             padding: 16px 32px;
             text-decoration: none;
             border-radius: 50px;
