@@ -15,6 +15,8 @@ Tracks user info (linked to Supabase Auth).
 | `provider`          | text         | 'google', 'github', ...                        |
 | `stripe_customer_id`| text         | Stripe customer ref                            |
 | `project_count`     | integer      | DEFAULT 0, tracks total active projects        |
+| `welcome_email_sent`| boolean      | DEFAULT false, tracks if welcome email was sent |
+| `welcome_email_sent_at`| timestamptz | NULL, when welcome email was sent              |
 | `created_at`        | timestamptz  | DEFAULT now()                                  |
 | `last_used_at`      | timestamptz  | DEFAULT now()                                  |
 
@@ -220,6 +222,10 @@ CREATE POLICY purchases_user_insert ON purchases
 -- Add new columns to billing table
 ALTER TABLE billing ADD COLUMN IF NOT EXISTS purchase_count INTEGER DEFAULT 0;
 ALTER TABLE billing ADD COLUMN IF NOT EXISTS has_one_time_purchase BOOLEAN DEFAULT false;
+
+-- Add welcome email tracking columns to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcome_email_sent BOOLEAN DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcome_email_sent_at TIMESTAMPTZ;
 ```
 
 ### 2. Project counting (existing)
