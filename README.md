@@ -13,9 +13,8 @@ P1 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-5. welcome to chromie Email on signup
-6. dropdown to select a specific frontend type before code gen
-7. Upload your own extension/files
+4. dropdown to select a specific frontend type before code gen
+5. Upload your own extension/files
 
 P2. <br>
 1. integrate custom APIs (verify)
