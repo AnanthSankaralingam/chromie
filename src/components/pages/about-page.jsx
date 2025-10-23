@@ -25,7 +25,7 @@ export default function AboutPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
         {/* Header */}
         <AppBar />
 
@@ -34,38 +34,38 @@ export default function AboutPage() {
           <div className="max-w-6xl mx-auto">
             {/* Title */}
             <div className="text-center mb-16">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent leading-tight">
                 about chromie
               </h1>
             </div>
 
             {/* Workflow Steps */}
             <div className="grid md:grid-cols-3 gap-12">
-              <div className="flex flex-col items-center text-center bg-purple-800/30 backdrop-blur-sm rounded-lg p-10 border border-purple-500/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-purple-600 rounded-full mb-8">
+              <div className="flex flex-col items-center text-center bg-gray-800/30 backdrop-blur-sm rounded-lg p-10 border border-gray-500/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gray-600 rounded-full mb-8">
                   <Edit3 className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-semibold text-purple-300 mb-4">describe your chrome extension</h3>
+                <h3 className="text-2xl font-semibold text-gray-300 mb-4">describe your chrome extension</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">
                   tell us what you want your extension to do in plain english. we'll do the rest.
                 </p>
               </div>
               
-              <div className="flex flex-col items-center text-center bg-blue-800/30 backdrop-blur-sm rounded-lg p-10 border border-blue-500/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-blue-600 rounded-full mb-8">
+              <div className="flex flex-col items-center text-center bg-gray-700/30 backdrop-blur-sm rounded-lg p-10 border border-gray-400/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gray-500 rounded-full mb-8">
                   <TestTube className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-semibold text-blue-300 mb-4">test within the app</h3>
+                <h3 className="text-2xl font-semibold text-gray-300 mb-4">test within the app</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">
                   try your extension immediately in our simulated browser environment, testing all features and functionality in real-time.
                 </p>
               </div>
               
-              <div className="flex flex-col items-center text-center bg-green-800/30 backdrop-blur-sm rounded-lg p-10 border border-green-500/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-green-600 rounded-full mb-8">
+              <div className="flex flex-col items-center text-center bg-gray-600/30 backdrop-blur-sm rounded-lg p-10 border border-gray-300/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gray-400 rounded-full mb-8">
                   <Chrome className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-semibold text-green-300 mb-4">download or publish</h3>
+                <h3 className="text-2xl font-semibold text-gray-300 mb-4">download or publish</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">
                   get your extension directly to the chrome web store or download the files for manual installation. one-click deployment makes sharing your creation simple and fast.
                 </p>
@@ -74,14 +74,14 @@ export default function AboutPage() {
 
             {/* How-to: side-by-side steps */}
             <div className="mt-16">
-              <h2 className="text-3xl font-semibold text-center mb-8 bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent">
+              <h2 className="text-3xl font-semibold text-center mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                 how to use chromie
               </h2>
 
               {/* Step 1 */}
               <div className="grid md:grid-cols-2 gap-8 items-center mb-10">
-                <div className="bg-purple-800/20 border border-purple-500/20 rounded-lg p-6">
-                  <h3 className="text-2xl font-semibold text-purple-200 mb-2">describe your extension</h3>
+                <div className="bg-gray-800/20 border border-gray-500/20 rounded-lg p-6">
+                  <h3 className="text-2xl font-semibold text-gray-200 mb-2">describe your extension</h3>
                   <p className="text-gray-300">tell chromie what you want in plain english. keep it simple and specific.</p>
                 </div>
                 <div className="relative w-full h-64 md:h-80 rounded-lg overflow-hidden bg-white/5 border border-white/10">

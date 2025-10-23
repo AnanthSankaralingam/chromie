@@ -248,25 +248,25 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
         {/* Header */}
         <AppBar />
 
         {/* Main Content */}
         <main className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent leading-tight">
               what do you want to build?
             </h1>
-            <p className="text-xl text-slate-400 mb-8 md:mb-12 max-w-2xl mx-auto px-2">
+            <p className="text-xl text-gray-400 mb-8 md:mb-12 max-w-2xl mx-auto px-2">
               create powerful chrome extensions by chatting with ai.
             </p>
 

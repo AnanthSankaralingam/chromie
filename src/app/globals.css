@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
   }
 }
 
@@ -54,17 +54,23 @@
     @apply border-gray-200;
   }
   body {
-    @apply bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white;
+    @apply bg-gradient-to-br from-black via-gray-900 to-black text-white;
   }
   
   html {
-    @apply bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900;
+    @apply bg-gradient-to-br from-black via-gray-900 to-black;
     scroll-behavior: smooth;
+  }
+  
+  /* Fix text clipping issues */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.1;
+    padding-bottom: 0.1em;
   }
   
   /* Ensure all scrollable areas have proper background */
   .overflow-auto, .overflow-y-auto, .overflow-x-auto {
-    background: linear-gradient(to bottom, rgba(30, 41, 59, 0.3), rgba(15, 23, 42, 0.3));
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(17, 24, 39, 0.3));
   }
   
   /* File tree indentation improvements */
@@ -106,7 +112,7 @@
   /* Custom scrollbar styling */
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(139, 92, 246, 0.3) rgba(30, 41, 59, 0.1);
+    scrollbar-color: rgba(75, 85, 99, 0.5) rgba(0, 0, 0, 0.1);
   }
   
   .custom-scrollbar::-webkit-scrollbar {
@@ -114,26 +120,26 @@
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.3);
+    background: rgba(75, 85, 99, 0.5);
     border-radius: 4px;
-    border: 1px solid rgba(30, 41, 59, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.5);
+    background: rgba(75, 85, 99, 0.7);
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:active {
-    background: rgba(139, 92, 246, 0.7);
+    background: rgba(75, 85, 99, 0.9);
   }
   
   .custom-scrollbar::-webkit-scrollbar-corner {
-    background: rgba(30, 41, 59, 0.1);
+    background: rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -149,11 +155,11 @@
   }
   
   .option-btn.primary:hover {
-    background: #2563eb !important;
+    background: #374151 !important;
   }
   
   .option-btn.secondary:hover {
-    background: #e5e7eb !important;
+    background: #1f2937 !important;
   }
   
   .option-btn:disabled {
@@ -200,33 +206,33 @@
   /* Onboarding button highlight - bright highlight with subtle pulse for 6 seconds */
   .onboarding-pulse {
     box-shadow: 
-      0 0 0 4px rgba(16, 185, 129, 0.8),
-      0 0 25px rgba(16, 185, 129, 0.9),
-      0 0 50px rgba(16, 185, 129, 0.5),
-      inset 0 0 0 1px rgba(16, 185, 129, 1);
+      0 0 0 4px rgba(75, 85, 99, 0.8),
+      0 0 25px rgba(75, 85, 99, 0.9),
+      0 0 50px rgba(75, 85, 99, 0.5),
+      inset 0 0 0 1px rgba(75, 85, 99, 1);
     transform: scale(1.02);
     position: relative;
     z-index: 10;
-    background: linear-gradient(135deg, #10b981, #059669) !important;
-    border: 1px solid #10b981 !important;
+    background: linear-gradient(135deg, #374151, #1f2937) !important;
+    border: 1px solid #4b5563 !important;
     animation: subtle-pulse 8s ease-in-out infinite;
   }
 
   @keyframes subtle-pulse {
     0%, 100% {
       box-shadow: 
-        0 0 0 4px rgba(16, 185, 129, 0.8),
-        0 0 25px rgba(16, 185, 129, 0.9),
-        0 0 50px rgba(16, 185, 129, 0.5),
-        inset 0 0 0 1px rgba(16, 185, 129, 1);
+        0 0 0 4px rgba(75, 85, 99, 0.8),
+        0 0 25px rgba(75, 85, 99, 0.9),
+        0 0 50px rgba(75, 85, 99, 0.5),
+        inset 0 0 0 1px rgba(75, 85, 99, 1);
       transform: scale(1.02);
     }
     50% {
       box-shadow: 
-        0 0 0 5px rgba(16, 185, 129, 0.9),
-        0 0 30px rgba(16, 185, 129, 1),
-        0 0 60px rgba(16, 185, 129, 0.6),
-        inset 0 0 0 1px rgba(16, 185, 129, 1);
+        0 0 0 5px rgba(75, 85, 99, 0.9),
+        0 0 30px rgba(75, 85, 99, 1),
+        0 0 60px rgba(75, 85, 99, 0.6),
+        inset 0 0 0 1px rgba(75, 85, 99, 1);
       transform: scale(1.03);
     }
   }
@@ -240,26 +246,26 @@
   @keyframes onboarding-pulse-download {
     0%, 40% {
       box-shadow: 
-        0 0 0 0 rgba(59, 130, 246, 0.8),
-        0 0 0 0 rgba(59, 130, 246, 0.6),
-        0 0 20px rgba(59, 130, 246, 0.4),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+        0 0 0 0 rgba(75, 85, 99, 0.8),
+        0 0 0 0 rgba(75, 85, 99, 0.6),
+        0 0 20px rgba(75, 85, 99, 0.4),
+        inset 0 0 0 1px rgba(75, 85, 99, 0.3);
       transform: scale(1);
     }
     48%, 52% {
       box-shadow: 
-        0 0 0 8px rgba(59, 130, 246, 0.4),
-        0 0 0 16px rgba(59, 130, 246, 0.2),
-        0 0 30px rgba(59, 130, 246, 0.6),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.5);
+        0 0 0 8px rgba(75, 85, 99, 0.4),
+        0 0 0 16px rgba(75, 85, 99, 0.2),
+        0 0 30px rgba(75, 85, 99, 0.6),
+        inset 0 0 0 1px rgba(75, 85, 99, 0.5);
       transform: scale(1.02);
     }
     60%, 100% {
       box-shadow: 
-        0 0 0 0 rgba(59, 130, 246, 0.8),
-        0 0 0 0 rgba(59, 130, 246, 0.6),
-        0 0 20px rgba(59, 130, 246, 0.4),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+        0 0 0 0 rgba(75, 85, 99, 0.8),
+        0 0 0 0 rgba(75, 85, 99, 0.6),
+        0 0 20px rgba(75, 85, 99, 0.4),
+        inset 0 0 0 1px rgba(75, 85, 99, 0.3);
       transform: scale(1);
     }
   }

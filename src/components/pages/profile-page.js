@@ -259,7 +259,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
         <AppBar />
         <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
@@ -288,7 +288,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
       <AppBar />
       <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
         {/* User Profile Section */}
@@ -305,24 +305,24 @@ export default function ProfilePage() {
                   src={user?.user_metadata?.picture} 
                   alt={user?.user_metadata?.name || user?.email}
                 />
-                <AvatarFallback className="bg-purple-600 text-white text-lg font-medium">
+                <AvatarFallback className="bg-gray-600 text-white text-lg font-medium">
                   {getUserInitials(user)}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-slate-400" />
+                  <Mail className="h-4 w-4 text-gray-400" />
                   <span className="text-white">{user.email}</span>
                 </div>
                 {user.user_metadata?.name && (
                   <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-slate-400" />
+                    <User className="h-4 w-4 text-gray-400" />
                     <span className="text-white">{user.user_metadata.name}</span>
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-300 text-sm">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-300 text-sm">
                     Member since {formatDate(user.created_at)}
                   </span>
                 </div>
@@ -353,7 +353,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
-                      <p className="text-slate-400 text-sm">{getPlanInfo(billing.plan).price}</p>
+                      <p className="text-gray-400 text-sm">{getPlanInfo(billing.plan).price}</p>
                     </div>
                   </div>
                   <Badge 
@@ -394,7 +394,7 @@ export default function ProfilePage() {
                     <Button
                       onClick={() => handleBillingAction('downgrade', 'starter')}
                       variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
                     >
                       <ArrowDownRight className="h-4 w-4 mr-2" />
                       Downgrade to Starter
@@ -403,13 +403,13 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Subscription Details */}
-                <div className="text-sm text-slate-400 space-y-1">
+                <div className="text-sm text-gray-400 space-y-1">
                   <p>Valid until: {formatDate(billing.valid_until)}</p>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="text-slate-300 mb-4">No active subscription found.</div>
+                <div className="text-gray-300 mb-4">No active subscription found.</div>
                 <Button
                   onClick={() => setBillingDialogOpen(true)}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
@@ -449,7 +449,7 @@ export default function ProfilePage() {
               </div>
             ) : projects.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-slate-300">No projects found. Create your first project in the builder!</div>
+                <div className="text-gray-300">No projects found. Create your first project in the builder!</div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -461,7 +461,7 @@ export default function ProfilePage() {
                           <Input
                             value={newProjectName}
                             onChange={(e) => setNewProjectName(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                             placeholder="Enter new project name"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
@@ -483,7 +483,7 @@ export default function ProfilePage() {
                               setEditingProject(null)
                               setNewProjectName("")
                             }}
-                            className="text-slate-400 hover:text-white"
+                            className="text-gray-400 hover:text-white"
                           >
                             Cancel
                           </Button>
@@ -493,13 +493,13 @@ export default function ProfilePage() {
                           <div>
                             <h3 className="text-white font-medium">{project.name}</h3>
                             {project.description && (
-                              <p className="text-slate-400 text-sm">{project.description}</p>
+                              <p className="text-gray-400 text-sm">{project.description}</p>
                             )}
-                            <p className="text-slate-500 text-xs mt-1">
+                            <p className="text-gray-500 text-xs mt-1">
                               Created {formatDate(project.created_at)}
                             </p>
                           </div>
-                          <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                          <Badge variant="secondary" className="bg-gray-500/10 text-gray-400 border-gray-500/20">
                             {project.archived ? 'Archived' : 'Active'}
                           </Badge>
                         </div>
@@ -514,7 +514,7 @@ export default function ProfilePage() {
                              setEditingProject(project.id)
                              setNewProjectName(project.name)
                            }}
-                           className="text-slate-500 hover:text-slate-400 cursor-not-allowed"
+                           className="text-gray-500 hover:text-gray-400 cursor-not-allowed"
                            title="Renaming is no longer supported - names update automatically"
                            disabled
                          >
@@ -524,7 +524,7 @@ export default function ProfilePage() {
                            size="sm"
                            variant="ghost"
                            onClick={() => navigateToBuilderWithProject(project.id)}
-                           className="text-blue-400 hover:text-blue-300"
+                           className="text-gray-400 hover:text-gray-300"
                            title="Edit project in builder"
                          >
                            <ExternalLink className="h-4 w-4" />
@@ -565,7 +565,7 @@ export default function ProfilePage() {
               </div>
             ) : shares.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-slate-300">No shared extensions yet. Share your projects from the builder!</div>
+                <div className="text-gray-300">No shared extensions yet. Share your projects from the builder!</div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -576,9 +576,9 @@ export default function ProfilePage() {
                         <div>
                           <h3 className="text-white font-medium">{share.project.name}</h3>
                           {share.project.description && (
-                            <p className="text-slate-400 text-sm">{share.project.description}</p>
+                            <p className="text-gray-400 text-sm">{share.project.description}</p>
                           )}
-                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
+                          <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                             <span>Shared {formatDate(share.created_at)}</span>
                             <span className="flex items-center space-x-1">
                               <Download className="h-3 w-3" />
@@ -596,7 +596,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyShareLink(share.share_url, share.id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="text-gray-400 hover:text-gray-300"
                         title="Copy share link"
                       >
                         {copiedShareId === share.id ? (
@@ -609,7 +609,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => window.open(share.share_url, '_blank')}
-                        className="text-purple-400 hover:text-purple-300"
+                        className="text-gray-400 hover:text-gray-300"
                         title="View share page"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -644,10 +644,10 @@ export default function ProfilePage() {
                 Sign Out
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogContent className="bg-gray-800 border-gray-700">
               <DialogHeader>
                 <DialogTitle className="text-red-400">Sign Out</DialogTitle>
-                <DialogDescription className="text-slate-300">
+                <DialogDescription className="text-gray-300">
                   Are you sure you want to sign out?
                   Your projects and data will remain safe and you can sign back in anytime.
                 </DialogDescription>
@@ -656,7 +656,7 @@ export default function ProfilePage() {
                 <Button
                   variant="ghost"
                   onClick={() => setSignOutDialogOpen(false)}
-                  className="text-slate-300 hover:text-white"
+                  className="text-gray-300 hover:text-white"
                 >
                   Cancel
                 </Button>
@@ -675,10 +675,10 @@ export default function ProfilePage() {
 
         {/* Project Deletion Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-gray-800 border-gray-700">
             <DialogHeader>
               <DialogTitle className="text-red-400">Delete Project</DialogTitle>
-              <DialogDescription className="text-slate-300">
+              <DialogDescription className="text-gray-300">
                 {projectToDelete ? (
                   <>
                     Are you sure you want to delete <strong>"{projectToDelete.name}"</strong>?
@@ -696,7 +696,7 @@ export default function ProfilePage() {
                   setDeleteDialogOpen(false)
                   setProjectToDelete(null)
                 }}
-                className="text-slate-300 hover:text-white"
+                className="text-gray-300 hover:text-white"
               >
                 Cancel
               </Button>
@@ -715,12 +715,12 @@ export default function ProfilePage() {
 
       {/* Billing Modal */}
       <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-gray-800 border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">
               {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'starter' ? 'Downgrade to Starter' : 'Choose a Plan'}
             </DialogTitle>
-            <DialogDescription className="text-slate-300">
+            <DialogDescription className="text-gray-300">
               {selectedPlan === 'pro' 
                 ? 'Upgrade to Pro for more features and higher limits.'
                 : selectedPlan === 'starter'
@@ -738,7 +738,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <h3 className="text-white font-medium">{getPlanInfo(selectedPlan).name}</h3>
-                    <p className="text-slate-400 text-sm">{getPlanInfo(selectedPlan).price}</p>
+                    <p className="text-gray-400 text-sm">{getPlanInfo(selectedPlan).price}</p>
                   </div>
                 </div>
               </div>
@@ -748,7 +748,7 @@ export default function ProfilePage() {
             <Button
               variant="ghost"
               onClick={() => setBillingDialogOpen(false)}
-              className="text-slate-300 hover:text-white"
+              className="text-gray-300 hover:text-white"
             >
               Cancel
             </Button>

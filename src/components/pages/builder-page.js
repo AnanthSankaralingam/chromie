@@ -284,7 +284,7 @@ export default function BuilderPage() {
 
   return (
     <>
-      <div className={`h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <AppBarBuilder
           onTestExtension={testExtension.handleTestExtension}
@@ -301,7 +301,7 @@ export default function BuilderPage() {
         />
 
         {/* Mobile Tab Navigation */}
-        <div className="lg:hidden border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+        <div className="lg:hidden border-b border-white/10 bg-gradient-to-r from-gray-800/50 to-gray-700/50 backdrop-blur-sm">
           <div className="flex">
             <button
               onClick={() => setActiveTab('chat')}

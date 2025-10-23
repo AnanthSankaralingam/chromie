@@ -17,10 +17,10 @@ export default function ChatMessage({ message, index, typingCancelSignal }) {
       <div
         className={`max-w-[80%] p-4 rounded-2xl ${
           message.role === "user"
-            ? "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-400/30 text-blue-100 backdrop-blur-sm shadow-lg"
+            ? "bg-gradient-to-r from-gray-600/20 to-gray-700/20 border border-gray-500/30 text-gray-100 backdrop-blur-sm shadow-lg"
             : isFinalExplanation
-            ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 text-white backdrop-blur-sm shadow-xl ring-2 ring-green-400/20"
-            : "bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-slate-200 backdrop-blur-sm shadow-lg"
+            ? "bg-gradient-to-r from-gray-500/20 to-gray-600/20 border border-gray-400/40 text-white backdrop-blur-sm shadow-xl ring-2 ring-gray-400/20"
+            : "bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/50 text-gray-200 backdrop-blur-sm shadow-lg"
         }`}
       >
         {message.role === "assistant" ? (

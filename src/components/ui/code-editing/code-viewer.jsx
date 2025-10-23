@@ -68,7 +68,7 @@ export default function CodeViewer({ code, fileName, className = "" }) {
 
   return (
     <div className={`relative ${className}`}>
-      <pre className="line-numbers !bg-slate-900/50 !border !border-slate-700/50 !rounded-lg !p-4 !m-0 overflow-auto custom-scrollbar">
+      <pre className="line-numbers !bg-black/50 !border !border-gray-700/50 !rounded-lg !p-4 !m-0 overflow-auto custom-scrollbar">
         <code 
           ref={codeRef}
           className={`language-${language} !bg-transparent !text-sm`}
@@ -78,7 +78,7 @@ export default function CodeViewer({ code, fileName, className = "" }) {
       </pre>
       
       {/* Language indicator */}
-      <div className="absolute top-3 right-3 bg-slate-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-slate-300 border border-slate-600/50">
+      <div className="absolute top-3 right-3 bg-gray-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-300 border border-gray-600/50">
         {language}
       </div>
       
