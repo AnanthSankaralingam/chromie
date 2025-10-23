@@ -190,9 +190,9 @@ export default function ShareExtensionPage({ token }) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">loading extension</h2>
-          <p className="text-slate-400">fetching project details...</p>
+          <p className="text-gray-400">fetching project details...</p>
         </div>
       </div>
     )
@@ -201,18 +201,18 @@ export default function ShareExtensionPage({ token }) {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Card className="w-full max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+        <Card className="w-full max-w-md bg-gray-800/95 border-gray-700 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="h-8 w-8 text-red-400" />
             </div>
             <CardTitle className="text-white text-xl">extension not found</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-gray-400">
               {error}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            <Button asChild className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800">
               <Link href="/">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 go to chromie
@@ -232,10 +232,10 @@ export default function ShareExtensionPage({ token }) {
 
   return (
     <main className="max-w-2xl mx-auto px-6 py-8">
-      <Card className="bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+      <Card className="bg-gray-800/95 border-gray-700 backdrop-blur-sm">
         <CardHeader className="text-center pb-6">
           <CardTitle className="text-white text-2xl mb-2">{project.author.name.split(' ')[0].toLowerCase()} shared their chrome extension with you!</CardTitle>
-          <CardDescription className="text-slate-400 text-lg">
+          <CardDescription className="text-gray-400 text-lg">
             {project.name} - {project.description || 'a chrome extension built with chromie'}
           </CardDescription>
         </CardHeader>
@@ -263,7 +263,7 @@ export default function ShareExtensionPage({ token }) {
               <Button 
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
+                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 font-medium"
               >
                 <Download className="h-4 w-4 mr-2" />
                 {isDownloading ? (
@@ -297,19 +297,19 @@ export default function ShareExtensionPage({ token }) {
               </div>
             )}
           
-          <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
-            <p className="text-xs text-slate-400">
+          <div className="bg-gray-700/50 rounded-lg p-3 space-y-2">
+            <p className="text-xs text-gray-400">
               <strong>how to test:</strong> click "test extension" to try the extension in a live browser environment. no installation required!
             </p>
-            <p className="text-xs text-slate-400">
-              <strong>how to install:</strong> after downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">chrome://extensions/</Link>, extract the zip file and hit load unpacked in developer mode.
+            <p className="text-xs text-gray-400">
+              <strong>how to install:</strong> after downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-gray-200 underline">chrome://extensions/</Link>, extract the zip file and hit load unpacked in developer mode.
             </p>
           </div>
           </div>
 
           {/* Project Details */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-4 text-sm text-slate-400">
+            <div className="flex items-center space-x-4 text-sm text-gray-400">
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4" />
                 <span>created by {project.author.name}</span>
@@ -322,11 +322,11 @@ export default function ShareExtensionPage({ token }) {
             
             <div className="space-y-2">
               <h4 className="text-white font-medium text-sm">extension files ({files.length})</h4>
-              <div className="space-y-1 max-h-32 overflow-y-auto bg-slate-700/30 rounded-lg p-3">
+              <div className="space-y-1 max-h-32 overflow-y-auto bg-gray-700/30 rounded-lg p-3">
                 {files.map((file, index) => (
                   <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-slate-300 font-mono text-xs">{file.file_path}</span>
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></div>
+                    <span className="text-gray-300 font-mono text-xs">{file.file_path}</span>
                   </div>
                 ))}
               </div>
@@ -334,30 +334,30 @@ export default function ShareExtensionPage({ token }) {
           </div>
 
           {/* CTA Section */}
-          <div className="space-y-4 pt-4 border-t border-slate-600">
+          <div className="space-y-4 pt-4 border-t border-gray-600">
             <div>
               <h3 className="text-white text-lg font-semibold mb-2">create your own extension</h3>
-              <p className="text-slate-300 text-sm mb-4">
+              <p className="text-gray-300 text-sm mb-4">
                 want to build extensions like this? try chromie for free!
               </p>
             </div>
             
-            <div className="space-y-2 text-sm text-slate-300">
+            <div className="space-y-2 text-sm text-gray-300">
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>describe your idea, we'll write the code</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>test from within the app or on shared links</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>publish, share or download your extension</span>
               </div>
             </div>
             
-            <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-medium">
+            <Button asChild className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 font-medium">
               <Link href="/" className="flex items-center justify-center">
                 start building for free
                 <ExternalLink className="h-4 w-4 ml-2" />

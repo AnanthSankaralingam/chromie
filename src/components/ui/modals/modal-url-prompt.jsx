@@ -43,7 +43,7 @@ export default function ModalUrlPrompt({
     
     modal.innerHTML = `
       <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; backdrop-blur-sm;">
-        <div class="url-prompt-container" style="background: #1e293b; color: #f1f5f9; border: 1px solid #475569; border-radius: 12px; padding: 20px; width: 92%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+        <div class="url-prompt-container" style="background: #000000; color: #f1f5f9; border: 1px solid #374151; border-radius: 12px; padding: 20px; width: 92%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
           <div class="url-prompt-header" style="display:flex; align-items:center; justify-content: space-between; margin-bottom: 12px;">
             <div style="font-size: 16px; font-weight: 600; color: #f1f5f9;">Website URL</div>
             <button id="cancelUrlPrompt" aria-label="Close" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; border-radius: 4px; hover:bg-slate-600;">×</button>
@@ -52,7 +52,7 @@ export default function ModalUrlPrompt({
           <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
 
           ${suggestedUrl ? `
-            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #7c3aed, #2563eb); color: white; border: 1px solid #6366f1; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
+            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #374151, #1f2937); color: white; border: 1px solid #4b5563; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
               <span style="opacity:.9;">Suggested:</span>
               <strong style="font-weight:600;">${new URL(suggestedUrl).hostname}</strong>
             </button>

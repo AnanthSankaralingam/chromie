@@ -18,8 +18,8 @@ export default function PricingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ export default function PricingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
         {/* Header */}
         <AppBar />
 
@@ -50,7 +50,7 @@ export default function PricingPage() {
           <div className="max-w-6xl mx-auto">
             {/* Title */}
             <div className="text-center mb-16">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent leading-tight">
                 pricing
               </h1>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
@@ -61,7 +61,7 @@ export default function PricingPage() {
             {/* Pricing Cards */}
             <div className="grid md:grid-cols-3 gap-8">
               {/* Starter Plan */}
-              <Card className="bg-purple-800/30 backdrop-blur-sm border-purple-500/30 hover:border-purple-400/50 transition-all">
+              <Card className="bg-purple-800/20 backdrop-blur-sm border-purple-500/30 hover:border-purple-400/50 transition-all">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-purple-300">starter</CardTitle>
                   <div className="text-4xl font-bold text-white">$4.99<span className="text-lg text-gray-300"> one-time</span></div>
@@ -94,9 +94,9 @@ export default function PricingPage() {
               </Card>
 
               {/* Pro Plan */}
-              <Card className="bg-blue-800/30 backdrop-blur-sm border-blue-500/30 hover:border-blue-400/50 transition-all relative">
+              <Card className="bg-blue-800/20 backdrop-blur-sm border-blue-500/30 hover:border-blue-400/50 transition-all relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
                     <Star className="w-4 h-4" />
                     <span>most popular</span>
                   </div>
