@@ -279,7 +279,7 @@ export default function StreamingChat({
                     if (c !== null) parts.push(`completion tokens: ${c}`)
                     if (lim !== null) parts.push(`token limit: ${lim}`)
                     if (parts.length > 0) {
-                      addNewAssistantMessage(`usage — ${parts.join(', ')}`)
+                      addNewAssistantMessage(`usage: ${parts.join(', ')}`)
                     }
                   } catch (_) {}
                   break
