@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare, Bot } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -24,7 +24,8 @@ export default function AppBarBuilder({
   isDownloading = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
-  onFeedbackClick
+  onFeedbackClick,
+  onCreateAITestAgent
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -92,6 +93,10 @@ export default function AppBarBuilder({
     onFeedbackClick?.()
   }
 
+  const handleCreateAITestAgent = () => {
+    onCreateAITestAgent?.()
+  }
+
   // Helper function to get user initials
   const getUserInitials = (user) => {
     if (user?.user_metadata?.name) {
@@ -141,6 +146,18 @@ export default function AppBarBuilder({
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
               <div className="hidden sm:flex items-center space-x-3">
+                <Button
+                  onClick={handleCreateAITestAgent}
+                  disabled={isTestDisabled || isGenerating}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-3 py-2 font-medium text-sm"
+                  title="Generate automated test script for your extension"
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  <span className="inline-flex items-center space-x-1.5">
+                    <span>create ai testing agent</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+                  </span>
+                </Button>
                 <Button
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
@@ -197,6 +214,17 @@ export default function AppBarBuilder({
       {isMobileMenuOpen && (
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
+            <Button
+              onClick={() => { handleCreateAITestAgent(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xs"
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              <span className="inline-flex items-center space-x-1.5">
+                <span>create ai testing agent</span>
+                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+              </span>
+            </Button>
             <Button
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}

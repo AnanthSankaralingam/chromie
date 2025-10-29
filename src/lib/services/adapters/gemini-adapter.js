@@ -29,13 +29,15 @@ export class GeminiAdapter {
     temperature = 0.2,
     max_output_tokens = 4096,
     conversation_history = [],
-    store = true
+    store = true,
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[gemini-adapter] createResponse', {
         model,
         has_conversation_history: conversation_history.length > 0,
-        has_response_format: Boolean(response_format)
+        has_response_format: Boolean(response_format),
+        has_thinkingConfig: Boolean(thinkingConfig)
       })
 
       // Convert conversation history to Gemini format
@@ -47,14 +49,10 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
-      // Only add thinking config for models that support it
-      if (model.includes('gemini-2.5') || model.includes('gemini-2.0')) {
-        generationConfig.thinkingConfig = {
-          includeThoughts: true
-        }
-        console.log('[gemini-adapter] Added thinkingConfig for model:', model)
-      } else {
-        console.log('[gemini-adapter] No thinkingConfig for model:', model)
+      // Only add thinking config for models that support it, if explicitly provided
+      if (model.includes('gemini-2.5') && thinkingConfig?.includeThoughts) {
+        generationConfig.thinkingConfig = thinkingConfig
+        console.log('[gemini-adapter] CREATE Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
       // Use native SDK for exact token tracking
@@ -119,7 +117,8 @@ export class GeminiAdapter {
     temperature = 0.2,
     max_output_tokens = 4096,
     conversation_history = [],
-    store = true
+    store = true,
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[gemini-adapter] continueResponse', {
@@ -137,7 +136,8 @@ export class GeminiAdapter {
         temperature,
         max_output_tokens,
         conversation_history,
-        store
+        store,
+        thinkingConfig
       })
     } catch (error) {
       console.error('[gemini-adapter] continueResponse error:', error)
@@ -156,7 +156,8 @@ export class GeminiAdapter {
     response_format,
     temperature = 0.2,
     max_output_tokens = 4096,
-    conversation_history = []
+    conversation_history = [],
+    thinkingConfig = null
   } = {}) {
     try {
       // Convert conversation history to Gemini format
@@ -168,19 +169,16 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
-      // Only add thinking config for models that support it
-      if (model.includes('gemini-2.5') || model.includes('gemini-2.0')) {
-        generationConfig.thinkingConfig = {
-          includeThoughts: true
-        }
-        console.log('[gemini-adapter] Added thinkingConfig for model:', model)
-      } else {
-        console.log('[gemini-adapter] No thinkingConfig for model:', model)
+      // Only add thinking config for models that support it, if explicitly provided
+      if (model.includes('gemini-2.5') && thinkingConfig?.includeThoughts) {
+        generationConfig.thinkingConfig = thinkingConfig
+        console.log('[gemini-adapter] STREAM Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
       console.log('[gemini-adapter] streamResponse', {
         model,
         has_conversation_history: conversation_history.length > 0,
+        has_thinkingConfig: Boolean(thinkingConfig),
         thinkingConfig: generationConfig.thinkingConfig
       })
 

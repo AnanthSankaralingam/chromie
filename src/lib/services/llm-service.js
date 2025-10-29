@@ -30,14 +30,16 @@ export class LLMService {
     temperature = 0.2,
     max_output_tokens = 4096,
     session_id,
-    store = true
+    store = true,
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[llm-service] createResponse', {
         provider,
         model,
         has_session_id: Boolean(session_id),
-        has_response_format: Boolean(response_format)
+        has_response_format: Boolean(response_format),
+        has_thinkingConfig: Boolean(thinkingConfig)
       })
 
       // Get the appropriate adapter
@@ -60,7 +62,8 @@ export class LLMService {
         temperature,
         max_output_tokens,
         conversation_history,
-        store
+        store,
+        thinkingConfig
       })
 
       // Store the response in conversation history if session_id is provided
@@ -105,14 +108,16 @@ export class LLMService {
     temperature = 0.2,
     max_output_tokens = 4096,
     session_id,
-    store = true
+    store = true,
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[llm-service] continueResponse', {
         provider,
         model,
         has_previous_response_id: Boolean(previous_response_id),
-        has_session_id: Boolean(session_id)
+        has_session_id: Boolean(session_id),
+        has_thinkingConfig: Boolean(thinkingConfig)
       })
 
       // Get the appropriate adapter
@@ -136,7 +141,8 @@ export class LLMService {
         temperature,
         max_output_tokens,
         conversation_history,
-        store
+        store,
+        thinkingConfig
       })
 
       // Store the response in conversation history if session_id is provided
@@ -177,13 +183,15 @@ export class LLMService {
     response_format,
     temperature = 0.2,
     max_output_tokens = 4096,
-    session_id
+    session_id,
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[llm-service] streamResponse', {
         provider,
         model,
-        has_session_id: Boolean(session_id)
+        has_session_id: Boolean(session_id),
+        has_thinkingConfig: Boolean(thinkingConfig)
       })
 
       // Get the appropriate adapter
@@ -205,7 +213,8 @@ export class LLMService {
         response_format,
         temperature,
         max_output_tokens,
-        conversation_history
+        conversation_history,
+        thinkingConfig
       })) {
         yield chunk
       }
