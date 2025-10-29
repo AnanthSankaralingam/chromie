@@ -153,7 +153,10 @@ export default function AppBarBuilder({
                   title="Generate automated test script for your extension"
                 >
                   <Bot className="h-4 w-4 mr-2" />
-                  create ai testing agent [beta]
+                  <span className="inline-flex items-center space-x-1.5">
+                    <span>create ai testing agent</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+                  </span>
                 </Button>
                 <Button
                   onClick={handleTestClick}
@@ -217,7 +220,10 @@ export default function AppBarBuilder({
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xs"
             >
               <Bot className="h-4 w-4 mr-2" />
-              create ai testing agent [beta]
+              <span className="inline-flex items-center space-x-1.5">
+                <span>create ai testing agent</span>
+                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+              </span>
             </Button>
             <Button
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
