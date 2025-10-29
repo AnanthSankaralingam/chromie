@@ -2,7 +2,7 @@ import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
 import { llmService } from "../services/llm-service"
 import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
-import { DEFAULT_MODEL } from "../constants"
+import { DEFAULT_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
 
 function normalizeGeneratedFileContent(str) {
   try {
@@ -521,6 +521,16 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             console.error('💥 Exception during project update:', err)
           }
           yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+        }
+        // Emit usage summary (thinking vs completion) if available
+        if (exactTokenUsage && (typeof exactTokenUsage.thoughts_tokens === 'number' || typeof exactTokenUsage.completion_tokens === 'number')) {
+          const tokenLimit = 32000 // matches max_output_tokens used for this request
+          yield {
+            type: "usage_summary",
+            thinking_tokens: exactTokenUsage.thoughts_tokens || 0,
+            completion_tokens: exactTokenUsage.completion_tokens || 0,
+            token_limit: tokenLimit
+          }
         }
         yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
         return
