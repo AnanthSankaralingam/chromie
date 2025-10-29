@@ -269,6 +269,20 @@ export default function StreamingChat({
                     setConversationTokenTotal(data.total)
                   }
                   break
+                case "usage_summary":
+                  try {
+                    const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
+                    const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
+                    const lim = typeof data.token_limit === 'number' ? data.token_limit : null
+                    const parts = []
+                    if (t !== null) parts.push(`thinking tokens: ${t}`)
+                    if (c !== null) parts.push(`completion tokens: ${c}`)
+                    if (lim !== null) parts.push(`token limit: ${lim}`)
+                    if (parts.length > 0) {
+                      addNewAssistantMessage(`usage: ${parts.join(', ')}`)
+                    }
+                  } catch (_) {}
+                  break
                 case "context_window":
                   addNewAssistantMessage('Context limit reached. Please start a new conversation.')
                   if (typeof data.total === 'number') {
@@ -554,6 +568,20 @@ export default function StreamingChat({
                     setPlanningProgress(data.content)
                   }
                   break
+                case "usage_summary":
+                  try {
+                    const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
+                    const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
+                    const lim = typeof data.token_limit === 'number' ? data.token_limit : null
+                    const parts = []
+                    if (t !== null) parts.push(`thinking tokens: ${t}`)
+                    if (c !== null) parts.push(`completion tokens: ${c}`)
+                    if (lim !== null) parts.push(`token limit: ${lim}`)
+                    if (parts.length > 0) {
+                      addNewAssistantMessage(`usage: ${parts.join(', ')}`)
+                    }
+                  } catch (_) {}
+                  break
 
                 // Ignore intermediate status noise
                 case "analyzing":
@@ -766,6 +794,20 @@ export default function StreamingChat({
                       if (data.content) {
                         explanationBufferRef.current += data.content
                       }
+                      break
+                        case "usage_summary":
+                      try {
+                        const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
+                        const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
+                            const lim = typeof data.token_limit === 'number' ? data.token_limit : null
+                        const parts = []
+                        if (t !== null) parts.push(`thinking tokens: ${t}`)
+                        if (c !== null) parts.push(`completion tokens: ${c}`)
+                            if (lim !== null) parts.push(`token limit: ${lim}`)
+                        if (parts.length > 0) {
+                          setMessages(prev => [...prev, { role: "assistant", content: `usage: ${parts.join(', ')}` }])
+                        }
+                      } catch (_) {}
                       break
                         case "requires_api":
                           // Handle API requirement when scraping was skipped
