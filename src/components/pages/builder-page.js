@@ -41,6 +41,7 @@ export default function BuilderPage() {
   const [isPageVisible, setIsPageVisible] = useState(true)
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
+  const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
 
   // Custom hooks
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
@@ -264,6 +265,45 @@ export default function BuilderPage() {
     }
   }
 
+  const handleCreateAITestAgent = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error('No project ID available')
+      return
+    }
+
+    setIsGeneratingTestAgent(true)
+    console.log('🤖 Starting AI test agent generation...')
+    
+    try {
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-hyperagent-script`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate AI test agent')
+      }
+
+      const result = await response.json()
+      console.log('✅ AI test agent generated successfully:', result)
+      
+      // Refresh file tree to show new test script
+      await fileManagement.loadProjectFiles(true)
+      
+      // Show success message
+      alert('AI testing agent created successfully! Check your files for hyperagent_test_script.js')
+      
+    } catch (error) {
+      console.error('❌ Error generating AI test agent:', error)
+      alert(`Failed to generate AI test agent: ${error.message}`)
+    } finally {
+      setIsGeneratingTestAgent(false)
+    }
+  }
+
   // Show loading state
   if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
     return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
@@ -293,11 +333,12 @@ export default function BuilderPage() {
           projectId={projectSetup.currentProjectId}
           isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
-          isGenerating={isGenerating}
+          isGenerating={isGenerating || isGeneratingTestAgent}
           isDownloading={downloadExtension.isDownloading}
           shouldStartTestHighlight={shouldStartTestHighlight}
           shouldStartDownloadHighlight={shouldStartDownloadHighlight}
           onFeedbackClick={handleFeedbackClick}
+          onCreateAITestAgent={handleCreateAITestAgent}
         />
 
         {/* Mobile Tab Navigation */}

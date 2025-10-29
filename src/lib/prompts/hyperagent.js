@@ -72,7 +72,6 @@ await page.waitForTimeout(1000);
 const newBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 console.log('✅ Dark mode toggle verified - background changed');
 \`\`\`
-
 For a price tracker:
 \`\`\`
 // Test Amazon Price Tracker Extension
