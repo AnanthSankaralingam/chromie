@@ -3,6 +3,7 @@ import { randomUUID } from "crypto"
 import { llmService } from "../services/llm-service"
 import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
 import { DEFAULT_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
+import { formatManifestJson } from "../utils/json-formatter"
 
 function normalizeGeneratedFileContent(str) {
   try {
@@ -207,8 +208,6 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         console.log('[codegen-stream] Skipping per-project icon persistence; will materialize at packaging')
         const allFiles = { ...implementationResult }
         
-        // Add fallback HyperAgent script if not provided
-        
         // Remove explanation as it's not a file
         delete allFiles.explanation
         
@@ -217,6 +216,20 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         
         const savedFiles = []
         const errors = []
+        
+        // CRITICAL: Ensure manifest.json uses the planned extension name before saving
+        if (allFiles['manifest.json'] && replacements.ext_name) {
+          try {
+            const manifestContent = normalizeGeneratedFileContent(allFiles['manifest.json'])
+            let formattedManifest = formatManifestJson(manifestContent)
+            const manifestObj = JSON.parse(formattedManifest)
+            manifestObj.name = replacements.ext_name.trim()
+            formattedManifest = formatManifestJson(manifestObj)
+            allFiles['manifest.json'] = formattedManifest
+          } catch (manifestError) {
+            console.warn('Could not update manifest name in stream - manifest parsing failed:', manifestError.message)
+          }
+        }
         
         for (const [filePath, rawContent] of Object.entries(allFiles)) {
           const content = normalizeGeneratedFileContent(rawContent)
@@ -278,20 +291,43 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
         }
         
-        // Update project's has_generated_code flag
+        // Update project data including name from manifest
+        let projectUpdateData = {
+          has_generated_code: true,
+          last_used_at: new Date().toISOString()
+        }
+        
+        // Try to extract extension name from manifest.json
+        if (allFiles['manifest.json']) {
+          try {
+            const manifestContent = allFiles['manifest.json']
+            const manifest = JSON.parse(manifestContent)
+            
+            if (manifest.name && manifest.name.trim()) {
+              projectUpdateData.name = manifest.name.trim()
+              console.log(`📝 [stream] Updating project name to: ${manifest.name}`)
+            }
+            
+            if (manifest.description && manifest.description.trim()) {
+              projectUpdateData.description = manifest.description.trim()
+              console.log(`📝 [stream] Updating project description to: ${manifest.description}`)
+            }
+          } catch (parseError) {
+            console.warn('Could not parse manifest.json for project update in stream:', parseError.message)
+          }
+        }
+        
+        // Update project with generation info and extension details
         try {
           const { error: updateError } = await supabase
             .from('projects')
-            .update({ 
-              has_generated_code: true,
-              last_used_at: new Date().toISOString()
-            })
+            .update(projectUpdateData)
             .eq('id', sessionId)
           
           if (updateError) {
-            console.error('❌ Error updating project has_generated_code:', updateError)
+            console.error('❌ Error updating project:', updateError)
           } else {
-            console.log('✅ Project has_generated_code updated successfully')
+            console.log('✅ Project updated successfully with extension info')
           }
         } catch (error) {
           console.error('💥 Exception during project update:', error)

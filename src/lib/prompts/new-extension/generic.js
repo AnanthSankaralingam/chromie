@@ -70,7 +70,7 @@ Never use relative paths directly in HTML img tags.
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "Brief markdown explanation of how the extension works and testing instructions",
+  "explanation": "Brief markdown explanation of how the extension works",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "content.js": "content script code as raw text (if needed)",

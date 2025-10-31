@@ -22,6 +22,7 @@ import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 import FeedbackModal from "@/components/ui/modals/feedback-modal"
+import TestingPromptModal from "@/components/ui/modals/testing-prompt-modal"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -42,6 +43,10 @@ export default function BuilderPage() {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
+  const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
+  
+  // Track hasGeneratedCode before generation starts to detect first generation
+  const hasGeneratedCodeBeforeRef = useRef(false)
 
   // Custom hooks
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
@@ -95,6 +100,11 @@ export default function BuilderPage() {
       }
     }
   }, [autoGeneratePrompt])
+
+  // Sync ref with hasGeneratedCode state when project changes
+  useEffect(() => {
+    hasGeneratedCodeBeforeRef.current = hasGeneratedCode
+  }, [hasGeneratedCode, projectSetup.currentProjectId])
 
   // Log extension info when file structure changes (after code generation)
   useEffect(() => {
@@ -304,6 +314,17 @@ export default function BuilderPage() {
     }
   }
 
+  const handleExploreCode = () => {
+    setIsTestingPromptOpen(false)
+    // User stays in current view (files/editor)
+  }
+
+  const handleTryItOut = () => {
+    setIsTestingPromptOpen(false)
+    // Open testing modal
+    testExtension.handleTestExtension()
+  }
+
   // Show loading state
   if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
     return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
@@ -398,6 +419,23 @@ export default function BuilderPage() {
                   // Play notification sound if user is not on the page
                   playNotificationSound()
                   
+                  // Check if this was first generation and show testing prompt modal
+                  if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
+                    const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
+                    const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
+                    
+                    if (!hasShownPrompt) {
+                      // Mark as shown immediately
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem(localStorageKey, 'true')
+                      }
+                      // Show modal after a short delay to ensure page state is updated
+                      setTimeout(() => {
+                        setIsTestingPromptOpen(true)
+                      }, 500)
+                    }
+                  }
+                  
                   // Auto-select manifest.json file after code generation and switch to files tab
                   setTimeout(() => {
                     const manifestFile = fileManagement.findManifestFile()
@@ -409,6 +447,8 @@ export default function BuilderPage() {
                 }}
                 onGenerationStart={() => {
                   setIsGenerating(true)
+                  // Track hasGeneratedCode state before generation starts
+                  hasGeneratedCodeBeforeRef.current = hasGeneratedCode
                 }}
                 onGenerationEnd={() => {
                   setIsGenerating(false)
@@ -464,6 +504,23 @@ export default function BuilderPage() {
                   // Play notification sound if user is not on the page
                   playNotificationSound()
                   
+                  // Check if this was first generation and show testing prompt modal
+                  if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
+                    const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
+                    const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
+                    
+                    if (!hasShownPrompt) {
+                      // Mark as shown immediately
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem(localStorageKey, 'true')
+                      }
+                      // Show modal after a short delay to ensure page state is updated
+                      setTimeout(() => {
+                        setIsTestingPromptOpen(true)
+                      }, 500)
+                    }
+                  }
+                  
                   // Auto-select manifest.json file after code generation
                   setTimeout(() => {
                     const manifestFile = fileManagement.findManifestFile()
@@ -474,6 +531,8 @@ export default function BuilderPage() {
                 }}
                 onGenerationStart={() => {
                   setIsGenerating(true)
+                  // Track hasGeneratedCode state before generation starts
+                  hasGeneratedCodeBeforeRef.current = hasGeneratedCode
                 }}
                 onGenerationEnd={() => {
                   setIsGenerating(false)
@@ -561,6 +620,14 @@ export default function BuilderPage() {
         onSubmit={handleFeedbackSubmit}
         projectId={projectSetup.currentProjectId}
         isLoading={isSubmittingFeedback}
+      />
+
+      {/* Testing Prompt Modal */}
+      <TestingPromptModal
+        isOpen={isTestingPromptOpen}
+        onClose={() => setIsTestingPromptOpen(false)}
+        onExploreCode={handleExploreCode}
+        onTryItOut={handleTryItOut}
       />
     </>
   )
