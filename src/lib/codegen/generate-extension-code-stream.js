@@ -2,7 +2,7 @@ import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
 import { llmService } from "../services/llm-service"
 import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
-import { DEFAULT_MODEL } from "../constants"
+import { DEFAULT_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
 
 function normalizeGeneratedFileContent(str) {
   try {
@@ -87,9 +87,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         input: finalPrompt,
         store: true,
         temperature: 0.2,
-        max_output_tokens: 15000,
+        max_output_tokens: 32000,  // Increased for more complete code generation
         response_format: jsonSchema,
-        session_id: sessionId
+        session_id: sessionId,
+        thinkingConfig: {
+          includeThoughts: true  // Enable thinking for better code quality
+        }
       })
       
       const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
@@ -125,20 +128,64 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           if (jsonStart !== -1) {
             let braceCount = 0
             let jsonEnd = jsonStart
+            let inString = false
+            let escapeNext = false
+            
             for (let i = jsonStart; i < outputText.length; i++) {
-              if (outputText[i] === '{') braceCount++
-              if (outputText[i] === '}') braceCount--
-              if (braceCount === 0) {
-                jsonEnd = i + 1
-                break
+              const char = outputText[i]
+              
+              if (escapeNext) {
+                escapeNext = false
+                continue
+              }
+              
+              if (char === '\\') {
+                escapeNext = true
+                continue
+              }
+              
+              if (char === '"' && !escapeNext) {
+                inString = !inString
+                continue
+              }
+              
+              if (!inString) {
+                if (char === '{') braceCount++
+                if (char === '}') braceCount--
+                if (braceCount === 0) {
+                  jsonEnd = i + 1
+                  break
+                }
               }
             }
-            jsonContent = outputText.substring(jsonStart, jsonEnd)
+            jsonContent = outputText.substring(jsonStart, jsonEnd).trim()
           }
         }
         
         if (jsonContent) {
-          implementationResult = JSON.parse(jsonContent)
+          // Try to parse, and if it fails, attempt to extract just the first valid JSON object
+          try {
+            implementationResult = JSON.parse(jsonContent)
+          } catch (parseError) {
+            console.warn("⚠️ Initial JSON parse failed, attempting to extract first valid JSON object:", parseError.message)
+            // Try to find the end of the first valid JSON object by parsing progressively
+            for (let i = jsonContent.length; i > 0; i--) {
+              try {
+                const substr = jsonContent.substring(0, i).trim()
+                if (substr.endsWith('}')) {
+                  implementationResult = JSON.parse(substr)
+                  console.log("✅ Successfully extracted valid JSON by trimming extra content")
+                  break
+                }
+              } catch (e) {
+                // Continue trying
+              }
+            }
+            if (!implementationResult) {
+              throw parseError // Re-throw original error if we couldn't fix it
+            }
+          }
+          
           if (implementationResult && implementationResult.explanation) {
             console.log("📝 Extracted explanation from Responses API completion")
             yield { type: "explanation", content: implementationResult.explanation }
@@ -165,13 +212,15 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         // Remove explanation as it's not a file
         delete allFiles.explanation
         
-        console.log(`💾 Saving ${Object.keys(allFiles).length} files to database`)
+        console.log(`💾 Saving ${Object.keys(allFiles).length} files to database for project ${sessionId}`)
+        console.log(`📝 Files to save:`, Object.keys(allFiles).join(', '))
         
         const savedFiles = []
         const errors = []
         
         for (const [filePath, rawContent] of Object.entries(allFiles)) {
           const content = normalizeGeneratedFileContent(rawContent)
+          console.log(`  → Saving ${filePath} (${content.length} chars)`)
           try {
             // First, try to update existing file
             const { data: existingFile } = await supabase
@@ -192,26 +241,29 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
                 .eq("id", existingFile.id)
               
               if (updateError) {
-                console.error(`Error updating file ${filePath}:`, updateError)
+                console.error(`    ❌ Error updating file ${filePath}:`, updateError)
                 errors.push({ filePath, error: updateError })
               } else {
+                console.log(`    ✅ Updated ${filePath}`)
                 savedFiles.push(filePath)
               }
             } else {
               // Insert new file
+              const fileId = randomUUID()
               const { error: insertError } = await supabase
                 .from("code_files")
                 .insert({
-                  id: randomUUID(),
+                  id: fileId,
                   project_id: sessionId,
                   file_path: filePath,
                   content: content
                 })
               
               if (insertError) {
-                console.error(`Error inserting file ${filePath}:`, insertError)
+                console.error(`    ❌ Error inserting file ${filePath}:`, insertError)
                 errors.push({ filePath, error: insertError })
               } else {
+                console.log(`    ✅ Inserted ${filePath} (id: ${fileId})`)
                 savedFiles.push(filePath)
               }
             }
@@ -278,8 +330,11 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           model: modelOverride || DEFAULT_MODEL,
           input: finalPrompt,
           temperature: 0.2,
-          max_output_tokens: 15000,
-          session_id: sessionId
+          max_output_tokens: 32000,  // Increased for more complete code generation
+          session_id: sessionId,
+          thinkingConfig: {
+            includeThoughts: true  // Enable thinking for better code quality
+          }
         })) {
           if (s?.type === 'thinking_chunk') {
             yield { type: 'thinking_chunk', content: s.content }
@@ -333,19 +388,63 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             if (jsonStart !== -1) {
               let braceCount = 0
               let jsonEnd = jsonStart
+              let inString = false
+              let escapeNext = false
+              
               for (let i = jsonStart; i < outputText.length; i++) {
-                if (outputText[i] === '{') braceCount++
-                if (outputText[i] === '}') braceCount--
-                if (braceCount === 0) {
-                  jsonEnd = i + 1
-                  break
+                const char = outputText[i]
+                
+                if (escapeNext) {
+                  escapeNext = false
+                  continue
+                }
+                
+                if (char === '\\') {
+                  escapeNext = true
+                  continue
+                }
+                
+                if (char === '"' && !escapeNext) {
+                  inString = !inString
+                  continue
+                }
+                
+                if (!inString) {
+                  if (char === '{') braceCount++
+                  if (char === '}') braceCount--
+                  if (braceCount === 0) {
+                    jsonEnd = i + 1
+                    break
+                  }
                 }
               }
-              jsonContent = outputText.substring(jsonStart, jsonEnd)
+              jsonContent = outputText.substring(jsonStart, jsonEnd).trim()
             }
           }
           if (jsonContent) {
-            implementationResult = JSON.parse(jsonContent)
+            // Try to parse, and if it fails, attempt to extract just the first valid JSON object
+            try {
+              implementationResult = JSON.parse(jsonContent)
+            } catch (parseError) {
+              console.warn("⚠️ Initial JSON parse failed, attempting to extract first valid JSON object:", parseError.message)
+              // Try to find the end of the first valid JSON object by parsing progressively
+              for (let i = jsonContent.length; i > 0; i--) {
+                try {
+                  const substr = jsonContent.substring(0, i).trim()
+                  if (substr.endsWith('}')) {
+                    implementationResult = JSON.parse(substr)
+                    console.log("✅ Successfully extracted valid JSON by trimming extra content")
+                    break
+                  }
+                } catch (e) {
+                  // Continue trying
+                }
+              }
+              if (!implementationResult) {
+                throw parseError // Re-throw original error if we couldn't fix it
+              }
+            }
+            
             if (implementationResult && implementationResult.explanation) {
               console.log("📝 Extracted explanation from Gemini stream (new)")
               yield { type: "explanation", content: implementationResult.explanation }
@@ -363,11 +462,13 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           console.log('[codegen-stream] Skipping per-project icon persistence; will materialize at packaging')
           const allFiles = { ...implementationResult }
           delete allFiles.explanation
-          console.log(`💾 Saving ${Object.keys(allFiles).length} files to database`)
+          console.log(`💾 Saving ${Object.keys(allFiles).length} files to database for project ${sessionId}`)
+          console.log(`📝 Files to save:`, Object.keys(allFiles).join(', '))
           const savedFiles = []
           const errors = []
           for (const [filePath, rawContent] of Object.entries(allFiles)) {
             const content = normalizeGeneratedFileContent(rawContent)
+            console.log(`  → Saving ${filePath} (${content.length} chars)`)
             try {
               const { data: existingFile } = await supabase
                 .from("code_files")
@@ -380,14 +481,28 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
                   .from("code_files")
                   .update({ content, last_used_at: new Date().toISOString() })
                   .eq("id", existingFile.id)
-                if (updateError) { errors.push({ filePath, error: updateError }) } else { savedFiles.push(filePath) }
+                if (updateError) { 
+                  console.error(`    ❌ Error updating file ${filePath}:`, updateError)
+                  errors.push({ filePath, error: updateError }) 
+                } else { 
+                  console.log(`    ✅ Updated ${filePath}`)
+                  savedFiles.push(filePath) 
+                }
               } else {
+                const fileId = (await import('crypto')).randomUUID()
                 const { error: insertError } = await supabase
                   .from("code_files")
-                  .insert({ id: (await import('crypto')).randomUUID(), project_id: sessionId, file_path: filePath, content })
-                if (insertError) { errors.push({ filePath, error: insertError }) } else { savedFiles.push(filePath) }
+                  .insert({ id: fileId, project_id: sessionId, file_path: filePath, content })
+                if (insertError) { 
+                  console.error(`    ❌ Error inserting file ${filePath}:`, insertError)
+                  errors.push({ filePath, error: insertError }) 
+                } else { 
+                  console.log(`    ✅ Inserted ${filePath} (id: ${fileId})`)
+                  savedFiles.push(filePath) 
+                }
               }
             } catch (fileError) {
+              console.error(`    💥 Exception handling file ${filePath}:`, fileError)
               errors.push({ filePath, error: fileError })
             }
           }
@@ -407,6 +522,16 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           }
           yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
         }
+        // Emit usage summary (thinking vs completion) if available
+        if (exactTokenUsage && (typeof exactTokenUsage.thoughts_tokens === 'number' || typeof exactTokenUsage.completion_tokens === 'number')) {
+          const tokenLimit = 32000 // matches max_output_tokens used for this request
+          yield {
+            type: "usage_summary",
+            thinking_tokens: exactTokenUsage.thoughts_tokens || 0,
+            completion_tokens: exactTokenUsage.completion_tokens || 0,
+            token_limit: tokenLimit
+          }
+        }
         yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
         return
       }
@@ -417,9 +542,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         input: finalPrompt,
         store: true,
         temperature: 0.2,
-        max_output_tokens: 15000,
+        max_output_tokens: 32000,  // Increased for more complete code generation
         response_format: jsonSchema,
-        session_id: sessionId
+        session_id: sessionId,
+        thinkingConfig: {
+          includeThoughts: true  // Enable thinking for better code quality
+        }
       })
       
       const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
@@ -435,51 +563,95 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       yield { type: "complete", content: response?.output_text || "" }
       
       // Extract and stream the explanation
-  let implementationResult
-  try {
-    let jsonContent = ""
-    
+      let implementationResult
+      try {
+        let jsonContent = ""
+        
         const outputText = response?.output_text || ''
         
         if (typeof outputText === 'string' && outputText.includes('```json')) {
           const jsonMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/)
-      if (jsonMatch) {
-        jsonContent = jsonMatch[1].trim()
-      }
+          if (jsonMatch) {
+            jsonContent = jsonMatch[1].trim()
+          }
         } else if (typeof outputText === 'string' && outputText.includes('```')) {
           const codeMatch = outputText.match(/```\s*([\s\S]*?)\s*```/)
-      if (codeMatch) {
-        jsonContent = codeMatch[1].trim()
-      }
-    } else {
+          if (codeMatch) {
+            jsonContent = codeMatch[1].trim()
+          }
+        } else {
           const jsonStart = outputText.indexOf('{')
           if (jsonStart !== -1) {
-      let braceCount = 0
-      let jsonEnd = jsonStart
+            let braceCount = 0
+            let jsonEnd = jsonStart
+            let inString = false
+            let escapeNext = false
+            
             for (let i = jsonStart; i < outputText.length; i++) {
-              if (outputText[i] === '{') braceCount++
-              if (outputText[i] === '}') braceCount--
-        if (braceCount === 0) {
-          jsonEnd = i + 1
-          break
-        }
-      }
-            jsonContent = outputText.substring(jsonStart, jsonEnd)
-    }
-    }
-    
-        if (jsonContent) {
-    implementationResult = JSON.parse(jsonContent)
-    if (implementationResult && implementationResult.explanation) {
-            console.log("📝 Extracted explanation from Responses API completion (new)")
-      yield { type: "explanation", content: implementationResult.explanation }
-      yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+              const char = outputText[i]
+              
+              if (escapeNext) {
+                escapeNext = false
+                continue
+              }
+              
+              if (char === '\\') {
+                escapeNext = true
+                continue
+              }
+              
+              if (char === '"' && !escapeNext) {
+                inString = !inString
+                continue
+              }
+              
+              if (!inString) {
+                if (char === '{') braceCount++
+                if (char === '}') braceCount--
+                if (braceCount === 0) {
+                  jsonEnd = i + 1
+                  break
+                }
+              }
+            }
+            jsonContent = outputText.substring(jsonStart, jsonEnd).trim()
           }
-    }
-  } catch (error) {
+        }
+        
+        if (jsonContent) {
+          // Try to parse, and if it fails, attempt to extract just the first valid JSON object
+          try {
+            implementationResult = JSON.parse(jsonContent)
+          } catch (parseError) {
+            console.warn("⚠️ Initial JSON parse failed, attempting to extract first valid JSON object:", parseError.message)
+            // Try to find the end of the first valid JSON object by parsing progressively
+            for (let i = jsonContent.length; i > 0; i--) {
+              try {
+                const substr = jsonContent.substring(0, i).trim()
+                if (substr.endsWith('}')) {
+                  implementationResult = JSON.parse(substr)
+                  console.log("✅ Successfully extracted valid JSON by trimming extra content")
+                  break
+                }
+              } catch (e) {
+                // Continue trying
+              }
+            }
+            if (!implementationResult) {
+              throw parseError // Re-throw original error if we couldn't fix it
+            }
+          }
+          
+          if (implementationResult && implementationResult.explanation) {
+            console.log("📝 Extracted explanation from Responses API completion (new)")
+            yield { type: "explanation", content: implementationResult.explanation }
+            yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+          }
+        }
+      } catch (error) {
         console.error("❌ Error parsing explanation from Responses API completion (new):", error)
-    yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
-  }
+        yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+      }
   
       // Process and save files (same as follow-up version)
       if (implementationResult && typeof implementationResult === 'object') {
