@@ -412,7 +412,21 @@ ${apiResult.code_example?.code || apiResult.code_example || 'No example provided
       if (filename === "manifest.json") {
         // Use the specialized manifest formatter to ensure proper formatting
         try {
-          filesOnly[filename] = formatManifestJson(content)
+          let formattedManifest = formatManifestJson(content)
+          
+          // This fixes the bug where AI sometimes uses the original prompt instead of the proper extension name
+          if (requirementsAnalysis?.ext_name) {
+            try {
+              const manifestObj = JSON.parse(formattedManifest)
+              manifestObj.name = requirementsAnalysis.ext_name.trim()
+              formattedManifest = formatManifestJson(manifestObj)
+              console.log(`🔄 Updated manifest name to: "${manifestObj.name}"`)
+            } catch (parseError) {
+              console.warn('Could not update manifest name - manifest parsing failed:', parseError.message)
+            }
+          }
+          
+          filesOnly[filename] = formattedManifest
         } catch (error) {
           console.error(`Error formatting manifest.json: ${error.message}`)
           // Fallback to basic JSON formatting

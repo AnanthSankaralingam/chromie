@@ -124,7 +124,7 @@ Example: const iconUrl = chrome.runtime.getURL('icons/note-icon.png');
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "BRIEF markdown explanation of how the extension works and testing instructions",
+  "explanation": "BRIEF markdown explanation of how the extension works",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "content.js": "overlay injection code as raw text", 

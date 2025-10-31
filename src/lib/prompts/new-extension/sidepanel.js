@@ -114,7 +114,7 @@ Example: document.getElementById('icon').src = chrome.runtime.getURL('icons/home
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "BRIEF markdown explanation of how the extension works and testing instructions",
+  "explanation": "BRIEF markdown explanation of how the extension works",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "sidepanel.html": "side panel HTML as raw text",
