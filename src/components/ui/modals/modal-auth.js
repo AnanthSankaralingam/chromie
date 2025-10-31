@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Zap } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 
 export default function AuthModal({ isOpen, onClose, redirectUrl }) {
@@ -110,8 +110,14 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
           <Card className="bg-transparent border-none shadow-none">
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-white" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                  <Image 
+                    src="/chromie-logo-1.png" 
+                    alt="chromie Logo" 
+                    width={40} 
+                    height={40}
+                    className="object-contain"
+                  />
                 </div>
                 <span className="text-2xl font-bold text-white">chromie ai</span>
               </div>
