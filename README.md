@@ -5,16 +5,14 @@
 ### TODOs
 P0 <br>
 1. Persistent sessions in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
-2. See button: icons and js are not loaded; don't need full functionality (we can't replicate chrome apis) but it should show icons 
-3. fix schema mandatory fields so generic extensions don't generate empty files
-4. extension name doesn't update after code gen done
+2. fix schema mandatory fields so generic extensions don't generate empty files
 
 P1 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
 4. dropdown to select a specific frontend type before code gen
-5. Upload your own extension/files
+5. Upload your own extension/files?
 
 P2. <br>
 1. integrate custom APIs (verify)
@@ -22,15 +20,10 @@ P2. <br>
 
 ### BUGS
 1. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
-3. Test button is confusing: we need to remove it or use it. In long term, we can maybe create a simple hyperagent script based on coding agent's explanation + manifest to create some automated page navigation to ease testing
 4. token tracking is not updating even though logs say they are
-5. Onboarding modal when routed to builder page should show 2-3 slides they can click through. Users need to know how to use the app.
-6. All icons/buttons on onboarding modals should match button from the app-bar-builder
 7. icons arent always downloaded to the extension.
 8. project limits are not correctly enforced. free user can build up to 3 projects
-9. Verify you're a human on the simulated browser is annoying (not sure if we can do anything for that).
-10. manifest is sometimes not auto formatted as json. run the "format" button flow as soon as it's available so users don't have to.
-11. UX: auto-format manifest, chromie as default icon for extensions, auto-submit prompt after sign up 
+11. UX: chromie as default icon for extensions, auto-submit prompt after sign up 
 
 
 
