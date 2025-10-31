@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare, Bot } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare, Bot, Play } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -161,9 +161,9 @@ export default function AppBarBuilder({
                 <Button
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
-                  className={`bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 px-4 py-2 font-medium ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  className={`bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/25 transition-all duration-200 px-4 py-2 font-medium ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
                 >
-                  <TestTube className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 mr-2" />
                   test extension
                 </Button>
                 <ShareDropdown
@@ -228,9 +228,9 @@ export default function AppBarBuilder({
             <Button
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              className={`w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              className={`w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
             >
-              <TestTube className="h-4 w-4 mr-2" />
+              <Play className="h-4 w-4 mr-2" />
               test
             </Button>
             <div className="w-full">

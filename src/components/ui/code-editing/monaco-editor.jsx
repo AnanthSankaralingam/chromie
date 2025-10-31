@@ -6,6 +6,7 @@ import { Save, Edit3, Settings, Code2, Eye, Code } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
+import { loadIcons } from '@/lib/utils/icon-loader'
 
 export default function MonacoEditor({ 
   code, 
@@ -23,6 +24,7 @@ export default function MonacoEditor({
   const [isHtmlPreview, setIsHtmlPreview] = useState(false)
   const [isPreviewInfoOpen, setIsPreviewInfoOpen] = useState(false)
   const [hideActionButtonsUntilSave, setHideActionButtonsUntilSave] = useState(false)
+  const [localIcons, setLocalIcons] = useState(new Map()) // Map<path, dataUrl>
 
   // Update content when code prop changes
   useEffect(() => {
@@ -97,11 +99,59 @@ export default function MonacoEditor({
     }
   }
 
+
+  // Extract icon paths from HTML content
+  const extractIconPaths = (html) => {
+    const iconPaths = new Set()
+    try {
+      // Match chrome.runtime.getURL('icons/xxx.png')
+      const runtimeRegex = /chrome\.runtime\.getURL\(["'](icons\/[A-Za-z0-9-_]+\.png)["']\)/gi
+      let match
+      while ((match = runtimeRegex.exec(html)) !== null) {
+        iconPaths.add(match[1])
+      }
+      
+      // Match src/href attributes with icons/*.png
+      const attrRegex = /(src|href)=["']([^"']*icons\/[A-Za-z0-9-_]+\.png)["']/gi
+      while ((match = attrRegex.exec(html)) !== null) {
+        const path = match[2]
+        // Normalize: remove leading slash if present, ensure icons/ prefix
+        const normalized = path.startsWith('/') ? path.slice(1) : path
+        const iconPath = normalized.startsWith('icons/') ? normalized : `icons/${normalized.split('/').pop()}`
+        iconPaths.add(iconPath)
+      }
+    } catch (e) {
+      console.error('[MonacoEditor] Error extracting icon paths:', e)
+    }
+    return Array.from(iconPaths)
+  }
+
+  // Load icons from local icons directory when HTML preview is enabled
+  useEffect(() => {
+    if (language === 'html' && isHtmlPreview && content) {
+      const iconPaths = extractIconPaths(content)
+      if (iconPaths.length > 0) {
+        // Only load icons we don't already have
+        const missingPaths = iconPaths.filter(p => !localIcons.has(p))
+        if (missingPaths.length > 0) {
+          loadIcons(missingPaths).then(loadedIcons => {
+            setLocalIcons(prev => {
+              const merged = new Map(prev)
+              for (const [path, dataUrl] of loadedIcons) {
+                merged.set(path, dataUrl)
+              }
+              return merged
+            })
+          })
+        }
+      }
+    }
+  }, [content, isHtmlPreview, language])
+
   const handleToggleHtmlPreview = () => {
     if (!(language === 'html')) return
     const next = !isHtmlPreview
     setIsHtmlPreview(next)
-    console.log('[MonacoEditor] HTML preview toggled', { fileName, preview: next })
     if (next) {
       try {
         const seen = typeof window !== 'undefined' && window.localStorage.getItem('html_preview_info_seen') === '1'
@@ -117,40 +167,80 @@ export default function MonacoEditor({
 
   const buildHtmlSrcDoc = (raw) => {
     // Build a map of icon path -> data URL for preview rendering
+    // Priority: 1) local icons directory, 2) projectFiles (for security)
+    // Icons follow the pattern: icons/icon_name.png
     const buildIconDataUrlMap = () => {
       const map = new Map()
+      
+      // First, add icons from local icons directory (from /icons/ folder)
+      for (const [path, dataUrl] of localIcons) {
+        map.set(path, dataUrl)
+      }
+      
+      // Then, add icons from projectFiles as fallback (if they exist locally)
       try {
-        for (const f of (projectFiles || [])) {
-          if (typeof f?.file_path !== 'string') continue
-          if (!f.file_path.startsWith('icons/')) continue
-          if (!/\.png$/i.test(f.file_path)) continue
-          const base64 = typeof f.content === 'string' ? f.content : ''
-          if (!base64) continue
-          const dataUrl = `data:image/png;base64,${base64}`
-          map.set(f.file_path, dataUrl)
+        const iconFiles = (projectFiles || []).filter(f => {
+          if (typeof f?.file_path !== 'string') return false
+          // Match icons/icon_name.png pattern
+          if (!f.file_path.startsWith('icons/')) return false
+          if (!/\.png$/i.test(f.file_path)) return false
+          return true
+        })
+        
+        for (const f of iconFiles) {
+          // Only add if not already in map (local icons take priority)
+          if (!map.has(f.file_path)) {
+            const base64 = typeof f.content === 'string' ? f.content : ''
+            if (!base64) continue
+            const dataUrl = `data:image/png;base64,${base64}`
+            map.set(f.file_path, dataUrl)
+          }
         }
       } catch (e) {
-        // non-blocking
       }
+      
+     
+      
       return map
     }
 
     // Replace icon references (paths and chrome.runtime.getURL) with data URLs
+    // Handles patterns like: icons/icon_name.png
     const rewriteIconUrls = (html, iconMap) => {
       try {
-        // Replace chrome.runtime.getURL('icons/xxx.png') and double-quote variant
+        let replacedCount = 0
+        
+        // Replace chrome.runtime.getURL('icons/icon_name.png') - supports single and double quotes
         html = html.replace(/chrome\.runtime\.getURL\(["'](icons\/[A-Za-z0-9-_]+\.png)["']\)/gi, (m, p1) => {
           const url = iconMap.get(p1)
-          return url ? `'${url}'` : m
+          if (url) {
+            replacedCount++
+            return `'${url}'`
+          } else {
+            console.warn('[MonacoEditor] Icon not found in map:', p1, 'Available:', Array.from(iconMap.keys()))
+          }
+          return m
         })
 
         // Replace src/href attributes pointing to icons/*.png
-        html = html.replace(/(src|href)=(")([^"']*icons\/[A-Za-z0-9-_]+\.png)(")/gi, (m, attr, q1, path, q2) => {
-          const url = iconMap.get(path)
-          return url ? `${attr}=${q1}${url}${q2}` : m
+        // Handles both relative paths and paths with leading slash
+        html = html.replace(/(src|href)=(["'])([^"']*icons\/[A-Za-z0-9-_]+\.png)\2/gi, (m, attr, quote, path) => {
+          // Normalize path: remove leading slash if present
+          const normalized = path.startsWith('/') ? path.slice(1) : path
+          // Ensure it starts with icons/
+          const iconPath = normalized.startsWith('icons/') ? normalized : `icons/${normalized.split('/').pop()}`
+          const url = iconMap.get(iconPath)
+          if (url) {
+            replacedCount++
+            return `${attr}=${quote}${url}${quote}`
+          } else {
+            console.warn('[MonacoEditor] Icon not found in map:', iconPath, 'Original:', path, 'Available:', Array.from(iconMap.keys()))
+          }
+          return m
         })
+        
       } catch (e) {
-        // non-blocking
+        console.error('[MonacoEditor] Error rewriting icon URLs:', e)
       }
       return html
     }
@@ -265,7 +355,6 @@ export default function MonacoEditor({
       setContent(updated)
       setHasChanges(updated !== code)
       setHideActionButtonsUntilSave(true)
-      console.log('[MonacoEditor] Manifest version bumped', { from: current, to: parsed.version })
       if (editorRef.current) {
         editorRef.current.focus()
       }
