@@ -6,12 +6,14 @@
 P0 <br>
 1. Persistent sessions in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
 2. fix schema mandatory fields so generic extensions don't generate empty files
+3. auto pin extension at start
+4. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
 
 P1 <br>
 1. test product end to end, along with billing
 2. functionality to publish extensions directly to chrome web store (when unblocked)
 3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-4. dropdown to select a specific frontend type before code gen
+4. dropdown to select a specific frontend type before code gen?
 5. Upload your own extension/files?
 
 P2. <br>
@@ -19,11 +21,12 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
-4. token tracking is not updating even though logs say they are
-7. icons arent always downloaded to the extension.
-8. project limits are not correctly enforced. free user can build up to 3 projects
-11. UX: chromie as default icon for extensions, auto-submit prompt after sign up 
+1. API modal doesn't complete code gen when used. Also is not extremely clear for users
+2. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
+3. token tracking is not updating even though logs say they are
+4. icons arent always downloaded to the extension.
+5. project limits are not correctly enforced. free user can build up to 3 projects
+6. UX: chromie as default icon for extensions, auto-submit prompt after sign up 
 
 
 
