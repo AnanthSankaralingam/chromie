@@ -15,6 +15,23 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   const [navigationError, setNavigationError] = useState(null)
   const [loadingStage, setLoadingStage] = useState(0)
 
+  // Reset expired state when a new session opens or modal re-opens with a fresh session
+  useEffect(() => {
+    if (isOpen && sessionData?.sessionId) {
+      setSessionExpired(false)
+      setNavigationError(null)
+      setUrlInput("")
+      console.log("🔄 New test session detected, resetting expired state")
+    }
+  }, [isOpen, sessionData?.sessionId])
+
+  // Ensure loading transitions restart on each new load or session
+  useEffect(() => {
+    if (isLoading || sessionData?.sessionId) {
+      setLoadingStage(0)
+    }
+  }, [isLoading, sessionData?.sessionId])
+
   // Define loading stages for browser initialization
   const loadingStages = [
     {
@@ -70,13 +87,11 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   // Store session data for the embed page to access
   useEffect(() => {
     if (sessionData && sessionData.sessionId) {
-      console.log('Storing session data:', sessionData)
       sessionStorage.setItem(`session_${sessionData.sessionId}`, JSON.stringify(sessionData))
     }
   }, [sessionData])
 
   useEffect(() => {
-    console.log("TestModal received sessionData:", sessionData)
     if (isOpen && sessionData) {
       setSessionStatus("ready")
     }
@@ -101,17 +116,14 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
     return () => clearInterval(interval)
   }, [isLoading, loadingStages.length])
 
-  console.log("TestModal render - isOpen:", isOpen, "sessionData:", sessionData, "isLoading:", isLoading)
   if (!isOpen) return null
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
-  console.log("TestModal liveUrl:", liveUrl, "sessionData keys:", sessionData ? Object.keys(sessionData) : null)
-  console.log("URL input should be visible:", sessionData && sessionData.sessionId)
+  
 
   // Handle session expiry - just show warning, don't auto-close
   const handleSessionExpire = () => {
     setSessionExpired(true)
-    console.log("⏰ Session timer expired - showing warning but keeping session alive")
     // Don't auto-close modal - let user manually close when ready
   }
 
@@ -146,12 +158,10 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
 
       if (result.success) {
         setUrlInput("") // Clear input on success
-        console.log("Navigation successful:", result)
       } else {
         setNavigationError(result.error || "Navigation failed")
       }
     } catch (error) {
-      console.error("Navigation error:", error)
       setNavigationError("Failed to navigate to URL")
     } finally {
       setIsNavigating(false)
@@ -265,7 +275,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
               <div className="text-center max-w-md">
                 <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-white mb-2">Session Time Limit Reached</h3>
-                <p className="text-slate-300 mb-4">This session has reached its 1-minute limit, but you can continue using it. Close the modal when you're done testing.</p>
+                <p className="text-slate-300 mb-4">This session has reached time limit, but you can continue using it. Close the modal when you're done testing.</p>
                 <Button
                   onClick={handleClose}
                   className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
