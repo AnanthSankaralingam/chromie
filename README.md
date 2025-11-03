@@ -4,10 +4,9 @@
 
 ### TODOs
 P0 <br>
-1. Persistent sessions in hyperbrowser https://docs.hyperbrowser.ai/sessions/profiles
-2. fix schema mandatory fields so generic extensions don't generate empty files
-3. auto pin extension at start
-4. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
+1. fix schema mandatory fields so generic extensions don't generate empty files
+2. auto pin extension at start
+3. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
 
 P1 <br>
 1. testing modal doesnt work after restart (second session)
