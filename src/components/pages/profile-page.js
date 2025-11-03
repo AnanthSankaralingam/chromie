@@ -238,7 +238,7 @@ export default function ProfilePage() {
       starter: {
         name: 'Starter',
         price: '$12/month',
-        color: 'bg-purple-500',
+        color: 'bg-black',
         icon: Zap
       },
       pro: {
@@ -259,7 +259,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
         <AppBar />
         <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
@@ -288,7 +288,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
       <AppBar />
       <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
         {/* User Profile Section */}
@@ -383,7 +383,7 @@ export default function ProfilePage() {
                   {billing.plan === 'starter' && (
                     <Button
                       onClick={() => handleBillingAction('upgrade', 'pro')}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                      className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
                     >
                       <ArrowUpRight className="h-4 w-4 mr-2" />
                       Upgrade to Pro
@@ -761,7 +761,7 @@ export default function ProfilePage() {
                 }
                 setBillingDialogOpen(false)
               }}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black"
             >
               {selectedPlan === 'pro' ? 'Upgrade Now' : selectedPlan === 'starter' ? 'Downgrade Now' : 'Continue'}
             </Button>

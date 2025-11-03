@@ -358,7 +358,7 @@ export default function SideBySideTestModal({
                   <p className="text-gray-600 mb-4">This session has reached its 1-minute limit, but you can continue using it. Close the modal when you're done testing.</p>
                   <Button
                     onClick={handleClose}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                    className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
                   >
                     Close Session
                   </Button>
@@ -487,7 +487,7 @@ export default function SideBySideTestModal({
                 onClick={handleRunHyperAgentTest}
                 disabled={isRunningHyperAgent || !sessionData?.sessionId}
                 size="sm"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRunningHyperAgent ? (
                   <>

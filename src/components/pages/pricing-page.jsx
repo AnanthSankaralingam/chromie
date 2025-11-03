@@ -18,8 +18,8 @@ export default function PricingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ export default function PricingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
         {/* Header */}
         <AppBar />
 
@@ -49,8 +49,8 @@ export default function PricingPage() {
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-6xl mx-auto">
             {/* Title */}
-            <div className="text-center mb-16">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <div className="text-center mb-16 overflow-visible">
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
                 pricing
               </h1>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">

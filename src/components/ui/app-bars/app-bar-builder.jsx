@@ -109,7 +109,7 @@ export default function AppBarBuilder({
   }
 
   return (
-    <header className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-slate-900/95 via-purple-900/20 to-slate-900/95 backdrop-blur-md shadow-lg">
+    <header className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-slate-900/95 via-black/20 to-slate-900/95 backdrop-blur-md shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-3">

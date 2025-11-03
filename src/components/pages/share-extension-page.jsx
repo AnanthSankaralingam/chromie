@@ -344,20 +344,20 @@ export default function ShareExtensionPage({ token }) {
             
             <div className="space-y-2 text-sm text-slate-300">
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>describe your idea, we'll write the code</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>test from within the app or on shared links</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                 <span>publish, share or download your extension</span>
               </div>
             </div>
             
-            <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-medium">
+            <Button asChild className="w-full bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black font-medium">
               <Link href="/" className="flex items-center justify-center">
                 start building for free
                 <ExternalLink className="h-4 w-4 ml-2" />

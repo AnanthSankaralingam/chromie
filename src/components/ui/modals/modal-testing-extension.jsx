@@ -268,7 +268,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
                 <p className="text-slate-300 mb-4">This session has reached its 1-minute limit, but you can continue using it. Close the modal when you're done testing.</p>
                 <Button
                   onClick={handleClose}
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                  className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
                 >
                   Close Session
                 </Button>
@@ -342,7 +342,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
                 <p className="text-slate-300 mb-4">
                   There was an error setting up the browser testing environment. Please try again.
                 </p>
-                <Button onClick={onRefresh} disabled={isLoading} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
+                <Button onClick={onRefresh} disabled={isLoading} className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Retry
                 </Button>
