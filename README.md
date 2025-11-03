@@ -7,10 +7,9 @@ P0 <br>
 1. fix schema mandatory fields so generic extensions don't generate empty files
 2. auto pin extension at start
 3. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
+4. expand planning phase to multiple LLM calls and different purposes. this is probably the next big improvement. expand our use cases from frontend types into highlight -> action, newTab modifier, etc.
 
 P1 <br>
-1. testing modal doesnt work after restart (second session)
-2. when puppeteer fails, button state doesnt update and user can't retry
 3. test product end to end, along with billing
 4. functionality to publish extensions directly to chrome web store (when unblocked)
 5. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
@@ -23,11 +22,9 @@ P2. <br>
 
 ### BUGS
 1. API modal doesn't complete code gen when used. Also is not extremely clear for users
-2. Browser session for a second run doesn't work. Once the 3 minutes are up, even if the user has more total_minutes, they can't start a new session successfully
 3. token tracking is not updating even though logs say they are
-4. icons arent always downloaded to the extension.
 5. project limits are not correctly enforced. free user can build up to 3 projects
-6. UX: chromie as default icon for extensions, auto-submit prompt after sign up 
+6. UX: update shared_icons to use chromie as default icon for extensions
 
 
 
