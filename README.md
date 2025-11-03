@@ -10,11 +10,12 @@ P0 <br>
 4. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
 
 P1 <br>
-1. test product end to end, along with billing
-2. functionality to publish extensions directly to chrome web store (when unblocked)
-3. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-4. dropdown to select a specific frontend type before code gen?
-5. Upload your own extension/files?
+1. testing modal doesnt work after restart (second session)
+2. test product end to end, along with billing
+3. functionality to publish extensions directly to chrome web store (when unblocked)
+4. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
+5. dropdown to select a specific frontend type before code gen?
+6. Upload your own extension/files?
 
 P2. <br>
 1. integrate custom APIs (verify)
