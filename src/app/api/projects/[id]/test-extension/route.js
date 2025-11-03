@@ -65,7 +65,7 @@ export async function POST(request, { params }) {
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
     console.log("Creating session with existing extension files count:", extensionFiles.length)
-    const session = await hyperbrowserService.createTestSession(extensionFiles, id)
+    const session = await hyperbrowserService.createTestSession(extensionFiles, id, user.id, supabase)
 
     // Debug: Log session details after creation
     console.log("🔍 Session created successfully:", {
@@ -117,7 +117,7 @@ export async function DELETE(request, { params }) {
     console.log('Skipping database session lookup (table does not exist)')
     
     // Always record 1 minute used regardless of actual session duration
-    const actualMinutesUsed = 1
+    const actualMinutesUsed = 3
 
     const ok = await hyperbrowserService.terminateSession(sessionId)
     if (!ok) {

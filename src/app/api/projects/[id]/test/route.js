@@ -54,6 +54,9 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
     }
 
+    // Extract user plan from limit check
+    const userPlan = limitCheck.plan
+
     // Convert files array to object format expected by BrowserBase service
     const extensionFiles = {}
     files?.forEach(file => {
@@ -61,12 +64,13 @@ export async function POST(request, { params }) {
     })
 
     // Calculate session expiry - enforce 1 minute maximum for all sessions
+    const now = new Date()
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
-    // Create test session using Hyperbrowser service
+    // Create test session using Hyperbrowser service with user profile support
     const hyperbrowserService = new HyperbrowserService()
-    const sessionData = await hyperbrowserService.createTestSession(extensionFiles, projectId)
+    const sessionData = await hyperbrowserService.createTestSession(extensionFiles, projectId, user.id, supabase) 
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')
@@ -124,11 +128,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Session ID is required" }, { status: 400 })
     }
 
-    // Skip database session lookup since browser_sessions table doesn't exist
-    console.log('Skipping database session lookup (table does not exist)')
-
-    // Always record 1 minute used regardless of actual session duration
-    const actualMinutesUsed = 1
+    const actualMinutesUsed = 3
 
     // Terminate session using Hyperbrowser service
     const hyperbrowserService = new HyperbrowserService()
