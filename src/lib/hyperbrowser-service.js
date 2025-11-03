@@ -9,10 +9,6 @@ import {
   tryFallbackApiKey as tryFallback,
   validateExtensionFiles,
   ensureRequiredFiles,
-  createDefaultPopupHTML,
-  createDefaultSidePanelHTML,
-  createDefaultBackgroundJS,
-  createDefaultContentJS
 } from "@/lib/utils/hyperbrowser-utils"
 import { navigateToUrl as navigateToUrlUtil, getPlaywrightSessionContext as getPlaywrightContextUtil } from "@/lib/utils/browser-actions"
 
@@ -39,12 +35,81 @@ export class HyperbrowserService {
   }
 
   /**
+   * Get or create a Hyperbrowser profile ID for a user
+   * @param {string} userId - User identifier
+   * @param {Object} supabaseClient - Supabase client instance
+   * @returns {Promise<{profileId: string|null, isNew: boolean}>} Profile ID and whether it was newly created
+   */
+  async getOrCreateProfileId(userId, supabaseClient) {
+    if (!userId || !supabaseClient) {
+      return { profileId: null, isNew: false }
+    }
+
+    try {
+      // Query for existing profile ID
+      const { data: profile, error: fetchError } = await supabaseClient
+        .from('profiles')
+        .select('hyperbrowser_profile_id')
+        .eq('id', userId)
+        .single()
+
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error fetching profile:', fetchError)
+        return { profileId: null, isNew: false }
+      }
+
+      // If profile ID exists, return it
+      if (profile && profile.hyperbrowser_profile_id) {
+        console.log(`Reusing Hyperbrowser profile: ${profile.hyperbrowser_profile_id} for user: ${userId}`)
+        return { profileId: profile.hyperbrowser_profile_id, isNew: false }
+      }
+
+      // Create new Hyperbrowser profile
+      if (!this.apiKey || !this.client) {
+        console.warn('Cannot create Hyperbrowser profile: missing API key')
+        return { profileId: null, isNew: false }
+      }
+
+      const newProfile = await this.client.profiles.create({
+        name: `chromie-user-${userId}`
+      })
+
+      const profileId = newProfile?.id || null
+      if (!profileId) {
+        console.error('Failed to create Hyperbrowser profile: no ID returned')
+        return { profileId: null, isNew: false }
+      }
+
+      // Update Supabase with the new profile ID
+      const { error: updateError } = await supabaseClient
+        .from('profiles')
+        .update({ hyperbrowser_profile_id: profileId })
+        .eq('id', userId)
+
+      if (updateError) {
+        console.error('Failed to update profile with Hyperbrowser profile ID:', updateError)
+        // Still return the profile ID since it was created successfully
+        // The profile can be used in-memory for this request
+      }
+
+      console.log(`Created new Hyperbrowser profile: ${profileId} for user: ${userId}`)
+      return { profileId, isNew: true }
+    } catch (error) {
+      console.error('Error in getOrCreateProfileId:', error)
+      // Graceful degradation: allow session to proceed without profile
+      return { profileId: null, isNew: false }
+    }
+  }
+
+  /**
    * Create a new browser session with extension loaded
    * @param {Object} extensionFiles - The extension files to load
    * @param {string} projectId - Project identifier
+   * @param {string} userId - Optional user identifier for profile lookup
+   * @param {Object} supabaseClient - Optional Supabase client for profile lookup
    * @returns {Promise<Object>} Session details including iframe URL
    */
-  async createTestSession(extensionFiles = {}, projectId) {
+  async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null) {
     try {
       console.log("Creating Hyperbrowser test session for project:", projectId)
       
@@ -66,8 +131,17 @@ export class HyperbrowserService {
         console.log("Uploaded extensionId:", extensionId)
       }
 
+      // Get or create profile ID for user (if userId and supabaseClient provided)
+      let profileId = null
+      let isNewProfile = false
+      if (userId && supabaseClient) {
+        const profileResult = await this.getOrCreateProfileId(userId, supabaseClient)
+        profileId = profileResult.profileId
+        isNewProfile = profileResult.isNew
+      }
+
       // Create a new Hyperbrowser session with optional extension loaded
-      console.log("Creating session with extensionId:", extensionId)
+      console.log("Creating session with extensionId:", extensionId, "profileId:", profileId)
       const sessionCreatePayload = {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
@@ -78,6 +152,14 @@ export class HyperbrowserService {
       // Add extension if available
       if (extensionId) {
         sessionCreatePayload.extensionIds = [extensionId]
+      }
+
+      // Add profile if available (only persist changes on first session)
+      if (profileId) {
+        sessionCreatePayload.profile = {
+          id: profileId,
+          persistChanges: true // always remember history/cookies
+        }
       }
 
       const session = await this.client.sessions.create(sessionCreatePayload)
@@ -164,7 +246,7 @@ export class HyperbrowserService {
       if (this.tryFallbackApiKey()) {
         try {
           console.log("Retrying with fallback API key...")
-          return await this.createTestSession(extensionFiles, projectId)
+          return await this.createTestSession(extensionFiles, projectId, userId, supabaseClient)
         } catch (fallbackError) {
           console.error("Fallback API key also failed:", fallbackError)
           throw new Error(`Hyperbrowser session creation failed with both API keys: ${error.message}`)
@@ -328,8 +410,6 @@ export class HyperbrowserService {
       }
     }
   }
-
-  // default content/markup helpers now provided by utils
 
   /**
    * Get session status
@@ -529,20 +609,6 @@ export class HyperbrowserService {
     }
   }
 
-  /**
-   * Clean up expired sessions and update browser usage
-   * @param {Object} supabase - Supabase client instance
-   * @returns {Promise<Object>} Cleanup results
-   */
-  async cleanupExpiredSessions(supabase) {
-    try {
-      console.log('Skipping expired session cleanup - browser_sessions table does not exist')
-      return { success: true, cleaned: 0 }
-    } catch (error) {
-      console.error('Error during session cleanup:', error)
-      return { success: false, error: error.message }
-    }
-  }
 }
 
 // Export a function to get the service instance (lazy initialization)
