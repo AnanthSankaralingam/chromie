@@ -36,7 +36,22 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    console.log("📥 API: Navigating session:", sessionId, "to URL:", url)
+    // Normalize URL: domain-like inputs should become https://domain; spaces -> search
+    const inputRaw = (url || '').trim()
+    let normalizedUrl = inputRaw
+    if (!/^https?:\/\//.test(inputRaw) && !/^chrome:\/\//.test(inputRaw)) {
+      const hasSpace = inputRaw.includes(' ')
+      const looksLikeDomain = /\.[A-Za-z]{2,}(?:\:[0-9]{2,5})?(?:\/|$)/.test(inputRaw) || /\.[A-Za-z]{2,}$/.test(inputRaw)
+      if (hasSpace) {
+        normalizedUrl = `https://www.google.com/search?q=${encodeURIComponent(inputRaw)}`
+      } else if (looksLikeDomain) {
+        normalizedUrl = `https://${inputRaw}`
+      } else {
+        normalizedUrl = `https://www.google.com/search?q=${encodeURIComponent(inputRaw)}`
+      }
+    }
+
+    console.log("📥 API: Navigating session:", sessionId, "to URL:", normalizedUrl, "(input:", url, ")")
 
     // Get Hyperbrowser API key - use the same logic as the service
     const apiKey = process.env.HYPERBROWSER_API_KEY || process.env.HYPERBROWSER_API_KEY_FALLBACK_1
@@ -103,14 +118,14 @@ export async function POST(request, { params }) {
     }
 
     // Navigate to the URL using the browser actions utility
-    const success = await navigateToUrl(sessionId, url, apiKey)
+    const success = await navigateToUrl(sessionId, normalizedUrl, apiKey)
 
     if (success) {
       console.log("✅ API: Session validated successfully")
       return NextResponse.json({ 
         success: true,
         message: "Content opened in new tab successfully.",
-        url: url,
+        url: normalizedUrl,
         sessionId: sessionId,
         timestamp: new Date().toISOString(),
         note: "The content has been opened in a new tab in the browser window."
@@ -120,7 +135,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ 
         success: false,
         error: "Session validation failed",
-        url: url,
+        url: normalizedUrl,
         sessionId: sessionId
       }, { status: 500 })
     }

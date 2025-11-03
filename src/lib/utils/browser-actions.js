@@ -178,13 +178,17 @@ export async function navigateToUrl(sessionId, url, apiKey) {
       // Format the URL - add protocol if missing
       let formattedUrl = url.trim()
       if (!formattedUrl.match(/^https?:\/\//) && !formattedUrl.match(/^chrome:\/\//)) {
-        // If it doesn't start with http://, https://, or chrome://, assume it's a search query or domain
-        if (formattedUrl.includes(' ') || formattedUrl.includes('.') && !formattedUrl.includes('/')) {
-          // If it contains spaces or looks like a domain without path, treat as search
+        const hasSpace = formattedUrl.includes(' ')
+        const looksLikeDomain = /\.[A-Za-z]{2,}(?:\:[0-9]{2,5})?(?:\/|$)/.test(formattedUrl) || /\.[A-Za-z]{2,}$/.test(formattedUrl)
+        if (hasSpace) {
+          // Treat as search query
           formattedUrl = `https://www.google.com/search?q=${encodeURIComponent(formattedUrl)}`
-        } else {
-          // Otherwise, assume it's a domain and add https://
+        } else if (looksLikeDomain) {
+          // Treat as bare domain like linkedin.com -> https://linkedin.com
           formattedUrl = `https://${formattedUrl}`
+        } else {
+          // Single word: search
+          formattedUrl = `https://www.google.com/search?q=${encodeURIComponent(formattedUrl)}`
         }
       }
       

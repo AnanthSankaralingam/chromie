@@ -6,6 +6,9 @@ export default function useTestExtension(currentProjectId) {
   const [isTestLoading, setIsTestLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const cleanupAttempted = useRef(false)
+  const pendingCreateRef = useRef(null)
+  const cleanupAfterCreateRef = useRef(false)
+  const isModalOpenRef = useRef(false)
 
   // Session cleanup function
   const cleanupSession = async (sessionId, projectId) => {
@@ -55,7 +58,6 @@ export default function useTestExtension(currentProjectId) {
         if (navigator.sendBeacon) {
           const blob = new Blob([cleanupData], { type: 'application/json' })
           navigator.sendBeacon(`/api/projects/${currentProjectId}/test-extension`, blob)
-          console.log("📡 Sent cleanup request via sendBeacon")
         }
         
         // Also try synchronous cleanup as fallback
@@ -80,14 +82,15 @@ export default function useTestExtension(currentProjectId) {
 
     // Clean up any existing session before creating a new one
     if (testSessionData?.sessionId) {
-      console.log("🔄 Cleaning up existing session before creating new one")
       await cleanupSession(testSessionData.sessionId, currentProjectId)
     }
 
     setIsTestLoading(true)
     setLoadingProgress(0)
     setIsTestModalOpen(true)
+    isModalOpenRef.current = true
     cleanupAttempted.current = false // Reset cleanup flag for new session
+    cleanupAfterCreateRef.current = false
 
     try {
       // Simulate progress updates during session creation
@@ -100,12 +103,14 @@ export default function useTestExtension(currentProjectId) {
         })
       }, 1000)
 
-      const response = await fetch(`/api/projects/${currentProjectId}/test-extension`, {
+      const createPromise = fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       })
+      pendingCreateRef.current = createPromise
+      const response = await createPromise
 
       clearInterval(progressInterval)
       setLoadingProgress(90)
@@ -120,12 +125,26 @@ export default function useTestExtension(currentProjectId) {
       setTestSessionData(data.session)
       setLoadingProgress(100)
       console.log("Test session created:", data.session.sessionId)
+
+      // If user closed the modal before creation finished, immediately clean up the session we just created
+      if (cleanupAfterCreateRef.current || !isModalOpenRef.current) {
+        try {
+          console.log("🧹 Cleaning up session created after modal was closed:", data.session.sessionId)
+          await cleanupSession(data.session.sessionId, currentProjectId)
+        } finally {
+          // Ensure local state is cleared
+          setIsTestModalOpen(false)
+          setTestSessionData(null)
+          cleanupAttempted.current = false
+        }
+      }
     } catch (error) {
       console.error("Error creating test session:", error)
       // Keep modal open but show error state
       setTestSessionData(null)
     } finally {
       setIsTestLoading(false)
+      pendingCreateRef.current = null
     }
   }
 
@@ -133,20 +152,31 @@ export default function useTestExtension(currentProjectId) {
     // Terminate session if active
     if (testSessionData?.sessionId && currentProjectId) {
       await cleanupSession(testSessionData.sessionId, currentProjectId)
+    } else {
+      // If creation is still in-flight, mark for cleanup when it completes
+      if (pendingCreateRef.current) {
+        console.log("⏳ Modal closed while session creation in progress. Will cleanup after creation.")
+        cleanupAfterCreateRef.current = true
+      }
     }
 
     setIsTestModalOpen(false)
+    isModalOpenRef.current = false
     setTestSessionData(null)
     cleanupAttempted.current = false // Reset for next session
   }
 
-  // Handle session expiry - just close modal, don't auto-cleanup
+  // Handle session expiry - close modal and cleanup server session
   const handleSessionExpire = async () => {
-    console.log("⏰ Session timer expired - closing modal but keeping session alive")
-    // Don't automatically cleanup session - let user manually close when ready
-    setIsTestModalOpen(false)
-    setTestSessionData(null)
-    cleanupAttempted.current = false
+    try {
+      if (testSessionData?.sessionId && currentProjectId) {
+        await cleanupSession(testSessionData.sessionId, currentProjectId)
+      }
+    } finally {
+      setIsTestModalOpen(false)
+      setTestSessionData(null)
+      cleanupAttempted.current = false
+    }
   }
 
   const handleRefreshTest = () => {
