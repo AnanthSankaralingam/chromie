@@ -213,7 +213,6 @@ export class GeminiAdapter {
             if (!text) continue
             
             if (part?.thought) {
-              console.log('[gemini-adapter] yielding thinking chunk:', text.substring(0, 100) + '...')
               yield { type: 'thinking_chunk', content: text }
             } else {
               yield { type: 'answer_chunk', content: text }

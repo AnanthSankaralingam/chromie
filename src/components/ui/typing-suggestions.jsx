@@ -18,6 +18,8 @@ const TypingSuggestions = ({
   const [displayText, setDisplayText] = useState("")
   const timeoutRef = useRef(null)
   const intervalRef = useRef(null)
+  const isMountedRef = useRef(false)
+  const isActiveRef = useRef(isActive)
 
   const suggestions = [
     "a to-do list manager that helps you stay organized",
@@ -41,15 +43,24 @@ const TypingSuggestions = ({
   ]
 
   const typeText = (text, speed, onComplete) => {
+    // Clear any existing interval before starting a new one
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
     let index = 0
-    console.log('⌨️ Starting type animation:', { text, speed })
     intervalRef.current = setInterval(() => {
+      if (!isMountedRef.current || !isActiveRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+        return
+      }
       if (index <= text.length) {
         setDisplayText(text.slice(0, index))
         index++
       } else {
         clearInterval(intervalRef.current)
-        console.log('✅ Type animation completed')
+        intervalRef.current = null
         onComplete?.()
       }
     }, speed)
@@ -57,21 +68,32 @@ const TypingSuggestions = ({
 
   const eraseText = (textToErase, speed, onComplete) => {
     // Now we pass the text to erase as a parameter
+    // Clear any existing interval before starting a new one
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
     let index = textToErase.length
     
     intervalRef.current = setInterval(() => {
+      if (!isMountedRef.current || !isActiveRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+        return
+      }
       if (index >= 0) {
         setDisplayText(textToErase.slice(0, index))
         index--
       } else {
         clearInterval(intervalRef.current)
-        console.log('✅ Erase animation completed')
+        intervalRef.current = null
         onComplete?.()
       }
     }, speed)
   }
 
   const stopAnimation = () => {
+    isActiveRef.current = false
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
@@ -90,7 +112,6 @@ const TypingSuggestions = ({
     setCurrentIndex(prevIndex => {
       const nextIndex = (prevIndex + 1) % suggestions.length
       const nextSuggestion = suggestions[nextIndex]
-      console.log('🔄 Cycling to suggestion:', { prevIndex, nextIndex, suggestion: nextSuggestion.slice(0, 50) + '...' })
       setCurrentSuggestion(nextSuggestion)
       
       // Start typing the new suggestion
@@ -102,13 +123,11 @@ const TypingSuggestions = ({
         // Wait before starting to erase
         timeoutRef.current = setTimeout(() => {
           if (!isActive) return
-          console.log('🔄 Starting erase phase for:', nextSuggestion)
           setIsErasing(true)
           
           // Pass the full suggestion text to eraseText
           eraseText(nextSuggestion, eraseSpeed, () => {
             setIsErasing(false)
-            console.log('🔄 Erase phase completed, waiting before next cycle')
             // Wait before starting next cycle
             if (isActive) {
               timeoutRef.current = setTimeout(cycleSuggestions, erasePause)
@@ -121,8 +140,9 @@ const TypingSuggestions = ({
     })
   }
 
-  // Initialize the typing effect
+  // Initialize the typing effect & react to isActive changes
   useEffect(() => {
+    isActiveRef.current = isActive
     if (!isActive) {
       stopAnimation()
       return
@@ -135,15 +155,13 @@ const TypingSuggestions = ({
         setIsTyping(false)
         // Start the cycle after initial typing
         timeoutRef.current = setTimeout(() => {
-          if (!isActive) return
-          console.log('🔄 Starting initial erase phase for:', firstSuggestion)
+          if (!isMountedRef.current || !isActiveRef.current) return
           setIsErasing(true)
           
           // Pass the full suggestion text to eraseText
           eraseText(firstSuggestion, eraseSpeed, () => {
             setIsErasing(false)
-            console.log('🔄 Initial erase phase completed, starting cycle')
-            if (isActive) {
+            if (isActiveRef.current) {
               timeoutRef.current = setTimeout(cycleSuggestions, erasePause)
             }
           })
@@ -156,9 +174,22 @@ const TypingSuggestions = ({
     }
   }, [isActive])
 
-  // Cleanup on unmount
+  // Mount/unmount lifecycle tracking & page visibility handling
   useEffect(() => {
+    isMountedRef.current = true
+
+    const handleVisibilityOrPageHide = () => {
+      // Stop when page is hidden or being unloaded
+      stopAnimation()
+    }
+
+    window.addEventListener('visibilitychange', handleVisibilityOrPageHide)
+    window.addEventListener('pagehide', handleVisibilityOrPageHide)
+
     return () => {
+      isMountedRef.current = false
+      window.removeEventListener('visibilitychange', handleVisibilityOrPageHide)
+      window.removeEventListener('pagehide', handleVisibilityOrPageHide)
       stopAnimation()
     }
   }, [])

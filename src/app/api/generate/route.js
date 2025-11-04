@@ -6,6 +6,77 @@ import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { llmService } from "@/lib/services/llm-service"
 import { randomUUID } from "crypto"
 
+// Minimal helper to upsert token usage for the authenticated user
+async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, supabase }) {
+  try {
+    if (!Number.isFinite(tokensThisRequest) || tokensThisRequest <= 0) return
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let db = supabase
+    if (supabaseUrl && serviceKey) {
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+      db = createServiceClient(supabaseUrl, serviceKey)
+    }
+
+    // Fetch existing usage row
+    const { data: existingUsage } = await db
+      .from('token_usage')
+      .select('id, total_tokens, monthly_reset, browser_minutes')
+      .eq('user_id', supabaseUserId)
+      .maybeSingle()
+
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    let newMonthlyResetISO = existingUsage?.monthly_reset || firstDayOfMonth.toISOString()
+
+    // Determine if reset is due
+    let isResetDue = false
+    if (existingUsage?.monthly_reset) {
+      const d = new Date(existingUsage.monthly_reset)
+      const plusOne = new Date(d)
+      plusOne.setMonth(plusOne.getMonth() + 1)
+      isResetDue = now >= plusOne
+    }
+
+    let newTotalTokens
+    if (!existingUsage || isResetDue) {
+      newTotalTokens = tokensThisRequest
+      newMonthlyResetISO = firstDayOfMonth.toISOString()
+    } else {
+      newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+    }
+
+    if (existingUsage?.id) {
+      const { error: updateError } = await db
+        .from('token_usage')
+        .update({
+          total_tokens: newTotalTokens,
+          monthly_reset: newMonthlyResetISO,
+          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
+        })
+        .eq('id', existingUsage.id)
+        .eq('user_id', supabaseUserId)
+      if (updateError) console.error('[api/generate] token_usage update failed:', updateError)
+    } else {
+      const newId = randomUUID()
+      const { error: insertError } = await db
+        .from('token_usage')
+        .insert({
+          id: newId,
+          user_id: supabaseUserId,
+          total_tokens: newTotalTokens,
+          monthly_reset: newMonthlyResetISO,
+          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
+        })
+      if (insertError) console.error('[api/generate] token_usage insert failed:', insertError)
+    }
+    console.log(`[api/generate] ✅ token_usage upserted (+${tokensThisRequest} tokens)`)
+  } catch (e) {
+    console.error('[api/generate] token_usage upsert error:', e)
+  }
+}
+
 /**
  * Get the default provider based on environment variables
  * Priority: GOOGLE_AI_API_KEY > OPENAI_API_KEY > ANTHROPIC_API_KEY
@@ -286,6 +357,15 @@ export async function POST(request) {
     // Compute tokens used this request if available
     const tokensUsedThisRequest = result?.tokensUsedThisRequest ?? result?.tokenUsage?.total_tokens ?? 0
     const nextResponseId = result?.nextResponseId || null
+
+    // Upsert token usage server-side to ensure tracking for every request
+    const modelUsed = result?.tokenUsage?.model || modelOverride || 'unknown'
+    await upsertTokenUsage({
+      supabaseUserId: user.id,
+      tokensThisRequest: tokensUsedThisRequest,
+      modelUsed,
+      supabase,
+    })
 
     console.log('[api/generate] responding', {
       conversationTokenTotal_out: (conversationTokenTotal || 0) + tokensUsedThisRequest,

@@ -270,18 +270,7 @@ export default function StreamingChat({
                   }
                   break
                 case "usage_summary":
-                  try {
-                    const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
-                    const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
-                    const lim = typeof data.token_limit === 'number' ? data.token_limit : null
-                    const parts = []
-                    if (t !== null) parts.push(`thinking tokens: ${t}`)
-                    if (c !== null) parts.push(`completion tokens: ${c}`)
-                    if (lim !== null) parts.push(`token limit: ${lim}`)
-                    if (parts.length > 0) {
-                      addNewAssistantMessage(`usage: ${parts.join(', ')}`)
-                    }
-                  } catch (_) {}
+                  // Usage data is tracked server-side but not displayed to users
                   break
                 case "context_window":
                   addNewAssistantMessage('Context limit reached. Please start a new conversation.')
@@ -569,18 +558,7 @@ export default function StreamingChat({
                   }
                   break
                 case "usage_summary":
-                  try {
-                    const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
-                    const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
-                    const lim = typeof data.token_limit === 'number' ? data.token_limit : null
-                    const parts = []
-                    if (t !== null) parts.push(`thinking tokens: ${t}`)
-                    if (c !== null) parts.push(`completion tokens: ${c}`)
-                    if (lim !== null) parts.push(`token limit: ${lim}`)
-                    if (parts.length > 0) {
-                      addNewAssistantMessage(`usage: ${parts.join(', ')}`)
-                    }
-                  } catch (_) {}
+                  // Usage data is tracked server-side but not displayed to users
                   break
 
                 // Ignore intermediate status noise
@@ -796,19 +774,8 @@ export default function StreamingChat({
                       }
                       break
                         case "usage_summary":
-                      try {
-                        const t = typeof data.thinking_tokens === 'number' ? data.thinking_tokens : null
-                        const c = typeof data.completion_tokens === 'number' ? data.completion_tokens : null
-                            const lim = typeof data.token_limit === 'number' ? data.token_limit : null
-                        const parts = []
-                        if (t !== null) parts.push(`thinking tokens: ${t}`)
-                        if (c !== null) parts.push(`completion tokens: ${c}`)
-                            if (lim !== null) parts.push(`token limit: ${lim}`)
-                        if (parts.length > 0) {
-                          setMessages(prev => [...prev, { role: "assistant", content: `usage: ${parts.join(', ')}` }])
-                        }
-                      } catch (_) {}
-                      break
+                          // Usage data is tracked server-side but not displayed to users
+                          break
                         case "requires_api":
                           // Handle API requirement when scraping was skipped
                           console.log('🔌 [Skip scraping] Received requires_api signal:', data)
