@@ -7,14 +7,10 @@ P0 <br>
 1. fix schema mandatory fields so generic extensions don't generate empty files
 2. auto pin extension at start
 3. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
-4. expand planning phase to multiple LLM calls and different purposes. this is probably the next big improvement. expand our use cases from frontend types into highlight -> action, newTab modifier, etc.
 
 P1 <br>
-3. test product end to end, along with billing
-4. functionality to publish extensions directly to chrome web store (when unblocked)
-5. ace follow up conversation: ask LLM for git diffs rather than all code rewritten - will save context and tokens
-6. dropdown to select a specific frontend type before code gen?
-7. Upload your own extension/files?
+1. test product end to end, along with billing
+2. functionality to publish extensions directly to chrome web store (when unblocked)
 
 P2. <br>
 1. integrate custom APIs (verify)
@@ -22,10 +18,20 @@ P2. <br>
 
 ### BUGS
 1. API modal doesn't complete code gen when used. Also is not extremely clear for users
-3. token tracking is not updating even though logs say they are
-5. project limits are not correctly enforced. free user can build up to 3 projects
-6. UX: update shared_icons to use chromie as default icon for extensions
+2. URL input messes up code gen (thinking chunks) and doesn't allow users to skip (I was repeatedly asked for URL when I said not needed). 
+3. project limits are not correctly enforced. free user can build up to 3 projects
+4. browser_minutes not tracked unless user finishes entire session. should be easy fix.
+5. UX: update shared_icons to use chromie as default icon for extensions
 
+### SECURITY
+1. "See" feature needs to check for malicious additions before running html in frontend
+2. Wrap SQL requests with safety measure
+3. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
+
+### Random
+1. Upload your own extension/files?
+2. dropdown to select a specific frontend type before code gen?
+3. expand planning phase to multiple LLM calls and different purposes. this is probably the next big improvement. expand our use cases from frontend types into highlight -> action, newTab modifier, site blocker, etc.
 
 
 <br><br>
@@ -48,17 +54,10 @@ Notes:
 |  A5   |  B5   |  C5   |  D5   |  E5   |  F5   |
 
 
-Security TODOs
-1. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
-
 Optimizing TODOs
 1. cache files in builder while a session is in progress. upsert to db but don't repeatedly fetch. might be solved with chat history
 2. cache billing plan and token limit checks in generate to minimize calls to supabase 
 3. separate all validations that go on in generate to different files 
-4. update project metadata only once - unnecessary to continually update supabase with this. user can do from /profile 
-5. Parallelize the project creation and display frontend first when generating new extension (ananth)
-6. ~summarize conversation history based on context window. if we use reasoning model we'll either hit window limits or performance degredation after around 5 turns.~
-7. all users share the generic chromie icons, but supabase populates them by project id in code_files so there's hella duplicates of all icons. need a way to share these between all projects in code_files table.
    
 
    
