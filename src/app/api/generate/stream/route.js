@@ -4,6 +4,7 @@ import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension-
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { llmService } from "@/lib/services/llm-service"
+import { randomUUID } from "crypto"
 
 /**
  * Get the default provider based on environment variables
@@ -26,6 +27,79 @@ function getDefaultProvider() {
 function isContextLimitError(error, provider) {
   const adapter = llmService.providerRegistry.getAdapter(provider)
   return adapter && adapter.isContextLimitError && adapter.isContextLimitError(error)
+}
+
+/**
+ * Upsert token usage for the authenticated user
+ */
+async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, supabase }) {
+  try {
+    if (!Number.isFinite(tokensThisRequest) || tokensThisRequest <= 0) return
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let db = supabase
+    if (supabaseUrl && serviceKey) {
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+      db = createServiceClient(supabaseUrl, serviceKey)
+    }
+
+    // Fetch existing usage row
+    const { data: existingUsage } = await db
+      .from('token_usage')
+      .select('id, total_tokens, monthly_reset, browser_minutes')
+      .eq('user_id', supabaseUserId)
+      .maybeSingle()
+
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    let newMonthlyResetISO = existingUsage?.monthly_reset || firstDayOfMonth.toISOString()
+
+    // Determine if reset is due
+    let isResetDue = false
+    if (existingUsage?.monthly_reset) {
+      const d = new Date(existingUsage.monthly_reset)
+      const plusOne = new Date(d)
+      plusOne.setMonth(plusOne.getMonth() + 1)
+      isResetDue = now >= plusOne
+    }
+
+    let newTotalTokens
+    if (!existingUsage || isResetDue) {
+      newTotalTokens = tokensThisRequest
+      newMonthlyResetISO = firstDayOfMonth.toISOString()
+    } else {
+      newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
+    }
+
+    if (existingUsage?.id) {
+      const { error: updateError } = await db
+        .from('token_usage')
+        .update({
+          total_tokens: newTotalTokens,
+          monthly_reset: newMonthlyResetISO,
+          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
+        })
+        .eq('id', existingUsage.id)
+        .eq('user_id', supabaseUserId)
+      if (updateError) console.error('[api/generate/stream] token_usage update failed:', updateError)
+    } else {
+      const newId = randomUUID()
+      const { error: insertError } = await db
+        .from('token_usage')
+        .insert({
+          id: newId,
+          user_id: supabaseUserId,
+          total_tokens: newTotalTokens,
+          monthly_reset: newMonthlyResetISO,
+          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
+        })
+      if (insertError) console.error('[api/generate/stream] token_usage insert failed:', insertError)
+    }
+    console.log(`[api/generate/stream] ✅ token_usage upserted (+${tokensThisRequest} tokens)`)
+  } catch (e) {
+    console.error('[api/generate/stream] token_usage upsert error:', e)
+  }
 }
 
 export async function POST(request) {
@@ -112,6 +186,10 @@ export async function POST(request) {
 
     // Create a readable stream
     const encoder = new TextEncoder()
+    let accumulatedTokens = 0
+    let modelUsed = modelOverride || 'unknown'
+    let requiresUrl = false
+    
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -120,7 +198,6 @@ export async function POST(request) {
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`))
 
           // Use the streaming generation
-          let requiresUrl = false
           for await (const chunk of generateChromeExtensionStream({
             featureRequest: prompt,
             requestType,
@@ -137,6 +214,20 @@ export async function POST(request) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
             
+            // Track token usage from chunks
+            if (chunk.type === "response_id" && typeof chunk.tokensUsedThisRequest === 'number') {
+              accumulatedTokens = chunk.tokensUsedThisRequest
+            } else if (chunk.type === "token_usage" && chunk.usage) {
+              const total = chunk.usage.total_tokens || chunk.usage.total || 0
+              if (total > 0) accumulatedTokens = total
+              if (chunk.usage.model) modelUsed = chunk.usage.model
+            } else if (chunk.type === "usage_summary") {
+              const thinking = chunk.thinking_tokens || 0
+              const completion = chunk.completion_tokens || 0
+              const total = thinking + completion
+              if (total > 0) accumulatedTokens = total
+            }
+            
             // Check if URL is required
             if (chunk.type === "requires_url") {
               console.log('[api/generate/stream] 📋 Detected requires_url chunk - will halt after this')
@@ -144,18 +235,28 @@ export async function POST(request) {
             }
           }
 
-          console.log('[api/generate/stream] Stream completed. requiresUrl:', requiresUrl)
+          console.log('[api/generate/stream] Stream completed. requiresUrl:', requiresUrl, 'tokens:', accumulatedTokens)
           
-          // Only send completion signal if URL is not required
+          // Only send completion signal and upsert tokens if URL is not required
           if (!requiresUrl) {
             console.log('[api/generate/stream] Sending done signal')
             const completionData = JSON.stringify({ type: "done", content: "Generation complete" })
             controller.enqueue(encoder.encode(`data: ${completionData}\n\n`))
             
+            // Upsert token usage server-side after successful generation
+            if (accumulatedTokens > 0) {
+              await upsertTokenUsage({
+                supabaseUserId: user.id,
+                tokensThisRequest: accumulatedTokens,
+                modelUsed,
+                supabase,
+              })
+            }
+            
             // HyperAgent test script generation is now triggered manually via the "create ai testing agent [beta]" button
             console.log('ℹ️ HyperAgent test script generation is now manual - use the "create ai testing agent [beta]" button')
           } else {
-            console.log('[api/generate/stream] Skipping done signal - URL required')
+            console.log('[api/generate/stream] Skipping done signal and token upsert - URL required')
           }
           controller.close()
         } catch (error) {

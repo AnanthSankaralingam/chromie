@@ -114,12 +114,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
     const userMessage = { role: "user", content: inputMessage }
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    // Do not set generating yet; wait until we know we are actually generating code
-
-    // Notify parent component only when actual generation begins (moved below)
-    // if (onGenerationStart) {
-    //   onGenerationStart()
-    // }
 
     try {
       // Force refresh hasGeneratedCode from Supabase before determining request type
@@ -225,26 +219,8 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
         }
 
         // Refresh token usage display by triggering a page reload of the token usage component
-        // This is a simple way to refresh the token usage without complex state management
         const tokenUsageEvent = new CustomEvent('tokenUsageUpdated')
         window.dispatchEvent(tokenUsageEvent)
-      }
-
-      // Post token usage to server (moved out of /api/generate)
-      try {
-        if (data?.tokenUsage?.total_tokens) {
-          await fetch('/api/token-usage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              tokensThisRequest: data.tokenUsage.total_tokens,
-              model: data.tokenUsage.model || 'unknown'
-            })
-          })
-        }
-      } catch (usageErr) {
-        console.error('Failed to post token usage:', usageErr)
       }
 
     } catch (error) {
