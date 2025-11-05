@@ -7,7 +7,7 @@ P0 <br>
 1. fix schema mandatory fields so generic extensions don't generate empty files
 2. auto pin extension at start
 3. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
-4. update tab suggested prompts to be rendered as a vertical list
+4. update tab suggested prompts to be rendered as a vertical list, similar to how chatgpt does it
 
 P1 <br>
 1. test product end to end, along with billing
@@ -18,11 +18,9 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. URL input messes up code gen (thinking chunks) and doesn't allow users to skip (I was repeatedly asked for URL when I said not needed).
-2. handle token limit errors gracefully
-3. project limits are not correctly enforced. free user can build up to 3 projects
-4. browser_minutes not tracked unless user finishes entire session. should be easy fix.
-5. UX: update shared_icons to use chromie as default icon for extensions
+1. project limits are not correctly enforced. free user can build up to 3 projects
+2. browser_minutes not tracked unless user finishes entire session. should be easy fix.
+3. UX: update shared_icons to use chromie as default icon for extensions
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
