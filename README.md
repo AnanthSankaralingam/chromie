@@ -18,10 +18,11 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. URL input messes up code gen (thinking chunks) and doesn't allow users to skip (I was repeatedly asked for URL when I said not needed). 
-2. project limits are not correctly enforced. free user can build up to 3 projects
-3. browser_minutes not tracked unless user finishes entire session. should be easy fix.
-4. UX: update shared_icons to use chromie as default icon for extensions
+1. URL input messes up code gen (thinking chunks) and doesn't allow users to skip (I was repeatedly asked for URL when I said not needed).
+2. handle token limit errors gracefully
+3. project limits are not correctly enforced. free user can build up to 3 projects
+4. browser_minutes not tracked unless user finishes entire session. should be easy fix.
+5. UX: update shared_icons to use chromie as default icon for extensions
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
