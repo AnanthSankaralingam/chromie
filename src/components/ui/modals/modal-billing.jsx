@@ -94,7 +94,7 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
                 : 'your subscription has been processed successfully.'
               }
             </p>
-            <Button onClick={handleClose} className="mt-6">
+            <Button onClick={handleClose} variant="outline" className="mt-6 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800">
               close
             </Button>
           </div>

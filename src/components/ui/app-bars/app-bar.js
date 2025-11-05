@@ -86,14 +86,20 @@ export default function AppBar() {
                   </Avatar>
                 </Link>
                 <Link href="/profile">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
+                  <Button 
+                    variant="outline"
+                    className="relative bg-slate-900 text-blue-300 hover:text-blue-200 transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
+                    style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
+                  >
+                    dashboard
+                  </Button>
                 </Link>
               </div>
             ) : (
               <>
                 <Button 
-                  variant="ghost" 
-                  className="text-slate-300 hover:text-white"
+                  variant="outline" 
+                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
                   onClick={() => setIsAuthModalOpen(true)}
                 >
                   sign in
@@ -120,8 +126,8 @@ export default function AppBar() {
               {!user && (
                 <>
                   <Button 
-                    variant="ghost" 
-                    className="justify-start text-slate-300 hover:text-white"
+                    variant="outline" 
+                    className="justify-start border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
                     onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
                   >
                     sign in
@@ -136,7 +142,13 @@ export default function AppBar() {
               )}
               {user && (
                 <Link href="/builder" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">dashboard</Button>
+                  <Button 
+                    variant="outline"
+                    className="w-full relative bg-slate-900 text-blue-300 hover:text-blue-200 transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
+                    style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
+                  >
+                    dashboard
+                  </Button>
                 </Link>
               )}
             </div>

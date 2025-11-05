@@ -149,19 +149,23 @@ export default function AppBarBuilder({
                 <Button
                   onClick={handleCreateAITestAgent}
                   disabled={isTestDisabled || isGenerating}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 transition-all duration-200 px-3 py-2 font-medium text-sm"
+                  variant="outline"
+                  className="relative bg-slate-900 text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm hover:bg-slate-800"
+                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(8 145 178))', backgroundOrigin: 'border-box'}}
                   title="Generate automated test script for your extension"
                 >
                   <Bot className="h-4 w-4 mr-2" />
                   <span className="inline-flex items-center space-x-1.5">
                     <span>create ai testing agent</span>
-                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-600">beta</span>
                   </span>
                 </Button>
                 <Button
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
-                  className={`bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/25 transition-all duration-200 px-4 py-2 font-medium ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  variant="outline"
+                  className={`relative bg-slate-900 text-green-300 hover:text-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   test extension
@@ -179,7 +183,9 @@ export default function AppBarBuilder({
                 <Button 
                   onClick={handleFeedbackClick}
                   disabled={!projectId}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-indigo-500/25 transition-all duration-200 px-4 py-2 font-medium"
+                  variant="outline"
+                  className="relative bg-slate-900 text-indigo-300 hover:text-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
+                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(99 102 241), rgb(168 85 247))', backgroundOrigin: 'border-box'}}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   feedback
@@ -217,18 +223,22 @@ export default function AppBarBuilder({
             <Button
               onClick={() => { handleCreateAITestAgent(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xs"
+              variant="outline"
+              className="w-full text-xs bg-slate-900 text-blue-300 hover:text-blue-200 hover:bg-slate-800"
+              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(8 145 178))', backgroundOrigin: 'border-box'}}
             >
               <Bot className="h-4 w-4 mr-2" />
               <span className="inline-flex items-center space-x-1.5">
                 <span>create ai testing agent</span>
-                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-blue-800 text-blue-200 border border-blue-700">beta</span>
+                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-600">beta</span>
               </span>
             </Button>
             <Button
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              className={`w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              variant="outline"
+              className={`w-full bg-slate-900 text-green-300 hover:text-green-200 hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
             >
               <Play className="h-4 w-4 mr-2" />
               test
@@ -249,7 +259,9 @@ export default function AppBarBuilder({
             <Button
               onClick={() => { handleFeedbackClick(); setIsMobileMenuOpen(false) }}
               disabled={!projectId}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              className="w-full bg-slate-900 text-indigo-300 hover:text-indigo-200 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(99 102 241), rgb(168 85 247))', backgroundOrigin: 'border-box'}}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               feedback

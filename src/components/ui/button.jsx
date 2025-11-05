@@ -1,39 +1,58 @@
 import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 active:scale-[0.98]",
+  {
+    variants: {
+      variant: {
+        default: "bg-neutral-900 text-white hover:bg-neutral-800 focus-visible:ring-neutral-900",
+        destructive: "bg-red-50 text-red-600 hover:bg-red-100 focus-visible:ring-red-500",
+        outline: "border-2 border-neutral-200 bg-transparent text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 hover:text-neutral-900 focus-visible:ring-neutral-400",
+        secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-200 focus-visible:ring-neutral-500",
+        ghost: "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100/50 focus-visible:ring-neutral-400",
+        link: "text-neutral-900 underline-offset-4 hover:underline focus-visible:ring-neutral-500 p-0",
+        minimal: "text-neutral-600 hover:text-neutral-900 focus-visible:ring-neutral-400 bg-transparent hover:bg-transparent",
+        minimalDark: "text-white/80 hover:text-white hover:bg-white/5 focus-visible:ring-white/20 bg-transparent",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-11 px-6 text-base",
+        icon: "h-9 w-9",
+        iconSm: "h-8 w-8",
+        iconLg: "h-11 w-11",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+/**
+ * @typedef {Object} ButtonProps
+ * @property {boolean} [asChild] - Render as child component
+ * @property {string} [variant] - Button variant
+ * @property {string} [size] - Button size
+ * @extends {React.ButtonHTMLAttributes<HTMLButtonElement>}
+ */
+
 const Button = React.forwardRef(
-  ({ className, variant = "default", size = "default", disabled = false, children, ...props }, ref) => {
-    const baseStyles =
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-
-    const variants = {
-      default: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500",
-      destructive: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
-      outline: "border border-gray-300 bg-transparent hover:bg-gray-50 focus-visible:ring-gray-500",
-      secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500",
-      ghost: "hover:bg-gray-100 focus-visible:ring-gray-500",
-      link: "text-blue-600 underline-offset-4 hover:underline focus-visible:ring-blue-500",
-    }
-
-    const sizes = {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8",
-      icon: "h-10 w-10",
-    }
-
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
     return (
-      <button
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        disabled={disabled}
         {...props}
-      >
-        {children}
-      </button>
+      />
     )
-  },
+  }
 )
 Button.displayName = "Button"
 
-export { Button }
+export { Button, buttonVariants }
