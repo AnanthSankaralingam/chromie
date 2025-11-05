@@ -241,7 +241,7 @@ export async function* generateChromeExtensionStream({
     ) {
       console.log('🔌 External APIs suggested but not provided - halting code generation (streaming)')
       console.log('📋 Suggested APIs:', requirementsAnalysis.suggestedAPIs)
-      
+
       yield {
         type: "requires_api",
         content: "This extension can be enhanced with external API endpoints. Please configure them or choose to skip.",
@@ -252,11 +252,11 @@ export async function* generateChromeExtensionStream({
           tokenUsage: planningTokenUsage,
         },
       };
-      
+
       console.log('🛑 Returning from generator - should stop code generation for API input')
       return; // Stop the generator until the user provides API endpoints.
     }
-    
+
     console.log('✅ No external APIs suggested or APIs already provided - continuing with code generation')
 
     // Step 2: Fetch Chrome API documentation for required APIs

@@ -368,9 +368,8 @@ export default function StreamingChat({
 
                 case "requires_api":
                   // Handle API requirement
-                  console.log('🔌 Received requires_api signal:', data)
                   addNewAssistantMessage("This extension looks like it might need external APIs. Let me get endpoint details...")
-                  
+
                   // Store the current request info for API continuation
                   currentRequestRef.current = {
                     prompt: prompt,
@@ -378,7 +377,7 @@ export default function StreamingChat({
                     projectId: projectId,
                     analysisData: data.analysisData
                   }
-                  
+
                   // Trigger API prompt modal with suggested APIs from the response
                   setApiPromptData({
                     data: {
@@ -388,7 +387,6 @@ export default function StreamingChat({
                     originalPrompt: prompt
                   })
                   setShowApiPrompt(true)
-                  console.log('✅ API prompt modal should now be visible')
                   break
 
                 case "error":
@@ -600,9 +598,8 @@ export default function StreamingChat({
 
                 case "requires_api":
                   // Handle API requirement after URL flow
-                  console.log('🔌 [URL flow] Received requires_api signal:', data)
                   addNewAssistantMessage("This extension needs external API details. Let me get those from you...")
-                  
+
                   // Store the current request info for API continuation
                   currentRequestRef.current = {
                     prompt: prompt,
@@ -610,7 +607,7 @@ export default function StreamingChat({
                     projectId: projectId,
                     analysisData: data.analysisData
                   }
-                  
+
                   // Trigger API prompt modal
                   setApiPromptData({
                     data: {
@@ -620,7 +617,6 @@ export default function StreamingChat({
                     originalPrompt: prompt
                   })
                   setShowApiPrompt(true)
-                  console.log('✅ [URL flow] API prompt modal should now be visible')
                   break
 
                 case "error":
@@ -778,7 +774,6 @@ export default function StreamingChat({
                           break
                         case "requires_api":
                           // Handle API requirement when scraping was skipped
-                          console.log('🔌 [Skip scraping] Received requires_api signal:', data)
                           currentRequestRef.current = {
                             prompt: requestInfo.prompt,
                             requestType: requestInfo.requestType,
@@ -850,12 +845,33 @@ export default function StreamingChat({
   const handleApiSubmit = async (data, userApis, originalPrompt) => {
     setShowApiPrompt(false)
     setApiPromptData(null)
-    
+
     // Continue generation with APIs using the stored request info
     const requestInfo = currentRequestRef.current
     if (requestInfo) {
       try {
         setIsGenerating(true)
+
+        // Reset tracking for new stream
+        currentAssistantMessageRef.current = null
+        explanationBufferRef.current = ""
+
+        // Reset model thinking panel state for new stream
+        setIsModelThinkingOpen(false)
+        setModelThinkingFull("")
+        setModelThinkingDisplay("")
+        setIsGenerationComplete(false)
+        thinkingTokensRef.current = []
+        thinkingIdxRef.current = 0
+        thinkingChunkCountRef.current = 0
+        if (thinkingTimerRef.current) {
+          clearTimeout(thinkingTimerRef.current)
+          thinkingTimerRef.current = null
+        }
+        // Reset planning progress state
+        setPlanningProgress(null)
+        setCurrentPlanningPhase(null)
+
         if (onGenerationStart) {
           onGenerationStart()
         }
@@ -886,6 +902,15 @@ export default function StreamingChat({
         const decoder = new TextDecoder()
         let buffer = ""
 
+        // Helper function to add new assistant message
+        const addNewAssistantMessage = (content) => {
+          const newMessage = {
+            role: "assistant",
+            content: content
+          }
+          setMessages(prev => [...prev, newMessage])
+        }
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -897,24 +922,178 @@ export default function StreamingChat({
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6))
-                await handleStreamChunk(data, originalPrompt)
+                const chunk = JSON.parse(line.slice(6))
+
+                // Handle different chunk types (same as startGeneration)
+                switch (chunk.type) {
+                  case "thinking_chunk":
+                  case "thinking":
+                    // Append Gemini thinking text to model thinking panel
+                    if (typeof chunk.content === 'string' && chunk.content.length > 0) {
+                      thinkingChunkCountRef.current += 1
+                      setModelThinkingFull(prev => {
+                        const newContent = prev + chunk.content
+                        return newContent
+                      })
+                    }
+                    break
+
+                  case "planning_progress":
+                    // Handle planning progress updates
+                    if (chunk.phase && chunk.content) {
+                      setCurrentPlanningPhase(chunk.phase)
+                      setPlanningProgress(chunk.content)
+                    }
+                    break
+
+                  case "start":
+                    // Only add the start message if we haven't generated code yet
+                    if (!hasGeneratedCode) {
+                      addNewAssistantMessage("Starting to analyze your request...")
+                    }
+                    break
+
+                  case "token_usage":
+                    if (typeof chunk.total === 'number') {
+                      setConversationTokenTotal(chunk.total)
+                    }
+                    break
+
+                  case "usage_summary":
+                    // Usage data is tracked server-side but not displayed to users
+                    break
+
+                  case "context_window":
+                    addNewAssistantMessage('Context limit reached. Please start a new conversation.')
+                    if (typeof chunk.total === 'number') {
+                      setConversationTokenTotal(chunk.total)
+                    }
+                    break
+
+                  case "response_id":
+                    previousResponseIdRef.current = chunk.id
+                    if (typeof chunk.tokensUsedThisRequest === 'number') {
+                      const nextTotal = (conversationTokenTotal || 0) + chunk.tokensUsedThisRequest
+                      setConversationTokenTotal(nextTotal)
+                    }
+                    break
+
+                  // Ignore intermediate status noise
+                  case "analyzing":
+                  case "analysis_complete":
+                  case "fetching_apis":
+                  case "apis_ready":
+                  case "scraping":
+                  case "scraping_complete":
+                  case "scraping_skipped":
+                  case "context_ready":
+                  case "generation_starting":
+                    break
+
+                  case "phase":
+                    // Do not render phase updates to keep UI clean
+                    break
+
+                  case "explanation":
+                    // Buffer explanation tokens; emit once on done
+                    if (chunk.content) {
+                      explanationBufferRef.current += chunk.content
+                    }
+                    break
+
+                  case "generating_code":
+                    break
+
+                  case "code":
+                    // If backend supplies file path info, auto-select in editor via global event
+                    try {
+                      const filePath = chunk.file_path || chunk.path || chunk.file || null
+                      if (filePath && typeof window !== 'undefined') {
+                        const evt = new CustomEvent('editor:selectFile', { detail: { file_path: String(filePath) } })
+                        window.dispatchEvent(evt)
+                      }
+                    } catch (_) {}
+                    break
+
+                  case "files_saved":
+                  case "generation_complete":
+                    // On save or completion, try to focus manifest.json after a short delay
+                    try {
+                      if (typeof window !== 'undefined') {
+                        setTimeout(() => {
+                          const evt = new CustomEvent('editor:focusManifest')
+                          window.dispatchEvent(evt)
+                        }, 200)
+                      }
+                    } catch (_) {}
+                    break
+
+                  case "error":
+                    addNewAssistantMessage("I encountered an error: " + chunk.content + "\n\nPlease try again or let me know if you need help with something else.")
+                    break
+
+                  case "done":
+                    // Emit the final explanation once when stream completes
+                    if (explanationBufferRef.current.trim()) {
+                      addNewAssistantMessage("Here's what I've built for you:\n\n" + explanationBufferRef.current.trim())
+                      explanationBufferRef.current = ""
+                    }
+
+                    // Mark generation as complete to hide model thoughts
+                    setIsGenerationComplete(true)
+                    // Clear planning progress when generation is complete
+                    setPlanningProgress(null)
+                    setCurrentPlanningPhase(null)
+
+                    // Mark that code has been generated
+                    if (!hasGeneratedCode) {
+                      setHasGeneratedCode(true)
+                    }
+
+                    if (onCodeGenerated) {
+                      onCodeGenerated({ success: true })
+                    }
+
+                    // Reset message tracking
+                    currentAssistantMessageRef.current = null
+                    // Cancel any active typing and render full responses immediately
+                    setTypingCancelSignal((v) => v + 1)
+                    // Also request manifest focus
+                    try {
+                      if (typeof window !== 'undefined') {
+                        const evt = new CustomEvent('editor:focusManifest')
+                        window.dispatchEvent(evt)
+                      }
+                    } catch (_) {}
+                    // Flush model thinking panel
+                    setModelThinkingDisplay(modelThinkingFull)
+                    if (thinkingTimerRef.current) {
+                      clearTimeout(thinkingTimerRef.current)
+                      thinkingTimerRef.current = null
+                    }
+                    break
+                }
               } catch (parseError) {
-                console.error('Error parsing stream data:', parseError)
+                console.error('Error parsing stream data in API continuation:', parseError)
               }
             }
           }
         }
-        
-        // Ensure generation state is reset after completion
-        setIsGenerating(false)
-        if (onGenerationEnd) {
-          onGenerationEnd()
-        }
+
       } catch (error) {
         console.error('Error in API continuation:', error)
-        addNewAssistantMessage("I encountered an error while continuing generation: " + error.message + "\n\nPlease try again.")
+        const errorMessage = {
+          role: "assistant",
+          content: `I encountered an error while continuing generation: ${error.message}\n\nPlease try again.`
+        }
+        setMessages(prev => [...prev, errorMessage])
+      } finally {
         setIsGenerating(false)
+        currentAssistantMessageRef.current = null
+        currentRequestRef.current = null
+        // Ensure any typing is cancelled on end/error
+        setTypingCancelSignal((v) => v + 1)
+
         if (onGenerationEnd) {
           onGenerationEnd()
         }
