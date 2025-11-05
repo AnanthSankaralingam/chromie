@@ -164,8 +164,8 @@ export default function AppBarBuilder({
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
-                  className={`relative bg-slate-900 text-purple-300 hover:text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
+                  className={`relative bg-slate-900 text-green-300 hover:text-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   test extension
@@ -237,8 +237,8 @@ export default function AppBarBuilder({
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               variant="outline"
-              className={`w-full bg-slate-900 text-purple-300 hover:text-purple-200 hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
+              className={`w-full bg-slate-900 text-green-300 hover:text-green-200 hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
             >
               <Play className="h-4 w-4 mr-2" />
               test

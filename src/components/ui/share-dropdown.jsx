@@ -46,8 +46,8 @@ export default function ShareDropdown({
         <Button 
           disabled={isDisabled}
           variant="outline"
-          className={`relative bg-slate-900 text-cyan-300 hover:text-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
-          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(8 145 178))', backgroundOrigin: 'border-box'}}
+          className={`relative bg-slate-900 text-purple-300 hover:text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
+          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box'}}
         >
           <Share className="h-4 w-4 mr-2" />
           share
