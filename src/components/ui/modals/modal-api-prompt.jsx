@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 
-export default function ModalApiPrompt({ 
-  data, 
-  originalPrompt, 
-  onApiSubmit, 
+export default function ModalApiPrompt({
+  data,
+  originalPrompt,
+  onApiSubmit,
   onCancel
 }) {
   const [apiConfigs, setApiConfigs] = useState([])
