@@ -30,3 +30,7 @@ next-env.d.ts
 .cursorrules
 ananth-prompt.md
 node_modules
+
+# claude
+CLAUDE.md
+.claude

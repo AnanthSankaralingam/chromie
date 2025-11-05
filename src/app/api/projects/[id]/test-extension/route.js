@@ -61,6 +61,7 @@ export async function POST(request, { params }) {
 
     // Calculate session expiry - enforce 1 minute maximum for all sessions
     const now = new Date()
+    const sessionStartTime = now.toISOString()
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
@@ -78,11 +79,12 @@ export async function POST(request, { params }) {
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')
 
-    console.log(`Session expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
+    console.log(`Session starts at: ${sessionStartTime}, expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       session: {
         ...session,
+        startedAt: sessionStartTime,
         expiresAt: sessionExpiryTime.toISOString(),
         remainingMinutes: remainingMinutes,
         plan: userPlan
@@ -108,16 +110,33 @@ export async function DELETE(request, { params }) {
   }
 
   try {
-    const { sessionId } = await request.json()
+    const { sessionId, startedAt } = await request.json()
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
 
     // Skip database session lookup since browser_sessions table doesn't exist
     console.log('Skipping database session lookup (table does not exist)')
-    
-    // Always record 1 minute used regardless of actual session duration
-    const actualMinutesUsed = 3
+
+    // Calculate actual minutes used based on elapsed time
+    let actualMinutesUsed = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES // Default to full session
+
+    if (startedAt) {
+      const startTime = new Date(startedAt)
+      const endTime = new Date()
+      const elapsedMs = endTime.getTime() - startTime.getTime()
+      const elapsedMinutes = elapsedMs / (60 * 1000)
+
+      // Round up to nearest minute, minimum 1 minute
+      actualMinutesUsed = Math.max(1, Math.ceil(elapsedMinutes))
+
+      // Cap at session duration limit
+      actualMinutesUsed = Math.min(actualMinutesUsed, BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES)
+
+      console.log(`📊 Session duration: ${elapsedMinutes.toFixed(2)} minutes, charging: ${actualMinutesUsed} minutes`)
+    } else {
+      console.log(`⚠️ No startedAt provided, defaulting to full session duration: ${actualMinutesUsed} minutes`)
+    }
 
     const ok = await hyperbrowserService.terminateSession(sessionId)
     if (!ok) {
