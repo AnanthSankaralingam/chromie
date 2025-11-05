@@ -18,8 +18,8 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. project limits are not correctly enforced. free user can build up to 3 projects
-2. browser_minutes not tracked unless user finishes entire session. should be easy fix.
+1. project limits are not correctly enforced. free user can build up to 3 projects (check if this is true or not)
+2. browser_minutes not updated in supabase token_usage even though successfully monitored
 3. UX: update shared_icons to use chromie as default icon for extensions
 
 ### SECURITY
