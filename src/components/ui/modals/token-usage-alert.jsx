@@ -46,20 +46,6 @@ export default function TokenUsageAlert({ isOpen, onClose }) {
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-          >
-            Close
-          </Button>
-          <Link href="/pricing">
-            <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white">
-              Upgrade
-            </Button>
-          </Link>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

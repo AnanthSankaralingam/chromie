@@ -54,6 +54,7 @@ export async function POST(request, { params }) {
 
     // Calculate session expiry - enforce 1 minute maximum for shared extension testing
     const now = new Date()
+    const sessionStartTime = now.toISOString()
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
@@ -68,11 +69,12 @@ export async function POST(request, { params }) {
       connectUrl: session.connectUrl
     })
 
-    console.log(`Shared extension test session expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
+    console.log(`Shared extension test session starts at: ${sessionStartTime}, expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       session: {
         ...session,
+        startedAt: sessionStartTime,
         expiresAt: sessionExpiryTime.toISOString(),
         remainingMinutes: remainingMinutes,
         plan: 'shared' // Mark as shared extension test
@@ -88,7 +90,7 @@ export async function DELETE(request, { params }) {
   const { token } = params
 
   try {
-    const { sessionId } = await request.json()
+    const { sessionId, startedAt } = await request.json()
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
@@ -105,6 +107,15 @@ export async function DELETE(request, { params }) {
 
     if (shareError || !sharedProject) {
       return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+    }
+
+    // Log session duration for shared extensions (but don't charge since not logged in)
+    if (startedAt) {
+      const startTime = new Date(startedAt)
+      const endTime = new Date()
+      const elapsedMs = endTime.getTime() - startTime.getTime()
+      const elapsedMinutes = elapsedMs / (60 * 1000)
+      console.log(`📊 Shared session duration: ${elapsedMinutes.toFixed(2)} minutes (not charged)`)
     }
 
     // Terminate the session

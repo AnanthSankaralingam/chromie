@@ -166,7 +166,10 @@ export default function ShareExtensionPage({ token }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ sessionId: testSessionData.sessionId }),
+          body: JSON.stringify({
+            sessionId: testSessionData.sessionId,
+            startedAt: testSessionData.startedAt
+          }),
         })
       } catch (error) {
         console.error("Error cleaning up test session:", error)

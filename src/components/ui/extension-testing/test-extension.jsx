@@ -11,21 +11,24 @@ export default function useTestExtension(currentProjectId) {
   const isModalOpenRef = useRef(false)
 
   // Session cleanup function
-  const cleanupSession = async (sessionId, projectId) => {
+  const cleanupSession = async (sessionId, projectId, startedAt = null) => {
     if (!sessionId || !projectId || cleanupAttempted.current) {
       return
     }
-    
+
     cleanupAttempted.current = true
     console.log("🧹 Cleaning up browser session:", sessionId)
-    
+
     try {
       const response = await fetch(`/api/projects/${projectId}/test-extension`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({
+          sessionId,
+          startedAt: startedAt || testSessionData?.startedAt
+        }),
       })
       
       if (response.ok) {
@@ -82,7 +85,7 @@ export default function useTestExtension(currentProjectId) {
 
     // Clean up any existing session before creating a new one
     if (testSessionData?.sessionId) {
-      await cleanupSession(testSessionData.sessionId, currentProjectId)
+      await cleanupSession(testSessionData.sessionId, currentProjectId, testSessionData.startedAt)
     }
 
     setIsTestLoading(true)
@@ -130,7 +133,7 @@ export default function useTestExtension(currentProjectId) {
       if (cleanupAfterCreateRef.current || !isModalOpenRef.current) {
         try {
           console.log("🧹 Cleaning up session created after modal was closed:", data.session.sessionId)
-          await cleanupSession(data.session.sessionId, currentProjectId)
+          await cleanupSession(data.session.sessionId, currentProjectId, data.session.startedAt)
         } finally {
           // Ensure local state is cleared
           setIsTestModalOpen(false)
@@ -151,7 +154,7 @@ export default function useTestExtension(currentProjectId) {
   const handleCloseTestModal = async () => {
     // Terminate session if active
     if (testSessionData?.sessionId && currentProjectId) {
-      await cleanupSession(testSessionData.sessionId, currentProjectId)
+      await cleanupSession(testSessionData.sessionId, currentProjectId, testSessionData.startedAt)
     } else {
       // If creation is still in-flight, mark for cleanup when it completes
       if (pendingCreateRef.current) {
@@ -170,7 +173,7 @@ export default function useTestExtension(currentProjectId) {
   const handleSessionExpire = async () => {
     try {
       if (testSessionData?.sessionId && currentProjectId) {
-        await cleanupSession(testSessionData.sessionId, currentProjectId)
+        await cleanupSession(testSessionData.sessionId, currentProjectId, testSessionData.startedAt)
       }
     } finally {
       setIsTestModalOpen(false)

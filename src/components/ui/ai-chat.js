@@ -152,10 +152,14 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
       let content = ""
 
       // Handle different response scenarios
-      if (response.status === 403) {
-        // Show token usage modal if exceeded
+      if (response.status === 403 && data.details?.resourceType === 'tokens') {
+        // Show token usage modal for token limit errors only - no chat message
         setShowTokenLimitModal(true)
-        content = data.error || "token usage limit exceeded for your plan. please upgrade to continue generating extensions."
+        setIsGenerating(false)
+        if (onGenerationEnd) {
+          onGenerationEnd()
+        }
+        return // Don't show any error message in chat
       } else if (data.requiresUrl) {
         // Show URL prompt modal for scraping - no chat message needed
         
