@@ -374,7 +374,8 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <Button
                     onClick={() => handleBillingAction('manage')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    variant="outline"
+                    className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Manage Billing
@@ -483,7 +484,7 @@ export default function ProfilePage() {
                               setEditingProject(null)
                               setNewProjectName("")
                             }}
-                            className="text-slate-400 hover:text-white"
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
                           >
                             Cancel
                           </Button>
@@ -514,7 +515,7 @@ export default function ProfilePage() {
                              setEditingProject(project.id)
                              setNewProjectName(project.name)
                            }}
-                           className="text-slate-500 hover:text-slate-400 cursor-not-allowed"
+                           className="text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 cursor-not-allowed"
                            title="Renaming is no longer supported - names update automatically"
                            disabled
                          >
@@ -524,7 +525,7 @@ export default function ProfilePage() {
                            size="sm"
                            variant="ghost"
                            onClick={() => navigateToBuilderWithProject(project.id)}
-                           className="text-blue-400 hover:text-blue-300"
+                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                            title="Edit project in builder"
                          >
                            <ExternalLink className="h-4 w-4" />
@@ -536,7 +537,7 @@ export default function ProfilePage() {
                              setProjectToDelete(project)
                              setDeleteDialogOpen(true)
                            }}
-                           className="text-red-400 hover:text-red-300"
+                           className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                            title="Delete project"
                          >
                            <Trash2 className="h-4 w-4" />
@@ -596,7 +597,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyShareLink(share.share_url, share.id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                         title="Copy share link"
                       >
                         {copiedShareId === share.id ? (
@@ -609,7 +610,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => window.open(share.share_url, '_blank')}
-                        className="text-purple-400 hover:text-purple-300"
+                        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
                         title="View share page"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -619,7 +620,7 @@ export default function ProfilePage() {
                         variant="ghost"
                         onClick={() => handleRevokeShare(share.project.id, share.id)}
                         disabled={revokingShareId === share.id}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                         title="Revoke share link"
                       >
                         {revokingShareId === share.id ? (
@@ -654,9 +655,9 @@ export default function ProfilePage() {
               </DialogHeader>
               <DialogFooter>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setSignOutDialogOpen(false)}
-                  className="text-slate-300 hover:text-white"
+                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
                 >
                   Cancel
                 </Button>
@@ -691,12 +692,12 @@ export default function ProfilePage() {
             </DialogHeader>
             <DialogFooter>
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => {
                   setDeleteDialogOpen(false)
                   setProjectToDelete(null)
                 }}
-                className="text-slate-300 hover:text-white"
+                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
               >
                 Cancel
               </Button>
@@ -746,9 +747,9 @@ export default function ProfilePage() {
           </div>
           <DialogFooter>
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => setBillingDialogOpen(false)}
-              className="text-slate-300 hover:text-white"
+              className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
             >
               Cancel
             </Button>
