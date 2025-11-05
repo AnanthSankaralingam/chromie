@@ -26,6 +26,7 @@ P2. <br>
 1. "See" feature needs to check for malicious additions before running html in frontend
 2. Wrap SQL requests with safety measure
 3. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
+4. ensure code_files for a project always renders a manifest.json, prevent hallucinations/mishandling of files
 
 ### Random
 1. Upload your own extension/files?
