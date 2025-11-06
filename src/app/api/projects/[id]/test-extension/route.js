@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
+import { runPinExtension } from "@/lib/scripts/pin-extension"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -74,6 +75,13 @@ export async function POST(request, { params }) {
       status: session.status,
       liveViewUrl: session.liveViewUrl,
       connectUrl: session.connectUrl
+    })
+
+    // Automatically pin the extension to toolbar
+    // Run in background without blocking the response
+    runPinExtension(session.sessionId).catch((err) => {
+      console.error("Failed to pin extension:", err.message)
+      // Don't throw - this is a non-critical operation
     })
 
     // Skip database storage since browser_sessions table doesn't exist
