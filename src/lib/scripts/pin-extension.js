@@ -345,7 +345,7 @@ const runPinExtension = async (sessionId) => {
         return { alreadyPinned: true };
       }
 
-      // Click the toggle to pin it
+      // Click the toggle to pin the extension to the toolbar
       console.log('Clicking pin toggle...');
       pinToggle.click();
       
