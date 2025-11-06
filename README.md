@@ -26,6 +26,7 @@ P2. <br>
 2. Wrap SQL requests with safety measure
 3. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
 4. ensure code_files for a project always renders a manifest.json, prevent hallucinations/mishandling of files
+5. sanitize all user inputs: prompt, URL, endpoints, etc.
 
 ### Random
 1. Upload your own extension/files?
