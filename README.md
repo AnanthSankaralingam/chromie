@@ -5,9 +5,8 @@
 ### TODOs
 P0 <br>
 1. fix schema mandatory fields so generic extensions don't generate empty files
-2. auto pin extension at start
-3. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
-4. update tab suggested prompts to be rendered as a vertical list, similar to how chatgpt does it
+2. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
+3. update tab suggested prompts to be rendered as a vertical list, similar to how chatgpt does it
 
 P1 <br>
 1. test product end to end, along with billing
