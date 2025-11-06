@@ -58,13 +58,29 @@ export class HyperbrowserService {
         return { profileId: null, isNew: false }
       }
 
-      // If profile ID exists, return it
+      // If profile ID exists in Supabase, validate it exists in Hyperbrowser
       if (profile && profile.hyperbrowser_profile_id) {
-        console.log(`Reusing Hyperbrowser profile: ${profile.hyperbrowser_profile_id} for user: ${userId}`)
-        return { profileId: profile.hyperbrowser_profile_id, isNew: false }
+        const existingProfileId = profile.hyperbrowser_profile_id
+        
+        // Validate profile exists in Hyperbrowser
+        if (this.apiKey && this.client) {
+          try {
+            await this.client.profiles.get(existingProfileId)
+            console.log(`Validated and reusing Hyperbrowser profile: ${existingProfileId} for user: ${userId}`)
+            return { profileId: existingProfileId, isNew: false }
+          } catch (validationError) {
+            // Profile doesn't exist in Hyperbrowser - create a new one
+            console.warn(`Profile ${existingProfileId} not found in Hyperbrowser, creating new profile. Error: ${validationError.message}`)
+            // Fall through to create new profile below
+          }
+        } else {
+          // No API key/client available, can't validate - return existing ID and hope for the best
+          console.log(`Reusing Hyperbrowser profile without validation: ${existingProfileId} for user: ${userId}`)
+          return { profileId: existingProfileId, isNew: false }
+        }
       }
 
-      // Create new Hyperbrowser profile
+      // Create new Hyperbrowser profile (either no profile exists, or validation failed)
       if (!this.apiKey || !this.client) {
         console.warn('Cannot create Hyperbrowser profile: missing API key')
         return { profileId: null, isNew: false }
