@@ -6,6 +6,7 @@ export const extensionSuggestions = [
     title: "To-do list manager",
     description: "Create a simple to-do list extension that lets users add, remove, and check off daily tasks directly from the browser toolbar.",
     category: "Productivity",
+    persona: "personal",
     keywords: ["todo", "task", "productivity", "list", "manager", "checklist", "organize"]
   },
   {
@@ -13,6 +14,7 @@ export const extensionSuggestions = [
     title: "Password generator",
     description: "Build a secure password generator that creates random passwords with adjustable length and optional special characters.",
     category: "Security",
+    persona: "personal",
     keywords: ["password", "generator", "security", "random", "strong", "secure"]
   },
   {
@@ -20,6 +22,7 @@ export const extensionSuggestions = [
     title: "Quick note taker",
     description: "Develop a note-taking extension that saves quick notes or snippets locally for easy reference later.",
     category: "Productivity",
+    persona: "student",
     keywords: ["notes", "notepad", "memo", "quick", "save", "text"]
   },
   {
@@ -27,6 +30,7 @@ export const extensionSuggestions = [
     title: "Simple time tracker",
     description: "Create a lightweight time tracker that measures how long users spend on specific websites using the Chrome tabs API.",
     category: "Productivity",
+    persona: "professional",
     keywords: ["time", "tracker", "monitor", "productivity", "usage"]
   },
   {
@@ -34,6 +38,7 @@ export const extensionSuggestions = [
     title: "Pomodoro timer",
     description: "Build a timer that cycles between focus and break sessions, with sound or notification alerts when time is up.",
     category: "Productivity",
+    persona: "student",
     keywords: ["pomodoro", "timer", "focus", "break", "productivity"]
   },
 
@@ -43,6 +48,7 @@ export const extensionSuggestions = [
     title: "Social media blocker",
     description: "Block distracting social media sites by redirecting or hiding their content for a set duration.",
     category: "Productivity",
+    persona: "student",
     keywords: ["block", "social media", "focus", "distraction", "productivity"]
   },
   {
@@ -50,6 +56,7 @@ export const extensionSuggestions = [
     title: "Tweet draft saver",
     description: "Allow users to write and save tweet drafts locally for later posting instead of full scheduling automation.",
     category: "Social Media",
+    persona: "marketer",
     keywords: ["twitter", "tweet", "draft", "save", "social media"]
   },
   {
@@ -57,6 +64,7 @@ export const extensionSuggestions = [
     title: "LinkedIn note keeper",
     description: "Add a small notes widget for LinkedIn profiles to jot down personal notes about connections without automation.",
     category: "Social Media",
+    persona: "professional",
     keywords: ["linkedin", "notes", "networking", "professional"]
   },
 
@@ -66,6 +74,7 @@ export const extensionSuggestions = [
     title: "Color picker tool",
     description: "Extract colors from any webpage element using the EyeDropper API and show hex/RGB values.",
     category: "Design",
+    persona: "designer",
     keywords: ["color", "picker", "design", "hex", "rgb", "palette"]
   },
   {
@@ -73,6 +82,7 @@ export const extensionSuggestions = [
     title: "Screenshot capture tool",
     description: "Capture visible areas of a webpage using Chrome’s capture APIs and save images locally.",
     category: "Utility",
+    persona: "developer",
     keywords: ["screenshot", "capture", "image", "screen", "save"]
   },
   {
@@ -80,6 +90,7 @@ export const extensionSuggestions = [
     title: "CSS viewer",
     description: "Display CSS properties for hovered elements without editing — a read-only visual inspector.",
     category: "Development",
+    persona: "developer",
     keywords: ["css", "inspector", "styles", "debug", "developer"]
   },
   {
@@ -87,6 +98,7 @@ export const extensionSuggestions = [
     title: "Font info viewer",
     description: "Detect and display font families, sizes, and colors for selected text on any webpage.",
     category: "Design",
+    persona: "designer",
     keywords: ["font", "typography", "identifier", "text", "design"]
   },
 
@@ -96,6 +108,7 @@ export const extensionSuggestions = [
     title: "Price bookmarker",
     description: "Save and track prices manually for your favorite products instead of scraping multiple sites.",
     category: "Shopping",
+    persona: "personal",
     keywords: ["price", "tracker", "shopping", "deals", "save"]
   },
   {
@@ -103,6 +116,7 @@ export const extensionSuggestions = [
     title: "Manual coupon saver",
     description: "Let users store and copy coupon codes for online stores without automatic injection.",
     category: "Shopping",
+    persona: "shopper",
     keywords: ["coupon", "discount", "deals", "savings", "shopping"]
   },
   {
@@ -110,6 +124,7 @@ export const extensionSuggestions = [
     title: "Shopping wishlist",
     description: "Save and organize product links into a personal wishlist stored locally in the browser.",
     category: "Shopping",
+    persona: "shopper",
     keywords: ["wishlist", "shopping", "save", "products", "favorites"]
   },
 
@@ -119,6 +134,7 @@ export const extensionSuggestions = [
     title: "Custom news bookmarks",
     description: "Allow users to manually add and organize RSS or news URLs into a personal feed.",
     category: "News",
+    persona: "personal",
     keywords: ["news", "feed", "articles", "headlines", "reader"]
   },
   {
@@ -126,6 +142,7 @@ export const extensionSuggestions = [
     title: "Simplified reading mode",
     description: "Toggle a cleaner reading view by hiding ads and distracting elements from articles.",
     category: "Utility",
+    persona: "student",
     keywords: ["reading", "mode", "clean", "distraction-free", "article"]
   },
   {
@@ -133,6 +150,7 @@ export const extensionSuggestions = [
     title: "Quick text translator",
     description: "Use Google Translate’s web API to translate selected text snippets inline.",
     category: "Utility",
+    persona: "traveler",
     keywords: ["translate", "translation", "language", "text"]
   },
   {
@@ -140,6 +158,7 @@ export const extensionSuggestions = [
     title: "Manual article highlighter",
     description: "Let users highlight and save key points from articles manually, instead of using AI summarization.",
     category: "Productivity",
+    persona: "student",
     keywords: ["highlight", "summary", "article", "reading", "content"]
   },
 
@@ -149,6 +168,7 @@ export const extensionSuggestions = [
     title: "YouTube focus mode",
     description: "Hide comments and recommended videos for a distraction-free YouTube viewing experience.",
     category: "Entertainment",
+    persona: "personal",
     keywords: ["youtube", "video", "focus", "clean", "watch"]
   },
   {
@@ -156,6 +176,7 @@ export const extensionSuggestions = [
     title: "Mini audio player",
     description: "Play and control local or embedded audio files from a simple toolbar popup.",
     category: "Entertainment",
+    persona: "music lover",
     keywords: ["music", "player", "audio", "controls"]
   },
   {
@@ -163,6 +184,7 @@ export const extensionSuggestions = [
     title: "GIF generator (local)",
     description: "Convert local video snippets into GIFs using the canvas API — no online upload required.",
     category: "Media",
+    persona: "designer",
     keywords: ["gif", "creator", "video", "animation"]
   },
 
@@ -172,6 +194,7 @@ export const extensionSuggestions = [
     title: "Simple ad hider",
     description: "Hide common ad elements on pages using CSS selectors instead of custom filter lists.",
     category: "Privacy",
+    persona: "personal",
     keywords: ["ad blocker", "ads", "privacy", "filter", "clean"]
   },
   {
@@ -179,6 +202,7 @@ export const extensionSuggestions = [
     title: "Cookie consent hider",
     description: "Hide or auto-dismiss cookie banners for a smoother browsing experience.",
     category: "Privacy",
+    persona: "privacy advocate",
     keywords: ["privacy", "cookies", "block", "clean", "anonymous"]
   },
   {
@@ -186,6 +210,7 @@ export const extensionSuggestions = [
     title: "IP info display",
     description: "Show current IP and approximate location using a free public API — read-only info display.",
     category: "Security",
+    persona: "developer",
     keywords: ["vpn", "ip", "location", "privacy", "connection"]
   },
 
@@ -195,6 +220,7 @@ export const extensionSuggestions = [
     title: "QR code generator",
     description: "Generate a QR code for the current tab’s URL or user-input text.",
     category: "Utility",
+    persona: "personal",
     keywords: ["qr code", "generator", "url", "text", "share"]
   },
   {
@@ -202,6 +228,7 @@ export const extensionSuggestions = [
     title: "Link copy helper",
     description: "Copy and manage frequently used URLs without relying on third-party shorteners.",
     category: "Utility",
+    persona: "marketer",
     keywords: ["url", "link", "copy", "share", "short"]
   },
   {
@@ -209,6 +236,7 @@ export const extensionSuggestions = [
     title: "Basic weather viewer",
     description: "Display weather data for a fixed location using a simple public weather API.",
     category: "Utility",
+    persona: "personal",
     keywords: ["weather", "forecast", "temperature", "location", "widget"]
   },
   {
@@ -216,6 +244,7 @@ export const extensionSuggestions = [
     title: "Popup calculator",
     description: "Create a basic calculator with memory and history stored locally.",
     category: "Utility",
+    persona: "student",
     keywords: ["calculator", "math", "computation", "numbers"]
   },
 
@@ -225,6 +254,7 @@ export const extensionSuggestions = [
     title: "Dark mode toggle",
     description: "Apply a custom dark theme to any website using CSS filters and user-set colors.",
     category: "Accessibility",
+    persona: "personal",
     keywords: ["dark mode", "theme", "night", "accessibility"]
   },
   {
@@ -232,6 +262,7 @@ export const extensionSuggestions = [
     title: "Text-to-speech reader",
     description: "Read selected text aloud using the built-in Web Speech API with adjustable speed.",
     category: "Accessibility",
+    persona: "student",
     keywords: ["text to speech", "tts", "voice", "reading"]
   },
   {
@@ -239,6 +270,7 @@ export const extensionSuggestions = [
     title: "Screen dimmer",
     description: "Add an adjustable overlay to dim bright screens and remind users to take breaks.",
     category: "Health",
+    persona: "office worker",
     keywords: ["eye care", "filter", "health", "screen", "break"]
   },
 
@@ -248,6 +280,7 @@ export const extensionSuggestions = [
     title: "Expense log",
     description: "Manually record and categorize expenses directly within the extension popup.",
     category: "Finance",
+    persona: "freelancer",
     keywords: ["expense", "tracker", "finance", "budget", "money"]
   },
   {
@@ -255,6 +288,7 @@ export const extensionSuggestions = [
     title: "Crypto price viewer",
     description: "Fetch and display live prices for selected cryptocurrencies using a free public API.",
     category: "Finance",
+    persona: "investor",
     keywords: ["crypto", "bitcoin", "prices", "market"]
   },
   {
@@ -262,6 +296,7 @@ export const extensionSuggestions = [
     title: "Simple invoice builder",
     description: "Create and export basic invoices as downloadable PDFs — no login required.",
     category: "Business",
+    persona: "freelancer",
     keywords: ["invoice", "generator", "billing", "template"]
   },
 
@@ -271,6 +306,7 @@ export const extensionSuggestions = [
     title: "Flashcard creator",
     description: "Create and review flashcards saved locally to help with study sessions.",
     category: "Education",
+    persona: "student",
     keywords: ["flashcard", "study", "learning", "education"]
   },
   {
@@ -278,6 +314,7 @@ export const extensionSuggestions = [
     title: "Word lookup tool",
     description: "Look up definitions and synonyms of selected words using a free dictionary API.",
     category: "Education",
+    persona: "student",
     keywords: ["dictionary", "definition", "lookup", "vocabulary"]
   },
   {
@@ -285,6 +322,7 @@ export const extensionSuggestions = [
     title: "Basic text proofreader",
     description: "Highlight potential spelling mistakes using a simple dictionary-based check.",
     category: "Writing",
+    persona: "writer",
     keywords: ["grammar", "spell check", "writing", "proofreading"]
   },
 
@@ -294,6 +332,7 @@ export const extensionSuggestions = [
     title: "Simple API tester",
     description: "Send GET and POST requests to any endpoint and view the JSON response — no auth required.",
     category: "Development",
+    persona: "developer",
     keywords: ["api", "testing", "http", "requests", "json"]
   },
   {
@@ -301,6 +340,7 @@ export const extensionSuggestions = [
     title: "Regex tester",
     description: "Test and visualize regular expressions with real-time matching results.",
     category: "Development",
+    persona: "developer",
     keywords: ["regex", "pattern", "testing", "developer"]
   },
   {
@@ -308,9 +348,11 @@ export const extensionSuggestions = [
     title: "Simple bookmark manager",
     description: "List and organize bookmarks using Chrome’s built-in bookmarks API with search and tags.",
     category: "Utility",
+    persona: "personal",
     keywords: ["bookmark", "manager", "organize", "tags", "favorites"]
   }
 ];
+
 
 // Helper function to search suggestions
 export function searchSuggestions(query, limit = 8) {

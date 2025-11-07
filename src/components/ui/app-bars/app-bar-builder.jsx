@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, MessageSquare, Bot, Play } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -13,10 +13,10 @@ import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
 
-export default function AppBarBuilder({ 
-  onTestExtension, 
-  onDownloadZip, 
-  onSignOut, 
+export default function AppBarBuilder({
+  onTestExtension,
+  onDownloadZip,
+  onSignOut,
   projectId,
   isTestDisabled = false,
   isDownloadDisabled = false,
@@ -24,7 +24,6 @@ export default function AppBarBuilder({
   isDownloading = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
-  onFeedbackClick,
   onCreateAITestAgent
 }) {
   const { user } = useSession()
@@ -87,10 +86,6 @@ export default function AppBarBuilder({
   const handlePublishClick = () => {
     console.log('[publish] open modal')
     setIsPublishOpen(true)
-  }
-
-  const handleFeedbackClick = () => {
-    onFeedbackClick?.()
   }
 
   const handleCreateAITestAgent = () => {
@@ -180,16 +175,6 @@ export default function AppBarBuilder({
                   onShareClick={handleShareClick}
                   onPublishClick={handlePublishClick}
                 />
-                <Button 
-                  onClick={handleFeedbackClick}
-                  disabled={!projectId}
-                  variant="outline"
-                  className="relative bg-slate-900 text-indigo-300 hover:text-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
-                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(99 102 241), rgb(168 85 247))', backgroundOrigin: 'border-box'}}
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  feedback
-                </Button>
               </div>
               
               <div className="flex items-center space-x-3 pl-3 border-l border-white/10">
@@ -256,16 +241,6 @@ export default function AppBarBuilder({
                 className="w-full"
               />
             </div>
-            <Button
-              onClick={() => { handleFeedbackClick(); setIsMobileMenuOpen(false) }}
-              disabled={!projectId}
-              variant="outline"
-              className="w-full bg-slate-900 text-indigo-300 hover:text-indigo-200 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(99 102 241), rgb(168 85 247))', backgroundOrigin: 'border-box'}}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              feedback
-            </Button>
           </div>
         </div>
       )}
