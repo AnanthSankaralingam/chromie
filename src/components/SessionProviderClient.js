@@ -38,7 +38,6 @@ export default function SessionProviderClient({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('SessionProvider: Auth state changed:', event, session ? 'authenticated' : 'no session')
         setSession(session)
         setUser(session?.user ?? null)
         setIsLoading(false)

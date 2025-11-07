@@ -157,23 +157,35 @@ export async function DELETE(request, { params }) {
     // Update browser usage with actual minutes used
     if (actualMinutesUsed > 0) {
       try {
-        const { error: usageError } = await supabase.rpc('update_browser_usage', {
-          user_id: user.id,
-          minutes_used: actualMinutesUsed
-        })
+        // Get current browser usage
+        const { data: currentUsage, error: fetchError } = await supabase
+          .from('token_usage')
+          .select('browser_minutes')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-        if (usageError) {
-          console.error('Error updating browser usage:', usageError)
+        if (fetchError) {
+          console.error('Error fetching current browser usage:', fetchError)
         } else {
-          console.log(`Updated browser usage: +${actualMinutesUsed} minutes for user ${user.id}`)
+          const currentMinutes = currentUsage?.browser_minutes || 0
+          const updatedMinutes = currentMinutes + actualMinutesUsed
+
+          // Update browser_minutes in token_usage table
+          const { error: updateError } = await supabase
+            .from('token_usage')
+            .update({ browser_minutes: updatedMinutes })
+            .eq('user_id', user.id)
+
+          if (updateError) {
+            console.error('Error updating browser usage:', updateError)
+          } else {
+            console.log(`Updated browser usage: ${currentMinutes} + ${actualMinutesUsed} = ${updatedMinutes} minutes for user ${user.id}`)
+          }
         }
       } catch (updateError) {
-        console.error('Error calling update_browser_usage function:', updateError)
+        console.error('Error updating browser usage:', updateError)
       }
     }
-
-    // Skip database session update since browser_sessions table doesn't exist
-    console.log('Skipping database session update (table does not exist)')
 
     console.log("Test session terminated:", sessionId, success ? "successfully" : "with errors")
     console.log(`Actual minutes used: ${actualMinutesUsed}`)
