@@ -4,7 +4,7 @@ import { getPlaywrightSessionContext } from "@/lib/utils/browser-actions";
 // Extension type: utility
 
 const runPinExtension = async (sessionId) => {
-  const apiKey = process.env.HYPERBROWSER_API_KEY || process.env.HYPERBROWSER_API_KEY_FALLBACK_1;
+  const apiKey = process.env.HYPERBROWSER_API_KEY;
   
   if (!apiKey) {
     throw new Error("Missing HYPERBROWSER_API_KEY");

@@ -28,22 +28,7 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
     sessionInfo = await client.sessions.get(sessionId)
   } catch (sessionError) {
     console.error("❌ Session lookup failed in getPlaywrightSessionContext:", sessionError.message)
-    
-    // Try with fallback API key if available
-    const fallbackApiKey = process.env.HYPERBROWSER_API_KEY_FALLBACK_1
-    if (fallbackApiKey && fallbackApiKey !== apiKey) {
-      console.log("🔄 Trying with fallback API key in getPlaywrightSessionContext...")
-      const fallbackClient = new Hyperbrowser({ apiKey: fallbackApiKey })
-      try {
-        sessionInfo = await fallbackClient.sessions.get(sessionId)
-        console.log("✅ Fallback API key worked for session lookup in getPlaywrightSessionContext")
-      } catch (fallbackError) {
-        console.error("❌ Fallback API key also failed in getPlaywrightSessionContext:", fallbackError.message)
-        throw new Error(`Session ${sessionId} not found with either API key: ${sessionError.message}`)
-      }
-    } else {
-      throw sessionError
-    }
+    throw sessionError
   }
   
   const wsEndpoint = sessionInfo.wsEndpoint || sessionInfo.connectUrl
@@ -118,22 +103,7 @@ export async function navigateToUrl(sessionId, url, apiKey) {
     } catch (sessionError) {
       console.error("❌ Session lookup failed:", sessionError.message)
       console.error("Session error details:", sessionError)
-      
-      // Try with fallback API key if it's available
-      const fallbackApiKey = process.env.HYPERBROWSER_API_KEY_FALLBACK_1
-      if (fallbackApiKey && fallbackApiKey !== apiKey) {
-        console.log("🔄 Trying with fallback API key...")
-        const fallbackClient = new Hyperbrowser({ apiKey: fallbackApiKey })
-        try {
-          sessionInfo = await fallbackClient.sessions.get(sessionId)
-          console.log("✅ Fallback API key worked for session lookup")
-        } catch (fallbackError) {
-          console.error("❌ Fallback API key also failed:", fallbackError.message)
-          throw new Error(`Session ${sessionId} not found with either API key: ${sessionError.message}`)
-        }
-      } else {
-        throw sessionError
-      }
+      throw sessionError
     }
     
     console.log("Session info:", { 
