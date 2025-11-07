@@ -4,8 +4,7 @@
 
 ### TODOs
 P0 <br>
-1. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
-2. update feedback button to be an overlay in bottom right corner
+1. security stuff
 
 P1 <br>
 1. test product end to end, along with billing
