@@ -202,7 +202,7 @@ export const extensionSuggestions = [
     title: "Cookie consent hider",
     description: "Hide or auto-dismiss cookie banners for a smoother browsing experience.",
     category: "Privacy",
-    persona: "privacy advocate",
+    persona: "personal",
     keywords: ["privacy", "cookies", "block", "clean", "anonymous"]
   },
   {
@@ -270,7 +270,7 @@ export const extensionSuggestions = [
     title: "Screen dimmer",
     description: "Add an adjustable overlay to dim bright screens and remind users to take breaks.",
     category: "Health",
-    persona: "office worker",
+    persona: "personal",
     keywords: ["eye care", "filter", "health", "screen", "break"]
   },
 
