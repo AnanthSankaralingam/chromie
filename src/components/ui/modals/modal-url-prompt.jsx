@@ -34,13 +34,6 @@ export default function ModalUrlPrompt({
     const suggestedUrl = data.detectedUrls?.[0] || 
                         (data.detectedSites?.[0] ? `https://${data.detectedSites[0]}` : null);
     
-    console.log('🔗 Creating URL prompt modal with options:', {
-      suggestedUrl,
-      detectedSites: data.detectedSites,
-      detectedUrls: data.detectedUrls,
-      message: data.message
-    });
-    
     modal.innerHTML = `
       <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; backdrop-blur-sm;">
         <div class="url-prompt-container" style="background: #1e293b; color: #f1f5f9; border: 1px solid #475569; border-radius: 12px; padding: 20px; width: 92%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">

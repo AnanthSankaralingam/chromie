@@ -69,18 +69,18 @@ const TabCompleteSuggestions = ({
           console.log('⭐ Tab completed:', currentSuggestion.title)
         }
         break
-      case 'ArrowRight':
+      case 'ArrowDown':
         if (showPreview) {
           e.preventDefault()
-          setCurrentSuggestionIndex(prev => 
+          setCurrentSuggestionIndex(prev =>
             prev < suggestions.length - 1 ? prev + 1 : 0
           )
         }
         break
-      case 'ArrowLeft':
+      case 'ArrowUp':
         if (showPreview) {
           e.preventDefault()
-          setCurrentSuggestionIndex(prev => 
+          setCurrentSuggestionIndex(prev =>
             prev > 0 ? prev - 1 : suggestions.length - 1
           )
         }
@@ -162,104 +162,44 @@ const TabCompleteSuggestions = ({
 
   if (!isVisible || !showPreview || suggestions.length === 0) return null
 
-  const currentSuggestion = suggestions[currentSuggestionIndex]
-
   return (
-    <>
-      {/* Inline completion hint */}
-      {currentSuggestion && (
-        <div className="absolute top-full left-0 right-0 z-40 mt-1">
-          <div className="flex items-center justify-between px-4 py-2 bg-slate-800/90 backdrop-blur-sm border border-slate-600/30 rounded-lg shadow-lg">
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <Command className="h-4 w-4 text-purple-400 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-white truncate">
-                    {currentSuggestion.title}
-                  </span>
-                  <span className={cn("text-xs font-medium", getCategoryColor(currentSuggestion.category))}>
-                    {currentSuggestion.category}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              {suggestions.length > 1 && (
-                <div className="flex items-center space-x-1 text-xs text-slate-400">
-                  <span>{currentSuggestionIndex + 1}/{suggestions.length}</span>
-                  <div className="flex space-x-0.5">
-                    <kbd className="px-1 py-0.5 text-xs bg-slate-700 rounded">←</kbd>
-                    <kbd className="px-1 py-0.5 text-xs bg-slate-700 rounded">→</kbd>
-                  </div>
-                </div>
+    <div
+      ref={previewRef}
+      className="absolute top-full left-0 right-0 z-50 mt-1"
+    >
+      <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-600/20 rounded-lg overflow-hidden">
+        {/* Vertical list of suggestions */}
+        <div className="max-h-[300px] overflow-y-auto">
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={index}
+              className={cn(
+                "px-4 py-2.5 cursor-pointer transition-all duration-100 flex items-start justify-between gap-3",
+                index === currentSuggestionIndex
+                  ? "bg-purple-500/15"
+                  : "bg-transparent hover:bg-slate-700/20"
               )}
-              <div className="flex items-center space-x-1 text-xs text-slate-400">
-                <kbd className="px-1.5 py-0.5 text-xs bg-slate-700 rounded font-mono">Tab</kbd>
-                <span>to complete</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Expanded preview on hover/focus */}
-      {currentSuggestion && (
-        <div 
-          ref={previewRef}
-          className="absolute top-full left-0 right-0 z-50 mt-12 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 pointer-events-none hover:pointer-events-auto focus-within:pointer-events-auto"
-        >
-          <div className="bg-slate-800/95 backdrop-blur-lg border border-slate-600/50 rounded-xl shadow-2xl p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <h3 className="text-sm font-semibold text-white">Preview</h3>
-              </div>
-              {suggestions.length > 1 && (
-                <div className="flex space-x-1">
-                  {suggestions.map((_, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "w-2 h-2 rounded-full transition-colors",
-                        index === currentSuggestionIndex 
-                          ? "bg-purple-400" 
-                          : "bg-slate-600"
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div 
-              className="cursor-pointer group"
-              onClick={() => handleSuggestionClick(currentSuggestion)}
+              onClick={() => handleSuggestionClick(suggestion)}
+              onMouseEnter={() => setCurrentSuggestionIndex(index)}
             >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-white group-hover:text-purple-300 transition-colors">
-                  {currentSuggestion.title}
-                </h4>
-                <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-purple-400 transition-colors" />
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {currentSuggestion.description}
+              <p className={cn(
+                "text-sm transition-colors flex-1 truncate",
+                index === currentSuggestionIndex ? "text-white" : "text-slate-400"
+              )}>
+                {suggestion.description}
               </p>
+              <span className={cn(
+                "text-xs font-medium flex-shrink-0 transition-colors",
+                getCategoryColor(suggestion.category),
+                index === currentSuggestionIndex ? "opacity-100" : "opacity-60"
+              )}>
+                {suggestion.category}
+              </span>
             </div>
-
-            {/* Navigation hint */}
-            {suggestions.length > 1 && (
-              <div className="mt-3 pt-3 border-t border-slate-600/30">
-                <p className="text-xs text-slate-500 flex items-center justify-center">
-                  <span className="mr-2">💡</span>
-                  Use ← → arrows to browse suggestions
-                </p>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
-      )}
-    </>
+      </div>
+    </div>
   )
 }
 

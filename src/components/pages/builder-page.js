@@ -9,7 +9,7 @@ import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { OnboardingModal } from "@/components/ui/modals/onboarding"
 import AppBarBuilder from "@/components/ui/app-bars/app-bar-builder"
-import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
+import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
 import { LoadingState, ErrorState } from "@/components/ui/feedback/loading-error-states"
 import ProjectFilesPanel from "@/components/ui/project-files-panel"

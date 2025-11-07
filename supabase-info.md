@@ -119,7 +119,7 @@ Tracks LLM token usage per user.
 | `total_tokens`    | integer      | Total tokens = prompt + completion               |
 | `model`           | text         | Model used (e.g. 'gpt-4o')                        |
 | `monthly_reset`      | timestamptz  | DEFAULT now()                                    |
-| `browser_minutes`      | integer  | Total browser minutes                                |
+| `browser_minutes`      | integer  | Total browser minutes used                               |
 
 ---
 
@@ -170,113 +170,6 @@ Additional indexes and constraints:
 | starter | 2            | 150K   | 30              | one-time   | One-time purchase package       |
 | pro     | 10           | 1M     | 120             | one-time   | One-time purchase package       |
 | legend  | 300          | 5M     | 240             | monthly    | Monthly subscription            |
-
----
-
-## Required SQL Updates
-
-### 1. Create purchases table and update billing table
-
-Run these SQL commands in your Supabase SQL editor to implement the new pricing structure:
-
-```sql
--- Create purchases table (purchase ledger)
-CREATE TABLE IF NOT EXISTS purchases (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  stripe_payment_intent_id TEXT UNIQUE,
-  stripe_subscription_id TEXT UNIQUE,
-  plan TEXT NOT NULL, -- 'starter', 'pro', 'legend'
-  purchase_type TEXT NOT NULL, -- 'one_time' or 'subscription'
-  status TEXT NOT NULL DEFAULT 'active', -- 'active', 'refunded', 'expired', 'canceled'
-  
-  -- Purchased limits (ledger - what they bought)
-  tokens_purchased BIGINT NOT NULL DEFAULT 0,
-  browser_minutes_purchased INTEGER NOT NULL DEFAULT 0,
-  projects_purchased INTEGER NOT NULL DEFAULT 0,
-  
-  -- Subscription tracking
-  purchased_at TIMESTAMPTZ DEFAULT now(),
-  expires_at TIMESTAMPTZ, -- NULL for one-time, renewal date for Legend
-  
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Create indexes for purchases table
-CREATE INDEX IF NOT EXISTS idx_purchases_user_id ON purchases(user_id);
-CREATE INDEX IF NOT EXISTS idx_purchases_user_status ON purchases(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_purchases_stripe_payment_intent ON purchases(stripe_payment_intent_id);
-CREATE INDEX IF NOT EXISTS idx_purchases_stripe_subscription ON purchases(stripe_subscription_id);
-
--- Enable RLS on purchases table
-ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies for purchases
-CREATE POLICY purchases_user_select ON purchases 
-  FOR SELECT USING (user_id = auth.uid());
-  
-CREATE POLICY purchases_user_insert ON purchases 
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
--- Add new columns to billing table
-ALTER TABLE billing ADD COLUMN IF NOT EXISTS purchase_count INTEGER DEFAULT 0;
-ALTER TABLE billing ADD COLUMN IF NOT EXISTS has_one_time_purchase BOOLEAN DEFAULT false;
-
--- Add welcome email tracking columns to profiles table
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcome_email_sent BOOLEAN DEFAULT false;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS welcome_email_sent_at TIMESTAMPTZ;
-```
-
-### 2. Project counting (existing)
-
-Run these SQL commands in your Supabase SQL editor to implement project counting:
-
-```sql
--- Add project_count column to profiles table
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS project_count INTEGER DEFAULT 0;
-
--- Create function to update project count
-CREATE OR REPLACE FUNCTION update_project_count()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE profiles 
-    SET project_count = project_count + 1 
-    WHERE id = NEW.user_id;
-    RETURN NEW;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE profiles 
-    SET project_count = project_count - 1 
-    WHERE id = OLD.user_id;
-    RETURN OLD;
-  ELSIF TG_OP = 'UPDATE' THEN
-    -- Handle case where user_id changes (shouldn't happen but safety)
-    IF OLD.user_id != NEW.user_id THEN
-      UPDATE profiles SET project_count = project_count - 1 WHERE id = OLD.user_id;
-      UPDATE profiles SET project_count = project_count + 1 WHERE id = NEW.user_id;
-    END IF;
-    RETURN NEW;
-  END IF;
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger to automatically update project count
-DROP TRIGGER IF EXISTS trigger_update_project_count ON projects;
-CREATE TRIGGER trigger_update_project_count
-  AFTER INSERT OR DELETE OR UPDATE ON projects
-  FOR EACH ROW EXECUTE FUNCTION update_project_count();
-
--- Update existing project counts for all users
-UPDATE profiles 
-SET project_count = (
-  SELECT COUNT(*) 
-  FROM projects 
-  WHERE projects.user_id = profiles.id 
-  AND projects.archived = false
-);
-```
 
 ---
 

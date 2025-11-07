@@ -8,7 +8,7 @@ import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
-import { ProjectMaxAlert } from "@/components/ui/project-max-alert"
+import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 import TypingSuggestions from "@/components/ui/typing-suggestions"
@@ -33,11 +33,6 @@ export default function HomePage() {
     const EXTRA_SPACE_PX = 30
     const newHeight = Math.max(120, textarea.scrollHeight + EXTRA_SPACE_PX)
     textarea.style.height = newHeight + 'px'
-    console.log('🧺 Resized textarea with extra space', {
-      scrollHeight: textarea.scrollHeight,
-      extra: EXTRA_SPACE_PX,
-      newHeight
-    })
   }
 
   const handleTextareaInput = () => {
@@ -65,7 +60,6 @@ export default function HomePage() {
     if (textareaRef.current) {
       textareaRef.current.focus()
     }
-    console.log('🎯 Selected suggestion applied:', suggestionText.slice(0, 50) + '...')
   }
 
   const handleTextareaFocus = () => {
@@ -105,7 +99,6 @@ export default function HomePage() {
       url.searchParams.set('prompt', encodeURIComponent(prompt.trim()))
       window.history.replaceState({}, '', url.toString())
       
-      console.log('💾 Saved prompt before auth:', promptData)
       setIsAuthModalOpen(true)
       return
     }
@@ -127,8 +120,8 @@ export default function HomePage() {
 
     if (!response.ok) {
         const errorData = await response.json()
-        
-        if (response.status === 403 && errorData.error === "Project limit reached") {
+
+        if (response.status === 403 && errorData.error === "projects limit reached") {
           // Show project limit modal
           setProjectLimitDetails(errorData.details)
           setIsProjectLimitModalOpen(true)
@@ -139,7 +132,7 @@ export default function HomePage() {
         setIsGenerating(false)
         return
         }
-        
+
         throw new Error(errorData.error || "Failed to create project")
       }
 
@@ -148,12 +141,6 @@ export default function HomePage() {
       // Redirect to builder immediately with the prompt to auto-generate
       const encodedPrompt = encodeURIComponent(prompt)
       const builderUrl = `/builder?project=${project.id}&autoGenerate=${encodedPrompt}`
-      console.log('🚀 Redirecting to builder with prompt:', {
-        originalPrompt: prompt,
-        encodedPrompt: encodedPrompt,
-        builderUrl: builderUrl,
-        projectId: project.id
-      })
       router.push(builderUrl)
     } catch (error) {
       console.error("Error generating extension:", error)
@@ -164,11 +151,11 @@ export default function HomePage() {
 
   const handleKeyDown = (e) => {
     // Let tab-complete component handle navigation and completion keys
-    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'Escape')) {
+    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter' || e.key === 'Escape')) {
       // Let the tab-complete component handle these keys
       return
     }
-    
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       setShowSuggestions(false) // Hide suggestions when submitting
@@ -201,7 +188,6 @@ export default function HomePage() {
       if (urlPrompt) {
         const decodedPrompt = decodeURIComponent(urlPrompt)
         setPrompt(decodedPrompt)
-        console.log('🔄 Restored prompt from URL params:', decodedPrompt)
         
         // Clean up URL params
         const url = new URL(window.location)
@@ -218,11 +204,9 @@ export default function HomePage() {
           // Only restore if prompt is less than 1 hour old
           if (Date.now() - timestamp < 60 * 60 * 1000) {
             setPrompt(savedPrompt)
-            console.log('🔄 Restored prompt from sessionStorage:', savedPrompt)
           } else {
             // Clean up old prompt
             sessionStorage.removeItem('pending_prompt')
-            console.log('🧹 Cleaned up old prompt from sessionStorage')
           }
         } catch (error) {
           console.error('Error parsing saved prompt:', error)
@@ -283,7 +267,6 @@ export default function HomePage() {
                   onPaste={() => {
                     requestAnimationFrame(() => {
                       resizeTextarea()
-                      console.log('📋 Pasted content: resized textarea to', textareaRef.current?.style.height)
                     })
                   }}
                   placeholder=""

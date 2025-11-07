@@ -4,311 +4,311 @@ export const extensionSuggestions = [
   {
     id: "todo-list",
     title: "To-do list manager",
-    description: "Create a simple to-do list extension that helps users track tasks and manage productivity directly from their browser toolbar",
+    description: "Create a simple to-do list extension that lets users add, remove, and check off daily tasks directly from the browser toolbar.",
     category: "Productivity",
     keywords: ["todo", "task", "productivity", "list", "manager", "checklist", "organize"]
   },
   {
     id: "password-generator",
-    title: "Password generator", 
-    description: "Build a secure password generator that creates strong, customizable passwords with options for length, special characters, and complexity",
+    title: "Password generator",
+    description: "Build a secure password generator that creates random passwords with adjustable length and optional special characters.",
     category: "Security",
-    keywords: ["password", "generator", "security", "random", "strong", "secure", "encryption"]
+    keywords: ["password", "generator", "security", "random", "strong", "secure"]
   },
   {
     id: "note-taking",
     title: "Quick note taker",
-    description: "Develop a note-taking extension that allows users to quickly jot down thoughts, save snippets, and sync notes across devices",
-    category: "Productivity", 
-    keywords: ["notes", "notepad", "memo", "quick", "save", "text", "snippets"]
+    description: "Develop a note-taking extension that saves quick notes or snippets locally for easy reference later.",
+    category: "Productivity",
+    keywords: ["notes", "notepad", "memo", "quick", "save", "text"]
   },
   {
     id: "time-tracker",
-    title: "Time tracking tool",
-    description: "Create a time tracking extension that monitors how much time users spend on different websites and provides productivity insights",
+    title: "Simple time tracker",
+    description: "Create a lightweight time tracker that measures how long users spend on specific websites using the Chrome tabs API.",
     category: "Productivity",
-    keywords: ["time", "tracker", "monitor", "productivity", "analytics", "usage", "statistics"]
+    keywords: ["time", "tracker", "monitor", "productivity", "usage"]
   },
   {
     id: "pomodoro-timer",
     title: "Pomodoro timer",
-    description: "Build a Pomodoro technique timer with customizable work/break intervals, notifications, and progress tracking for better focus",
+    description: "Build a timer that cycles between focus and break sessions, with sound or notification alerts when time is up.",
     category: "Productivity",
-    keywords: ["pomodoro", "timer", "focus", "break", "work", "productivity", "concentration"]
+    keywords: ["pomodoro", "timer", "focus", "break", "productivity"]
   },
 
   // Social Media & Communication
   {
     id: "social-media-blocker",
     title: "Social media blocker",
-    description: "Design a social media blocking extension that helps users stay focused by temporarily blocking access to distracting websites",
+    description: "Block distracting social media sites by redirecting or hiding their content for a set duration.",
     category: "Productivity",
-    keywords: ["block", "social media", "focus", "distraction", "productivity", "facebook", "twitter", "instagram"]
+    keywords: ["block", "social media", "focus", "distraction", "productivity"]
   },
   {
     id: "twitter-scheduler",
-    title: "Tweet scheduler",
-    description: "Create a Twitter scheduling extension that allows users to compose and schedule tweets for optimal posting times",
+    title: "Tweet draft saver",
+    description: "Allow users to write and save tweet drafts locally for later posting instead of full scheduling automation.",
     category: "Social Media",
-    keywords: ["twitter", "tweet", "schedule", "social media", "post", "timing", "automation"]
+    keywords: ["twitter", "tweet", "draft", "save", "social media"]
   },
   {
     id: "linkedin-helper",
-    title: "LinkedIn connection helper",
-    description: "Build a LinkedIn automation tool that helps users send personalized connection requests and manage their professional network",
-    category: "Social Media", 
-    keywords: ["linkedin", "connection", "networking", "professional", "automation", "messages", "outreach"]
+    title: "LinkedIn note keeper",
+    description: "Add a small notes widget for LinkedIn profiles to jot down personal notes about connections without automation.",
+    category: "Social Media",
+    keywords: ["linkedin", "notes", "networking", "professional"]
   },
 
   // Web Development & Design
   {
     id: "color-picker",
     title: "Color picker tool",
-    description: "Develop a color picker extension that allows designers and developers to extract colors from any webpage with hex, RGB, and HSL values",
+    description: "Extract colors from any webpage element using the EyeDropper API and show hex/RGB values.",
     category: "Design",
-    keywords: ["color", "picker", "design", "hex", "rgb", "palette", "eyedropper", "web design"]
+    keywords: ["color", "picker", "design", "hex", "rgb", "palette"]
   },
   {
     id: "screenshot-tool",
     title: "Screenshot capture tool",
-    description: "Create a comprehensive screenshot extension with options for full page, visible area, or selected region capture with editing features",
+    description: "Capture visible areas of a webpage using Chrome’s capture APIs and save images locally.",
     category: "Utility",
-    keywords: ["screenshot", "capture", "image", "screen", "save", "crop", "edit", "annotation"]
+    keywords: ["screenshot", "capture", "image", "screen", "save"]
   },
   {
     id: "css-inspector",
-    title: "CSS style inspector",
-    description: "Build a CSS inspection tool that shows computed styles, allows live editing, and helps developers debug styling issues",
+    title: "CSS viewer",
+    description: "Display CSS properties for hovered elements without editing — a read-only visual inspector.",
     category: "Development",
-    keywords: ["css", "inspector", "styles", "debug", "developer", "web development", "design"]
+    keywords: ["css", "inspector", "styles", "debug", "developer"]
   },
   {
     id: "font-identifier",
-    title: "Font identifier",
-    description: "Create a font identification extension that detects and displays font information from any text on a webpage",
+    title: "Font info viewer",
+    description: "Detect and display font families, sizes, and colors for selected text on any webpage.",
     category: "Design",
-    keywords: ["font", "typography", "identifier", "text", "design", "typeface", "web fonts"]
+    keywords: ["font", "typography", "identifier", "text", "design"]
   },
 
   // Shopping & E-commerce
   {
     id: "price-tracker",
-    title: "Price comparison tracker",
-    description: "Design a price tracking extension that monitors product prices across multiple retailers and alerts users to deals and price drops",
+    title: "Price bookmarker",
+    description: "Save and track prices manually for your favorite products instead of scraping multiple sites.",
     category: "Shopping",
-    keywords: ["price", "tracker", "shopping", "deals", "comparison", "alerts", "savings", "ecommerce"]
+    keywords: ["price", "tracker", "shopping", "deals", "save"]
   },
   {
     id: "coupon-finder",
-    title: "Coupon code finder",
-    description: "Build an automatic coupon finder that searches for and applies discount codes during online checkout processes",
-    category: "Shopping", 
-    keywords: ["coupon", "discount", "deals", "savings", "promo code", "shopping", "checkout"]
+    title: "Manual coupon saver",
+    description: "Let users store and copy coupon codes for online stores without automatic injection.",
+    category: "Shopping",
+    keywords: ["coupon", "discount", "deals", "savings", "shopping"]
   },
   {
     id: "wishlist-manager",
-    title: "Shopping wishlist manager",
-    description: "Create a universal wishlist extension that allows users to save products from any website and track price changes",
+    title: "Shopping wishlist",
+    description: "Save and organize product links into a personal wishlist stored locally in the browser.",
     category: "Shopping",
-    keywords: ["wishlist", "shopping", "save", "products", "favorites", "bookmark", "ecommerce"]
+    keywords: ["wishlist", "shopping", "save", "products", "favorites"]
   },
 
   // News & Content
   {
     id: "news-aggregator",
-    title: "News feed aggregator",
-    description: "Develop a news aggregation extension that collects articles from multiple sources and presents them in a clean, organized feed",
+    title: "Custom news bookmarks",
+    description: "Allow users to manually add and organize RSS or news URLs into a personal feed.",
     category: "News",
-    keywords: ["news", "aggregator", "feed", "articles", "headlines", "sources", "reader"]
+    keywords: ["news", "feed", "articles", "headlines", "reader"]
   },
   {
     id: "reading-mode",
-    title: "Reading mode enhancer",
-    description: "Create a reading mode extension that removes distractions, improves typography, and provides a clean reading experience",
+    title: "Simplified reading mode",
+    description: "Toggle a cleaner reading view by hiding ads and distracting elements from articles.",
     category: "Utility",
-    keywords: ["reading", "mode", "clean", "typography", "distraction-free", "article", "text"]
+    keywords: ["reading", "mode", "clean", "distraction-free", "article"]
   },
   {
     id: "translation-tool",
-    title: "Page translation tool",
-    description: "Build a translation extension that can translate selected text or entire web pages into different languages instantly",
+    title: "Quick text translator",
+    description: "Use Google Translate’s web API to translate selected text snippets inline.",
     category: "Utility",
-    keywords: ["translate", "translation", "language", "international", "multilingual", "text", "page"]
+    keywords: ["translate", "translation", "language", "text"]
   },
   {
     id: "article-summarizer",
-    title: "Article summarizer",
-    description: "Design an AI-powered article summarizer that extracts key points and creates concise summaries of long-form content",
+    title: "Manual article highlighter",
+    description: "Let users highlight and save key points from articles manually, instead of using AI summarization.",
     category: "Productivity",
-    keywords: ["summarizer", "summary", "article", "ai", "key points", "reading", "content"]
+    keywords: ["highlight", "summary", "article", "reading", "content"]
   },
 
   // Entertainment & Media
   {
     id: "youtube-enhancer",
-    title: "YouTube video enhancer",
-    description: "Create a YouTube enhancement extension with features like ad blocking, speed controls, and video downloading capabilities",
+    title: "YouTube focus mode",
+    description: "Hide comments and recommended videos for a distraction-free YouTube viewing experience.",
     category: "Entertainment",
-    keywords: ["youtube", "video", "enhancer", "ad blocker", "download", "speed", "player"]
+    keywords: ["youtube", "video", "focus", "clean", "watch"]
   },
   {
     id: "music-player",
-    title: "Web music player",
-    description: "Build a universal music player extension that works across different streaming platforms with unified controls",
-    category: "Entertainment", 
-    keywords: ["music", "player", "streaming", "controls", "spotify", "youtube music", "audio"]
+    title: "Mini audio player",
+    description: "Play and control local or embedded audio files from a simple toolbar popup.",
+    category: "Entertainment",
+    keywords: ["music", "player", "audio", "controls"]
   },
   {
     id: "gif-maker",
-    title: "GIF creator from videos",
-    description: "Develop a GIF creation tool that converts video clips from any website into animated GIFs with customization options",
+    title: "GIF generator (local)",
+    description: "Convert local video snippets into GIFs using the canvas API — no online upload required.",
     category: "Media",
-    keywords: ["gif", "creator", "video", "animation", "convert", "media", "meme"]
+    keywords: ["gif", "creator", "video", "animation"]
   },
 
   // Privacy & Security
   {
     id: "ad-blocker",
-    title: "Custom ad blocker",
-    description: "Create a lightweight ad blocking extension with customizable filters and whitelist capabilities for better browsing",
+    title: "Simple ad hider",
+    description: "Hide common ad elements on pages using CSS selectors instead of custom filter lists.",
     category: "Privacy",
-    keywords: ["ad blocker", "ads", "privacy", "filter", "blocking", "clean browsing", "security"]
+    keywords: ["ad blocker", "ads", "privacy", "filter", "clean"]
   },
   {
     id: "tracker-blocker",
-    title: "Privacy tracker blocker",
-    description: "Build a privacy-focused extension that blocks tracking scripts, cookies, and other data collection mechanisms",
+    title: "Cookie consent hider",
+    description: "Hide or auto-dismiss cookie banners for a smoother browsing experience.",
     category: "Privacy",
-    keywords: ["privacy", "tracker", "blocker", "cookies", "security", "data protection", "anonymous"]
+    keywords: ["privacy", "cookies", "block", "clean", "anonymous"]
   },
   {
     id: "vpn-checker",
-    title: "VPN status checker",
-    description: "Design a VPN monitoring extension that displays connection status, IP location, and provides quick access to VPN controls",
+    title: "IP info display",
+    description: "Show current IP and approximate location using a free public API — read-only info display.",
     category: "Security",
-    keywords: ["vpn", "security", "ip", "location", "privacy", "connection", "status"]
+    keywords: ["vpn", "ip", "location", "privacy", "connection"]
   },
 
   // Utility & Tools
   {
     id: "qr-generator",
     title: "QR code generator",
-    description: "Create a QR code generator that converts URLs, text, or current page into scannable QR codes with customization options",
+    description: "Generate a QR code for the current tab’s URL or user-input text.",
     category: "Utility",
-    keywords: ["qr code", "generator", "url", "text", "scan", "mobile", "share"]
+    keywords: ["qr code", "generator", "url", "text", "share"]
   },
   {
     id: "url-shortener",
-    title: "URL shortener tool",
-    description: "Build a URL shortening extension that creates short links for easy sharing with click tracking and analytics",
+    title: "Link copy helper",
+    description: "Copy and manage frequently used URLs without relying on third-party shorteners.",
     category: "Utility",
-    keywords: ["url", "shortener", "link", "share", "analytics", "tracking", "short"]
+    keywords: ["url", "link", "copy", "share", "short"]
   },
   {
     id: "weather-widget",
-    title: "Weather forecast widget",
-    description: "Develop a weather extension that shows current conditions and forecasts with location-based updates and alerts",
+    title: "Basic weather viewer",
+    description: "Display weather data for a fixed location using a simple public weather API.",
     category: "Utility",
-    keywords: ["weather", "forecast", "temperature", "conditions", "location", "widget", "climate"]
+    keywords: ["weather", "forecast", "temperature", "location", "widget"]
   },
   {
     id: "calculator",
-    title: "Advanced calculator",
-    description: "Create a calculator extension with basic and scientific functions, unit conversions, and calculation history",
+    title: "Popup calculator",
+    description: "Create a basic calculator with memory and history stored locally.",
     category: "Utility",
-    keywords: ["calculator", "math", "scientific", "conversion", "computation", "numbers", "formula"]
+    keywords: ["calculator", "math", "computation", "numbers"]
   },
 
   // Accessibility & Health
   {
     id: "dark-mode",
-    title: "Universal dark mode",
-    description: "Build a dark mode extension that applies dark themes to any website with customizable colors and brightness settings",
+    title: "Dark mode toggle",
+    description: "Apply a custom dark theme to any website using CSS filters and user-set colors.",
     category: "Accessibility",
-    keywords: ["dark mode", "theme", "night", "accessibility", "eye strain", "brightness", "contrast"]
+    keywords: ["dark mode", "theme", "night", "accessibility"]
   },
   {
     id: "text-to-speech",
     title: "Text-to-speech reader",
-    description: "Create a text-to-speech extension that reads selected text or entire articles aloud with voice and speed controls",
+    description: "Read selected text aloud using the built-in Web Speech API with adjustable speed.",
     category: "Accessibility",
-    keywords: ["text to speech", "tts", "accessibility", "voice", "reading", "audio", "speech"]
+    keywords: ["text to speech", "tts", "voice", "reading"]
   },
   {
     id: "eye-care",
-    title: "Blue light filter",
-    description: "Design an eye care extension that reduces blue light emission from screens and provides break reminders for eye health",
+    title: "Screen dimmer",
+    description: "Add an adjustable overlay to dim bright screens and remind users to take breaks.",
     category: "Health",
-    keywords: ["blue light", "eye care", "filter", "health", "screen", "strain", "break"]
+    keywords: ["eye care", "filter", "health", "screen", "break"]
   },
 
   // Business & Finance
   {
     id: "expense-tracker",
-    title: "Expense tracker",
-    description: "Create a personal finance extension that tracks online purchases, categorizes expenses, and provides spending insights",
+    title: "Expense log",
+    description: "Manually record and categorize expenses directly within the extension popup.",
     category: "Finance",
-    keywords: ["expense", "tracker", "finance", "budget", "money", "spending", "purchases"]
+    keywords: ["expense", "tracker", "finance", "budget", "money"]
   },
   {
     id: "crypto-tracker",
-    title: "Cryptocurrency tracker",
-    description: "Build a crypto portfolio tracker that monitors coin prices, shows market trends, and calculates portfolio value",
+    title: "Crypto price viewer",
+    description: "Fetch and display live prices for selected cryptocurrencies using a free public API.",
     category: "Finance",
-    keywords: ["cryptocurrency", "crypto", "bitcoin", "portfolio", "tracker", "prices", "market"]
+    keywords: ["crypto", "bitcoin", "prices", "market"]
   },
   {
     id: "invoice-generator",
-    title: "Invoice generator",
-    description: "Develop an invoice creation extension for freelancers and small businesses with templates and client management",
+    title: "Simple invoice builder",
+    description: "Create and export basic invoices as downloadable PDFs — no login required.",
     category: "Business",
-    keywords: ["invoice", "generator", "business", "freelancer", "billing", "template", "client"]
+    keywords: ["invoice", "generator", "billing", "template"]
   },
 
   // Learning & Education
   {
     id: "flashcard-maker",
-    title: "Flashcard study tool",
-    description: "Create a flashcard extension that helps students create, organize, and review study materials with spaced repetition",
+    title: "Flashcard creator",
+    description: "Create and review flashcards saved locally to help with study sessions.",
     category: "Education",
-    keywords: ["flashcard", "study", "learning", "education", "memory", "review", "spaced repetition"]
+    keywords: ["flashcard", "study", "learning", "education"]
   },
   {
     id: "dictionary-lookup",
-    title: "Dictionary lookup tool",
-    description: "Build a dictionary extension that provides instant definitions, synonyms, and pronunciations for selected text",
+    title: "Word lookup tool",
+    description: "Look up definitions and synonyms of selected words using a free dictionary API.",
     category: "Education",
-    keywords: ["dictionary", "definition", "lookup", "vocabulary", "language", "learning", "words"]
+    keywords: ["dictionary", "definition", "lookup", "vocabulary"]
   },
   {
     id: "grammar-checker",
-    title: "Grammar and spell checker",
-    description: "Design a grammar checking extension that highlights errors and suggests corrections in text fields and forms",
+    title: "Basic text proofreader",
+    description: "Highlight potential spelling mistakes using a simple dictionary-based check.",
     category: "Writing",
-    keywords: ["grammar", "spell check", "writing", "correction", "language", "proofreading", "text"]
+    keywords: ["grammar", "spell check", "writing", "proofreading"]
   },
 
   // Custom & Advanced
   {
     id: "api-tester",
-    title: "REST API testing tool",
-    description: "Create an API testing extension that allows developers to make HTTP requests, test endpoints, and view responses",
+    title: "Simple API tester",
+    description: "Send GET and POST requests to any endpoint and view the JSON response — no auth required.",
     category: "Development",
-    keywords: ["api", "rest", "testing", "http", "developer", "endpoints", "requests", "json"]
+    keywords: ["api", "testing", "http", "requests", "json"]
   },
   {
     id: "regex-tester",
-    title: "Regular expression tester",
-    description: "Build a regex testing tool that validates patterns, provides matches, and offers common regex examples and explanations",
+    title: "Regex tester",
+    description: "Test and visualize regular expressions with real-time matching results.",
     category: "Development",
-    keywords: ["regex", "regular expression", "pattern", "testing", "developer", "validation", "match"]
+    keywords: ["regex", "pattern", "testing", "developer"]
   },
   {
     id: "bookmark-organizer",
-    title: "Bookmark manager",
-    description: "Develop an advanced bookmark manager with tagging, search, duplicate detection, and import/export capabilities",
+    title: "Simple bookmark manager",
+    description: "List and organize bookmarks using Chrome’s built-in bookmarks API with search and tags.",
     category: "Utility",
-    keywords: ["bookmark", "manager", "organize", "tags", "search", "favorites", "links"]
+    keywords: ["bookmark", "manager", "organize", "tags", "favorites"]
   }
 ];
 
