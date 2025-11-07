@@ -114,7 +114,7 @@ export default function FloatingFeedbackButton() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={handleAuthModalClose}
-        redirectUrl={window.location.pathname}
+        redirectUrl={pathname}
       />
 
       {/* Feedback Modal */}
