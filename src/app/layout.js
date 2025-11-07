@@ -3,6 +3,7 @@ import { Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 import AuthHandler from "@/components/AuthHandler";
+import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
 
 const inter = Inter({ subsets: ["latin"] });
 const instrumentSerif = Instrument_Serif({ 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
         <SessionProviderClient>
           <AuthHandler />
           {children}
+          <FloatingFeedbackButton />
         </SessionProviderClient>
       </body>
     </html>
