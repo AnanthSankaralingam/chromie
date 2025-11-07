@@ -16,7 +16,7 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-
+1. fix "how it works" page's styling
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
