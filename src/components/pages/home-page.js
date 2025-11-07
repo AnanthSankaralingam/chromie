@@ -12,6 +12,7 @@ import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 import TypingSuggestions from "@/components/ui/typing-suggestions"
+import PersonaChipCarousel from "@/components/ui/persona-chip-carousel"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -23,6 +24,7 @@ export default function HomePage() {
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isTypingSuggestionsActive, setIsTypingSuggestionsActive] = useState(true)
+  const [showPersonaCarousel, setShowPersonaCarousel] = useState(true)
   const router = useRouter()
   const textareaRef = useRef(null)
 
@@ -44,18 +46,21 @@ export default function HomePage() {
   const handleTextareaChange = (e) => {
     const value = e.target.value
     setPrompt(value)
-    
+
     // Show suggestions when user starts typing
     if (value.trim().length >= 2) {
       setShowSuggestions(true)
+      setShowPersonaCarousel(false)
     } else {
       setShowSuggestions(false)
+      setShowPersonaCarousel(true)
     }
   }
 
   const handleSuggestionSelect = (suggestionText) => {
     setPrompt(suggestionText)
     setShowSuggestions(false)
+    setShowPersonaCarousel(false)
     // Focus back to textarea after selection
     if (textareaRef.current) {
       textareaRef.current.focus()
@@ -65,20 +70,25 @@ export default function HomePage() {
   const handleTextareaFocus = () => {
     // Stop typing suggestions when user focuses on input
     setIsTypingSuggestionsActive(false)
-    
+
     // Show suggestions if there's existing text
     if (prompt.trim().length >= 2) {
       setShowSuggestions(true)
+      setShowPersonaCarousel(false)
+    } else {
+      // Hide carousel when focused even with empty input
+      setShowPersonaCarousel(false)
     }
   }
 
   const handleTextareaBlur = () => {
     // Don't hide suggestions immediately to allow clicking on them
     // The autocomplete component handles hiding via click outside
-    
-    // Restart typing suggestions when user blurs and textarea is empty
+
+    // Restart typing suggestions and show carousel when user blurs and textarea is empty
     if (!prompt.trim()) {
       setIsTypingSuggestionsActive(true)
+      setShowPersonaCarousel(true)
     }
   }
 
@@ -327,6 +337,13 @@ export default function HomePage() {
                 </div>
               </div>
             </form>
+
+            {/* Persona Chip Carousel */}
+            <PersonaChipCarousel
+              onSuggestionSelect={handleSuggestionSelect}
+              isVisible={showPersonaCarousel && !prompt && !isGenerating}
+              className="max-w-3xl mx-auto"
+            />
           </div>
         </main>
       </div>
