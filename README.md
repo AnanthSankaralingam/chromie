@@ -4,10 +4,8 @@
 
 ### TODOs
 P0 <br>
-1. fix schema mandatory fields so generic extensions don't generate empty files
-2. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
-3. update tab suggested prompts to be rendered as a vertical list, similar to how chatgpt does it
-4. update feedback button to be an overlay in bottom right corner
+1. suggest prompts to users at start. maybe survey or prompt library, something like "Extensions for marketers"
+2. update feedback button to be an overlay in bottom right corner
 
 P1 <br>
 1. test product end to end, along with billing
@@ -18,9 +16,7 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. project limits are not correctly enforced. free user can build up to 3 projects (check if this is true or not)
-2. browser_minutes not updated in supabase token_usage even though successfully monitored
-3. UX: update shared_icons to use chromie as default icon for extensions
+
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
