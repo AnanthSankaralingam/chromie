@@ -16,6 +16,11 @@ P2. <br>
 
 ### BUGS
 1. fix "how it works" page's styling
+2. increase context window. luckily generated code for prd input but didnt finish outputting the explanation
+3. tracking prompt 0 for all projects in a new column. we can write a script to export later and try ourselves
+4. onboarding modals require user to say "Got it" to get next modal, but should show numbers/be sequential. ie 1->4
+5. scraping modal: skip button doesn't work when going from home page -> builder. it does work when done in builder->builder.
+6. scraping modal: if a user is still on onboarding modals, it should wait for them to finish. right now it just overlays. also there's 2 X buttons
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
