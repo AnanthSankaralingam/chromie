@@ -279,16 +279,16 @@ export default function HomePage() {
                       resizeTextarea()
                     })
                   }}
-                  placeholder=""
+                  placeholder="describe your extension..."
                   className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
                   ref={textareaRef}
                   disabled={isGenerating}
                 />
 
                 {/* Typing Suggestions - only show when textarea is empty and not focused */}
-                {!prompt && !isGenerating && (
+                {/* {!prompt && !isGenerating && (
                   <div className="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none z-10">
-                    <TypingSuggestions 
+                    <TypingSuggestions
                       className="text-base md:text-lg text-slate-500"
                       typingSpeed={50}
                       pauseDuration={3000}
@@ -297,7 +297,7 @@ export default function HomePage() {
                       isActive={isTypingSuggestionsActive}
                     />
                   </div>
-                )}
+                )} */}
 
                 {/* Tab Complete Suggestions */}
                 <TabCompleteSuggestions

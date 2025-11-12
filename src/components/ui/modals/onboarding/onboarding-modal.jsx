@@ -6,61 +6,38 @@ import DownloadStepModal from "./download-step-modal"
 import PublishStepModal from "./publish-step-modal"
 import UrlNavigateStepModal from "./url-navigate-step-modal"
 
-export default function OnboardingModal({ 
-  isOpen, 
+export default function OnboardingModal({
+  isOpen,
   onClose,
   currentStep,
+  currentStepNumber,
+  totalSteps,
+  isLastStep,
   onNext
 }) {
+  // Common props to pass to all step modals
+  const commonProps = {
+    isOpen,
+    onClose,
+    onNext,
+    currentStepNumber,
+    totalSteps,
+    isLastStep
+  }
+
   // Render the appropriate step modal based on currentStep
   switch (currentStep) {
     case 'test':
-      return (
-        <TestStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <TestStepModal {...commonProps} />
     case 'url-navigate':
-      return (
-        <UrlNavigateStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <UrlNavigateStepModal {...commonProps} />
     case 'edit':
-      return (
-        <EditStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <EditStepModal {...commonProps} />
     case 'download':
-      return (
-        <DownloadStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <DownloadStepModal {...commonProps} />
     case 'publish':
-      return (
-        <PublishStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <PublishStepModal {...commonProps} />
     default:
-      return (
-        <TestStepModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onNext={onNext}
-        />
-      )
+      return <TestStepModal {...commonProps} />
   }
 }

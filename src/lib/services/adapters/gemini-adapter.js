@@ -15,6 +15,8 @@ export class GeminiAdapter {
       apiKey: process.env.GOOGLE_AI_API_KEY,
       baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
     })
+
+    this.max_output_tokens = 6128 
   }
 
   /**
@@ -27,7 +29,7 @@ export class GeminiAdapter {
     input,
     response_format,
     temperature = 0.2,
-    max_output_tokens = 4096,
+    max_output_tokens = this.max_output_tokens,
     conversation_history = [],
     store = true,
     thinkingConfig = null
@@ -115,7 +117,7 @@ export class GeminiAdapter {
     input,
     response_format,
     temperature = 0.2,
-    max_output_tokens = 4096,
+    max_output_tokens = this.max_output_tokens,
     conversation_history = [],
     store = true,
     thinkingConfig = null
@@ -155,7 +157,7 @@ export class GeminiAdapter {
     input,
     response_format,
     temperature = 0.2,
-    max_output_tokens = 4096,
+    max_output_tokens = this.max_output_tokens,
     conversation_history = [],
     thinkingConfig = null
   } = {}) {

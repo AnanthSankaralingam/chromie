@@ -100,9 +100,21 @@ export function useOnboardingModal() {
   // Get current step for rendering
   const currentStep = getCurrentStep()
 
+  // Get total steps in current rotation set
+  const totalSteps = ROTATION_SETS[currentRotationIndex]?.length || 0
+
+  // Get current step number (1-indexed for display)
+  const currentStepNumber = currentModalIndex + 1
+
+  // Check if this is the last step in the rotation
+  const isLastStep = currentModalIndex >= totalSteps - 1
+
   return {
     isModalOpen,
     currentStep,
+    currentStepNumber,
+    totalSteps,
+    isLastStep,
     checkShouldShowModal,
     showModal,
     hideModal,

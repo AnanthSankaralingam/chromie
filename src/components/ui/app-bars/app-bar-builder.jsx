@@ -145,21 +145,21 @@ export default function AppBarBuilder({
                   onClick={handleCreateAITestAgent}
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
-                  className="relative bg-slate-900 text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm hover:bg-slate-800"
-                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(8 145 178))', backgroundOrigin: 'border-box'}}
+                  className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
+                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box'}}
                   title="Generate automated test script for your extension"
                 >
                   <Bot className="h-4 w-4 mr-2" />
                   <span className="inline-flex items-center space-x-1.5">
                     <span>create ai testing agent</span>
-                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-600">beta</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
                   </span>
                 </Button>
                 <Button
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
-                  className={`relative bg-slate-900 text-green-300 hover:text-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  className={`relative bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium enabled:shadow-lg enabled:shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 enabled:scale-100 hover:scale-105 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
                   style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
                 >
                   <Play className="h-4 w-4 mr-2" />
@@ -209,20 +209,20 @@ export default function AppBarBuilder({
               onClick={() => { handleCreateAITestAgent(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               variant="outline"
-              className="w-full text-xs bg-slate-900 text-blue-300 hover:text-blue-200 hover:bg-slate-800"
-              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(8 145 178))', backgroundOrigin: 'border-box'}}
+              className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
+              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box'}}
             >
               <Bot className="h-4 w-4 mr-2" />
               <span className="inline-flex items-center space-x-1.5">
                 <span>create ai testing agent</span>
-                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-600">beta</span>
+                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
               </span>
             </Button>
             <Button
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               variant="outline"
-              className={`w-full bg-slate-900 text-green-300 hover:text-green-200 hover:bg-slate-800 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              className={`w-full bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-green-500/20 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
               style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
             >
               <Play className="h-4 w-4 mr-2" />

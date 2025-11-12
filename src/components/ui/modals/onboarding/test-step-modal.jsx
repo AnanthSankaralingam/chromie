@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Play, X } from "lucide-react"
 
-export default function TestStepModal({ 
-  isOpen, 
+export default function TestStepModal({
+  isOpen,
   onClose,
-  onNext
+  onNext,
+  currentStepNumber,
+  totalSteps,
+  isLastStep
 }) {
   // Handle keyboard navigation - only allow escape to close
   useEffect(() => {
@@ -42,8 +45,15 @@ export default function TestStepModal({
 
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
+              {/* Progress indicator */}
+              <div className="flex items-center justify-center mb-4">
+                <span className="text-sm font-medium text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
+                  {currentStepNumber}/{totalSteps}
+                </span>
+              </div>
+
               <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Play className="h-8 w-8 text-white" />
                 </div>
               </div>
@@ -59,7 +69,7 @@ export default function TestStepModal({
               {/* Main content */}
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Play className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -77,12 +87,12 @@ export default function TestStepModal({
               </div>
               
               {/* Action buttons */}
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-end pt-4">
                 <Button
                   onClick={onNext}
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2"
+                  className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white px-8 py-2"
                 >
-                  Got it!
+                  {isLastStep ? 'Get Started' : 'Next'}
                 </Button>
               </div>
             </div>

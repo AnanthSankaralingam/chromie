@@ -374,15 +374,15 @@ export default function BuilderPage() {
                   setIsGenerating(false)
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
-                  
+
                   // Play notification sound if user is not on the page
                   playNotificationSound()
-                  
+
                   // Check if this was first generation and show testing prompt modal
                   if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
                     const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
                     const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
-                    
+
                     if (!hasShownPrompt) {
                       // Mark as shown immediately
                       if (typeof window !== 'undefined') {
@@ -394,7 +394,7 @@ export default function BuilderPage() {
                       }, 500)
                     }
                   }
-                  
+
                   // Auto-select manifest.json file after code generation and switch to files tab
                   setTimeout(() => {
                     const manifestFile = fileManagement.findManifestFile()
@@ -413,6 +413,7 @@ export default function BuilderPage() {
                   setIsGenerating(false)
                 }}
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+                isOnboardingModalOpen={onboardingModal.isModalOpen}
               />
             </div>
           )}
@@ -459,15 +460,15 @@ export default function BuilderPage() {
                   setIsGenerating(false)
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
-                  
+
                   // Play notification sound if user is not on the page
                   playNotificationSound()
-                  
+
                   // Check if this was first generation and show testing prompt modal
                   if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
                     const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
                     const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
-                    
+
                     if (!hasShownPrompt) {
                       // Mark as shown immediately
                       if (typeof window !== 'undefined') {
@@ -479,7 +480,7 @@ export default function BuilderPage() {
                       }, 500)
                     }
                   }
-                  
+
                   // Auto-select manifest.json file after code generation
                   setTimeout(() => {
                     const manifestFile = fileManagement.findManifestFile()
@@ -497,6 +498,7 @@ export default function BuilderPage() {
                   setIsGenerating(false)
                 }}
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+                isOnboardingModalOpen={onboardingModal.isModalOpen}
               />
             )}
           </div>
@@ -569,6 +571,9 @@ export default function BuilderPage() {
         isOpen={onboardingModal.isModalOpen}
         onClose={onboardingModal.hideModal}
         currentStep={onboardingModal.currentStep}
+        currentStepNumber={onboardingModal.currentStepNumber}
+        totalSteps={onboardingModal.totalSteps}
+        isLastStep={onboardingModal.isLastStep}
         onNext={onboardingModal.goToNextStep}
       />
 
