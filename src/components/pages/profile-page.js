@@ -665,7 +665,7 @@ export default function ProfilePage() {
                   variant="destructive"
                   onClick={handleDeleteAccount}
                   disabled={isDeleting}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {isDeleting ? 'Signing out...' : 'Sign Out'}
                 </Button>
@@ -705,7 +705,7 @@ export default function ProfilePage() {
                 variant="destructive"
                 onClick={() => handleDeleteProject(projectToDelete?.id)}
                 disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {isDeleting ? 'Deleting...' : 'Delete Project'}
               </Button>

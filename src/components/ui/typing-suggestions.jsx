@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from "react"
 import { extensionSuggestions } from "@/lib/extension-suggestions"
 
-const TypingSuggestions = ({ 
+const TypingSuggestions = ({
   className = "",
   typingSpeed = 50,
-  pauseDuration = 3000,
+  pauseDuration = 8000,
   eraseSpeed = 50,
-  erasePause = 1500,
+  erasePause = 8000,
   isActive = true
 }) => {
   const [currentSuggestion, setCurrentSuggestion] = useState("")

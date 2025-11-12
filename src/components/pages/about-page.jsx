@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/forms-and-input/textarea"
-import { Zap, Send, Paperclip, Sparkles, Edit3, Github, ArrowRight, Chrome, Code, TestTube } from "lucide-react"
+import { Zap, Send, Paperclip, Sparkles, Edit3, Github, ArrowRight, Chrome, Code, Play } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -41,8 +41,8 @@ export default function AboutPage() {
 
             {/* Workflow Steps */}
             <div className="grid md:grid-cols-3 gap-12">
-              <div className="flex flex-col items-center text-center bg-gray-800/30 backdrop-blur-sm rounded-lg p-10 border border-gray-500/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-gray-600 rounded-full mb-8">
+              <div className="flex flex-col items-center text-center bg-gray-800/30 backdrop-blur-sm rounded-lg p-10 border border-purple-500/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full mb-8 shadow-lg">
                   <Edit3 className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-2xl font-semibold text-gray-300 mb-4">describe your chrome extension</h3>
@@ -50,19 +50,19 @@ export default function AboutPage() {
                   tell us what you want your extension to do in plain english. we'll do the rest.
                 </p>
               </div>
-              
-              <div className="flex flex-col items-center text-center bg-gray-700/30 backdrop-blur-sm rounded-lg p-10 border border-gray-400/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-gray-500 rounded-full mb-8">
-                  <TestTube className="w-10 h-10 text-white" />
+
+              <div className="flex flex-col items-center text-center bg-gray-700/30 backdrop-blur-sm rounded-lg p-10 border border-green-500/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-full mb-8 shadow-lg">
+                  <Play className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-2xl font-semibold text-gray-300 mb-4">test within the app</h3>
                 <p className="text-gray-300 text-lg leading-relaxed">
                   try your extension immediately in our simulated browser environment, testing all features and functionality in real-time.
                 </p>
               </div>
-              
-              <div className="flex flex-col items-center text-center bg-gray-600/30 backdrop-blur-sm rounded-lg p-10 border border-gray-300/30 min-h-[300px]">
-                <div className="flex items-center justify-center w-20 h-20 bg-gray-400 rounded-full mb-8">
+
+              <div className="flex flex-col items-center text-center bg-gray-600/30 backdrop-blur-sm rounded-lg p-10 border border-blue-500/30 min-h-[300px]">
+                <div className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full mb-8 shadow-lg">
                   <Chrome className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-2xl font-semibold text-gray-300 mb-4">download or publish</h3>

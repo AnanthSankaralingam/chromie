@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Download, X } from "lucide-react"
 
-export default function DownloadStepModal({ 
-  isOpen, 
+export default function DownloadStepModal({
+  isOpen,
   onClose,
-  onNext
+  onNext,
+  currentStepNumber,
+  totalSteps,
+  isLastStep
 }) {
   // Handle keyboard navigation - only allow escape to close
   useEffect(() => {
@@ -42,6 +45,13 @@ export default function DownloadStepModal({
 
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
+              {/* Progress indicator */}
+              <div className="flex items-center justify-center mb-4">
+                <span className="text-sm font-medium text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
+                  {currentStepNumber}/{totalSteps}
+                </span>
+              </div>
+
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Download className="h-8 w-8 text-white" />
@@ -77,12 +87,12 @@ export default function DownloadStepModal({
               </div>
               
               {/* Action buttons */}
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-end pt-4">
                 <Button
                   onClick={onNext}
-                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-2"
+                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-2"
                 >
-                  Got it!
+                  {isLastStep ? 'Get Started' : 'Next'}
                 </Button>
               </div>
             </div>
