@@ -15,12 +15,10 @@ P2. <br>
 2. integrate google oauth apis
 
 ### BUGS
-1. fix "how it works" page's styling
-2. increase context window. luckily generated code for prd input but didnt finish outputting the explanation
-3. tracking prompt 0 for all projects in a new column. we can write a script to export later and try ourselves
-4. onboarding modals require user to say "Got it" to get next modal, but should show numbers/be sequential. ie 1->4
-5. scraping modal: skip button doesn't work when going from home page -> builder. it does work when done in builder->builder.
-6. scraping modal: if a user is still on onboarding modals, it should wait for them to finish. right now it just overlays. also there's 2 X buttons
+1. icons generated in manifest's action need to be validated. can mention in coding prompt or manually fix in validator in code gen v2.
+2. manifest not always generated in correct json. need to update prompt and come up with backup.
+3. code generated sometimes has placeholder code. sometimes the explanation is blank even when output tokens isn't near max.
+
 
 ### SECURITY
 1. "See" feature needs to check for malicious additions before running html in frontend
@@ -28,6 +26,7 @@ P2. <br>
 3. move all API calls (fireworks, openai) to a nextjs route or lambda function. ideally lambda/ec2 for security, don't think .env file is impenetrable.
 4. ensure code_files for a project always renders a manifest.json, prevent hallucinations/mishandling of files
 5. sanitize all user inputs: prompt, URL, endpoints, etc.
+6. minimize use of service role supabase, it bypasses RLS.
 
 ### Random
 1. Upload your own extension/files?
