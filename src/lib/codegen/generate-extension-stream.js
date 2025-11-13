@@ -354,11 +354,10 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
     };
 
     // Step 5: Generate extension code with streaming
-    // Conditional prompt replacement: use enhanced_prompt if user prompt < 300 chars, otherwise use original
-    const shouldUseEnhancedPrompt = featureRequest.length < 300 && requirementsAnalysis.enhanced_prompt;
-    const finalUserPrompt = shouldUseEnhancedPrompt ? requirementsAnalysis.enhanced_prompt : featureRequest;
+    // Always use the original user prompt
+    const finalUserPrompt = featureRequest;
     console.log(
-      `🎯 Using ${shouldUseEnhancedPrompt ? "enhanced" : "original"} prompt: ${finalUserPrompt.substring(
+      `🎯 Using original prompt: ${finalUserPrompt.substring(
         0,
         150
       )}...`
