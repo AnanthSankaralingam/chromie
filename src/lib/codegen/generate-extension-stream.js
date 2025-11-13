@@ -7,46 +7,14 @@ import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs";
 import { batchScrapeWebpages } from "../webpage-scraper";
 import { analyzeExtensionRequirementsStream } from "./preprocessing";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
-
-const chromeApisData = require('../chrome_extension_apis.json');
-
-function searchChromeExtensionAPI(apiName) {
-  if (!apiName || typeof apiName !== "string") {
-    return {
-      error: "Invalid API name provided. Please provide a valid string.",
-      available_apis: chromeApisData.chrome_extension_apis.apis.map((api) => api.name),
-    };
-  }
-
-  const searchTerm = apiName.toLowerCase().trim();
-
-  // Search for exact match first
-  let api = chromeApisData.chrome_extension_apis.apis.find((api) => api.name.toLowerCase() === searchTerm);
-
-  // If no exact match, search for partial matches
-  if (!api) {
-    api = chromeApisData.chrome_extension_apis.apis.find(
-      (api) => api.name.toLowerCase().includes(searchTerm) || api.namespace.toLowerCase().includes(searchTerm),
-    );
-  }
-
-  if (!api) {
-    return {
-      error: `API "${apiName}" not found.`,
-      available_apis: chromeApisData.chrome_extension_apis.apis.map((api) => api.name),
-      total_apis: chromeApisData.chrome_extension_apis.metadata.total_apis,
-      categories: chromeApisData.chrome_extension_apis.metadata.categories,
-    };
-  }
-
-  return {
-    name: api.name,
-    namespace: api.namespace,
-    description: api.description,
-    code_example: api.code_example,
-    compatibility: api.compatibility,
-  };
-}
+import { searchChromeExtensionAPI } from "./chrome-api-docs";
+import { 
+  createExistingExtensionRequirements, 
+  checkUrlRequirement,
+  checkApiRequirement,
+  formatExternalApisContext, 
+  selectPrompt 
+} from "./requirements-helpers";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -164,22 +132,7 @@ export async function* generateChromeExtensionStream({
       };
 
       // For existing extensions, create a simplified requirements analysis
-      requirementsAnalysis = {
-        frontend_type: "generic", // Will be determined from existing files
-        docAPIs: [], // Will be determined from existing code
-        webPageData: null, // Usually not needed for modifications
-        ext_name: "Existing Extension", // Will be updated from manifest
-      };
-
-      // Extract extension info from existing manifest if available
-      if (existingFiles['manifest.json']) {
-        try {
-          const manifest = JSON.parse(existingFiles['manifest.json']);
-          if (manifest.name) requirementsAnalysis.ext_name = manifest.name;
-        } catch (e) {
-          console.warn('Could not parse existing manifest.json:', e.message);
-        }
-      }
+      requirementsAnalysis = createExistingExtensionRequirements(existingFiles);
 
       // No planning tokens for modifications
       planningTokenUsage = {
@@ -202,59 +155,46 @@ export async function* generateChromeExtensionStream({
       throw new Error(`Request type ${requestType} not yet implemented`);
     }
 
-    // Halt code generation if a URL is required for scraping but hasn't been provided.
-    // The UI will use this signal to prompt the user for a URL.
-    if (
-      requirementsAnalysis.webPageData &&
-      requirementsAnalysis.webPageData.length > 0 &&
-      !userProvidedUrl &&
-      !skipScraping
-    ) {
-      console.log('🚫 URL required for scraping but not provided - halting code generation (streaming)')
-      console.log('📋 Detected sites:', requirementsAnalysis.webPageData)
-      console.log('📋 userProvidedUrl:', userProvidedUrl)
-      console.log('📋 skipScraping:', skipScraping)
+    // Check if URL is required but not provided
+    const urlRequirement = checkUrlRequirement(requirementsAnalysis, userProvidedUrl, skipScraping);
+    if (urlRequirement) {
+      console.log('🚫 URL required for scraping but not provided - halting code generation (streaming)');
+      console.log('📋 Detected sites:', urlRequirement.detectedSites);
       
       yield {
         type: "requires_url",
         content: "This extension would benefit from analyzing specific website structure. Please provide a URL or choose to skip.",
-        detectedSites: requirementsAnalysis.webPageData,
-        detectedUrls: requirementsAnalysis.webPageData.map((site) => `https://${site}`),
-        // Pass back analysis data for subsequent calls
+        ...urlRequirement,
         analysisData: {
           requirements: requirementsAnalysis,
           tokenUsage: planningTokenUsage,
         },
       };
       
-      console.log('🛑 Returning from generator - should stop code generation')
-      return; // Stop the generator until the user provides a URL.
+      console.log('🛑 Returning from generator - should stop code generation');
+      return;
     }
     
-    console.log('✅ No URL required or URL already provided - continuing with code generation')
+    console.log('✅ No URL required or URL already provided - continuing with code generation');
 
-    // Check if external APIs are suggested and halt for user input
-    if (
-      requirementsAnalysis.suggestedAPIs &&
-      requirementsAnalysis.suggestedAPIs.length > 0 &&
-      !userProvidedApis
-    ) {
-      console.log('🔌 External APIs suggested but not provided - halting code generation (streaming)')
-      console.log('📋 Suggested APIs:', requirementsAnalysis.suggestedAPIs)
+    // Check if external APIs are required but not provided
+    const apiRequirement = checkApiRequirement(requirementsAnalysis, userProvidedApis);
+    if (apiRequirement) {
+      console.log('🔌 External APIs suggested but not provided - halting code generation (streaming)');
+      console.log('📋 Suggested APIs:', apiRequirement.suggestedAPIs);
 
       yield {
         type: "requires_api",
         content: "This extension can be enhanced with external API endpoints. Please configure them or choose to skip.",
-        suggestedAPIs: requirementsAnalysis.suggestedAPIs,
-        // Pass back analysis data for subsequent calls
+        ...apiRequirement,
         analysisData: {
           requirements: requirementsAnalysis,
           tokenUsage: planningTokenUsage,
         },
       };
 
-      console.log('🛑 Returning from generator - should stop code generation for API input')
-      return; // Stop the generator until the user provides API endpoints.
+      console.log('🛑 Returning from generator - should stop code generation for API input');
+      return;
     }
 
     console.log('✅ No external APIs suggested or APIs already provided - continuing with code generation')
@@ -392,50 +332,26 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
     }
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
-    let selectedCodingPrompt = "";
-
-    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
-      // For modifications, use the specialized follow-up prompt with tool integration
-      selectedCodingPrompt = UPDATE_EXT_PROMPT;
-      console.log("🔧 Using specialized follow-up prompt for extension modification");
-      yield {
-        type: "prompt_selected",
-        content: "prompt_selected"
-      };
-      yield {
-        type: "phase",
-        phase: "planning",
-        content: "Selected a generic modification plan based on existing files.",
-      };
-    } else {
-      // For new extensions, select based on frontend type
-      switch (requirementsAnalysis.frontend_type) {
-        case "side_panel":
-          selectedCodingPrompt = NEW_EXT_SIDEPANEL_PROMPT;
-          break;
-        case "popup":
-          selectedCodingPrompt = NEW_EXT_POPUP_PROMPT;
-          break;
-        case "overlay":
-          selectedCodingPrompt = NEW_EXT_OVERLAY_PROMPT;
-          break;
-        case "generic":
-          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT;
-          break;
-        default:
-          selectedCodingPrompt = NEW_EXT_GENERIC_PROMPT;
-          break;
-      }
-      yield {
-        type: "prompt_selected",
-        content: "prompt_selected"
-      };
-      yield {
-        type: "phase",
-        phase: "planning",
-        content: `Chose a ${requirementsAnalysis.frontend_type} implementation plan.`,
-      };
-    }
+    const prompts = {
+      UPDATE_EXT_PROMPT,
+      NEW_EXT_SIDEPANEL_PROMPT,
+      NEW_EXT_POPUP_PROMPT,
+      NEW_EXT_OVERLAY_PROMPT,
+      NEW_EXT_GENERIC_PROMPT
+    };
+    const selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+    
+    yield {
+      type: "prompt_selected",
+      content: "prompt_selected"
+    };
+    yield {
+      type: "phase",
+      phase: "planning",
+      content: requestType === REQUEST_TYPES.ADD_TO_EXISTING 
+        ? "Selected a generic modification plan based on existing files."
+        : `Chose a ${requirementsAnalysis.frontend_type} implementation plan.`,
+    };
 
     // Step 5: Generate extension code with streaming
     // Conditional prompt replacement: use enhanced_prompt if user prompt < 300 chars, otherwise use original
@@ -449,12 +365,9 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
     );
 
     // Format external APIs for prompt if provided
-    let externalApisContext = ''
-    if (userProvidedApis && userProvidedApis.length > 0) {
-      externalApisContext = userProvidedApis
-        .map(api => `${api.name}: ${api.endpoint}`)
-        .join('\n')
-      console.log('🔌 External APIs provided:', externalApisContext)
+    const externalApisContext = formatExternalApisContext(userProvidedApis);
+    if (externalApisContext) {
+      console.log('🔌 External APIs provided:', externalApisContext);
     }
 
     const replacements = {

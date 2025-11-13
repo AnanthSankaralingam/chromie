@@ -22,6 +22,8 @@ import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 import TestingPromptModal from "@/components/ui/modals/testing-prompt-modal"
+import { useNotificationSound } from "@/hooks/use-notification-sound"
+import { useAutoGenerateParams, useProjectParams } from "@/hooks/use-url-params"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -31,19 +33,21 @@ export default function BuilderPage() {
   const [selectedFile, setSelectedFile] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [shouldStartTestHighlight, setShouldStartTestHighlight] = useState(false)
   const [shouldStartDownloadHighlight, setShouldStartDownloadHighlight] = useState(false)
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
   const [hasTestedExtension, setHasTestedExtension] = useState(false)
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
-  const [isPageVisible, setIsPageVisible] = useState(true)
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
   
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
+
+  // Custom hooks for URL and notification management
+  const { autoGeneratePrompt, setAutoGeneratePrompt, handleAutoGenerateComplete } = useAutoGenerateParams(hasProcessedAutoGenerate.current)
+  const { playNotificationSound, isPageVisible } = useNotificationSound()
 
   // Custom hooks
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
@@ -68,35 +72,8 @@ export default function BuilderPage() {
     }
   }, [isLoading, user])
 
-  // Clear URL parameters after project is loaded
-  useEffect(() => {
-    if (projectSetup.currentProjectId && !projectSetup.isSettingUpProject) {
-      const url = new URL(window.location)
-      let hasChanges = false
-      
-      if (url.searchParams.has('project')) {
-        url.searchParams.delete('project')
-        hasChanges = true
-      }
-      // Don't clear autoGenerate parameter here - wait for successful generation
-      
-      if (hasChanges) {
-        window.history.replaceState({}, '', url.pathname)
-      }
-    }
-  }, [projectSetup.currentProjectId, projectSetup.isSettingUpProject])
-
-  // Clear autoGenerate URL parameter after successful generation
-  useEffect(() => {
-    // Only clear if we've processed the prompt and it's now null
-    if (hasProcessedAutoGenerate.current && autoGeneratePrompt === null && typeof window !== 'undefined') {
-      const url = new URL(window.location)
-      if (url.searchParams.has('autoGenerate')) {
-        url.searchParams.delete('autoGenerate')
-        window.history.replaceState({}, '', url.pathname)
-      }
-    }
-  }, [autoGeneratePrompt])
+  // Use the custom hook to manage project URL parameters
+  useProjectParams(projectSetup.currentProjectId, projectSetup.isSettingUpProject)
 
   // Sync ref with hasGeneratedCode state when project changes
   useEffect(() => {
@@ -130,23 +107,15 @@ export default function BuilderPage() {
     }
   }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
-  // Check for autoGenerate prompt in URL
+  // Check if we should show onboarding modal when auto-generate prompt is set
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const autoGenerateFromUrl = urlParams.get('autoGenerate')
-      
-      if (autoGenerateFromUrl) {
-        setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
-        hasProcessedAutoGenerate.current = true
-        
-        // Check if we should show onboarding modal
-        if (onboardingModal.checkShouldShowModal(true)) {
-          onboardingModal.showModal()
-        }
+    if (autoGeneratePrompt) {
+      hasProcessedAutoGenerate.current = true
+      if (onboardingModal.checkShouldShowModal(true)) {
+        onboardingModal.showModal()
       }
     }
-  }, [onboardingModal.checkShouldShowModal, onboardingModal.showModal])
+  }, [autoGeneratePrompt, onboardingModal.checkShouldShowModal, onboardingModal.showModal])
 
   // Trigger auto-generation when both prompt and project are ready
   useEffect(() => {
@@ -155,11 +124,6 @@ export default function BuilderPage() {
     }
   }, [autoGeneratePrompt, projectSetup.isSettingUpProject, projectSetup.currentProjectId])
 
-  // Only clear autoGeneratePrompt after successful code generation, not just when project is loaded
-  const handleAutoGenerateComplete = () => {
-    setAutoGeneratePrompt(null)
-    hasProcessedAutoGenerate.current = false
-  }
 
   // Track when user returns from testing to trigger download button highlight
   useEffect(() => {
@@ -178,45 +142,6 @@ export default function BuilderPage() {
     }
   }, [testExtension.isTestModalOpen, hasGeneratedCode])
 
-  // Track page visibility to detect when user switches tabs or minimizes browser
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden)
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
-
-  // Play notification sound when code generation completes and user is not on the page
-  const playNotificationSound = () => {
-    if (!isPageVisible) {
-      try {
-        // Create a soft, pleasant notification sound
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-        
-        // Soft, gentle tone
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
-        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
-        
-        // Fade in and out for a pleasant sound
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime)
-        gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.05)
-        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.3)
-        
-        oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + 0.3)
-      } catch (error) {
-        // Silently fail if audio context is not available
-        console.log('Audio notification not available')
-      }
-    }
-  }
 
   const handleFileSelect = (file) => {
     setSelectedFile(file)
