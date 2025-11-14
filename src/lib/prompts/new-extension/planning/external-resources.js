@@ -64,3 +64,6 @@ Do NOT suggest API if:
 </output_schema>
 
 Return only valid JSON. No markdown, no explanation. Extract ALL domains from URLs in request.`;
+
+export const EXTERNAL_RESOURCES_PREFILL = `{
+  "external_apis": [`

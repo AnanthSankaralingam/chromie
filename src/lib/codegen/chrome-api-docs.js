@@ -1,5 +1,6 @@
 const chromeApisData = require('../chrome_extension_apis.json');
 
+//FIXME adapt to new API docs format
 /**
  * Search for Chrome Extension API documentation
  * @param {string} apiName - The name of the Chrome API to search for

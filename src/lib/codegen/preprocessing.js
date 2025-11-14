@@ -1,7 +1,12 @@
-import { NEW_EXT_PLANNING_PROMPT } from "../prompts/planning"
+// DEPRECATED: This file uses old Fireworks API planning.
+// Use planning-orchestrator.js instead for the new multi-prompt planning architecture.
+// This file is kept for reference and potential rollback purposes only.
+
+import { NEW_EXT_PLANNING_PROMPT } from "../prompts/old-prompts/planning"
 
 /**
  * Streaming version of analyzeExtensionRequirements
+ * @deprecated Use orchestratePlanning from planning-orchestrator.js instead
  * @param {string} featureRequest - User's feature request description
  * @returns {AsyncGenerator} Stream of planning analysis and final requirements
  */

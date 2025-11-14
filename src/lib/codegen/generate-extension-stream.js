@@ -1,19 +1,20 @@
 import { REQUEST_TYPES } from "../prompts/request-types";
-import { NEW_EXT_GENERIC_PROMPT } from "../prompts/new-extension/generic";
 import { NEW_EXT_OVERLAY_PROMPT } from "../prompts/new-extension/overlay";
 import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup";
 import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel";
+import { NEW_EXT_NEW_TAB_PROMPT } from "../prompts/new-extension/new-tab";
+import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "../prompts/new-extension/content-injection";
 import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs";
 import { batchScrapeWebpages } from "../webpage-scraper";
-import { analyzeExtensionRequirementsStream } from "./preprocessing";
+import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
 import { searchChromeExtensionAPI } from "./chrome-api-docs";
-import { 
-  createExistingExtensionRequirements, 
+import {
+  createExistingExtensionRequirements,
   checkUrlRequirement,
   checkApiRequirement,
-  formatExternalApisContext, 
-  selectPrompt 
+  formatExternalApisContext,
+  selectPrompt
 } from "./requirements-helpers";
 
 /**
@@ -78,38 +79,37 @@ export async function* generateChromeExtensionStream({
         type: "analyzing",
         content: "analyzing"
       };
-      // Emit an analyzing phase summary stub; UI can show/update as details emerge
       yield {
         type: "phase",
         phase: "analyzing",
         content: "Understanding your requirements and constraints to scope the extension.",
       };
 
-      // Use streaming analysis to get both thinking content and requirements
-      for await (const chunk of analyzeExtensionRequirementsStream({
-        featureRequest
-      })) {
-        if (chunk.type === "thinking" || chunk.type === "thinking_complete") {
-          // Forward the thinking content directly from the planning stream
-          yield chunk;
-        } else if (chunk.type === "planning_progress") {
-          // Forward planning progress updates to the UI
-          yield chunk;
-        } else if (chunk.type === "analysis_complete") {
-          requirementsAnalysis = chunk.requirements;
-          planningTokenUsage = chunk.tokenUsage;
-          yield {
-            type: "analysis_complete",
-            content: requirementsAnalysis.frontend_type
-          };
-        } else if (chunk.type === "error") {
-          yield chunk;
-          return;
-        }
+      // Use new planning orchestrator (non-streaming)
+      console.log('🎯 [generate-extension-stream] Calling planning orchestrator...')
+      const planningResult = await orchestratePlanning(featureRequest)
+
+      // Map planning result to requirementsAnalysis structure
+      requirementsAnalysis = {
+        frontend_type: planningResult.frontendType,
+        chromeAPIs: planningResult.useCaseResult.required_chrome_apis || [],
+        webPageData: planningResult.externalResourcesResult.webpages_to_scrape || [],
+        suggestedAPIs: planningResult.externalResourcesResult.external_apis || [],
+        ext_name: planningResult.useCaseResult.matched_use_case?.name || "Chrome Extension",
+        matchedUseCase: planningResult.useCaseResult.matched_use_case,
+        codeSnippet: planningResult.codeSnippet,
+        planningOutputs: formatPlanningOutputs(planningResult)
       }
 
-      // Provide a more specific analyzing summary now that analysis is complete
-      const analyzingSummary = `Identified a ${requirementsAnalysis.frontend_type} UI with ${(requirementsAnalysis.docAPIs || []).length} Chrome APIs and ${
+      planningTokenUsage = planningResult.tokenUsage
+
+      yield {
+        type: "analysis_complete",
+        content: requirementsAnalysis.frontend_type
+      };
+
+      // Provide analyzing summary
+      const analyzingSummary = `Identified a ${requirementsAnalysis.frontend_type} UI with ${requirementsAnalysis.chromeAPIs.length} Chrome APIs and ${
         requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0
           ? "site analysis required"
           : "no site analysis needed"
@@ -337,7 +337,8 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
       NEW_EXT_SIDEPANEL_PROMPT,
       NEW_EXT_POPUP_PROMPT,
       NEW_EXT_OVERLAY_PROMPT,
-      NEW_EXT_GENERIC_PROMPT
+      NEW_EXT_NEW_TAB_PROMPT,
+      NEW_EXT_CONTENT_SCRIPT_UI_PROMPT
     };
     const selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
     
@@ -353,15 +354,7 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
         : `Chose a ${requirementsAnalysis.frontend_type} implementation plan.`,
     };
 
-    // Step 5: Generate extension code with streaming
-    // Always use the original user prompt
     const finalUserPrompt = featureRequest;
-    console.log(
-      `🎯 Using original prompt: ${finalUserPrompt.substring(
-        0,
-        150
-      )}...`
-    );
 
     // Format external APIs for prompt if provided
     const externalApisContext = formatExternalApisContext(userProvidedApis);
@@ -376,6 +369,13 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
       scraped_webpage_analysis: scrapedWebpageAnalysis,
       external_apis: externalApisContext
     };
+
+    // Add new planning output placeholders
+    if (requirementsAnalysis.planningOutputs) {
+      replacements.USE_CASE_CHROME_APIS = requirementsAnalysis.planningOutputs.USE_CASE_CHROME_APIS || '';
+      replacements.EXTERNAL_RESOURCES = requirementsAnalysis.planningOutputs.EXTERNAL_RESOURCES || '';
+      replacements.CODE_SNIPPETS = requirementsAnalysis.planningOutputs.CODE_SNIPPETS || '';
+    }
 
     // Add existing files context only if NOT using a previousResponseId
     if (!previousResponseId) {

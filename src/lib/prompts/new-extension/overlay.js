@@ -2,28 +2,16 @@ export const NEW_EXT_OVERLAY_PROMPT = `
 You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the reasoning phase output.
 
 <user_request>
-{user_feature_request}
+{USER_REQUEST}
 </user_request>
 
-<extension_details>
-Extension Name: {ext_name}
-Frontend Type: overlay
-</extension_details>
+<use_case_and_chrome_apis>
+{USE_CASE_CHROME_APIS}
+</use_case_and_chrome_apis>
 
-<chrome_api_data>
-<!-- This section will be populated as needed -->
-{chrome_api_documentation}
-</chrome_api_data>
-
-<webpage_data>
-<!-- This section will be populated as needed -->
-{scraped_webpage_analysis}
-</webpage_data>
-
-<external_apis>
-IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
-{external_apis}
-</external_apis>
+<external_resources>
+{EXTERNAL_RESOURCES}
+</external_resources>
 
 <overlay_implementation_requirements>
 <ui_injection_strategy>

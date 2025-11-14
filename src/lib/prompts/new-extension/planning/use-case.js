@@ -30,4 +30,8 @@ Common APIs: "storage", "tabs", "bookmarks", "notifications", "identity", "scrip
 
 Return only valid JSON. No markdown, no explanation.`;
 
+export const USE_CASES_CHROME_APIS_PREFILL = `{
+  "matched_use_case": {
+    "name":`
+
 //TODO define use cases json and update chrome api examples. 

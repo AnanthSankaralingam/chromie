@@ -31,6 +31,17 @@ function withOverlayFields() {
   }
 }
 
+function withNewTabFields() {
+  return {
+    "newtab.html": { type: Type.STRING },
+    "newtab.js": { type: Type.STRING }
+  }
+}
+
+function withContentScriptUIFields() {
+  return {}  // Uses base fields only (content.js, styles.css)
+}
+
 // Follow-up extension schema (all files optional except explanation + manifest.json)
 export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
   name: "extension_implementation",
@@ -137,6 +148,55 @@ export const OVERLAY_EXTENSION_RESPONSE_SCHEMA = {
   }
 }
 
+// New tab extension schema
+export const NEW_TAB_EXTENSION_RESPONSE_SCHEMA = {
+  name: "extension_implementation",
+  schema: {
+    type: Type.OBJECT,
+    properties: {
+      ...baseFileFields(),
+      ...withNewTabFields()
+    },
+    required: [
+      "explanation",
+      "manifest.json",
+      "newtab.html",
+      "styles.css"
+    ],
+    propertyOrdering: [
+      "manifest.json",
+      "background.js",
+      "newtab.html",
+      "newtab.js",
+      "styles.css",
+      "explanation"
+    ]
+  }
+}
+
+// Content script UI extension schema
+export const CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA = {
+  name: "extension_implementation",
+  schema: {
+    type: Type.OBJECT,
+    properties: {
+      ...baseFileFields(),
+      ...withContentScriptUIFields()
+    },
+    required: [
+      "explanation",
+      "manifest.json"
+    ],
+    propertyOrdering: [
+      "manifest.json",
+      "background.js",
+      "content.js",
+      "styles.css",
+      "explanation"
+    ]
+  }
+}
+
 // Generic extension schema
 export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
   name: "extension_implementation",
@@ -221,7 +281,7 @@ export function convertToOpenAIFormat(geminiSchema) {
 /**
  * Selects the appropriate response schema based on frontend type and request type
  * Returns a Gemini Type-based schema object
- * @param {string} frontendType - The frontend type (side_panel, popup, overlay, generic)
+ * @param {string} frontendType - The frontend type (side_panel, popup, overlay, new_tab, content_script_ui, generic)
  * @param {string} requestType - The request type (NEW_EXTENSION, ADD_TO_EXISTING)
  * @returns {{name: string, schema: any}} The appropriate response schema
  */
@@ -231,11 +291,17 @@ export function selectResponseSchema(frontendType, requestType) {
   }
   switch (frontendType) {
     case 'side_panel':
+    case 'sidepanel':
       return SIDEPANEL_EXTENSION_RESPONSE_SCHEMA
     case 'popup':
       return POPUP_EXTENSION_RESPONSE_SCHEMA
     case 'overlay':
       return OVERLAY_EXTENSION_RESPONSE_SCHEMA
+    case 'new_tab':
+    case 'newtab':
+      return NEW_TAB_EXTENSION_RESPONSE_SCHEMA
+    case 'content_script_ui':
+      return CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA
     case 'generic':
     default:
       return GENERIC_EXTENSION_RESPONSE_SCHEMA

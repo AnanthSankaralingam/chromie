@@ -1,4 +1,4 @@
-`You are a Chrome extension UI architect. Determine the optimal frontend presentation type.
+export const FRONTEND_SELECTION_PROMPT = `You are a Chrome extension UI architect. Determine the optimal frontend presentation type.
 
 <user_request>
 {USER_REQUEST}
@@ -40,3 +40,6 @@ content_script_ui: Injected UI elements. For inline annotations, highlights, flo
 </output_schema>
 
 Return only valid JSON. No markdown, no explanation.`;
+
+export const FRONTEND_SELECTION_PREFILL = `{
+  "frontend_type":`
