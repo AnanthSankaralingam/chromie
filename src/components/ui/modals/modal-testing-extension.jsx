@@ -21,7 +21,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
       setSessionExpired(false)
       setNavigationError(null)
       setUrlInput("")
-      console.log("🔄 New test session detected, resetting expired state")
     }
   }, [isOpen, sessionData?.sessionId])
 
@@ -119,12 +118,10 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   if (!isOpen) return null
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
-  
 
   // Handle session expiry - just show warning, don't auto-close
   const handleSessionExpire = () => {
     setSessionExpired(true)
-    // Don't auto-close modal - let user manually close when ready
   }
 
   // Handle cleanup when modal is closed
@@ -143,6 +140,8 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
     setNavigationError(null)
 
     try {
+      console.log("🌐 Navigating to:", urlInput)
+      
       const response = await fetch(`/api/projects/${projectId}/test-extension/navigate`, {
         method: 'POST',
         headers: {
@@ -157,11 +156,14 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
       const result = await response.json()
 
       if (result.success) {
-        setUrlInput("") // Clear input on success
+        console.log("✅ Navigation successful")
+        setUrlInput("")
       } else {
+        console.error("❌ Navigation failed:", result.error)
         setNavigationError(result.error || "Navigation failed")
       }
     } catch (error) {
+      console.error("❌ Navigation error:", error.message)
       setNavigationError("Failed to navigate to URL")
     } finally {
       setIsNavigating(false)

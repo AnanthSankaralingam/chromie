@@ -17,7 +17,7 @@ export default function useTestExtension(currentProjectId) {
     }
 
     cleanupAttempted.current = true
-    console.log("🧹 Cleaning up browser session:", sessionId)
+    console.log("🧹 Cleaning up session:", sessionId)
 
     try {
       const response = await fetch(`/api/projects/${projectId}/test-extension`, {
@@ -33,18 +33,17 @@ export default function useTestExtension(currentProjectId) {
       
       if (response.ok) {
         const result = await response.json()
-        console.log("✅ Session cleanup successful", result)
+        console.log("✅ Session cleaned up")
         
         // Update browser usage indicator if available
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           window.dispatchEvent(new CustomEvent('browserUsageUpdated'))
         }
       } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.warn("⚠️ Session cleanup failed:", response.status, errorData)
+        console.warn("⚠️  Cleanup failed:", response.status)
       }
     } catch (error) {
-      console.error("❌ Error during session cleanup:", error)
+      console.error("❌ Cleanup error:", error.message)
     }
   }
 
@@ -78,8 +77,10 @@ export default function useTestExtension(currentProjectId) {
   }, [testSessionData?.sessionId, currentProjectId])
 
   const handleTestExtension = async () => {
+    console.log("🚀 Test Extension clicked")
+    
     if (!currentProjectId) {
-      console.error("No project ID available")
+      console.error("❌ No project ID available")
       return
     }
 
@@ -92,20 +93,22 @@ export default function useTestExtension(currentProjectId) {
     setLoadingProgress(0)
     setIsTestModalOpen(true)
     isModalOpenRef.current = true
-    cleanupAttempted.current = false // Reset cleanup flag for new session
+    cleanupAttempted.current = false
     cleanupAfterCreateRef.current = false
 
     try {
       // Simulate progress updates during session creation
       const progressInterval = setInterval(() => {
         setLoadingProgress(prev => {
-          if (prev < 80) { // Don't go to 100% until we get the response
+          if (prev < 80) {
             return prev + Math.random() * 15
           }
           return prev
         })
       }, 1000)
 
+      console.log("📡 Creating test session...")
+      
       const createPromise = fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
@@ -117,33 +120,31 @@ export default function useTestExtension(currentProjectId) {
 
       clearInterval(progressInterval)
       setLoadingProgress(90)
-
+      
       const data = await response.json()
 
       if (!response.ok) {
+        console.error("❌ API Error:", data.error || data)
         throw new Error(data.error || "Failed to create test session")
       }
 
-      console.log("Session data:", data.session)
+      console.log("✅ Session created:", data.session?.sessionId)
+      console.log("📌 Automatic pinning initiated on server")
+      console.log("   Session ID:", data.session?.sessionId)
+      console.log("   Live URL:", data.session?.liveViewUrl ? "✓" : "✗")
+      
       setTestSessionData(data.session)
       setLoadingProgress(100)
-      console.log("Test session created:", data.session.sessionId)
 
-      // If user closed the modal before creation finished, immediately clean up the session we just created
+      // If user closed the modal before creation finished, immediately clean up
       if (cleanupAfterCreateRef.current || !isModalOpenRef.current) {
-        try {
-          console.log("🧹 Cleaning up session created after modal was closed:", data.session.sessionId)
-          await cleanupSession(data.session.sessionId, currentProjectId, data.session.startedAt)
-        } finally {
-          // Ensure local state is cleared
-          setIsTestModalOpen(false)
-          setTestSessionData(null)
-          cleanupAttempted.current = false
-        }
+        await cleanupSession(data.session.sessionId, currentProjectId, data.session.startedAt)
+        setIsTestModalOpen(false)
+        setTestSessionData(null)
+        cleanupAttempted.current = false
       }
     } catch (error) {
-      console.error("Error creating test session:", error)
-      // Keep modal open but show error state
+      console.error("❌ Error:", error.message)
       setTestSessionData(null)
     } finally {
       setIsTestLoading(false)

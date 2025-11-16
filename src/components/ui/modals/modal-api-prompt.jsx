@@ -12,14 +12,27 @@ export default function ModalApiPrompt({
   const [skippedApis, setSkippedApis] = useState(new Set())
 
   useEffect(() => {
+    console.log('🔌 API Modal rendered with data:', {
+      hasSuggestedAPIs: !!data?.suggestedAPIs,
+      suggestedAPIsLength: data?.suggestedAPIs?.length || 0,
+      suggestedAPIs: data?.suggestedAPIs,
+      message: data?.message
+    })
+    
     // Initialize API configurations with empty endpoints for user input
-    const initialConfigs = data.suggestedAPIs.map(api => ({
-      name: api.name,
-      endpoint: '',
-      isSkipped: false
-    }))
-    setApiConfigs(initialConfigs)
-  }, [data.suggestedAPIs])
+    if (data?.suggestedAPIs && Array.isArray(data.suggestedAPIs) && data.suggestedAPIs.length > 0) {
+      const initialConfigs = data.suggestedAPIs.map(api => ({
+        name: api.name || 'Unnamed API',
+        endpoint: '',
+        isSkipped: false
+      }))
+      setApiConfigs(initialConfigs)
+      console.log('✅ Initialized', initialConfigs.length, 'API configs')
+    } else {
+      console.warn('⚠️ API modal opened with no suggested APIs')
+      setApiConfigs([])
+    }
+  }, [data?.suggestedAPIs, data?.message])
 
   const handleEndpointChange = (index, newEndpoint) => {
     setApiConfigs(prev => prev.map((config, i) => 
@@ -73,11 +86,16 @@ export default function ModalApiPrompt({
         </div>
 
         <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-          {data.message || 'This extension looks like it might need external APIs. Configure them below, skip or use our defaults for each API.'}
+          {data?.message || 'This extension looks like it might need external APIs. Configure them below, skip individual APIs, or skip all to continue without API configuration.'}
         </p>
 
-        <div className="space-y-4 mb-6">
-          {apiConfigs.map((config, index) => {
+        {apiConfigs.length === 0 ? (
+          <div className="p-4 rounded-lg border border-slate-600 bg-slate-700/50 mb-6">
+            <p className="text-sm text-slate-300 text-center">No API configurations needed. Click Continue to proceed.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 mb-6">
+            {apiConfigs.map((config, index) => {
             const isSkipped = skippedApis.has(index)
             return (
               <div key={index} className={`p-4 rounded-lg border transition-all ${
@@ -115,7 +133,8 @@ export default function ModalApiPrompt({
               </div>
             )
           })}
-        </div>
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end">
           <button
@@ -126,14 +145,9 @@ export default function ModalApiPrompt({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={allSkipped}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              allSkipped
-                ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600'
-            }`}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600"
           >
-            {allSkipped ? 'All APIs Skipped' : `Continue`}
+            {allSkipped ? 'Continue without APIs' : apisWithEndpoints > 0 ? `Continue with ${apisWithEndpoints} API${apisWithEndpoints > 1 ? 's' : ''}` : 'Continue'}
           </button>
         </div>
       </div>
