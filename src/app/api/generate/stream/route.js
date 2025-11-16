@@ -115,13 +115,15 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage } = await request.json()
 
     console.log('[api/generate/stream] received', {
       has_previousResponseId: Boolean(previousResponseId),
       conversationTokenTotal_in: conversationTokenTotal ?? null,
       modelOverride: modelOverride || null,
-      contextWindowMaxTokens: contextWindowMaxTokens || null
+      contextWindowMaxTokens: contextWindowMaxTokens || null,
+      has_initialRequirementsAnalysis: Boolean(initialRequirementsAnalysis),
+      has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage)
     })
 
     if (!prompt) {
@@ -209,7 +211,9 @@ export async function POST(request) {
             previousResponseId,
             conversationTokenTotal,
             modelOverride,
-            contextWindowMaxTokens
+            contextWindowMaxTokens,
+            initialRequirementsAnalysis: initialRequirementsAnalysis || null,
+            initialPlanningTokenUsage: initialPlanningTokenUsage || null
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
