@@ -4,73 +4,111 @@ import { getPlaywrightSessionContext } from "@/lib/utils/browser-actions";
 // Extension type: utility
 
 const runPinExtension = async (sessionId) => {
+  console.log('[PIN-EXTENSION] 🚀 runPinExtension called');
+  console.log('[PIN-EXTENSION] Session ID:', sessionId);
+  console.log('[PIN-EXTENSION] Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
+  console.log('[PIN-EXTENSION] Node version:', process.version);
+  
   const apiKey = process.env.HYPERBROWSER_API_KEY;
+  console.log('[PIN-EXTENSION] API key exists:', !!apiKey);
   
   if (!apiKey) {
+    console.error('[PIN-EXTENSION] ❌ Missing HYPERBROWSER_API_KEY');
     throw new Error("Missing HYPERBROWSER_API_KEY");
   }
 
-  console.log('📌 Starting extension pinning script with Puppeteer');
+  console.log('[PIN-EXTENSION] ✅ API key found, length:', apiKey.length);
+  console.log('[PIN-EXTENSION] 📌 Starting extension pinning script with Playwright');
 
   let browser = null;
   let page = null;
 
   try {
     // Connect to the browser session
-    console.log('🔌 Connecting to browser session...');
+    console.log('[PIN-EXTENSION] 🔌 Connecting to browser session...');
+    console.log('[PIN-EXTENSION] Calling getPlaywrightSessionContext with sessionId:', sessionId);
+    
     const context = await getPlaywrightSessionContext(sessionId, apiKey);
+    console.log('[PIN-EXTENSION] ✅ Got Playwright context');
+    console.log('[PIN-EXTENSION] Context keys:', Object.keys(context));
+    
     browser = context.browser;
     page = context.page;
+    console.log('[PIN-EXTENSION] Browser connected:', !!browser);
+    console.log('[PIN-EXTENSION] Page available:', !!page);
 
     // Navigate to chrome://extensions if not already there
     const currentUrl = page.url();
+    console.log('[PIN-EXTENSION] 🌐 Current URL:', currentUrl);
+    
     if (!currentUrl.includes('chrome://extensions')) {
-      console.log('🌐 Navigating to chrome://extensions...');
+      console.log('[PIN-EXTENSION] 🚀 Navigating to chrome://extensions...');
       await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      console.log('[PIN-EXTENSION] ✅ Navigation complete');
     } else {
-      console.log('✅ Already on chrome://extensions page');
+      console.log('[PIN-EXTENSION] ✅ Already on chrome://extensions page');
     }
 
     // Wait for the extensions page to load and shadow DOM to be ready
-    console.log('⏳ Waiting for extensions page to load...');
+    console.log('[PIN-EXTENSION] ⏳ Waiting for extensions-manager element...');
     await page.waitForSelector('extensions-manager', { timeout: 10000 });
+    console.log('[PIN-EXTENSION] ✅ extensions-manager element found');
     
     // Wait for shadow DOM to be accessible
+    console.log('[PIN-EXTENSION] ⏳ Waiting for shadow DOM to be accessible...');
     await page.waitForFunction(() => {
       const manager = document.querySelector('extensions-manager');
       return manager && manager.shadowRoot !== null;
     }, { timeout: 10000 });
+    console.log('[PIN-EXTENSION] ✅ Shadow DOM is accessible');
 
     // Wait for extensions to load
+    console.log('[PIN-EXTENSION] ⏳ Waiting 3 seconds for extensions to load...');
     await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('[PIN-EXTENSION] ✅ Wait complete');
 
     // Navigate through shadow DOM to find and click Details button
-    console.log('🔍 Finding extension card and Details button in shadow DOM...');
+    console.log('[PIN-EXTENSION] 🔍 Finding extension card and Details button in shadow DOM...');
     
     const detailsClicked = await page.evaluate(() => {
+      console.log('[PIN-EXTENSION-EVAL] Starting browser-side evaluation');
       const manager = document.querySelector('extensions-manager');
+      console.log('[PIN-EXTENSION-EVAL] extensions-manager element:', !!manager);
+      console.log('[PIN-EXTENSION-EVAL] Has shadow root:', !!(manager && manager.shadowRoot));
+      
       if (!manager || !manager.shadowRoot) {
         throw new Error('extensions-manager shadow root not found');
       }
 
       // Find extension items in shadow DOM - try multiple selectors
+      console.log('[PIN-EXTENSION-EVAL] Searching for extensions-item elements...');
       let items = manager.shadowRoot.querySelectorAll('extensions-item');
+      console.log('[PIN-EXTENSION-EVAL] Direct search found:', items.length, 'items');
       
       // If not found, try looking inside extensions-item-list
       if (items.length === 0) {
+        console.log('[PIN-EXTENSION-EVAL] Trying extensions-item-list approach...');
         const itemList = manager.shadowRoot.querySelector('extensions-item-list');
+        console.log('[PIN-EXTENSION-EVAL] extensions-item-list found:', !!itemList);
+        
         if (itemList) {
           // Check if itemList has shadow root
           if (itemList.shadowRoot) {
+            console.log('[PIN-EXTENSION-EVAL] Searching in itemList shadow root...');
             items = itemList.shadowRoot.querySelectorAll('extensions-item');
+            console.log('[PIN-EXTENSION-EVAL] Found in shadow root:', items.length);
           }
           // Also check direct children
           if (items.length === 0) {
+            console.log('[PIN-EXTENSION-EVAL] Searching direct children of itemList...');
             items = itemList.querySelectorAll('extensions-item');
+            console.log('[PIN-EXTENSION-EVAL] Found as direct children:', items.length);
           }
           // Try nested selectors
           if (items.length === 0) {
+            console.log('[PIN-EXTENSION-EVAL] Trying nested selectors...');
             items = itemList.querySelectorAll('* > extensions-item, extensions-item');
+            console.log('[PIN-EXTENSION-EVAL] Found with nested selectors:', items.length);
           }
         }
       }
@@ -123,11 +161,14 @@ const runPinExtension = async (sessionId) => {
       }
       
       // Log what we found for debugging
-      console.log(`Found ${items.length} extension item(s) in shadow DOM`);
+      console.log('[PIN-EXTENSION-EVAL] Final item count:', items.length, 'extension items found');
       
       if (items.length === 0) {
+        console.log('[PIN-EXTENSION-EVAL] ⚠️  No extension items found, gathering diagnostic info...');
         // Get detailed diagnostic info
         const allElements = Array.from(manager.shadowRoot.querySelectorAll('*'));
+        console.log('[PIN-EXTENSION-EVAL] Total elements in manager shadow root:', allElements.length);
+        
         const elementTypes = {};
         const elementDetails = [];
         
@@ -146,6 +187,9 @@ const runPinExtension = async (sessionId) => {
           }
         });
         
+        console.log('[PIN-EXTENSION-EVAL] Element types distribution:', elementTypes);
+        console.log('[PIN-EXTENSION-EVAL] Extension-related elements:', elementDetails);
+        
         console.log('Available elements in shadow DOM:', elementTypes);
         console.log('Extension-related elements:', elementDetails);
         
@@ -161,28 +205,40 @@ const runPinExtension = async (sessionId) => {
       }
 
       // Use the first extension item (most recently added should be first)
+      console.log('[PIN-EXTENSION-EVAL] 🎯 Selecting first extension item...');
       const firstItem = items[0];
-      console.log(`Using the first extension item (${items.length} total)`);
+      console.log(`[PIN-EXTENSION-EVAL] ✅ Using first extension item (${items.length} total found)`);
+      console.log(`[PIN-EXTENSION-EVAL] First item tag:`, firstItem.tagName);
+      console.log(`[PIN-EXTENSION-EVAL] Has shadow root:`, !!firstItem.shadowRoot);
 
       // Find the Details button - try multiple methods
+      console.log('[PIN-EXTENSION-EVAL] 🔍 Searching for Details button...');
       let detailsButton = null;
 
       // Method 1: Check if extension-item has shadow root (look for cr-button#detailsButton)
       if (firstItem.shadowRoot) {
-        console.log('Checking extension-item shadow root for Details button...');
+        console.log('[PIN-EXTENSION-EVAL] Method 1: Checking extension-item shadow root...');
         detailsButton = firstItem.shadowRoot.querySelector('#detailsButton');
+        console.log('[PIN-EXTENSION-EVAL]   - Selector #detailsButton:', !!detailsButton);
+        
         if (!detailsButton) {
           // Try other selectors
+          console.log('[PIN-EXTENSION-EVAL]   - Trying alternative selectors...');
           detailsButton = firstItem.shadowRoot.querySelector('cr-button#detailsButton, cr-button[id="detailsButton"]');
+          console.log('[PIN-EXTENSION-EVAL]   - Alternative selectors:', !!detailsButton);
         }
         if (!detailsButton) {
           // Try looking for any cr-button with Details text
+          console.log('[PIN-EXTENSION-EVAL]   - Searching by button text...');
           const allButtons = firstItem.shadowRoot.querySelectorAll('cr-button');
+          console.log('[PIN-EXTENSION-EVAL]   - Found cr-buttons:', allButtons.length);
+          
           for (const btn of allButtons) {
             const text = btn.textContent?.trim() || '';
+            console.log('[PIN-EXTENSION-EVAL]     - Button text:', text.substring(0, 20));
             if (text.toLowerCase().includes('details')) {
               detailsButton = btn;
-              console.log('Found Details button by text in shadow root');
+              console.log('[PIN-EXTENSION-EVAL] ✅ Found Details button by text in shadow root');
               break;
             }
           }
@@ -191,12 +247,18 @@ const runPinExtension = async (sessionId) => {
 
       // Method 2: Direct children (look for cr-button) - if not in shadow root
       if (!detailsButton) {
+        console.log('[PIN-EXTENSION-EVAL] Method 2: Checking direct children...');
         detailsButton = firstItem.querySelector('#detailsButton, cr-button#detailsButton');
+        console.log('[PIN-EXTENSION-EVAL]   - Direct query result:', !!detailsButton);
+        
         if (!detailsButton) {
           const directButtons = firstItem.querySelectorAll('cr-button');
+          console.log('[PIN-EXTENSION-EVAL]   - Direct cr-buttons found:', directButtons.length);
+          
           for (const btn of directButtons) {
             if (btn.id === 'detailsButton') {
               detailsButton = btn;
+              console.log('[PIN-EXTENSION-EVAL] ✅ Found detailsButton by ID');
               break;
             }
           }
@@ -205,15 +267,17 @@ const runPinExtension = async (sessionId) => {
 
       // Method 3: Find by text content (include cr-button in search)
       if (!detailsButton) {
+        console.log('[PIN-EXTENSION-EVAL] Method 3: Searching by text content...');
         const searchScope = firstItem.shadowRoot || firstItem;
         const buttons = searchScope.querySelectorAll('cr-button, button, a');
         
-        console.log(`Searching ${buttons.length} buttons for Details text...`);
+        console.log(`[PIN-EXTENSION-EVAL]   - Searching ${buttons.length} buttons...`);
         for (const btn of buttons) {
           const text = btn.textContent?.trim() || btn.getAttribute('aria-label') || '';
+          console.log(`[PIN-EXTENSION-EVAL]     - Checking:`, text.substring(0, 30));
           if (text.toLowerCase().includes('details')) {
             detailsButton = btn;
-            console.log('Found Details button by text content');
+            console.log('[PIN-EXTENSION-EVAL] ✅ Found Details button by text content');
             break;
           }
         }
@@ -221,9 +285,10 @@ const runPinExtension = async (sessionId) => {
       
       // Method 4: If still not found, try searching in all children recursively
       if (!detailsButton) {
+        console.log('[PIN-EXTENSION-EVAL] Method 4: Recursive search...');
         const searchScope = firstItem.shadowRoot || firstItem;
         const allElements = searchScope.querySelectorAll('*');
-        console.log(`Searching ${allElements.length} elements recursively...`);
+        console.log(`[PIN-EXTENSION-EVAL]   - Searching ${allElements.length} elements recursively...`);
         for (const el of allElements) {
           const tagName = el.tagName?.toUpperCase();
           if ((tagName === 'CR-BUTTON' || tagName === 'BUTTON' || tagName === 'A') && 
@@ -363,15 +428,17 @@ const runPinExtension = async (sessionId) => {
     });
 
     if (pinResult.alreadyPinned) {
-      console.log('✅ Extension is already pinned to toolbar');
+      console.log('[PIN-EXTENSION] ✅ Extension is already pinned to toolbar');
       return { success: true, alreadyPinned: true };
     }
 
-    console.log('✅ Toggle clicked, waiting for state to update...');
+    console.log('[PIN-EXTENSION] ✅ Toggle clicked, waiting for state to update...');
+    console.log('[PIN-EXTENSION] Pin result:', pinResult);
     // Wait longer for the action to complete
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Verify it's now pinned
+    console.log('[PIN-EXTENSION] 🔍 Verifying pin state...');
     const verifyResult = await page.evaluate(() => {
       const manager = document.querySelector('extensions-manager');
       if (!manager || !manager.shadowRoot) {
@@ -426,23 +493,28 @@ const runPinExtension = async (sessionId) => {
       return { pinned: isPinned, tagName };
     });
     
+    console.log('[PIN-EXTENSION] Verification result received:', verifyResult);
     const isPinned = verifyResult.pinned || verifyResult === true;
+    console.log('[PIN-EXTENSION] Is pinned:', isPinned);
 
     if (isPinned) {
-      console.log('✅ Extension successfully pinned to toolbar');
+      console.log('[PIN-EXTENSION] ✅ Extension successfully pinned to toolbar');
       return { success: true, pinned: true };
     } else {
-      console.log('⚠️ Pin toggle clicked but state not verified as pinned');
-      console.log('Verification result:', verifyResult);
+      console.log('[PIN-EXTENSION] ⚠️  Pin toggle clicked but state not verified as pinned');
+      console.log('[PIN-EXTENSION] Verification result:', JSON.stringify(verifyResult, null, 2));
       // Still return success since we clicked it - the state might update later
       return { success: true, pinned: false, warning: 'State verification failed', verifyResult };
     }
 
   } catch (err) {
-    console.error('❌ Extension pinning failed:', err.message);
-    console.error('Error details:', err);
-    return { success: false, error: err.message };
+    console.error('[PIN-EXTENSION] ❌ Extension pinning failed');
+    console.error('[PIN-EXTENSION] Error message:', err.message);
+    console.error('[PIN-EXTENSION] Error stack:', err.stack);
+    console.error('[PIN-EXTENSION] Error details:', err);
+    return { success: false, error: err.message, stack: err.stack };
   } finally {
+    console.log('[PIN-EXTENSION] 🏁 Pin extension flow complete');
     // Don't close the browser - let the session continue
     // The browser/page will be cleaned up when the session ends
   }
