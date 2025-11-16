@@ -97,6 +97,7 @@ async function callUseCasePrompt(featureRequest) {
   const prompt = USE_CASE_CHROME_APIS_PROMPT.replace('{USER_REQUEST}', featureRequest)
 
   try {
+    //TODO add schema validation
     const response = await llmService.createResponse({
       provider: PLANNING_PROVIDER,
       model: PLANNING_MODEL,

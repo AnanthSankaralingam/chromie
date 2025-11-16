@@ -14,12 +14,6 @@ You are a Chrome extension development expert. Your task is to implement a Chrom
 </external_resources>
 
 <new_tab_implementation_requirements>
-<new_tab_strategy>
-MANDATORY: Replace Chrome's default new tab with custom full-page interface.
-- Fast initial load time
-- Use chrome.storage for persistent data
-- Responsive design for all screen sizes
-</new_tab_strategy>
 
 <manifest_configuration>
 Required manifest.json sections:
@@ -73,14 +67,6 @@ icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png,
 icons/world.png, icons/youtube.png
 </icon_configuration>
 
-<api_key_handling>
-CRITICAL: For external API integrations, NEVER hardcode API keys. 
-- Implement a settings interface for users to input their own API keys
-- Store keys securely using chrome.storage.local
-- Validate keys before using them
-- Provide clear instructions on where to obtain API keys
-</api_key_handling>
-
 <output_requirements>
 Return a JSON object with the following structure:
 {
@@ -100,14 +86,6 @@ File Format Rules:
 
 <implementation_guidelines>
 - Create a beautiful, functional new tab experience
-- Optimize for fast loading (lazy load heavy resources)
-- Implement quick search functionality if appropriate
-- Use Chrome APIs specified in use_case_and_chrome_apis section
-- Integrate external APIs if specified in external_resources
-- Include customization options (theme, layout, widgets)
-- Add keyboard shortcuts for common actions
 - Implement proper error handling, comments, and logging
-- Consider adding clock, weather, bookmarks, or productivity widgets
-- Save user preferences and restore on load
 </implementation_guidelines>
 `;

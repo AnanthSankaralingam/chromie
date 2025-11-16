@@ -231,7 +231,6 @@ export async function* generateChromeExtensionStream({
         if (!apiResult.error) {
           apiDocs.push(`
 ## ${apiResult.name} API
-Namespace: ${apiResult.namespace || "Unknown"}
 Description: ${apiResult.description || "No description available"}
 Permissions: ${
             Array.isArray(apiResult.permissions)
@@ -240,7 +239,7 @@ Permissions: ${
           }
 Code Example:
 \`\`\`javascript
-${apiResult.code_example?.code || apiResult.code_example || "No example provided"}
+${apiResult.code_example || "No example provided"}
 \`\`\`
 `);
         } else {
