@@ -421,6 +421,11 @@ export default function StreamingChat({
 
                 case "requires_api":
                   // Handle API requirement
+                  console.log('🔌 Received requires_api event:', {
+                    suggestedAPIs: data.suggestedAPIs,
+                    content: data.content,
+                    hasAnalysisData: !!data.analysisData
+                  })
                   addNewAssistantMessage("This extension looks like it might need external APIs. Let me get endpoint details...")
 
                   // Store the current request info for API continuation
@@ -438,6 +443,12 @@ export default function StreamingChat({
                     },
                     originalPrompt: prompt
                   }
+
+                  console.log('🔌 API Modal Data prepared:', {
+                    suggestedAPIsCount: apiModalData.data.suggestedAPIs.length,
+                    hasMessage: !!apiModalData.data.message,
+                    isOnboardingOpen: isOnboardingModalOpen
+                  })
 
                   // If onboarding is open, queue the modal to show after onboarding closes
                   if (isOnboardingModalOpen) {
