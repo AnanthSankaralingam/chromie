@@ -161,20 +161,6 @@ async function saveFilesToDatabase(implementationResult, sessionId, replacements
   const savedFiles = []
   const errors = []
 
-  // CRITICAL: Ensure manifest.json uses the planned extension name before saving
-  if (allFiles['manifest.json'] && replacements.ext_name) {
-    try {
-      const manifestContent = normalizeGeneratedFileContent(allFiles['manifest.json'])
-      let formattedManifest = formatManifestJson(manifestContent)
-      const manifestObj = JSON.parse(formattedManifest)
-      manifestObj.name = replacements.ext_name.trim()
-      formattedManifest = formatManifestJson(manifestObj)
-      allFiles['manifest.json'] = formattedManifest
-    } catch (manifestError) {
-      console.warn('Could not update manifest name in stream - manifest parsing failed:', manifestError.message)
-    }
-  }
-
   for (const [filePath, rawContent] of Object.entries(allFiles)) {
     const content = normalizeGeneratedFileContent(rawContent)
     console.log(`  → Saving ${filePath} (${content.length} chars)`)
@@ -321,22 +307,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
-  
-  // Handle webpage_data section conditionally - remove entire section if no data
-  if (replacements.scraped_webpage_analysis === '<!-- No specific websites targeted -->' || 
-      replacements.scraped_webpage_analysis === '<!-- Website analysis skipped by user -->') {
-    // Remove the entire webpage_data section
-    finalPrompt = finalPrompt.replace(/<webpage_data>[\s\S]*?<\/webpage_data>/g, '')
-    console.log('Removed webpage_data section - no specific websites targeted')
-  }
-  
-  // Handle external_apis section conditionally - remove entire section if no APIs provided
-  if (!replacements.external_apis || replacements.external_apis === '') {
-    // Remove the entire external_apis section
-    finalPrompt = finalPrompt.replace(/<external_apis>[\s\S]*?<\/external_apis>/g, '')
-    console.log('Removed external_apis section - no APIs provided')
-  }
-  
+
   for (const [placeholder, value] of Object.entries(replacements)) {
     console.log(`Adding ${placeholder} to the prompt`)
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)

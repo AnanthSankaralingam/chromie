@@ -28,7 +28,6 @@ export async function orchestratePlanning(featureRequest) {
       callExternalResourcesPrompt(featureRequest)
     ])
 
-    console.log('✅ [Planning Orchestrator] Parallel calls completed')
     console.log('📊 Use Case Result:', JSON.stringify(useCaseResponse.result, null, 2))
     console.log('📊 External Resources Result:', JSON.stringify(externalResourcesResponse.result, null, 2))
 
@@ -40,7 +39,6 @@ export async function orchestratePlanning(featureRequest) {
       useCaseResponse.result
     )
 
-    console.log('✅ [Planning Orchestrator] Frontend selection completed')
     console.log('📊 Frontend Type:', frontendSelectionResponse.result.frontend_type)
 
     // Step 3: Fetch code snippet from use_cases.json
@@ -106,7 +104,7 @@ async function callUseCasePrompt(featureRequest) {
         { role: 'assistant', content: USE_CASES_CHROME_APIS_PREFILL }
       ],
       temperature: 0.2,
-      max_output_tokens: 1000
+      max_output_tokens: 250
     })
 
     const result = parseJsonResponse(response.output_text, USE_CASES_CHROME_APIS_PREFILL)
@@ -149,7 +147,7 @@ async function callExternalResourcesPrompt(featureRequest) {
         { role: 'assistant', content: EXTERNAL_RESOURCES_PREFILL }
       ],
       temperature: 0.2,
-      max_output_tokens: 1000
+      max_output_tokens: 256
     })
 
     const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
@@ -200,7 +198,7 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
         { role: 'assistant', content: FRONTEND_SELECTION_PREFILL }
       ],
       temperature: 0.2,
-      max_output_tokens: 500
+      max_output_tokens: 256
     })
 
     const result = parseJsonResponse(response.output_text, FRONTEND_SELECTION_PREFILL)
@@ -324,19 +322,23 @@ export function formatPlanningOutputs(planningResult) {
 function formatUseCaseOutput(useCaseResult) {
   const { matched_use_case, required_chrome_apis } = useCaseResult
 
-  if (!matched_use_case || !matched_use_case.name) {
-    return 'No specific use case matched. Implement based on user requirements.'
-  }
-
+  // Format Chrome APIs list
   const apis = required_chrome_apis && required_chrome_apis.length > 0
     ? required_chrome_apis.map(api => `- chrome.${api}`).join('\n')
     : 'No specific Chrome APIs identified'
 
-  return `## Matched Use Case
+  // Handle case where no use case is matched but Chrome APIs exist
+  if (!matched_use_case || !matched_use_case.name) {
+    return `## Recommended Chrome APIs
+${apis}
+`
+  }
+
+  return `## Similar Use Case
 **Name**: ${matched_use_case.name}
 **Category**: ${matched_use_case.category || 'General'}
 
-## Required Chrome APIs
+## Recommended Chrome APIs
 ${apis}
 `
 }

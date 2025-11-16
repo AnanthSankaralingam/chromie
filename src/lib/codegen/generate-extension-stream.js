@@ -355,26 +355,12 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
 
     const finalUserPrompt = featureRequest;
 
-    // Format external APIs for prompt if provided
-    const externalApisContext = formatExternalApisContext(userProvidedApis);
-    if (externalApisContext) {
-      console.log('🔌 External APIs provided:', externalApisContext);
-    }
-
+    // Build replacements object with only the placeholders used in coding prompts
     const replacements = {
-      user_feature_request: finalUserPrompt,
-      ext_name: requirementsAnalysis.ext_name,
-      chrome_api_documentation: chromeApiDocumentation || "",
-      scraped_webpage_analysis: scrapedWebpageAnalysis,
-      external_apis: externalApisContext
+      USER_REQUEST: finalUserPrompt,
+      USE_CASE_CHROME_APIS: requirementsAnalysis.planningOutputs?.USE_CASE_CHROME_APIS || 'No use case or Chrome API information available.',
+      EXTERNAL_RESOURCES: requirementsAnalysis.planningOutputs?.EXTERNAL_RESOURCES || 'No external resources required.'
     };
-
-    // Add new planning output placeholders
-    if (requirementsAnalysis.planningOutputs) {
-      replacements.USE_CASE_CHROME_APIS = requirementsAnalysis.planningOutputs.USE_CASE_CHROME_APIS || '';
-      replacements.EXTERNAL_RESOURCES = requirementsAnalysis.planningOutputs.EXTERNAL_RESOURCES || '';
-      replacements.CODE_SNIPPETS = requirementsAnalysis.planningOutputs.CODE_SNIPPETS || '';
-    }
 
     // Add existing files context only if NOT using a previousResponseId
     if (!previousResponseId) {
