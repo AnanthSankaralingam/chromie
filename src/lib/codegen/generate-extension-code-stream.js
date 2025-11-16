@@ -29,7 +29,12 @@ function normalizeGeneratedFileContent(str) {
  */
 export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false, options = {}) {
   const { previousResponseId, conversationTokenTotal = 0, modelOverride, contextWindowMaxTokens, frontendType, requestType } = options
-  console.log("Generating extension code with streaming...")
+  console.log("🔧 [generateExtensionCodeStream] Starting code generation with streaming...", {
+    hasReplacements: !!replacements,
+    skipThinking,
+    previousResponseId: previousResponseId || 'none',
+    scrapedWebpageAnalysis: replacements.scraped_webpage_analysis?.substring(0, 50) || 'none'
+  })
   
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
@@ -39,7 +44,9 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       replacements.scraped_webpage_analysis === '<!-- Website analysis skipped by user -->') {
     // Remove the entire webpage_data section
     finalPrompt = finalPrompt.replace(/<webpage_data>[\s\S]*?<\/webpage_data>/g, '')
-    console.log('Removed webpage_data section - no specific websites targeted')
+    console.log('🗑️ [generateExtensionCodeStream] Removed webpage_data section - no specific websites targeted')
+  } else {
+    console.log('📊 [generateExtensionCodeStream] Keeping webpage_data section with scraped data')
   }
   
   // Handle external_apis section conditionally - remove entire section if no APIs provided
@@ -191,6 +198,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             console.log("📝 Extracted explanation from Responses API completion")
             yield { type: "explanation", content: implementationResult.explanation }
             yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+          } else {
+            console.warn("⚠️ No explanation found in implementationResult (Responses API old):", {
+              hasImplementationResult: !!implementationResult,
+              keys: implementationResult ? Object.keys(implementationResult) : [],
+              explanation: implementationResult?.explanation
+            })
           }
         }
       } catch (error) {
@@ -389,6 +402,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           usage: exactTokenUsage || { total_tokens: 0, total: 0 }
         }
         
+        console.log("🔍 [generateExtensionCodeStream] Gemini stream completed, response length:", combinedText?.length || 0)
+        
         // Calculate exact token usage for this request
         const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
         const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
@@ -407,8 +422,10 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         // Extract and stream the explanation
         let implementationResult
         try {
+          console.log("🔍 [generateExtensionCodeStream] Starting JSON extraction from response")
           let jsonContent = ""
           const outputText = response?.output_text || ''
+          console.log("📝 [generateExtensionCodeStream] Output text length:", outputText.length, "Has ```json:", outputText.includes('```json'))
           if (typeof outputText === 'string' && outputText.includes('```json')) {
             const jsonMatch = outputText.match(/```json\s*([\s\S]*?)\s*```/)
             if (jsonMatch) {
@@ -481,10 +498,18 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
               }
             }
             
+            console.log("✅ [generateExtensionCodeStream] Successfully parsed JSON, keys:", Object.keys(implementationResult || {}))
+            
             if (implementationResult && implementationResult.explanation) {
-              console.log("📝 Extracted explanation from Gemini stream (new)")
+              console.log("📝 Extracted explanation from Gemini stream (new):", implementationResult.explanation.substring(0, 100))
               yield { type: "explanation", content: implementationResult.explanation }
               yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+            } else {
+              console.warn("⚠️ No explanation found in implementationResult:", {
+                hasImplementationResult: !!implementationResult,
+                keys: implementationResult ? Object.keys(implementationResult) : [],
+                explanation: implementationResult?.explanation
+              })
             }
           }
         } catch (error) {
@@ -682,6 +707,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
             console.log("📝 Extracted explanation from Responses API completion (new)")
             yield { type: "explanation", content: implementationResult.explanation }
             yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+          } else {
+            console.warn("⚠️ No explanation found in implementationResult (Responses API new):", {
+              hasImplementationResult: !!implementationResult,
+              keys: implementationResult ? Object.keys(implementationResult) : [],
+              explanation: implementationResult?.explanation
+            })
           }
         }
       } catch (error) {

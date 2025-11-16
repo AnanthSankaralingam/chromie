@@ -828,6 +828,10 @@ export default function StreamingChat({
         try {
           setIsGenerating(true)
 
+          // Reset current assistant message tracking
+          currentAssistantMessageRef.current = null
+          explanationBufferRef.current = ""
+
           // Reset model thinking panel state for new stream
           setIsModelThinkingOpen(false)
           setModelThinkingFull("")
@@ -855,7 +859,12 @@ export default function StreamingChat({
               projectId: requestInfo.projectId,
               requestType: requestInfo.requestType,
               userProvidedUrl: null,
-              skipScraping: true
+              skipScraping: true,
+              // Use analysis data if available (for resuming after URL skip)
+              ...(requestInfo.analysisData && {
+                initialRequirementsAnalysis: requestInfo.analysisData.requirements,
+                initialPlanningTokenUsage: requestInfo.analysisData.tokenUsage
+              })
             }),
           })
 
@@ -921,7 +930,10 @@ export default function StreamingChat({
                       break
                     case "explanation":
                       if (data.content) {
+                        console.log('📝 [Skip flow] Buffering explanation chunk, length:', data.content.length, 'Preview:', data.content.substring(0, 100))
+                        console.log('📝 [Skip flow] Current buffer length before adding:', explanationBufferRef.current.length)
                         explanationBufferRef.current += data.content
+                        console.log('📝 [Skip flow] Current buffer length after adding:', explanationBufferRef.current.length)
                       }
                       break
                         case "usage_summary":
@@ -953,9 +965,18 @@ export default function StreamingChat({
                           }
                           break
                     case "done":
+                      console.log('✅ [Skip flow] Done signal received, explanation buffer length:', explanationBufferRef.current.length)
                       if (explanationBufferRef.current.trim()) {
-                        setMessages(prev => [...prev, { role: "assistant", content: "Here's what I've built for you:\n\n" + explanationBufferRef.current.trim() }])
+                        const explanationContent = "Here's what I've built for you:\n\n" + explanationBufferRef.current.trim()
+                        console.log('📤 [Skip flow] Adding explanation message to chat, full content preview:', explanationContent.substring(0, 150))
+                        setMessages(prev => {
+                          const newMessages = [...prev, { role: "assistant", content: explanationContent }]
+                          console.log('📊 [Skip flow] Messages array updated, total messages:', newMessages.length, 'Last message preview:', newMessages[newMessages.length - 1].content.substring(0, 100))
+                          return newMessages
+                        })
                         explanationBufferRef.current = ""
+                      } else {
+                        console.warn('⚠️ [Skip flow] Explanation buffer is empty!')
                       }
                       // Mark generation as complete to hide model thoughts
                       setIsGenerationComplete(true)
