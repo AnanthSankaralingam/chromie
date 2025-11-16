@@ -127,11 +127,17 @@ export class HyperbrowserService {
    */
   async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null) {
     try {
-      console.log("Creating Hyperbrowser test session for project:", projectId)
+      console.log("[HYPERBROWSER-SERVICE] 🚀 createTestSession called")
+      console.log("[HYPERBROWSER-SERVICE] Project ID:", projectId)
+      console.log("[HYPERBROWSER-SERVICE] User ID:", userId)
+      console.log("[HYPERBROWSER-SERVICE] Environment:", process.env.VERCEL ? "Vercel" : "Local")
       
       if (!this.apiKey || !this.client) {
+        console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
         throw new Error("Missing HYPERBROWSER_API_KEY")
       }
+
+      console.log("[HYPERBROWSER-SERVICE] ✅ API key exists, client initialized")
 
       // If extension files were provided, zip and upload them to get an extensionId
       let extensionId = null
@@ -141,23 +147,38 @@ export class HyperbrowserService {
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
 
+      console.log("[HYPERBROWSER-SERVICE] 📂 Extension files array length:", filesArray.length)
+
       if (filesArray.length > 0) {
-        console.log("Uploading extension from files:", filesArray.length)
+        console.log("[HYPERBROWSER-SERVICE] 📦 Starting extension upload...")
+        console.log("[HYPERBROWSER-SERVICE] File paths to upload:", filesArray.map(f => f.file_path))
         extensionId = await this.uploadExtensionFromFiles(filesArray)
-        console.log("Uploaded extensionId:", extensionId)
+        console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded, ID:", extensionId)
+      } else {
+        console.log("[HYPERBROWSER-SERVICE] ⚠️  No extension files to upload")
       }
 
       // Get or create profile ID for user (if userId and supabaseClient provided)
       let profileId = null
       let isNewProfile = false
       if (userId && supabaseClient) {
+        console.log("[HYPERBROWSER-SERVICE] 👤 Getting or creating profile for user:", userId)
         const profileResult = await this.getOrCreateProfileId(userId, supabaseClient)
         profileId = profileResult.profileId
         isNewProfile = profileResult.isNew
+        console.log("[HYPERBROWSER-SERVICE] Profile result:", { profileId, isNewProfile })
+      } else {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  No user/supabase client provided, skipping profile")
       }
 
       // Create a new Hyperbrowser session with optional extension loaded
-      console.log("Creating session with extensionId:", extensionId, "profileId:", profileId)
+      console.log("[HYPERBROWSER-SERVICE] 🌐 Creating Hyperbrowser session...")
+      console.log("[HYPERBROWSER-SERVICE] Session config:", {
+        extensionId,
+        profileId,
+        isNewProfile
+      })
+      
       const sessionCreatePayload = {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
@@ -168,6 +189,9 @@ export class HyperbrowserService {
       // Add extension if available
       if (extensionId) {
         sessionCreatePayload.extensionIds = [extensionId]
+        console.log("[HYPERBROWSER-SERVICE] ✅ Added extensionId to session payload")
+      } else {
+        console.log("[HYPERBROWSER-SERVICE] ⚠️  No extensionId to add to session")
       }
 
       // Add profile if available (only persist changes on first session)
@@ -176,14 +200,23 @@ export class HyperbrowserService {
           id: profileId,
           persistChanges: true // always remember history/cookies
         }
+        console.log("[HYPERBROWSER-SERVICE] ✅ Added profile to session payload")
       }
+
+      console.log("[HYPERBROWSER-SERVICE] 📝 Final session payload:", JSON.stringify(sessionCreatePayload, null, 2))
+      console.log("[HYPERBROWSER-SERVICE] 🔄 Calling Hyperbrowser API to create session...")
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
-      console.log("Hyperbrowser session created:", session.id)
+      console.log("[HYPERBROWSER-SERVICE] ✅ Hyperbrowser session created successfully")
+      console.log("[HYPERBROWSER-SERVICE] Session ID:", session.id)
+      console.log("[HYPERBROWSER-SERVICE] Session object keys:", Object.keys(session))
 
       // Get session details for embedding
+      console.log("[HYPERBROWSER-SERVICE] 🔍 Fetching session details...")
       const sessionDetails = await this.client.sessions.get(session.id)
+      console.log("[HYPERBROWSER-SERVICE] Session details received")
+      console.log("[HYPERBROWSER-SERVICE] Session details keys:", Object.keys(sessionDetails))
       
       // Extract live view URL from various possible fields
       const liveViewUrl = sessionDetails.liveViewUrl || 
@@ -193,14 +226,15 @@ export class HyperbrowserService {
                          session.liveViewUrl ||
                          session.liveUrl
       
-      console.log("Extracted liveViewUrl:")
+      console.log("[HYPERBROWSER-SERVICE] 🖥️  Extracted liveViewUrl:", liveViewUrl ? "Found" : "Not found")
       
       // If no live view URL is found, provide a fallback or error indication
       if (!liveViewUrl) {
-        console.warn("No live view URL found in session response. This may indicate:")
-        console.warn("1. Session is still initializing")
-        console.warn("2. Free plan limitations")
-        console.warn("3. API response structure has changed")
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️  No live view URL found in session response")
+        console.warn("[HYPERBROWSER-SERVICE] Possible reasons:")
+        console.warn("[HYPERBROWSER-SERVICE] 1. Session is still initializing")
+        console.warn("[HYPERBROWSER-SERVICE] 2. Free plan limitations")
+        console.warn("[HYPERBROWSER-SERVICE] 3. API response structure has changed")
       }
       
       // Return a shape compatible with existing UI
@@ -229,31 +263,39 @@ export class HyperbrowserService {
         }
       }
       
+      console.log("[HYPERBROWSER-SERVICE] 📦 Session result object created")
+      console.log("[HYPERBROWSER-SERVICE] Result keys:", Object.keys(result))
+      
       // Wait for session to be fully ready before attempting navigation
-      console.log("Waiting for session to be ready...")
+      console.log("[HYPERBROWSER-SERVICE] ⏳ Waiting 2 seconds for session to be ready...")
       await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
       // Debug: Check session status before initial navigation
       try {
+        console.log("[HYPERBROWSER-SERVICE] 🔍 Checking session status before navigation...")
         const sessionCheck = await this.client.sessions.get(session.id)
-        console.log("🔍 Pre-initial-navigation session check:", {
+        console.log("[HYPERBROWSER-SERVICE] Pre-navigation session check:", {
           id: sessionCheck.id,
           status: sessionCheck.status,
           closeReason: sessionCheck.closeReason,
           endTime: sessionCheck.endTime
         })
       } catch (checkError) {
-        console.warn("Could not check session before initial navigation:", checkError.message)
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️  Could not check session before initial navigation:", checkError.message)
       }
       
       // Immediately navigate to chrome://extensions using Playwright
       try {
+        console.log("[HYPERBROWSER-SERVICE] 🚀 Navigating to chrome://extensions...")
         await this.navigateToUrl(session.id, "chrome://extensions")
-        console.log("Navigated to chrome://extensions")
+        console.log("[HYPERBROWSER-SERVICE] ✅ Navigated to chrome://extensions successfully")
       } catch (navErr) {
-        console.warn("Failed to navigate to chrome://extensions:", navErr?.message)
+        console.warn("[HYPERBROWSER-SERVICE] ❌ Failed to navigate to chrome://extensions:", navErr?.message)
+        console.warn("[HYPERBROWSER-SERVICE] Navigation error stack:", navErr?.stack)
       }
       
+      console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")
       return result
     } catch (error) {
       console.error("Failed to create Hyperbrowser test session:", error)
@@ -300,14 +342,29 @@ export class HyperbrowserService {
    * @returns {Promise<string|null>} The uploaded extension ID
    */
   async uploadExtensionFromFiles(files) {
-    if (!files || files.length === 0) return null
-    if (!this.apiKey || !this.client) throw new Error("Missing HYPERBROWSER_API_KEY")
+    console.log("[HYPERBROWSER-SERVICE] 📦 uploadExtensionFromFiles called")
+    console.log("[HYPERBROWSER-SERVICE] Files count:", files?.length || 0)
+    
+    if (!files || files.length === 0) {
+      console.log("[HYPERBROWSER-SERVICE] ⚠️  No files to upload, returning null")
+      return null
+    }
+    
+    if (!this.apiKey || !this.client) {
+      console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
+      throw new Error("Missing HYPERBROWSER_API_KEY")
+    }
 
-    console.log("Zipping extension files for upload:", files.length)
+    console.log("[HYPERBROWSER-SERVICE] ✅ Starting zip process for", files.length, "files")
     
     // Validate and ensure required files are present
-      await validateExtensionFiles(files)
-      const validatedFiles = ensureRequiredFiles(files)
+    console.log("[HYPERBROWSER-SERVICE] 🔍 Validating extension files...")
+    await validateExtensionFiles(files)
+    console.log("[HYPERBROWSER-SERVICE] ✅ Validation complete")
+    
+    console.log("[HYPERBROWSER-SERVICE] 🔧 Ensuring required files are present...")
+    const validatedFiles = ensureRequiredFiles(files)
+    console.log("[HYPERBROWSER-SERVICE] ✅ Required files ensured, count:", validatedFiles.length)
     
     const zip = new JSZip()
 
@@ -398,31 +455,41 @@ export class HyperbrowserService {
       console.log('[hyperbrowser] No icon paths referenced in manifest')
     }
 
+    console.log("[HYPERBROWSER-SERVICE] 🗜️  Generating zip buffer...")
     const buffer = await zip.generateAsync({ type: "nodebuffer" })
+    console.log("[HYPERBROWSER-SERVICE] ✅ Zip buffer generated, size:", buffer.length, "bytes")
+    
     const tempZipPath = path.join(os.tmpdir(), `chromie-extension-${Date.now()}.zip`)
+    console.log("[HYPERBROWSER-SERVICE] 💾 Writing zip to temp file:", tempZipPath)
     await fs.promises.writeFile(tempZipPath, buffer)
-    console.log("Temporary extension zip written:", tempZipPath)
+    console.log("[HYPERBROWSER-SERVICE] ✅ Temporary extension zip written")
 
     try {
-      // Upload extension to Hyperbrowser
+      console.log("[HYPERBROWSER-SERVICE] 🚀 Uploading extension to Hyperbrowser...")
+      const extensionName = `chromie-extension-${Date.now()}`
+      console.log("[HYPERBROWSER-SERVICE] Extension name:", extensionName)
+      
       const extension = await this.client.extensions.create({
-        name: `chromie-extension-${Date.now()}`,
+        name: extensionName,
         filePath: tempZipPath
       })
       
       const extensionId = extension?.id || null
-      console.log("Extension uploaded to Hyperbrowser, id:", extensionId)
+      console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded successfully!")
+      console.log("[HYPERBROWSER-SERVICE] Extension ID:", extensionId)
       return extensionId
     } catch (err) {
-      console.error("Failed to upload extension to Hyperbrowser:", err)
+      console.error("[HYPERBROWSER-SERVICE] ❌ Failed to upload extension:", err.message)
+      console.error("[HYPERBROWSER-SERVICE] Error stack:", err.stack)
       throw err
     } finally {
       // Clean up the temporary file regardless of success/failure
       try {
+        console.log("[HYPERBROWSER-SERVICE] 🧹 Cleaning up temp file...")
         await fs.promises.unlink(tempZipPath)
-        console.log("Temporary extension zip removed:", tempZipPath)
+        console.log("[HYPERBROWSER-SERVICE] ✅ Temporary extension zip removed")
       } catch (cleanupErr) {
-        console.warn("Failed to remove temporary extension zip:", cleanupErr)
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️  Failed to remove temporary extension zip:", cleanupErr.message)
       }
     }
   }
