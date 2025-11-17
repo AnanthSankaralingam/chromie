@@ -1,92 +1,20 @@
 [
-    {
-      "title": "Tab Manager",
-      "category": "Utility",
-      "description": "Organize, search, group, and manage browser tabs efficiently. Save tab sessions, restore closed tabs, or reduce tab clutter.",
-      "code_snippet": "// Query and manage tabs\nchrome.tabs.query({}, (tabs) => {\n  tabs.forEach(tab => {\n    console.log(tab.title, tab.url);\n  });\n});\n\n// Group tabs by domain\nchrome.tabs.query({}, async (tabs) => {\n  const groupId = await chrome.tabs.group({ tabIds: tabs.map(t => t.id) });\n  await chrome.tabGroups.update(groupId, { title: \"My Group\" });\n});\n\n// Close duplicate tabs\nchrome.tabs.query({}, (tabs) => {\n  const urls = new Set();\n  tabs.forEach(tab => {\n    if (urls.has(tab.url)) {\n      chrome.tabs.remove(tab.id);\n    } else {\n      urls.add(tab.url);\n    }\n  });\n});"
-    },
-    {
-      "title": "Bookmark Organizer",
-      "category": "Utility",
-      "description": "Enhanced bookmark management with search, categorization, tags, and quick access menus for saved websites.",
-      "code_snippet": "// Get all bookmarks\nchrome.bookmarks.getTree((bookmarkTree) => {\n  console.log(bookmarkTree);\n});\n\n// Search bookmarks\nchrome.bookmarks.search(\"keyword\", (results) => {\n  results.forEach(bookmark => {\n    console.log(bookmark.title, bookmark.url);\n  });\n});\n\n// Create new bookmark\nchrome.bookmarks.create({\n  parentId: \"1\",\n  title: \"My Site\",\n  url: \"https://example.com\"\n});\n\n// Listen for bookmark changes\nchrome.bookmarks.onCreated.addListener((id, bookmark) => {\n  console.log(\"New bookmark:\", bookmark.title);\n});"
-    },
-    {
-      "title": "Page Content Modifier",
-      "category": "Content",
-      "description": "Modify webpage appearance or behavior - dark mode, custom CSS, element removal, layout changes, font adjustments.",
-      "code_snippet": "// content.js - Inject custom CSS\nconst style = document.createElement('style');\nstyle.textContent = `\n  body { background-color: #1e1e1e !important; color: #fff !important; }\n  * { background-color: #1e1e1e !important; color: #fff !important; }\n`;\ndocument.head.appendChild(style);\n\n// Remove elements\ndocument.querySelectorAll('.ad, .banner').forEach(el => el.remove());\n\n// Modify existing elements\ndocument.querySelectorAll('p').forEach(p => {\n  p.style.fontSize = '18px';\n  p.style.lineHeight = '1.6';\n});"
-    },
-    {
-      "title": "Highlight to Action",
-      "category": "Content",
-      "description": "Perform actions on selected/highlighted text - translate, define, search, summarize, save, or share highlighted content.",
-      "code_snippet": "// background.js\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.contextMenus.create({\n    id: \"highlightAction\",\n    title: \"Process selected text\",\n    contexts: [\"selection\"]\n  });\n});\n\n// Handle context menu clicks\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  if (info.menuItemId === \"highlightAction\") {\n    const selectedText = info.selectionText;\n    // Perform action with selectedText\n    console.log(\"Selected:\", selectedText);\n  }\n});"
-    },
-    {
-      "title": "Video/Media Enhancer",
-      "category": "Content",
-      "description": "Add features to video players - speed control, screenshot capture, download, quality toggle, or custom controls.",
-      "code_snippet": "// content.js - Add video controls\nconst videos = document.querySelectorAll('video');\n\nvideos.forEach(video => {\n  // Add speed control\n  video.playbackRate = 1.5;\n  \n  // Add keyboard shortcuts\n  document.addEventListener('keydown', (e) => {\n    if (e.key === 'ArrowRight') video.currentTime += 5;\n    if (e.key === 'ArrowLeft') video.currentTime -= 5;\n    if (e.key === ' ') video.paused ? video.play() : video.pause();\n  });\n  \n  // Capture screenshot\n  const canvas = document.createElement('canvas');\n  canvas.width = video.videoWidth;\n  canvas.height = video.videoHeight;\n  canvas.getContext('2d').drawImage(video, 0, 0);\n  const screenshot = canvas.toDataURL('image/png');\n});"
-    },
-    {
-      "title": "Social Media Tool",
-      "category": "Content",
-      "description": "Enhance social media sites - download content, filter feeds, bulk actions, privacy tools, or automation.",
-      "code_snippet": "// content.js - Filter and enhance social feed\nconst observer = new MutationObserver((mutations) => {\n  const posts = document.querySelectorAll('[data-testid=\"post\"]');\n  \n  posts.forEach(post => {\n    const text = post.innerText.toLowerCase();\n    \n    // Filter out posts with keywords\n    if (text.includes('sponsored') || text.includes('ad')) {\n      post.style.display = 'none';\n    }\n    \n    // Add download button\n    if (!post.querySelector('.download-btn')) {\n      const btn = document.createElement('button');\n      btn.textContent = 'Download';\n      btn.className = 'download-btn';\n      post.appendChild(btn);\n    }\n  });\n});\n\nobserver.observe(document.body, { childList: true, subtree: true });"
-    },
-    {
-      "title": "Productivity Tracker",
-      "category": "Utility",
-      "description": "Monitor time spent on websites, track work habits, set goals, block distractions, or generate productivity reports.",
-      "code_snippet": "// background.js - Track time on sites\nlet activeTabId = null;\nlet startTime = Date.now();\n\nchrome.tabs.onActivated.addListener(async (activeInfo) => {\n  // Save time for previous tab\n  if (activeTabId) {\n    const timeSpent = Date.now() - startTime;\n    const tab = await chrome.tabs.get(activeTabId);\n    const domain = new URL(tab.url).hostname;\n    \n    chrome.storage.local.get([domain], (result) => {\n      const totalTime = (result[domain] || 0) + timeSpent;\n      chrome.storage.local.set({ [domain]: totalTime });\n    });\n  }\n  \n  activeTabId = activeInfo.tabId;\n  startTime = Date.now();\n});"
-    },
-    {
-      "title": "Form Filler",
-      "category": "Utility",
-      "description": "Auto-fill forms with saved data, generate test data, or populate fields with common information.",
-      "code_snippet": "// content.js - Auto-fill form fields\nconst formData = {\n  name: 'John Doe',\n  email: 'john@example.com',\n  phone: '555-0123'\n};\n\n// Fill inputs by type\ndocument.querySelectorAll('input').forEach(input => {\n  const type = input.type.toLowerCase();\n  const name = input.name.toLowerCase();\n  \n  if (type === 'email' || name.includes('email')) {\n    input.value = formData.email;\n  } else if (type === 'tel' || name.includes('phone')) {\n    input.value = formData.phone;\n  } else if (name.includes('name')) {\n    input.value = formData.name;\n  }\n  \n  input.dispatchEvent(new Event('input', { bubbles: true }));\n});"
-    },
-    {
-      "title": "Web Scraper/Data Extractor",
-      "category": "Data",
-      "description": "Extract structured data from websites - prices, product info, articles, tables, or specific page elements.",
-      "code_snippet": "// content.js - Extract data from page\nfunction extractData() {\n  const data = [];\n  \n  // Extract from table\n  document.querySelectorAll('table tr').forEach(row => {\n    const cells = Array.from(row.querySelectorAll('td, th'));\n    data.push(cells.map(cell => cell.innerText.trim()));\n  });\n  \n  // Extract products\n  const products = [];\n  document.querySelectorAll('.product').forEach(product => {\n    products.push({\n      title: product.querySelector('.title')?.innerText,\n      price: product.querySelector('.price')?.innerText,\n      image: product.querySelector('img')?.src\n    });\n  });\n  \n  return { tableData: data, products };\n}\n\n// Send to background\nchrome.runtime.sendMessage({ action: 'saveData', data: extractData() });"
-    },
-    {
-      "title": "Notification Manager",
-      "category": "Utility",
-      "description": "Create custom notifications for events, reminders, website changes, or scheduled alerts.",
-      "code_snippet": "// background.js - Create notifications\nchrome.runtime.onInstalled.addListener(() => {\n  // Create alarm for periodic notifications\n  chrome.alarms.create('reminder', { periodInMinutes: 30 });\n});\n\nchrome.alarms.onAlarm.addListener((alarm) => {\n  if (alarm.name === 'reminder') {\n    chrome.notifications.create({\n      type: 'basic',\n      iconUrl: 'icon.png',\n      title: 'Reminder',\n      message: 'Time to take a break!',\n      priority: 2\n    });\n  }\n});\n\n// Create notification on event\nchrome.notifications.create({\n  type: 'basic',\n  iconUrl: 'icon.png',\n  title: 'New Event',\n  message: 'Something happened!'\n});"
-    },
-    {
-      "title": "Authentication Helper",
-      "category": "Utility",
-      "description": "Manage logins, passwords, sessions, or auto-login functionality across websites.",
-      "code_snippet": "// background.js - Store credentials securely\nchrome.runtime.onMessage.addListener((request, sender, sendResponse) => {\n  if (request.action === 'saveCredentials') {\n    chrome.storage.local.set({\n      [`creds_${request.domain}`]: {\n        username: request.username,\n        encrypted: request.encryptedPassword\n      }\n    });\n  }\n  \n  if (request.action === 'getCredentials') {\n    chrome.storage.local.get([`creds_${request.domain}`], (result) => {\n      sendResponse(result[`creds_${request.domain}`]);\n    });\n    return true;\n  }\n});\n\n// content.js - Auto-fill login\nchrome.storage.local.get([`creds_${window.location.hostname}`], (result) => {\n  if (result) {\n    document.querySelector('input[type=\"email\"]').value = result.username;\n  }\n});"
-    },
-    {
-      "title": "Shopping Assistant",
-      "category": "E-commerce",
-      "description": "Price tracking, comparison, coupon finder, deal alerts, or purchase history for online shopping.",
-      "code_snippet": "// content.js - Track prices\nfunction extractProductInfo() {\n  const title = document.querySelector('h1')?.innerText;\n  const price = document.querySelector('.price, [data-price]')?.innerText;\n  const image = document.querySelector('.product-image')?.src;\n  \n  return { title, price, image, url: window.location.href };\n}\n\n// Save price history\nconst product = extractProductInfo();\nchrome.storage.local.get(['priceHistory'], (result) => {\n  const history = result.priceHistory || [];\n  history.push({ ...product, timestamp: Date.now() });\n  chrome.storage.local.set({ priceHistory: history });\n});\n\n// Check for price drop\nconst previousPrice = 99.99;\nconst currentPrice = parseFloat(product.price.replace(/[^0-9.]/g, ''));\nif (currentPrice < previousPrice) {\n  chrome.runtime.sendMessage({ action: 'priceAlert', product, drop: previousPrice - currentPrice });\n}"
-    },
-    {
-        "title": "Content Blocker",
-        "category": "Privacy",
-        "description": "Block ads, trackers, popups, cookie notices, paywalls, or unwanted page elements.",
-        "code_snippet": "// background.js - Block requests (Manifest V3)\nchrome.declarativeNetRequest.updateDynamicRules({\n  removeRuleIds: [1, 2, 3],\n  addRules: [\n    {\n      id: 1,\n      priority: 1,\n      action: { type: \"block\" },\n      condition: {\n        urlFilter: \"*ads*\",\n        resourceTypes: [\"script\", \"image\", \"xmlhttprequest\"]\n      }\n    },\n    {\n      id: 2,\n      priority: 1,\n      action: { type: \"block\" },\n      condition: {\n        urlFilter: \"*tracker*|*analytics*|*doubleclick*\",\n        resourceTypes: [\"script\"]\n      }\n    }\n  ]\n});\n\n// content.js - Remove elements\nconst selectors = [\n  '.ad', '.advertisement', '[class*=\"cookie\"]',\n  '.paywall', '.subscribe-banner', '.popup-overlay'\n];\n\nconst observer = new MutationObserver(() => {\n  selectors.forEach(selector => {\n    document.querySelectorAll(selector).forEach(el => el.remove());\n  });\n});\n\nobserver.observe(document.body, { childList: true, subtree: true });"
-    },
-    {
-        "title": "Page Monitor",
-        "category": "Automation",
-        "description": "Monitor websites for changes, new content, price drops, or specific keywords and send alerts.",
-        "code_snippet": "// background.js - Monitor page changes\nchrome.alarms.create('checkPage', { periodInMinutes: 5 });\n\nchrome.alarms.onAlarm.addListener(async (alarm) => {\n  if (alarm.name === 'checkPage') {\n    const [tab] = await chrome.tabs.query({ url: 'https://example.com/*' });\n    \n    if (tab) {\n      const result = await chrome.scripting.executeScript({\n        target: { tabId: tab.id },\n        func: () => document.body.innerText\n      });\n      \n      const currentContent = result[0].result;\n      \n      chrome.storage.local.get(['lastContent'], (data) => {\n        if (data.lastContent && data.lastContent !== currentContent) {\n          chrome.notifications.create({\n            type: 'basic',\n            iconUrl: 'icon.png',\n            title: 'Page Changed',\n            message: 'The monitored page has been updated'\n          });\n        }\n        chrome.storage.local.set({ lastContent: currentContent });\n      });\n    }\n  }\n});"
-    },
-    {
-      "title": "Context Menu Action",
-      "category": "Navigation",
-      "description": "Add custom right-click menu options for quick actions on selected content, links, images, or pages.",
-      "code_snippet": "// background.js - Create multiple context menus\nchrome.runtime.onInstalled.addListener(() => {\n  // For selected text\n  chrome.contextMenus.create({\n    id: \"searchText\",\n    title: \"Search '%s'\",\n    contexts: [\"selection\"]\n  });\n  \n  // For links\n  chrome.contextMenus.create({\n    id: \"copyLink\",\n    title: \"Copy link address\",\n    contexts: [\"link\"]\n  });\n  \n  // For images\n  chrome.contextMenus.create({\n    id: \"saveImage\",\n    title: \"Save image as...\",\n    contexts: [\"image\"]\n  });\n});\n\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  if (info.menuItemId === \"searchText\") {\n    chrome.tabs.create({ url: `https://google.com/search?q=${info.selectionText}` });\n  }\n});"
-    }
-  ]
+  {
+    "title": "Highlight to Action",
+    "category": "Content",
+    "description": "Perform actions on selected/highlighted text - translate, define, search, summarize, save, or share highlighted content.",
+    "code_snippet": "chrome.runtime.onInstalled.addListener(() => {\n  chrome.contextMenus.create({\n    id: \"highlightAction\",\n    title: \"Process '%s'\",\n    contexts: [\"selection\"]\n  });\n});\n\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  const selectedText = info.selectionText;\n});"
+  },
+  {
+    "title": "Content Blocker",
+    "category": "Privacy",
+    "description": "Block ads, trackers, popups, cookie notices, paywalls, or unwanted page elements.",
+    "code_snippet": "chrome.declarativeNetRequest.updateDynamicRules({\n  removeRuleIds: [1],\n  addRules: [{\n    id: 1,\n    priority: 1,\n    action: { type: \"block\" },\n    condition: {\n      urlFilter: \"*ads*|*tracker*\",\n      resourceTypes: [\"script\", \"image\"]\n    }\n  }]\n});"
+  },
+  {
+    "title": "Page Monitor",
+    "category": "Automation",
+    "description": "Monitor websites for changes, new content, price drops, or specific keywords and send alerts.",
+    "code_snippet": "chrome.alarms.create('checkPage', { periodInMinutes: 5 });\n\nchrome.alarms.onAlarm.addListener(async (alarm) => {\n  const [tab] = await chrome.tabs.query({ url: 'https://example.com/*' });\n  \n  const result = await chrome.scripting.executeScript({\n    target: { tabId: tab.id },\n    func: () => document.body.innerText\n  });\n  \n  const currentContent = result[0].result;\n  // Compare with stored content and notify if changed\n});"
+  }
+]

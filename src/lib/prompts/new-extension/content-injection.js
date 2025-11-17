@@ -1,5 +1,5 @@
 export const NEW_EXT_CONTENT_SCRIPT_UI_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages.
+You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages based on the user request.
 
 <user_request>
 {USER_REQUEST}
@@ -154,6 +154,7 @@ File Format Rules:
 - Create UI that integrates naturally with web pages
 - Use mutation observers to handle dynamic content
 - Avoid conflicts with existing page JavaScript and CSS
+- Do not generate placeholder code.
 - Target specific websites if listed in external_resources
 - Implement proper error handling, comments, and logging
 </implementation_guidelines>

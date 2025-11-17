@@ -1,5 +1,4 @@
-export const NEW_EXT_NEW_TAB_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension that replaces the new tab page.
+export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension that replaces the new tab page.
 
 <user_request>
 {USER_REQUEST}
@@ -87,5 +86,6 @@ File Format Rules:
 <implementation_guidelines>
 - Create a beautiful, functional new tab experience
 - Implement proper error handling, comments, and logging
+- Do not generate placeholder code.
 </implementation_guidelines>
 `;

@@ -1,5 +1,4 @@
-export const NEW_EXT_OVERLAY_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the reasoning phase output.
+export const NEW_EXT_OVERLAY_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the user request.
 
 <user_request>
 {USER_REQUEST}
@@ -128,11 +127,8 @@ File Format Rules:
 <implementation_guidelines>
 - Create a robust overlay that works on all websites
 - Implement the core functionality described in the extension details
-- Use Chrome APIs from the API data section if provided
-- Target specific websites using webpage data if provided
 - Implement proper error handling, comments, and logging
-- Ensure the overlay is visually appealing and user-friendly
-- Add proper event listeners and cleanup
+- Do not generate placeholder code.
 </implementation_guidelines>
 `;
 

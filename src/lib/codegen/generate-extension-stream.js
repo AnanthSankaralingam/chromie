@@ -8,7 +8,6 @@ import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs";
 import { batchScrapeWebpages } from "../webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
-import { searchChromeExtensionAPI } from "./chrome-api-docs";
 import {
   createExistingExtensionRequirements,
   checkUrlRequirement,
@@ -199,76 +198,7 @@ export async function* generateChromeExtensionStream({
 
     console.log('✅ No external APIs suggested or APIs already provided - continuing with code generation')
 
-    // Step 2: Fetch Chrome API documentation for required APIs
-    let chromeApiDocumentation = "";
-    if (requirementsAnalysis.chromeAPIs && requirementsAnalysis.chromeAPIs.length > 0) {
-      yield {
-        type: "fetching_apis",
-        content: "fetching_apis"
-      };
-      yield {
-        type: "phase",
-        phase: "planning",
-        content: `Gathering docs for: ${requirementsAnalysis.chromeAPIs.join(", ")}`,
-      };
-      yield {
-        type: "planning_progress",
-        phase: "documentation",
-        content: `Fetching documentation for ${requirementsAnalysis.chromeAPIs.length} Chrome APIs...`,
-      };
-
-      const apiDocs = [];
-
-      for (let i = 0; i < requirementsAnalysis.chromeAPIs.length; i++) {
-        const apiName = requirementsAnalysis.chromeAPIs[i];
-        yield {
-          type: "planning_progress",
-          phase: "documentation",
-          content: `Fetching documentation for chrome.${apiName} API...`,
-        };
-
-        const apiResult = searchChromeExtensionAPI(apiName);
-        if (!apiResult.error) {
-          apiDocs.push(`
-## ${apiResult.name} API
-Description: ${apiResult.description || "No description available"}
-Permissions: ${
-            Array.isArray(apiResult.permissions)
-              ? apiResult.permissions.join(", ")
-              : apiResult.permissions || "None required"
-          }
-Code Example:
-\`\`\`javascript
-${apiResult.code_example || "No example provided"}
-\`\`\`
-`);
-        } else {
-          apiDocs.push(`
-## ${apiName} API
-Error: ${apiResult.error}
-Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
-`);
-        }
-      }
-
-      chromeApiDocumentation = apiDocs.join("\n\n");
-      yield {
-        type: "apis_ready",
-        content: "apis_ready"
-      };
-      yield {
-        type: "phase",
-        phase: "planning",
-        content: "Chrome API references ready for prompt conditioning.",
-      };
-      yield {
-        type: "planning_progress",
-        phase: "documentation",
-        content: "Chrome API documentation gathered successfully.",
-      };
-    }
-
-    // Step 3: Scrape webpages for analysis if needed (now with simplified logic)
+    // Step 2: Scrape webpages for analysis if needed (now with simplified logic)
     let scrapedWebpageAnalysis = null;
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0) {
       if (userProvidedUrl && !skipScraping) {
@@ -355,19 +285,18 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
 
     const finalUserPrompt = featureRequest;
 
-    // Build replacements object with only the placeholders used in coding prompts
-    const replacements = {
-      USER_REQUEST: finalUserPrompt,
-      USE_CASE_CHROME_APIS: requirementsAnalysis.planningOutputs?.USE_CASE_CHROME_APIS || 'No use case or Chrome API information available.',
-      EXTERNAL_RESOURCES: requirementsAnalysis.planningOutputs?.EXTERNAL_RESOURCES || 'No external resources required.'
-    };
+    // Build replacements object based on request type
+    let replacements;
 
-    // Add existing files context only if NOT using a previousResponseId
-    if (!previousResponseId) {
-      if (
-        requestType === REQUEST_TYPES.ADD_TO_EXISTING &&
-        Object.keys(existingFiles).length > 0
-      ) {
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      // For modifications: use ext_name and existing_files
+      replacements = {
+        USER_REQUEST: finalUserPrompt,
+        ext_name: requirementsAnalysis.ext_name || "Existing Extension"
+      };
+
+      // Add existing files context only if NOT using a previousResponseId
+      if (!previousResponseId && Object.keys(existingFiles).length > 0) {
         console.log("📁 Including existing files context for modification");
         const filteredFiles = {};
         for (const [filename, content] of Object.entries(existingFiles)) {
@@ -385,11 +314,16 @@ Available APIs: ${apiResult.available_apis?.slice(0, 10).join(", ")}...
           type: "context_ready",
           content: "context_ready"
         };
-      } else {
-        console.log("[generateChromeExtensionStream] no existing files context needed");
+      } else if (previousResponseId) {
+        console.log("[generateChromeExtensionStream] skipping existing files context due to previousResponseId");
       }
     } else {
-      console.log("[generateChromeExtensionStream] skipping existing files context due to previousResponseId");
+      // For new extensions: use planning outputs
+      replacements = {
+        USER_REQUEST: finalUserPrompt,
+        USE_CASE_CHROME_APIS: requirementsAnalysis.planningOutputs?.USE_CASE_CHROME_APIS || 'No use case or Chrome API information available.',
+        EXTERNAL_RESOURCES: requirementsAnalysis.planningOutputs?.EXTERNAL_RESOURCES || 'No external resources required.'
+      };
     }
 
     console.log("🚀 Starting streaming code generation...");

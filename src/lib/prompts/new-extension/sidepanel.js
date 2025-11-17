@@ -1,5 +1,4 @@
-export const NEW_EXT_SIDEPANEL_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the reasoning phase output.
+export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the user request.
 
 <user_request>
 {USER_REQUEST}
@@ -120,8 +119,7 @@ File Format Rules:
 <implementation_guidelines>
 - Create a comprehensive side panel interface
 - Implement proper messaging between panel and content scripts
-- Use Chrome APIs from the API data section if provided
-- Target specific websites using webpage data if provided
+- Do not generate placeholder code.
 - Implement proper error handling, comments, and logging
 </implementation_guidelines>
 `;

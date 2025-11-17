@@ -125,10 +125,11 @@ function parseJsonWithRetry(jsonContent) {
 async function* yieldExplanation(implementationResult, context) {
   if (implementationResult && implementationResult.explanation) {
     console.log(`📝 Extracted explanation from ${context}`)
-    // Yield only the phase event to avoid duplicate logging
-    yield { type: "phase", phase: "planning", content: implementationResult.explanation }
+    // Yield explanation event for frontend display
+    yield { type: "explanation", content: implementationResult.explanation }
   } else {
-    yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+    console.log(`⚠️ No explanation found in ${context}`)
+    yield { type: "explanation", content: "Implementation complete." }
   }
 }
 
@@ -162,7 +163,15 @@ async function saveFilesToDatabase(implementationResult, sessionId, replacements
   const errors = []
 
   for (const [filePath, rawContent] of Object.entries(allFiles)) {
-    const content = normalizeGeneratedFileContent(rawContent)
+    // Convert objects to JSON strings (handles manifest.json returned as object)
+    let stringContent = rawContent
+    if (typeof rawContent === 'object' && rawContent !== null) {
+      stringContent = filePath === 'manifest.json'
+        ? formatManifestJson(rawContent)
+        : JSON.stringify(rawContent, null, 2)
+    }
+
+    const content = normalizeGeneratedFileContent(stringContent)
     console.log(`  → Saving ${filePath} (${content.length} chars)`)
     try {
       // First, try to update existing file
@@ -241,7 +250,10 @@ async function updateProjectMetadata(sessionId, allFiles = {}) {
   if (allFiles['manifest.json']) {
     try {
       const manifestContent = allFiles['manifest.json']
-      const manifest = JSON.parse(manifestContent)
+      // Handle both string and object formats
+      const manifest = typeof manifestContent === 'string'
+        ? JSON.parse(manifestContent)
+        : manifestContent
 
       if (manifest.name && manifest.name.trim()) {
         projectUpdateData.name = manifest.name.trim()

@@ -2,8 +2,9 @@ import { llmService } from '../services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '../prompts/new-extension/planning/use-case.js'
 import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '../prompts/new-extension/planning/external-resources.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '../prompts/new-extension/planning/frontend-selection.js'
-import useCasesData from '../data/use_cases.json'
+import useCasesData from '../data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
 import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
+import { searchChromeExtensionAPI } from './chrome-api-docs.js'
 
 const PLANNING_MODEL = 'claude-haiku-4-5-20251001'
 const PLANNING_PROVIDER = 'anthropic'
@@ -87,12 +88,25 @@ export async function orchestratePlanning(featureRequest) {
 }
 
 /**
+ * Generate available use cases list from use_cases.json
+ * @returns {string} Formatted list of use cases with descriptions
+ */
+function generateAvailableUseCases() {
+  return useCasesData.map(useCase => {
+    return `- **${useCase.title}** (${useCase.category}): ${useCase.description}`
+  }).join('\n')
+}
+
+/**
  * Call the use-case detection prompt
  * @param {string} featureRequest - User's feature request
  * @returns {Promise<Object>} Use case result and token usage
  */
 async function callUseCasePrompt(featureRequest) {
-  const prompt = USE_CASE_CHROME_APIS_PROMPT.replace('{USER_REQUEST}', featureRequest)
+  const availableUseCases = generateAvailableUseCases()
+  const prompt = USE_CASE_CHROME_APIS_PROMPT
+    .replace('{USER_REQUEST}', featureRequest)
+    .replace('{AVAILABLE_USE_CASES}', availableUseCases)
 
   try {
     //TODO add schema validation
@@ -322,25 +336,48 @@ export function formatPlanningOutputs(planningResult) {
 function formatUseCaseOutput(useCaseResult) {
   const { matched_use_case, required_chrome_apis } = useCaseResult
 
-  // Format Chrome APIs list
-  const apis = required_chrome_apis && required_chrome_apis.length > 0
-    ? required_chrome_apis.map(api => `- chrome.${api}`).join('\n')
-    : 'No specific Chrome APIs identified'
+  let output = ''
 
-  // Handle case where no use case is matched but Chrome APIs exist
-  if (!matched_use_case || !matched_use_case.name) {
-    return `## Recommended Chrome APIs
-${apis}
-`
+  // Add use case information if matched
+  if (matched_use_case && matched_use_case.name) {
+    output += `Similar Use Case\n`
+    output += `**Name**: ${matched_use_case.name}\n\n`
+
+    // Fetch code snippet from useCasesData
+    const useCase = useCasesData.find(uc => uc.title === matched_use_case.name)
+    if (useCase && useCase.code_snippet) {
+      output += `**Sample Code Snippet**:\n\`\`\`javascript\n${useCase.code_snippet}\n\`\`\`\n\n`
+    }
   }
 
-  return `## Similar Use Case
-**Name**: ${matched_use_case.name}
-**Category**: ${matched_use_case.category || 'General'}
+  // Fetch and format Chrome API documentation
+  if (required_chrome_apis && required_chrome_apis.length > 0) {
+    output += `Recommended Chrome APIs\n\n`
 
-## Recommended Chrome APIs
-${apis}
-`
+    for (const apiName of required_chrome_apis) {
+      const apiResult = searchChromeExtensionAPI(apiName)
+
+      if (!apiResult.error) {
+        output += `### chrome.${apiResult.name}\n`
+        output += `**Permissions**: ${
+          Array.isArray(apiResult.permissions)
+            ? apiResult.permissions.join(', ')
+            : apiResult.permissions || 'None required'
+        }\n\n`
+
+        if (apiResult.code_example) {
+          output += `**Example Usage**:\n\`\`\`javascript\n${apiResult.code_example}\n\`\`\`\n\n`
+        }
+      } else {
+        output += `### chrome.${apiName}\n`
+        output += `*API documentation not found*\n\n`
+      }
+    }
+  } else {
+    output += `## Chrome APIs\nNo specific Chrome APIs required for this extension.\n\n`
+  }
+
+  return output.trim()
 }
 
 /**
@@ -358,16 +395,15 @@ function formatExternalResourcesOutput(externalResourcesResult) {
   let output = ''
 
   if (external_apis && external_apis.length > 0) {
-    output += '## External APIs\n'
+    output += 'External APIs\n'
     external_apis.forEach(api => {
       output += `- **${api.name}**: ${api.purpose}\n`
       output += `  Endpoint: ${api.endpoint_url}\n`
     })
-    output += '\n'
   }
 
   if (webpages_to_scrape && webpages_to_scrape.length > 0) {
-    output += '## Target Websites\n'
+    output += 'Target Websites\n'
     output += webpages_to_scrape.map(domain => `- ${domain}`).join('\n')
     output += '\n'
   }
@@ -386,7 +422,7 @@ function formatCodeSnippet(codeSnippet, useCaseName) {
     return 'No reference code snippet available for this use case.'
   }
 
-  return `## Reference Code Snippet (${useCaseName || 'Use Case'})
+  return `Reference Code Snippet (${useCaseName || 'Use Case'})
 
 The following code demonstrates common patterns for this type of extension:
 

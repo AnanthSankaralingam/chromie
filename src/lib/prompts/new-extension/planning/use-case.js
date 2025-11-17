@@ -5,7 +5,7 @@ export const USE_CASE_CHROME_APIS_PROMPT = `You are a Chrome extension use case 
 </user_request>
 
 <available_use_cases>
-Tab Manager, Bookmark Organizer, Page Content Modifier, Highlight to Action, Social Media Tool, Productivity Tracker, Form Filler, Shopping Assistant, Content Blocker, Notification Manager
+{AVAILABLE_USE_CASES}
 </available_use_cases>
 
 <task>
