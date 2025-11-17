@@ -84,8 +84,71 @@ function extractJsonContent(outputText) {
 }
 
 /**
+ * Sanitizes control characters in JSON string values
+ * Escapes unescaped control characters that are invalid in JSON
+ * Uses a simple state machine to correctly handle escaped characters
+ * @param {string} jsonContent - The JSON string to sanitize
+ * @returns {string} Sanitized JSON string
+ */
+function sanitizeJsonControlCharacters(jsonContent) {
+  if (!jsonContent) return jsonContent
+
+  let result = ''
+  let inString = false
+  let escapeNext = false
+
+  for (let i = 0; i < jsonContent.length; i++) {
+    const char = jsonContent[i]
+    const code = char.charCodeAt(0)
+
+    if (escapeNext) {
+      // We're in an escape sequence, just copy it
+      result += char
+      escapeNext = false
+      continue
+    }
+
+    if (char === '\\') {
+      escapeNext = true
+      result += char
+      continue
+    }
+
+    if (char === '"') {
+      inString = !inString
+      result += char
+      continue
+    }
+
+    if (inString) {
+      // We're inside a string value, escape control characters
+      if (code < 0x20) {
+        // Control character - escape it
+        if (code === 0x09) {
+          result += '\\t'  // tab
+        } else if (code === 0x0A) {
+          result += '\\n'  // newline
+        } else if (code === 0x0D) {
+          result += '\\r'  // carriage return
+        } else {
+          // Escape other control characters as \uXXXX
+          result += '\\u' + ('0000' + code.toString(16)).slice(-4)
+        }
+      } else {
+        result += char
+      }
+    } else {
+      // Outside string, copy as-is
+      result += char
+    }
+  }
+
+  return result
+}
+
+/**
  * Parses JSON with fallback retry logic
- * Attempts progressive trimming if initial parse fails
+ * Attempts progressive trimming and control character sanitization if initial parse fails
  * @param {string} jsonContent - The JSON string to parse
  * @returns {Object|null} Parsed object or null if parsing fails
  */
@@ -97,12 +160,24 @@ function parseJsonWithRetry(jsonContent) {
   } catch (parseError) {
     console.warn("⚠️ Initial JSON parse failed, attempting to extract first valid JSON object:", parseError.message)
 
+    // First, try sanitizing control characters
+    try {
+      const sanitized = sanitizeJsonControlCharacters(jsonContent)
+      const result = JSON.parse(sanitized)
+      console.log("✅ Successfully parsed JSON after sanitizing control characters")
+      return result
+    } catch (sanitizeError) {
+      console.warn("⚠️ Sanitization didn't fix the issue, trying progressive trimming")
+    }
+
     // Try to find the end of the first valid JSON object by parsing progressively
     for (let i = jsonContent.length; i > 0; i--) {
       try {
         const substr = jsonContent.substring(0, i).trim()
         if (substr.endsWith('}')) {
-          const result = JSON.parse(substr)
+          // Try sanitizing the substring as well
+          const sanitized = sanitizeJsonControlCharacters(substr)
+          const result = JSON.parse(sanitized)
           console.log("✅ Successfully extracted valid JSON by trimming extra content")
           return result
         }
