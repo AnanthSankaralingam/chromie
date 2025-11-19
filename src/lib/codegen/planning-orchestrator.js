@@ -95,8 +95,8 @@ export async function orchestratePlanning(featureRequest) {
  */
 function generateAvailableUseCases() {
   return useCasesData.map(useCase => {
-    return `- **${useCase.title}** (${useCase.category}): ${useCase.description}`
-  }).join('\n')
+    return `${useCase.title}`
+  }).join(', ')
 }
 
 /**

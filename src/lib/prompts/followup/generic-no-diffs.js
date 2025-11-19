@@ -34,7 +34,7 @@ MANDATORY: Use ONLY these available icon files:
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "Brief markdown explanation of what was changed, how the new feature works, and testing instructions",
+  "explanation": "Brief markdown explanation of what was changed and why",
   "manifest.json": {updated JSON object if modified},
   "background.js": "updated service worker code as raw text (if modified)",
   "content.js": "updated content script code as raw text (if modified)",

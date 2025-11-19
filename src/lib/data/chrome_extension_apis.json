@@ -28,7 +28,7 @@
       "permissions": [
         "notifications"
       ],
-      "code_snippet": "// Create a basic notification\nchrome.notifications.create(\"notification-id\", {\n  type: \"basic\",\n  iconUrl: \"./icon.png\",\n  title: \"Notification Title\",\n  message: \"This is the notification message\",\n  priority: 2\n});\n\n// Listen for notification clicks\nchrome.notifications.onClicked.addListener((notificationId) => {\n});"
+      "code_snippet": "// Create a basic notification\nchrome.notifications.create(\"notification-id\", {\n  type: \"basic\",\n  iconUrl: \"\",\n  title: \"\",\n  message: \"\",\n  priority: 2\n});\n\nchrome.notifications.onClicked.addListener((notificationId) => {\n});"
     },
     {
       "name": "identity",
