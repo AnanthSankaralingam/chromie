@@ -31,40 +31,26 @@ MANDATORY: Inject custom UI elements directly into web pages.
   if (window.__extensionInjected) return;
   window.__extensionInjected = true;
   
-  function createUIElement() {
-    const container = document.createElement('div');
-    container.className = 'ext-ui-container';
-    container.innerHTML = \`
-      <button class="ext-action-btn" id="ext-main-action">
-        <img class="ext-icon" src="\${chrome.runtime.getURL('icons/planet-icon.png')}" alt="Action">
-      </button>
-    \`;
-    return container;
-  }
-  
-  function injectUI() {
-    if (document.querySelector('.ext-ui-container')) return;
-    const uiElement = createUIElement();
-    document.body.appendChild(uiElement);
-    
-    uiElement.querySelector('#ext-main-action').addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Your action here
+  // Find all target elements directly
+  function processElements() {
+    const targets = document.querySelectorAll('.target-selector');
+    targets.forEach(target => {
+      if (target.querySelector('.already-processed')) return;
+      // Process 
     });
   }
   
   // Handle dynamic content
   const observer = new MutationObserver(() => {
-    if (!document.querySelector('.ext-ui-container')) injectUI();
+    if (!document.querySelector('.already-processed')) processElements();
   });
   
   if (document.body) {
-    injectUI();
+    processElements();
     observer.observe(document.body, { childList: true, subtree: true });
   } else {
     document.addEventListener('DOMContentLoaded', () => {
-      injectUI();
+      processElements();
       observer.observe(document.body, { childList: true, subtree: true });
     });
   }
