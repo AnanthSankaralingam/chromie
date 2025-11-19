@@ -238,6 +238,12 @@ async function saveFilesToDatabase(implementationResult, sessionId, replacements
   const errors = []
 
   for (const [filePath, rawContent] of Object.entries(allFiles)) {
+    // Skip null, undefined, or empty content
+    if (rawContent === null || rawContent === undefined) {
+      console.log(`  ⚠️ Skipping ${filePath} - content is null/undefined`)
+      continue
+    }
+
     // Convert objects to JSON strings (handles manifest.json returned as object)
     let stringContent = rawContent
     if (typeof rawContent === 'object' && rawContent !== null) {
@@ -247,6 +253,13 @@ async function saveFilesToDatabase(implementationResult, sessionId, replacements
     }
 
     const content = normalizeGeneratedFileContent(stringContent)
+
+    // Skip if content is still null or empty after normalization
+    if (!content || (typeof content === 'string' && content.trim().length === 0)) {
+      console.log(`  ⚠️ Skipping ${filePath} - content is empty after normalization`)
+      continue
+    }
+
     console.log(`  → Saving ${filePath} (${content.length} chars)`)
     try {
       // First, try to update existing file
@@ -514,6 +527,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
           input: finalPrompt,
           temperature: 0.2,
           max_output_tokens: 32000,  // Increased for more complete code generation
+          response_format: jsonSchema,  // Add schema constraint for structured output
           session_id: sessionId,
           thinkingConfig: {
             includeThoughts: true   

@@ -114,6 +114,28 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
     }
   }
   
+  // Content script UI extension schema
+  export const CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA = {
+    name: "extension_implementation",
+    schema: {
+      type: "object",
+      properties: {
+        explanation: { type: "string" },
+        "manifest.json": { type: "string" },
+        "background.js": { type: "string" },
+        "content.js": { type: "string" },
+        "styles.css": { type: "string" }
+      },
+      required: [
+        "explanation",
+        "manifest.json",
+        "content.js",
+        "styles.css"
+      ],
+      additionalProperties: false
+    }
+  }
+
   // Generic extension schema
   export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
     name: "extension_implementation",
@@ -172,7 +194,7 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
 
   /**
    * Selects the appropriate response schema based on frontend type and request type
-   * @param {string} frontendType - The frontend type (side_panel, popup, overlay, generic)
+   * @param {string} frontendType - The frontend type (side_panel, popup, overlay, content_script_ui, generic)
    * @param {string} requestType - The request type (NEW_EXTENSION, ADD_TO_EXISTING)
    * @returns {Object} The appropriate response schema
    */
@@ -181,15 +203,19 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
     if (requestType === 'ADD_TO_EXISTING') {
       return FOLLOWUP_EXTENSION_RESPONSE_SCHEMA
     }
-    
+
     // For new extensions, select based on frontend type
     switch (frontendType) {
       case 'side_panel':
+      case 'sidepanel':
         return SIDEPANEL_EXTENSION_RESPONSE_SCHEMA
       case 'popup':
         return POPUP_EXTENSION_RESPONSE_SCHEMA
       case 'overlay':
         return OVERLAY_EXTENSION_RESPONSE_SCHEMA
+      case 'content_script_ui':
+      case 'content-injection':
+        return CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA
       case 'generic':
       default:
         return GENERIC_EXTENSION_RESPONSE_SCHEMA

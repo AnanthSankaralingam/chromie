@@ -15,7 +15,7 @@ export default function ChatMessage({ message, index, typingCancelSignal }) {
       }`}
     >
       <div
-        className={`max-w-[80%] p-4 rounded-2xl ${
+        className={`max-w-[80%] min-w-0 p-4 rounded-2xl ${
           message.role === "user"
             ? "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-400/30 text-blue-100 backdrop-blur-sm shadow-lg"
             : isFinalExplanation
@@ -26,7 +26,7 @@ export default function ChatMessage({ message, index, typingCancelSignal }) {
         {message.role === "assistant" ? (
           <MarkdownMessage content={message.content} typingCancelSignal={typingCancelSignal} />
         ) : (
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         )}
       </div>
     </div>

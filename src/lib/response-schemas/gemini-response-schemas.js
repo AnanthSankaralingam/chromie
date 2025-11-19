@@ -185,7 +185,9 @@ export const CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA = {
     },
     required: [
       "explanation",
-      "manifest.json"
+      "manifest.json",
+      "content.js",
+      "styles.css"
     ],
     propertyOrdering: [
       "manifest.json",
@@ -301,6 +303,7 @@ export function selectResponseSchema(frontendType, requestType) {
     case 'newtab':
       return NEW_TAB_EXTENSION_RESPONSE_SCHEMA
     case 'content_script_ui':
+    case 'content-injection':
       return CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA
     case 'generic':
     default:

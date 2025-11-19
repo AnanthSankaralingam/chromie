@@ -97,6 +97,7 @@ export async function* generateChromeExtensionStream({
         ext_name: planningResult.useCaseResult.matched_use_case?.name || "Chrome Extension",
         matchedUseCase: planningResult.useCaseResult.matched_use_case,
         codeSnippet: planningResult.codeSnippet,
+        planningResult: planningResult, // Store original for later re-formatting with webpage data
         planningOutputs: formatPlanningOutputs(planningResult)
       }
 
@@ -200,6 +201,7 @@ export async function* generateChromeExtensionStream({
 
     // Step 2: Scrape webpages for analysis if needed (now with simplified logic)
     let scrapedWebpageAnalysis = null;
+    let scrapeStatusCode = null;
     if (requirementsAnalysis.webPageData && requirementsAnalysis.webPageData.length > 0) {
       if (userProvidedUrl && !skipScraping) {
         // Condition to perform scraping is met
@@ -218,10 +220,12 @@ export async function* generateChromeExtensionStream({
           content: `Scraping web structure for ${userProvidedUrl}...`,
         };
 
-        scrapedWebpageAnalysis = await batchScrapeWebpages(
+        const scrapeResult = await batchScrapeWebpages(
           requirementsAnalysis.webPageData,
           userProvidedUrl
         );
+        scrapedWebpageAnalysis = scrapeResult.data;
+        scrapeStatusCode = scrapeResult.statusCode;
 
         yield {
           type: "scraping_complete",
@@ -240,6 +244,7 @@ export async function* generateChromeExtensionStream({
       } else {
         // This block is reached if scraping is skipped
         scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->';
+        scrapeStatusCode = 404; // Not found/skipped
         yield {
           type: "scraping_skipped",
           content: "scraping_skipped"
@@ -258,6 +263,7 @@ export async function* generateChromeExtensionStream({
     } else {
       // No website analysis was ever needed
       scrapedWebpageAnalysis = '<!-- No specific websites targeted -->';
+      scrapeStatusCode = 404; // Not found/not needed
     }
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
@@ -319,10 +325,20 @@ export async function* generateChromeExtensionStream({
       }
     } else {
       // For new extensions: use planning outputs
+      // Re-format external resources with webpage scraping data if available
+      const planningResult = requirementsAnalysis.planningResult;
+      const updatedPlanningOutputs = formatPlanningOutputs(
+        planningResult,
+        scrapedWebpageAnalysis,
+        scrapeStatusCode
+      );
+      
+      console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
+      
       replacements = {
         USER_REQUEST: finalUserPrompt,
-        USE_CASE_CHROME_APIS: requirementsAnalysis.planningOutputs?.USE_CASE_CHROME_APIS || 'No use case or Chrome API information available.',
-        EXTERNAL_RESOURCES: requirementsAnalysis.planningOutputs?.EXTERNAL_RESOURCES || 'No external resources required.'
+        USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
+        EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES
       };
     }
 

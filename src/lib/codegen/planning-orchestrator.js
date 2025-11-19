@@ -5,8 +5,10 @@ import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '../prompt
 import useCasesData from '../data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
 import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
+import { PLANNING_MODELS } from '../constants.js'
 
-const PLANNING_MODEL = 'claude-haiku-4-5-20251001'
+const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
+const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
 const PLANNING_PROVIDER = 'anthropic'
 
 /**
@@ -155,12 +157,12 @@ async function callExternalResourcesPrompt(featureRequest) {
   try {
     const response = await llmService.createResponse({
       provider: PLANNING_PROVIDER,
-      model: PLANNING_MODEL,
+      model: EXTERNAL_RESOURCES_MODEL,
       input: [
         { role: 'user', content: prompt },
         { role: 'assistant', content: EXTERNAL_RESOURCES_PREFILL }
       ],
-      temperature: 0.2,
+      temperature: 0.6,
       max_output_tokens: 256
     })
 
@@ -307,16 +309,18 @@ function parseJsonResponse(outputText, prefill) {
 /**
  * Format planning outputs for coding prompt placeholders
  * @param {Object} planningResult - Result from orchestratePlanning
+ * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
+ * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
  * @returns {Object} Formatted strings for prompt replacement
  */
-export function formatPlanningOutputs(planningResult) {
+export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null) {
   const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
 
   // Format use case and Chrome APIs
   const useCaseFormatted = formatUseCaseOutput(useCaseResult)
 
-  // Format external resources
-  const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult)
+  // Format external resources (with webpage data if available and successful)
+  const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode)
 
   // Format code snippet
   const codeSnippetFormatted = formatCodeSnippet(codeSnippet, useCaseResult.matched_use_case?.name)
@@ -383,12 +387,21 @@ function formatUseCaseOutput(useCaseResult) {
 /**
  * Format external resources output for prompt
  * @param {Object} externalResourcesResult - External resources detection result
+ * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
+ * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
  * @returns {string} Formatted markdown
  */
-function formatExternalResourcesOutput(externalResourcesResult) {
+function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null) {
   const { external_apis, webpages_to_scrape, no_external_needed } = externalResourcesResult
 
-  if (no_external_needed) {
+  // Check if we have scraped webpage data to include (only if status code is 200)
+  const hasScrapedData = scrapeStatusCode === 200 &&
+    scrapedWebpageAnalysis && 
+    typeof scrapedWebpageAnalysis === 'string' &&
+    scrapedWebpageAnalysis.trim().length > 0 &&
+    !scrapedWebpageAnalysis.startsWith('<!--');
+
+  if (no_external_needed && !hasScrapedData) {
     return 'No external resources needed for this extension.'
   }
 
@@ -400,11 +413,19 @@ function formatExternalResourcesOutput(externalResourcesResult) {
       output += `- **${api.name}**: ${api.purpose}\n`
       output += `  Endpoint: ${api.endpoint_url}\n`
     })
+    output += '\n'
   }
 
   if (webpages_to_scrape && webpages_to_scrape.length > 0) {
     output += 'Target Websites\n'
     output += webpages_to_scrape.map(domain => `- ${domain}`).join('\n')
+    output += '\n'
+  }
+
+  // Include scraped webpage analysis if available (even if webpages_to_scrape is empty)
+  if (hasScrapedData) {
+    output += '## Website Structure Analysis\n'
+    output += scrapedWebpageAnalysis
     output += '\n'
   }
 

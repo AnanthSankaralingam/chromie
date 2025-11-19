@@ -49,6 +49,12 @@ export const DEFAULT_MODELS = {
   anthropic: 'claude-haiku-4-5-20251001'
 }
 
+// Planning phase model configuration
+export const PLANNING_MODELS = {
+  DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts
+  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929' // Used for external-resources prompt
+}
+
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {
   SESSION_DURATION_MINUTES: 3, // Maximum session duration

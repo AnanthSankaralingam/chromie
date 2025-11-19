@@ -125,15 +125,6 @@ icons/world.png, icons/youtube.png
 CRITICAL: Always use chrome.runtime.getURL() in content scripts to load icons.
 </icon_configuration>
 
-<api_key_handling>
-CRITICAL: For external API integrations, NEVER hardcode API keys. 
-- Implement a settings interface for users to input their own API keys
-- Store keys securely using chrome.storage.local
-- Retrieve keys in content script via chrome.storage API
-- Validate keys before using them
-- Provide clear instructions on where to obtain API keys
-</api_key_handling>
-
 <output_requirements>
 Return a JSON object with the following structure:
 {

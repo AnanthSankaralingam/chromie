@@ -6,13 +6,13 @@
       "permissions": [
         "storage"
       ],
-      "code_snippet": "// Store data\nchrome.storage.local.set({ key: \"value\" }).then(() => {});\n\n// Listen for changes\nchrome.storage.onChanged.addListener((changes, namespace) => {\n  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {\n}\n});"
+      "code_snippet": "// Store data\nchrome.storage.local.set({ key: \"value\" }).then(() => {});\n\n// Listen for changes\nchrome.storage.onChanged.addListener((changes, namespace) => {\n  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {}});"
     },
     {
       "name": "tabs",
       "description": "Use the chrome.tabs API to interact with the browser's tab system. You can use this API to create, modify, rearrange tabs, and communicate with tab content scripts. Most features work without permissions, but accessing sensitive properties like url, title requires the 'tabs' permission or host permissions.",
-      "permissions": [],
-      "code_snippet": "// Get current active tab\nasync function getCurrentTab() {\n  let queryOptions = { active: true, lastFocusedWindow: true };\n  let [tab] = await chrome.tabs.query(queryOptions);\n  return tab;\n}\n\n// Create a new tab\nchrome.tabs.create({\n  url: \"https://example.com\"\n});"
+      "permissions": ["tabs"],
+      "code_snippet": "// Get current active tab\nlet [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });\n// Create a new tab\nchrome.tabs.create({\n  url: \"https://example.com\"\n});"
     },
     {
       "name": "bookmarks",
@@ -45,7 +45,7 @@
         "scripting",
         "activeTab"
       ],
-      "code_snippet": "// Execute script in current tab\nchrome.action.onClicked.addListener((tab) => {\n  chrome.scripting.executeScript({\n    target: { tabId: tab.id },\n    func: () => {\n      document.body.style.backgroundColor = \"lightblue\";\n    }\n  });\n});\n\n// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"]\n});\n\n// Insert CSS\nchrome.scripting.insertCSS({\n  target: { tabId: tabId },\n  files: [\"styles.css\"]\n});"
+      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"]\n});\n\n// Insert CSS\nchrome.scripting.insertCSS({\n  target: { tabId: tabId },\n  files: [\"styles.css\"]\n});"
     },
     {
       "name": "alarms",
