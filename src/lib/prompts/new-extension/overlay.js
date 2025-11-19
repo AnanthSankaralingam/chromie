@@ -1,29 +1,16 @@
-export const NEW_EXT_OVERLAY_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the reasoning phase output.
+export const NEW_EXT_OVERLAY_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the user request.
 
 <user_request>
-{user_feature_request}
+{USER_REQUEST}
 </user_request>
 
-<extension_details>
-Extension Name: {ext_name}
-Frontend Type: overlay
-</extension_details>
+<use_case_and_chrome_apis>
+{USE_CASE_CHROME_APIS}
+</use_case_and_chrome_apis>
 
-<chrome_api_data>
-<!-- This section will be populated as needed -->
-{chrome_api_documentation}
-</chrome_api_data>
-
-<webpage_data>
-<!-- This section will be populated as needed -->
-{scraped_webpage_analysis}
-</webpage_data>
-
-<external_apis>
-IMPORTANT: For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
-{external_apis}
-</external_apis>
+<external_resources>
+{EXTERNAL_RESOURCES}
+</external_resources>
 
 <overlay_implementation_requirements>
 <ui_injection_strategy>
@@ -140,11 +127,8 @@ File Format Rules:
 <implementation_guidelines>
 - Create a robust overlay that works on all websites
 - Implement the core functionality described in the extension details
-- Use Chrome APIs from the API data section if provided
-- Target specific websites using webpage data if provided
 - Implement proper error handling, comments, and logging
-- Ensure the overlay is visually appealing and user-friendly
-- Add proper event listeners and cleanup
+- Do not generate placeholder code.
 </implementation_guidelines>
 `;
 

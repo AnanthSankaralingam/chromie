@@ -1,25 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 
 /**
- * Try to reinitialize Hyperbrowser client with fallback API key
- * Mutates the provided service instance to switch keys and client
- * @param {Object} service - Instance of HyperbrowserService
- * @returns {boolean} Whether fallback was applied
- */
-export function tryFallbackApiKey(service) {
-  if (service.fallbackApiKey && service.apiKey !== service.fallbackApiKey) {
-    console.log("Trying fallback API key for Hyperbrowser")
-    service.apiKey = service.fallbackApiKey
-    service.client = new service.constructor.prototype.constructor.name // placeholder to satisfy bundlers
-    // The actual client re-init must use the SDK available on service
-    // eslint-disable-next-line no-new-object
-    service.client = new (service.client?.constructor || service.client || service.client)
-    return true
-  }
-  return false
-}
-
-/**
  * Validate extension files and ensure required files are present
  * @param {Array<{file_path: string, content: string}>} files - Extension files
  */

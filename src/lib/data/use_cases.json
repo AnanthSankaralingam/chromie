@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Highlight to Action",
+    "category": "Content",
+    "description": "Perform actions on selected/highlighted text - translate, define, search, summarize, save, or share highlighted content.",
+    "code_snippet": "chrome.runtime.onInstalled.addListener(() => {\n  chrome.contextMenus.create({\n    id: \"highlightAction\",\n    title: \"Process '%s'\",\n    contexts: [\"selection\"]\n  });\n});\n\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  const selectedText = info.selectionText;\n});"
+  },
+  {
+    "title": "Content Blocker",
+    "category": "Privacy",
+    "description": "Block ads, trackers, popups, cookie notices, paywalls, or unwanted page elements.",
+    "code_snippet": "chrome.declarativeNetRequest.updateDynamicRules({\n  removeRuleIds: [1],\n  addRules: [{\n    id: 1,\n    priority: 1,\n    action: { type: \"block\" },\n    condition: {\n      urlFilter: \"*ads*|*tracker*\",\n      resourceTypes: [\"script\", \"image\"]\n    }\n  }]\n});"
+  },
+  {
+    "title": "Page Monitor",
+    "category": "Automation",
+    "description": "Monitor websites for changes, new content, price drops, or specific keywords and send alerts.",
+    "code_snippet": "chrome.alarms.create('checkPage', { periodInMinutes: 5 });\n\nchrome.alarms.onAlarm.addListener(async (alarm) => {\n  const [tab] = await chrome.tabs.query({ url: 'https://example.com/*' });\n  \n  const result = await chrome.scripting.executeScript({\n    target: { tabId: tab.id },\n    func: () => document.body.innerText\n  });\n  \n  const currentContent = result[0].result;\n  // Compare with stored content and notify if changed\n});"
+  },
+  {
+    "title": "Rewards Engagement Assistant",
+    "category": "Engagement",
+    "description": "High-level pattern for HR reward and recognition extensions. Supports daily reminders and contextual reward surfaces via content scripts.",
+    "code_snippet": "// background.js - manage reminders\nchrome.alarms.create('dailyEngagementCheck', { periodInMinutes: 1440 });\nchrome.alarms.onAlarm.addListener(async () => {\n  const { pendingRecognitions, unredeemedRewards, upcomingMilestones } = await chrome.storage.sync.get(['pendingRecognitions','unredeemedRewards','upcomingMilestones']);\n  // create notifications as needed\n});\n// manifest.json — register content script for partner reward sites\n// { \"content_scripts\": [ { \"matches\": [\"*://partner-site.com/*\"], \"js\": [\"content.js\"] } ] }"
+  }  
+]

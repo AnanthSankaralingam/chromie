@@ -46,7 +46,13 @@ export const SUPPORTED_PROVIDERS = {
 export const DEFAULT_MODELS = {
   gemini: 'gemini-2.5-flash',
   openai: 'o3',
-  anthropic: 'claude-3-5-sonnet-20241022'
+  anthropic: 'claude-haiku-4-5-20251001'
+}
+
+// Planning phase model configuration
+export const PLANNING_MODELS = {
+  DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts
+  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929' // Used for external-resources prompt
 }
 
 // Browser session configuration

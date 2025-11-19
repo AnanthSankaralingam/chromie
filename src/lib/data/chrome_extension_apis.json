@@ -1,0 +1,131 @@
+{
+  "api_docs": [
+    {
+      "name": "storage",
+      "description": "Use the chrome.storage API to store, retrieve, and track changes to user data. Provides extension-specific storage that persists across sessions and syncs across devices. Supports local, sync, session, and managed storage areas.",
+      "permissions": [
+        "storage"
+      ],
+      "code_snippet": "// Store data\nchrome.storage.local.set({ key: \"value\" }).then(() => {});\n\n// Listen for changes\nchrome.storage.onChanged.addListener((changes, namespace) => {\n  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {}});"
+    },
+    {
+      "name": "tabs",
+      "description": "Use the chrome.tabs API to interact with the browser's tab system. You can use this API to create, modify, rearrange tabs, and communicate with tab content scripts. Most features work without permissions, but accessing sensitive properties like url, title requires the 'tabs' permission or host permissions.",
+      "permissions": ["tabs"],
+      "code_snippet": "// Get current active tab\nlet [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });\n// Create a new tab\nchrome.tabs.create({\n  url: \"https://example.com\"\n});"
+    },
+    {
+      "name": "bookmarks",
+      "description": "Use the chrome.bookmarks API to create, organize, and manipulate bookmarks. Bookmarks are organized in a tree structure where each node is either a bookmark or a folder. You can add, remove, and query URLs in the browser's bookmarks.",
+      "permissions": [
+        "bookmarks"
+      ],
+      "code_snippet": "// Create a bookmark folder\nchrome.bookmarks.create(\n  { parentId: bookmarkBar.id, title: \"Extension bookmarks\" },\n  function(newFolder) {\n  }\n);\n\n// Create a bookmark\nchrome.bookmarks.create({\n  parentId: extensionsFolderId,\n  title: \"Extensions doc\",\n  url: \"https://developer.chrome.com/docs/extensions\"\n});\n\n// Search bookmarks\nchrome.bookmarks.search(\"example\", (results) => {\n});"
+    },
+    {
+      "name": "notifications",
+      "description": "Use the chrome.notifications API to create rich notifications using templates and show these notifications to users in the system tray. Supports various notification types including basic, image, list, and progress notifications.",
+      "permissions": [
+        "notifications"
+      ],
+      "code_snippet": "// Create a basic notification\nchrome.notifications.create(\"notification-id\", {\n  type: \"basic\",\n  iconUrl: \"\",\n  title: \"\",\n  message: \"\",\n  priority: 2\n});\n\nchrome.notifications.onClicked.addListener((notificationId) => {\n});"
+    },
+    {
+      "name": "identity",
+      "description": "Use the chrome.identity API to get OAuth2 access tokens for user authentication. This API enables extensions to authenticate users with OAuth2 providers like Google without handling credentials directly. Requires oauth2 configuration in manifest.json with client_id and scopes.",
+      "permissions": [
+        "identity"
+      ],
+      "code_snippet": "// Get OAuth2 token (requires oauth2 configuration in manifest)\nchrome.identity.getAuthToken({ interactive: true }, function(token) {\n  if (chrome.runtime.lastError) {\n    return;\n  }\n\n  // Use token to make API requests\n  fetch(\"https://www.googleapis.com/oauth2/v1/userinfo?alt=json\", {\n    headers: { Authorization: \"Bearer \" + token }\n  })\n  .then(response => response.json())\n  .then(data => {});\n});"
+    },
+    {
+      "name": "scripting",
+      "description": "Use the chrome.scripting API to execute scripts in different contexts (Manifest V3+). This API replaces the deprecated chrome.tabs.executeScript. You can inject JavaScript and CSS into web pages programmatically. Requires 'scripting' permission and host permissions or 'activeTab'.",
+      "permissions": [
+        "scripting",
+        "activeTab"
+      ],
+      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"]\n});\n\n// Insert CSS\nchrome.scripting.insertCSS({\n  target: { tabId: tabId },\n  files: [\"styles.css\"]\n});"
+    },
+    {
+      "name": "alarms",
+      "description": "Use the chrome.alarms API to schedule code to run periodically or at a specified time in the future. Alarms persist across browser restarts but may be cleared. Useful for implementing periodic background tasks in service workers.",
+      "permissions": [
+        "alarms"
+      ],
+      "code_snippet": "// Create an alarm\nchrome.runtime.onInstalled.addListener(async ({ reason }) => {\n  if (reason !== \"install\") return;\n\n  await chrome.alarms.create(\"demo-alarm\", {\n    delayInMinutes: 1,\n    periodInMinutes: 1\n  });\n});\n\n// Listen for alarm\nchrome.alarms.onAlarm.addListener((alarm) => {\n  // Perform periodic task\n});\n\n// Get existing alarm\nconst alarm = await chrome.alarms.get(\"demo-alarm\");"
+    },
+    {
+      "name": "contextMenus",
+      "description": "Use the chrome.contextMenus API to add items to Google Chrome's context menu (right-click menu). You can choose what types of objects your context menu additions apply to, such as images, hyperlinks, pages, and selected text.",
+      "permissions": [
+        "contextMenus"
+      ],
+      "code_snippet": "// Create context menu item\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.contextMenus.create({\n    id: \"search-google\",\n    title: \"Search Google for '%s'\",\n    contexts: [\"selection\"]\n  });\n});\n\n// Handle context menu click\nchrome.contextMenus.onClicked.addListener((info, tab) => {\n  if (info.menuItemId === \"search-google\") {\n    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(info.selectionText)}`;\n    chrome.tabs.create({ url: searchUrl });\n  }\n});"
+    },
+    {
+      "name": "history",
+      "description": "Use the chrome.history API to interact with the browser's record of visited pages. You can add, remove, and query for URLs in the browser's history. Supports searching history with various filters and listening to history changes.",
+      "permissions": [
+        "history"
+      ],
+      "code_snippet": "// Search history\nchrome.history.search(\n  { text: \"example\", maxResults: 10 },\n  (results) => {\n    results.forEach((page) => {\n    });\n  }\n);\n\n// Add URL to history\nchrome.history.addUrl({ url: \"https://example.com\" });\n\n// Delete URL from history\nchrome.history.deleteUrl({ url: \"https://example.com\" });\n\n// Listen for visits\nchrome.history.onVisited.addListener((result) => {\n});"
+    },
+    {
+      "name": "webRequest",
+      "description": "Use the chrome.webRequest API to observe and analyze traffic and to intercept, block, or modify requests in-flight. Requires 'webRequest' permission and host permissions. Note: 'webRequestBlocking' is only available for policy-installed extensions in Manifest V3. For blocking requests, consider using declarativeNetRequest instead.",
+      "permissions": [
+        "webRequest"
+      ],
+      "code_snippet": "// Observe requests (non-blocking)\nchrome.webRequest.onBeforeRequest.addListener(\n  (details) => {\n  },\n  { urls: [\"<all_urls>\"] }\n);\n\n// Monitor response headers\nchrome.webRequest.onHeadersReceived.addListener(\n  (details) => {\n  },\n  { urls: [\"<all_urls>\"] },\n  [\"responseHeaders\"]\n);\n\n// Note: Blocking requires webRequestBlocking permission\n// Only available for policy-installed extensions in MV3"
+    },
+    {
+      "name": "cookies",
+      "description": "Use the chrome.cookies API to query and modify cookies, and to be notified when they change. Requires 'cookies' permission and host permissions for the domains whose cookies you want to access. Supports partitioned cookies for privacy.",
+      "permissions": [
+        "cookies"
+      ],
+      "code_snippet": "// Get all cookies for a domain\nchrome.cookies.getAll({ domain: \"example.com\" }, (cookies) => {\n});\n\n// Get specific cookie\nchrome.cookies.get(\n  { url: \"https://example.com\", name: \"session_id\" },\n  (cookie) => {\n  }\n);\n\n// Set a cookie\nchrome.cookies.set({\n  url: \"https://example.com\",\n  name: \"my_cookie\",\n  value: \"cookie_value\"\n});\n\n// Listen for cookie changes\nchrome.cookies.onChanged.addListener((changeInfo) => {\n});"
+    },
+    {
+      "name": "windows",
+      "description": "Use the chrome.windows API to interact with browser windows. You can use this API to create, modify, and rearrange windows in the browser. To access sensitive tab properties (url, title) within windows, you need the 'tabs' permission.",
+      "permissions": [],
+      "code_snippet": "// Get current window\nchrome.windows.getCurrent((window) => {\n});\n\n// Create a new window\nchrome.windows.create({\n  url: \"https://example.com\",\n  type: \"popup\",\n  width: 800,\n  height: 600\n});\n\n// Update window\nchrome.windows.update(windowId, {\n  focused: true,\n  state: \"maximized\"\n});\n\n// Get all windows\nchrome.windows.getAll({ populate: true }, (windows) => {\n  windows.forEach((win) => {\n  });\n});"
+    },
+    {
+      "name": "action",
+      "description": "Use the chrome.action API to control the extension's icon in the Google Chrome toolbar (Manifest V3+). You can set icons, badges, tooltips, and popups. No permission required to use this API.",
+      "permissions": [],
+      "code_snippet": "// Handle icon click\nchrome.action.onClicked.addListener((tab) => {\n});"
+    },
+    {
+      "name": "tabGroups",
+      "description": "Use the chrome.tabGroups API to interact with the browser's tab grouping system (Chrome 89+, Manifest V3+). You can use this API to modify and rearrange tab groups in the browser. To group and ungroup tabs, or to query what tabs are in groups, use the chrome.tabs API.",
+      "permissions": [
+        "tabGroups"
+      ],
+      "code_snippet": "// Query tab groups\nconst groups = await chrome.tabGroups.query({ \n  title: \"My Group\" \n});\n\n// Update tab group\nawait chrome.tabGroups.update(groupId, {\n  title: \"Updated Group\",\n  color: \"blue\",\n  collapsed: false\n});\n\n// Group tabs together\nconst groupId = await chrome.tabs.group({ tabIds: [tab1, tab2, tab3] });\n\n// Update the newly created group\nawait chrome.tabGroups.update(groupId, {\n  title: \"My Tabs\",\n  color: \"cyan\"\n});"
+    },
+    {
+      "name": "downloads",
+      "description": "Use the chrome.downloads API to programmatically initiate, monitor, manipulate, and search for downloads. You can start downloads, pause, resume, cancel, and search through download history.",
+      "permissions": [
+        "downloads"
+      ],
+      "code_snippet": "// Start a download\nchrome.downloads.download({\n  url: \"https://example.com/file.pdf\",\n  filename: \"downloaded-file.pdf\",\n  saveAs: true\n}, (downloadId) => {\n});\n\n// Search downloads\nchrome.downloads.search({ query: [\"example\"] }, (items) => {\n});\n\n// Listen for download completion\nchrome.downloads.onChanged.addListener((delta) => {\n  if (delta.state && delta.state.current === \"complete\") {\n  }\n});"
+    },
+    {
+      "name": "runtime",
+      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions. Use this API for message passing, managing extension lifecycle, and accessing extension metadata.",
+      "permissions": [],
+      "code_snippet": "// Get manifest information\nconst manifest = chrome.runtime.getManifest();\n\n// Listen for extension installation\nchrome.runtime.onInstalled.addListener(({ reason }) => {\n  if (reason === \"install\") {}\n});"
+    },
+    {
+      "name": "sidePanel",
+      "description": "Host extension content in the browser's side panel, providing persistent contextual UI alongside web content.",
+      "permissions": ["sidePanel"],
+      "code_snippet": "// manifest.json\n{\n  \"name\": \"My Side Panel Extension\",\n  \"manifest_version\": 3,\n  \"permissions\": [\"sidePanel\"],\n  \"side_panel\": {\n    \"default_path\": \"sidepanel.html\"\n  },\n  \"action\": {\n    \"default_title\": \"Open Side Panel\"\n  }\n}\n\n// background.js (service worker)\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });\n});"
+    }
+  ]
+}

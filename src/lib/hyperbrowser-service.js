@@ -5,8 +5,7 @@ import os from "os"
 import path from "path"
 import JSZip from "jszip"
 import { createClient } from "@supabase/supabase-js"
-import { 
-  tryFallbackApiKey as tryFallback,
+import {
   validateExtensionFiles,
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
@@ -14,25 +13,13 @@ import { navigateToUrl as navigateToUrlUtil, getPlaywrightSessionContext as getP
 
 export class HyperbrowserService {
   constructor() {
-    this.apiKey = process.env.HYPERBROWSER_API_KEY || process.env.HYPERBROWSER_API_KEY_FALLBACK_1
-    this.fallbackApiKey = process.env.HYPERBROWSER_API_KEY_FALLBACK_1
+    this.apiKey = process.env.HYPERBROWSER_API_KEY
     this.client = null
     if (this.apiKey) {
       this.client = new Hyperbrowser({ apiKey: this.apiKey })
     }
   }
 
-  // Reinitialize client using fallback API key via util helper
-  tryFallbackApiKey() {
-    const makeClient = (key) => new Hyperbrowser({ apiKey: key })
-    if (this.fallbackApiKey && this.apiKey !== this.fallbackApiKey) {
-      console.log("Trying fallback API key for Hyperbrowser")
-      this.apiKey = this.fallbackApiKey
-      this.client = makeClient(this.apiKey)
-      return true
-    }
-    return false
-  }
 
   /**
    * Get or create a Hyperbrowser profile ID for a user
@@ -299,18 +286,6 @@ export class HyperbrowserService {
       return result
     } catch (error) {
       console.error("Failed to create Hyperbrowser test session:", error)
-      
-      // Try fallback API key if available
-      if (this.tryFallbackApiKey()) {
-        try {
-          console.log("Retrying with fallback API key...")
-          return await this.createTestSession(extensionFiles, projectId, userId, supabaseClient)
-        } catch (fallbackError) {
-          console.error("Fallback API key also failed:", fallbackError)
-          throw new Error(`Hyperbrowser session creation failed with both API keys: ${error.message}`)
-        }
-      }
-      
       throw new Error(`Hyperbrowser session creation failed: ${error.message}`)
     }
   }
@@ -524,24 +499,6 @@ export class HyperbrowserService {
         }
       } catch (error) {
         console.warn("Could not retrieve session from Hyperbrowser:", error.message)
-        
-        // Try fallback API key if available
-        if (this.tryFallbackApiKey()) {
-          try {
-            console.log("Retrying session status with fallback API key...")
-            const sessionInfo = await this.client.sessions.get(sessionId)
-            return {
-              sessionId,
-              status: sessionInfo.status || "active",
-              expiresAt: sessionInfo.expiresAt || new Date(Date.now() + 25 * 60 * 1000).toISOString(),
-              extensionLoaded: true,
-              currentUrl: sessionInfo.currentUrl || "https://example.com",
-            }
-          } catch (fallbackError) {
-            console.warn("Fallback API key also failed for session status:", fallbackError.message)
-          }
-        }
-        
         return {
           sessionId,
           status: "unknown",
@@ -572,19 +529,6 @@ export class HyperbrowserService {
       return true
     } catch (error) {
       console.error("Failed to terminate session:", error)
-      
-      // Try fallback API key if available
-      if (this.tryFallbackApiKey()) {
-        try {
-          console.log("Retrying session termination with fallback API key...")
-          await this.client.sessions.stop(sessionId)
-          console.log("Session stopped with fallback key for:", sessionId)
-          return true
-        } catch (fallbackError) {
-          console.error("Fallback API key also failed for termination:", fallbackError)
-        }
-      }
-      
       return false
     }
   }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { ChevronRight, Lightbulb, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { searchSuggestions } from "@/lib/extension-suggestions"
+import { searchSuggestions } from "@/lib/data/extension-suggestions"
 
 const AutocompleteSuggestions = ({ 
   query, 

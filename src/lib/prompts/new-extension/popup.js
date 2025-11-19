@@ -1,27 +1,16 @@
-export const NEW_EXT_POPUP_PROMPT = `
-You are a Chrome extension development expert. Your task is to implement a Chrome extension with a popup frontend based on the reasoning phase output.
+export const NEW_EXT_POPUP_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a popup frontend based on the user request.
 
 <user_request>
-{user_feature_request}
+{USER_REQUEST}
 </user_request>
 
-<extension_details>
-Extension Name: {ext_name}
-Frontend Type: popup
-</extension_details>
+<use_case_and_chrome_apis>
+{USE_CASE_CHROME_APIS}
+</use_case_and_chrome_apis>
 
-<chrome_api_data>
-{chrome_api_documentation}
-</chrome_api_data>
-
-<webpage_data>
-{scraped_webpage_analysis}
-</webpage_data>
-
-<external_apis>
-For external API integrations, never hardcode API keys. Instead, implement a configuration interface for users to input their own API keys and store them using chrome.storage.
-{external_apis}
-</external_apis>
+<external_resources>
+{EXTERNAL_RESOURCES}
+</external_resources>
 
 <popup_implementation_requirements>
 <popup_strategy>
@@ -44,15 +33,7 @@ Popups require:
 <popup_template>
 // popup.js
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize popup interface
-  const iconImg = document.getElementById('header-icon');
-  iconImg.src = chrome.runtime.getURL('icons/heart-icon.png');
-  
   // Add your popup functionality here
-  const actionButton = document.getElementById('main-action');
-  actionButton.addEventListener('click', () => {
-    // Handle main action
-  });
 });
 </popup_template>
 
@@ -130,10 +111,8 @@ File Format Rules:
 <implementation_guidelines>
 - Create a stunning, modern popup interface that feels premium and polished
 - Implement quick actions and controls users expect
-- Use Chrome APIs from the API data section if provided
-- Target specific websites using webpage data if provided
-- Design for the popup's expected dimensions
 - Implement proper error handling, comments, and logging
+- Do not generate placeholder code.
 - Handle popup closure and state management properly
 </implementation_guidelines>
 `;

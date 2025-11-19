@@ -10,6 +10,7 @@
     "test:md": "node ./test/utils/markdown-parser.test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
     "@browserbasehq/sdk": "^2.6.0",
     "@google/genai": "^1.21.0",
     "@google/generative-ai": "^0.24.1",

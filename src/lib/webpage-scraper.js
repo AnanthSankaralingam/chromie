@@ -244,32 +244,49 @@ export async function scrapeWebPage(url, options = {}) {
  * @param {string[]} domains - Array of domains to scrape
  * @param {string} userProvidedUrl - Optional specific URL to use instead of domain
  * @param {Object} options - Optional scraping parameters to pass to scrapeWebPage
- * @returns {Promise<string>} - Formatted analysis string
+ * @returns {Promise<Object>} - Object with { data: string, statusCode: number }
+ *   statusCode: 200 = success, 404 = no data found, 500 = error occurred
  */
 export async function batchScrapeWebpages(domains, userProvidedUrl = null, options = {}) {
   if (!domains || domains.length === 0) {
     console.log("📝 No specific websites targeted - skipping scraping")
-    return ''
+    return { data: '', statusCode: 404 }
   }
 
   console.log("🌐 Starting webpage data lookup for:", domains)
   const webpageData = []
+  let hasErrors = false
   
   for (const domain of domains) {
     const urlToScrape = userProvidedUrl || `https://${domain}`
     console.log(`🔍 Looking up domain: ${domain} with URL: ${urlToScrape}`)
     const scrapedData = await scrapeWebPage(urlToScrape, options)
     
+    // Skip error results - only include successful scrapes with actual data
+    if (scrapedData.error) {
+      console.warn(`⚠️ Skipping error result for ${domain}: ${scrapedData.error}`)
+      hasErrors = true
+      continue
+    }
+    
+    // Only include if we have actual element data
+    const hasMajorElements = scrapedData.majorElementsData && Object.keys(scrapedData.majorElementsData).length > 0
+    const hasElements = scrapedData.elements && scrapedData.elements.length > 0
+    
+    if (!hasMajorElements && !hasElements) {
+      console.warn(`⚠️ Skipping ${domain}: No element data found`)
+      continue
+    }
+    
     const statusInfo = scrapedData.statusCode ? ` (Status: ${scrapedData.statusCode})` : ''
-    const errorInfo = scrapedData.error ? `\n**Error:** ${scrapedData.error}` : ''
     
     let detailedAnalysis = `## ${scrapedData.title.replace('Analysis for ', '')} Analysis${statusInfo}
 URL: ${scrapedData.url}
 Title: ${scrapedData.title}
-Timestamp: ${scrapedData.timestamp}${errorInfo}`
+Timestamp: ${scrapedData.timestamp}`
 
     // **MODIFIED LOGIC: Generate report from the new `major_elements` format**
-    if (scrapedData.majorElementsData && Object.keys(scrapedData.majorElementsData).length > 0) {
+    if (hasMajorElements) {
       detailedAnalysis += `\n\n## Major Element Analysis`
       detailedAnalysis += `\nThis analysis identifies the most important structural and interactive elements on the page, which are ideal targets for a Chrome extension.`
       
@@ -286,7 +303,7 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
       detailedAnalysis += `\n- **Primary Targets:** Elements like \`main_content_area\`, \`global_header\`, and \`global_navigation_bar\` are stable starting points for adding features or extracting information.`
       detailedAnalysis += `\n- **Dynamic Content:** For pages that load content dynamically, consider using a \`MutationObserver\` to watch for changes within these major elements.`
 
-    } else if (scrapedData.elements && scrapedData.elements.length > 0) {
+    } else if (hasElements) {
       // Fallback for any other structure that might exist
       detailedAnalysis += `\n\n**Key Elements:** ${scrapedData.elements.map(e => e.key).join(', ')}`
     }
@@ -294,6 +311,17 @@ Timestamp: ${scrapedData.timestamp}${errorInfo}`
     webpageData.push(detailedAnalysis)
   }
   
-  console.log("✅ Webpage analysis completed successfully")
-  return webpageData.join('\n\n')
+  if (webpageData.length === 0) {
+    console.warn("⚠️ No successful webpage analysis data collected")
+    return { 
+      data: '', 
+      statusCode: hasErrors ? 500 : 404 
+    }
+  }
+  
+  console.log(`✅ Webpage analysis completed successfully (${webpageData.length} successful scrape(s))`)
+  return { 
+    data: webpageData.join('\n\n'), 
+    statusCode: 200 
+  }
 }

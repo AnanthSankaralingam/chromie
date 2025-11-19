@@ -257,8 +257,6 @@ export async function POST(request) {
               })
             }
             
-            // HyperAgent test script generation is now triggered manually via the "create ai testing agent [beta]" button
-            console.log('ℹ️ HyperAgent test script generation is now manual - use the "create ai testing agent [beta]" button')
           } else {
             console.log('[api/generate/stream] Skipping done signal and token upsert - URL required')
           }

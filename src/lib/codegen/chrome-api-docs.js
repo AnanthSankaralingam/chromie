@@ -1,5 +1,4 @@
-const chromeApisData = require('../chrome_extension_apis.json');
-
+import chromeApisData from '../data/chrome_extension_apis.json' with { type: 'json' };
 /**
  * Search for Chrome Extension API documentation
  * @param {string} apiName - The name of the Chrome API to search for
@@ -9,37 +8,35 @@ export function searchChromeExtensionAPI(apiName) {
   if (!apiName || typeof apiName !== "string") {
     return {
       error: "Invalid API name provided. Please provide a valid string.",
-      available_apis: chromeApisData.chrome_extension_apis.apis.map((api) => api.name),
+      available_apis: chromeApisData.api_docs.map((api) => api.name),
     };
   }
 
   const searchTerm = apiName.toLowerCase().trim();
 
   // Search for exact match first
-  let api = chromeApisData.chrome_extension_apis.apis.find((api) => api.name.toLowerCase() === searchTerm);
+  let api = chromeApisData.api_docs.find((api) => api.name.toLowerCase() === searchTerm);
 
-  // If no exact match, search for partial matches
+  // If no exact match, search for partial matches (name only in new format)
   if (!api) {
-    api = chromeApisData.chrome_extension_apis.apis.find(
-      (api) => api.name.toLowerCase().includes(searchTerm) || api.namespace.toLowerCase().includes(searchTerm),
+    api = chromeApisData.api_docs.find(
+      (api) => api.name.toLowerCase().includes(searchTerm),
     );
   }
 
   if (!api) {
     return {
       error: `API "${apiName}" not found.`,
-      available_apis: chromeApisData.chrome_extension_apis.apis.map((api) => api.name),
-      total_apis: chromeApisData.chrome_extension_apis.metadata.total_apis,
-      categories: chromeApisData.chrome_extension_apis.metadata.categories,
+      available_apis: chromeApisData.api_docs.map((api) => api.name),
+      total_apis: chromeApisData.api_docs.length,
     };
   }
 
   return {
     name: api.name,
-    namespace: api.namespace,
     description: api.description,
-    code_example: api.code_example,
-    compatibility: api.compatibility,
+    code_example: api.code_snippet,
+    permissions: api.permissions,
   };
 }
 
@@ -61,7 +58,6 @@ export function fetchChromeApiDocs(chromeAPIs) {
     if (!apiResult.error) {
       apiDocs.push(`
 ## ${apiResult.name} API
-Namespace: ${apiResult.namespace || "Unknown"}
 Description: ${apiResult.description || "No description available"}
 Permissions: ${
         Array.isArray(apiResult.permissions)
@@ -70,7 +66,7 @@ Permissions: ${
       }
 Code Example:
 \`\`\`javascript
-${apiResult.code_example?.code || apiResult.code_example || "No example provided"}
+${apiResult.code_example || "No example provided"}
 \`\`\`
 `);
     } else {

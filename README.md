@@ -17,7 +17,8 @@ P2. <br>
 ### BUGS
 1. icons generated in manifest's action need to be validated. can mention in coding prompt or manually fix in validator in code gen v2.
 2. manifest not always generated in correct json. need to update prompt and come up with backup.
-3. code generated sometimes has placeholder code. sometimes the explanation is blank even when output tokens isn't near max.
+3. can't input multiple APIs
+4. no hybrid ui types: popup x content injection
 
 
 ### SECURITY

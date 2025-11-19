@@ -16,7 +16,7 @@ export class AnthropicAdapter {
    * @returns {Promise<Object>} Response object
    */
   async createResponse({
-    model = 'claude-3-5-sonnet-20241022',
+    model = 'claude-haiku-4-5-20251001',
     input,
     response_format,
     temperature = 0.2,
@@ -64,7 +64,7 @@ export class AnthropicAdapter {
    * @returns {Promise<Object>} Response object
    */
   async continueResponse({
-    model = 'claude-3-5-sonnet-20241022',
+    model = 'claude-haiku-4-5-20251001',
     previous_response_id,
     input,
     response_format,
@@ -103,7 +103,7 @@ export class AnthropicAdapter {
    * @returns {AsyncGenerator<Object>} Streaming response chunks
    */
   async* streamResponse({
-    model = 'claude-3-5-sonnet-20241022',
+    model = 'claude-haiku-4-5-20251001',
     input,
     response_format,
     temperature = 0.2,

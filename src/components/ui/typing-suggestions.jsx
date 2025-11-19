@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { extensionSuggestions } from "@/lib/extension-suggestions"
+import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 
 const TypingSuggestions = ({
   className = "",

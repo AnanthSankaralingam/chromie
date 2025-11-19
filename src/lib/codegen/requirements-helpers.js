@@ -89,7 +89,7 @@ export function formatExternalApisContext(userProvidedApis) {
 /**
  * Determine which prompt to use based on request type and frontend type
  * @param {string} requestType - Type of request
- * @param {string} frontendType - Type of frontend
+ * @param {string} frontendType - Type of frontend (popup, sidepanel, overlay, new_tab, content_script_ui)
  * @param {Object} prompts - Object containing all prompt templates
  * @returns {string} Selected prompt template
  */
@@ -99,15 +99,23 @@ export function selectPrompt(requestType, frontendType, prompts) {
   }
 
   switch (frontendType) {
+    case "sidepanel":
     case "side_panel":
       return prompts.NEW_EXT_SIDEPANEL_PROMPT;
     case "popup":
       return prompts.NEW_EXT_POPUP_PROMPT;
     case "overlay":
       return prompts.NEW_EXT_OVERLAY_PROMPT;
-    case "generic":
+    case "new_tab":
+    case "newtab":
+      return prompts.NEW_EXT_NEW_TAB_PROMPT;
+    case "content_script_ui":
+    case "content_injection":
+      return prompts.NEW_EXT_CONTENT_SCRIPT_UI_PROMPT;
     default:
-      return prompts.NEW_EXT_GENERIC_PROMPT;
+      // Default to popup as safest fallback
+      console.warn(`Unknown frontend type "${frontendType}", defaulting to popup`);
+      return prompts.NEW_EXT_POPUP_PROMPT;
   }
 }
 
