@@ -41,9 +41,6 @@ Do NOT suggest API if:
 <common_api_endpoints>
 
 OpenAI: https://api.openai.com/v1
-Google Translate: https://translation.googleapis.com/language/translate/v2
-OpenWeather: https://api.openweathermap.org/data/2.5
-Alpha Vantage: https://www.alphavantage.co/query
 Stripe: https://api.stripe.com/v1
 GitHub: https://api.github.com
 Twilio: https://api.twilio.com/2010-04-01
@@ -52,6 +49,28 @@ Google Maps: https://maps.googleapis.com/maps/api
 Spotify: https://api.spotify.com/v1
 Twitter: https://api.twitter.com/2
 YouTube: https://www.googleapis.com/youtube/v3
+Google Translate: https://translation.googleapis.com/language/translate/v2
+OpenWeather: https://api.openweathermap.org/data/2.5
+Alpha Vantage: https://www.alphavantage.co/query
+
+**Google Workspace APIs** (use full API name):
+Gmail API: https://gmail.googleapis.com/gmail/v1
+Google Drive API: https://www.googleapis.com/drive/v3
+Google Calendar API: https://www.googleapis.com/calendar/v3
+Google Sheets API: https://sheets.googleapis.com/v4/spreadsheets
+Google Docs API: https://docs.googleapis.com/v1/documents
+Google Tasks API: https://tasks.googleapis.com/tasks/v1
+Google Chat API: https://chat.googleapis.com/v1
+Admin SDK API: https://admin.googleapis.com/admin/directory/v1
+Google Meet API: https://meet.googleapis.com/v2
+Google Slides API: https://slides.googleapis.com/v1/presentations
+Google Forms API: https://forms.googleapis.com/v1/forms
+
+IMPORTANT: When detecting Google Workspace needs:
+- Use "Gmail API" not "Gmail"
+- Use "Google Drive API" not "Drive"
+- Use "Google Calendar API" not "Calendar"
+- Always include full "API" suffix for proper detection
 </common_api_endpoints>
 
 <output_schema>

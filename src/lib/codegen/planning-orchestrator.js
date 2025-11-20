@@ -7,6 +7,7 @@ import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
 import { fetchExternalApiDocs } from './external-api-docs.js'
 import { PLANNING_MODELS } from '../constants.js'
+import { isWorkspaceAPI, collectWorkspaceScopes } from '../utils/google-workspace-scopes.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
@@ -63,11 +64,26 @@ export async function orchestratePlanning(featureRequest) {
 
     console.log('💰 [Planning Orchestrator] Total token usage:', totalTokenUsage)
 
-    // Step 5: Log unified JSON output for readability
+    // Step 5: Detect Google Workspace APIs
+    const workspaceApis = (externalResourcesResponse.result.external_apis || []).filter(api => 
+      isWorkspaceAPI(api.name)
+    );
+    
+    const usesWorkspaceAPIs = workspaceApis.length > 0;
+    const workspaceScopes = collectWorkspaceScopes(workspaceApis, featureRequest);
+    
+    if (usesWorkspaceAPIs) {
+      console.log('🔐 [Planning Orchestrator] Google Workspace APIs detected:', workspaceApis.map(a => a.name));
+      console.log('🔑 [Planning Orchestrator] Required OAuth scopes:', workspaceScopes);
+    }
+
+    // Step 6: Log unified JSON output for readability
     const unifiedOutput = {
       use_case: useCaseResponse.result,
       external_resources: externalResourcesResponse.result,
       frontend_type: frontendSelectionResponse.result.frontend_type,
+      workspace_apis: workspaceApis.map(a => a.name),
+      workspace_scopes: workspaceScopes,
       code_snippet_preview: codeSnippet ? codeSnippet.substring(0, 200) + '...' : null,
       token_usage: totalTokenUsage
     }
@@ -75,13 +91,16 @@ export async function orchestratePlanning(featureRequest) {
     console.log('📋 [Planning Orchestrator] Unified Planning Output:')
     console.log(JSON.stringify(unifiedOutput, null, 2))
 
-    // Step 6: Return aggregated planning data
+    // Step 7: Return aggregated planning data
     return {
       useCaseResult: useCaseResponse.result,
       externalResourcesResult: externalResourcesResponse.result,
       frontendType: frontendSelectionResponse.result.frontend_type,
       codeSnippet: codeSnippet,
-      tokenUsage: totalTokenUsage
+      tokenUsage: totalTokenUsage,
+      workspaceAPIs: workspaceApis,
+      usesWorkspaceAPIs: usesWorkspaceAPIs,
+      workspaceScopes: workspaceScopes
     }
 
   } catch (error) {

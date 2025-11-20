@@ -1,6 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import externalApisData from '../../../lib/data/external_apis.json'
+
+// Get default endpoint for an API from external_apis.json
+function getDefaultEndpoint(apiName) {
+  const api = externalApisData.api_docs.find(doc => 
+    doc.name.toLowerCase() === apiName.toLowerCase() ||
+    apiName.toLowerCase().includes(doc.name.toLowerCase()) ||
+    doc.name.toLowerCase().includes(apiName.toLowerCase())
+  )
+  return api?.base_url || ''
+}
 
 export default function ModalApiPrompt({
   data,
@@ -24,6 +35,7 @@ export default function ModalApiPrompt({
       const initialConfigs = data.suggestedAPIs.map(api => ({
         name: api.name || 'Unnamed API',
         endpoint: '',
+        defaultEndpoint: getDefaultEndpoint(api.name || ''),
         isSkipped: false
       }))
       setApiConfigs(initialConfigs)
@@ -37,6 +49,12 @@ export default function ModalApiPrompt({
   const handleEndpointChange = (index, newEndpoint) => {
     setApiConfigs(prev => prev.map((config, i) => 
       i === index ? { ...config, endpoint: newEndpoint } : config
+    ))
+  }
+
+  const handleUseDefault = (index) => {
+    setApiConfigs(prev => prev.map((config, i) => 
+      i === index ? { ...config, endpoint: config.defaultEndpoint } : config
     ))
   }
 
@@ -118,18 +136,35 @@ export default function ModalApiPrompt({
                     {isSkipped ? 'Skipped' : 'Skip'}
                   </button>
                 </div>
-                <input
-                  type="url"
-                  value={config.endpoint}
-                  onChange={(e) => handleEndpointChange(index, e.target.value)}
-                  placeholder="enter your endpoint here or use our defaults"
-                  disabled={isSkipped}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    isSkipped
-                      ? 'bg-slate-600 border-slate-500 text-slate-400 cursor-not-allowed'
-                      : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20'
-                  }`}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={config.endpoint}
+                    onChange={(e) => handleEndpointChange(index, e.target.value)}
+                    placeholder="Enter endpoint URL"
+                    disabled={isSkipped}
+                    className={`flex-1 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                      isSkipped
+                        ? 'bg-slate-600 border-slate-500 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20'
+                    }`}
+                  />
+                  {config.defaultEndpoint && !isSkipped && (
+                    <button
+                      onClick={() => handleUseDefault(index)}
+                      disabled={isSkipped}
+                      className="px-4 py-2 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      title={`Use default: ${config.defaultEndpoint}`}
+                    >
+                      Use Default
+                    </button>
+                  )}
+                </div>
+                {config.defaultEndpoint && !isSkipped && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Default: <code className="text-blue-400">{config.defaultEndpoint}</code>
+                  </p>
+                )}
               </div>
             )
           })}

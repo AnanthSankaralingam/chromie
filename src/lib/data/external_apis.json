@@ -301,6 +301,335 @@
       "code_example": "// Geocode an address\nconst response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,+Mountain+View,+CA&key=${apiKey}`);\nconst data = await response.json();"
     },
     {
+      "name": "Gmail API",
+      "description": "Gmail API provides programmatic access to Gmail mailboxes. Send emails, read messages, manage labels, modify messages, and manage email settings. Part of Google Workspace. Requires OAuth 2.0 authentication and appropriate scopes.",
+      "authentication": "OAuth 2.0 (Bearer token with Gmail scopes like gmail.readonly, gmail.send, gmail.modify)",
+      "base_url": "https://gmail.googleapis.com/gmail/v1",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/users/{userId}/messages",
+          "description": "List user messages"
+        },
+        {
+          "method": "GET",
+          "path": "/users/{userId}/messages/{id}",
+          "description": "Get specific message"
+        },
+        {
+          "method": "POST",
+          "path": "/users/{userId}/messages/send",
+          "description": "Send email message"
+        },
+        {
+          "method": "POST",
+          "path": "/users/{userId}/drafts",
+          "description": "Create draft message"
+        },
+        {
+          "method": "GET",
+          "path": "/users/{userId}/labels",
+          "description": "List all labels"
+        },
+        {
+          "method": "POST",
+          "path": "/users/{userId}/messages/{id}/modify",
+          "description": "Modify message labels"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Send an email\nconst emailContent = [\n  'From: sender@example.com',\n  'To: recipient@example.com',\n  'Subject: Hello from Gmail API',\n  '',\n  'This is the email body.'\n].join('\\n');\n\nconst encodedEmail = btoa(emailContent).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');\n\nconst response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({ raw: encodedEmail })\n});\nconst result = await response.json();\n\n// List recent messages\nconst listResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10', {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst messages = await listResponse.json();"
+    },
+    {
+      "name": "Google Drive API",
+      "description": "Google Drive API provides programmatic access to Google Drive files and folders. Upload, download, search, share, and manage files. Supports Google Workspace files (Docs, Sheets, Slides) and regular files. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Drive scopes like drive.file, drive.readonly, drive)",
+      "base_url": "https://www.googleapis.com/drive/v3",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/files",
+          "description": "List and search files"
+        },
+        {
+          "method": "GET",
+          "path": "/files/{fileId}",
+          "description": "Get file metadata"
+        },
+        {
+          "method": "POST",
+          "path": "/files",
+          "description": "Create/upload file"
+        },
+        {
+          "method": "PATCH",
+          "path": "/files/{fileId}",
+          "description": "Update file metadata"
+        },
+        {
+          "method": "DELETE",
+          "path": "/files/{fileId}",
+          "description": "Delete file"
+        },
+        {
+          "method": "POST",
+          "path": "/files/{fileId}/permissions",
+          "description": "Share file and manage permissions"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// List files from Drive\nconst response = await fetch('https://www.googleapis.com/drive/v3/files?pageSize=10&fields=files(id,name,mimeType)', {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst files = await response.json();\n\n// Create a new folder\nconst createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    name: 'My New Folder',\n    mimeType: 'application/vnd.google-apps.folder'\n  })\n});\nconst newFolder = await createResponse.json();\n\n// Search for files\nconst searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains 'document'`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst searchResults = await searchResponse.json();"
+    },
+    {
+      "name": "Google Calendar API",
+      "description": "Google Calendar API provides access to Google Calendar data. Create, read, update, and delete calendar events. Manage multiple calendars, set event reminders, handle recurring events, and manage attendees. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Calendar scopes like calendar, calendar.events, calendar.readonly)",
+      "base_url": "https://www.googleapis.com/calendar/v3",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/calendars/{calendarId}/events",
+          "description": "List calendar events"
+        },
+        {
+          "method": "GET",
+          "path": "/calendars/{calendarId}/events/{eventId}",
+          "description": "Get event details"
+        },
+        {
+          "method": "POST",
+          "path": "/calendars/{calendarId}/events",
+          "description": "Create new event"
+        },
+        {
+          "method": "PUT",
+          "path": "/calendars/{calendarId}/events/{eventId}",
+          "description": "Update event"
+        },
+        {
+          "method": "DELETE",
+          "path": "/calendars/{calendarId}/events/{eventId}",
+          "description": "Delete event"
+        },
+        {
+          "method": "GET",
+          "path": "/users/me/calendarList",
+          "description": "List user's calendars"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a calendar event\nconst event = {\n  summary: 'Team Meeting',\n  description: 'Weekly team sync',\n  start: {\n    dateTime: '2025-11-25T10:00:00-07:00',\n    timeZone: 'America/Los_Angeles'\n  },\n  end: {\n    dateTime: '2025-11-25T11:00:00-07:00',\n    timeZone: 'America/Los_Angeles'\n  },\n  attendees: [\n    { email: 'colleague@example.com' }\n  ]\n};\n\nconst response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify(event)\n});\nconst createdEvent = await response.json();\n\n// List upcoming events\nconst listResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=' + new Date().toISOString(), {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst events = await listResponse.json();"
+    },
+    {
+      "name": "Google Sheets API",
+      "description": "Google Sheets API provides programmatic access to Google Sheets spreadsheets. Read and write cell values, manage sheets, format cells, create charts, and perform spreadsheet operations. Part of Google Workspace. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Sheets scopes like spreadsheets, spreadsheets.readonly)",
+      "base_url": "https://sheets.googleapis.com/v4/spreadsheets",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/{spreadsheetId}",
+          "description": "Get spreadsheet metadata"
+        },
+        {
+          "method": "GET",
+          "path": "/{spreadsheetId}/values/{range}",
+          "description": "Read cell values from range"
+        },
+        {
+          "method": "PUT",
+          "path": "/{spreadsheetId}/values/{range}",
+          "description": "Update cell values in range"
+        },
+        {
+          "method": "POST",
+          "path": "/{spreadsheetId}/values/{range}:append",
+          "description": "Append values to sheet"
+        },
+        {
+          "method": "POST",
+          "path": "/{spreadsheetId}:batchUpdate",
+          "description": "Batch update spreadsheet (formatting, formulas, etc.)"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "description": "Create new spreadsheet"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Read values from a sheet\nconst spreadsheetId = 'your-spreadsheet-id';\nconst range = 'Sheet1!A1:D10';\n\nconst response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst data = await response.json();\nconst rows = data.values; // Array of arrays\n\n// Write values to a sheet\nconst updateResponse = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`, {\n  method: 'PUT',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    values: [\n      ['Name', 'Email', 'Status'],\n      ['John Doe', 'john@example.com', 'Active'],\n      ['Jane Smith', 'jane@example.com', 'Active']\n    ]\n  })\n});\nconst updateResult = await updateResponse.json();"
+    },
+    {
+      "name": "Google Docs API",
+      "description": "Google Docs API provides programmatic access to Google Docs documents. Create, read, and update document content. Insert text, images, and tables. Apply formatting and styles. Manage document structure. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Docs scopes like documents, documents.readonly)",
+      "base_url": "https://docs.googleapis.com/v1/documents",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/{documentId}",
+          "description": "Get document content and metadata"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "description": "Create new document"
+        },
+        {
+          "method": "POST",
+          "path": "/{documentId}:batchUpdate",
+          "description": "Batch update document content"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a new Google Doc\nconst createResponse = await fetch('https://docs.googleapis.com/v1/documents', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    title: 'My New Document'\n  })\n});\nconst newDoc = await createResponse.json();\n\n// Insert text into document\nconst updateResponse = await fetch(`https://docs.googleapis.com/v1/documents/${newDoc.documentId}:batchUpdate`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    requests: [\n      {\n        insertText: {\n          location: { index: 1 },\n          text: 'Hello from Google Docs API!'\n        }\n      }\n    ]\n  })\n});\nconst result = await updateResponse.json();\n\n// Read document content\nconst readResponse = await fetch(`https://docs.googleapis.com/v1/documents/${newDoc.documentId}`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst doc = await readResponse.json();"
+    },
+    {
+      "name": "Google Tasks API",
+      "description": "Google Tasks API provides access to Google Tasks. Create, read, update, and delete tasks and task lists. Manage due dates, notes, and task status. Integrate task management into your applications. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Tasks scopes like tasks, tasks.readonly)",
+      "base_url": "https://tasks.googleapis.com/tasks/v1",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/users/@me/lists",
+          "description": "List all task lists"
+        },
+        {
+          "method": "GET",
+          "path": "/lists/{tasklist}/tasks",
+          "description": "List tasks in a task list"
+        },
+        {
+          "method": "POST",
+          "path": "/lists/{tasklist}/tasks",
+          "description": "Create a new task"
+        },
+        {
+          "method": "PUT",
+          "path": "/lists/{tasklist}/tasks/{task}",
+          "description": "Update a task"
+        },
+        {
+          "method": "DELETE",
+          "path": "/lists/{tasklist}/tasks/{task}",
+          "description": "Delete a task"
+        },
+        {
+          "method": "POST",
+          "path": "/users/@me/lists",
+          "description": "Create a new task list"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// List all task lists\nconst listsResponse = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst taskLists = await listsResponse.json();\n\n// Create a new task\nconst tasklistId = taskLists.items[0].id;\nconst createResponse = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${tasklistId}/tasks`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    title: 'Complete project proposal',\n    notes: 'Include budget and timeline',\n    due: '2025-11-30T00:00:00.000Z'\n  })\n});\nconst newTask = await createResponse.json();\n\n// List tasks\nconst tasksResponse = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${tasklistId}/tasks`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst tasks = await tasksResponse.json();"
+    },
+    {
+      "name": "Google Chat API",
+      "description": "Google Chat API allows you to build Chat apps and bots. Send messages, create cards, handle interactions, and integrate with Google Chat spaces. Build automation and workflow tools for Google Workspace teams. Requires OAuth 2.0 or service account authentication.",
+      "authentication": "OAuth 2.0 or Service Account (Bearer token with Chat scopes)",
+      "base_url": "https://chat.googleapis.com/v1",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/spaces/{space}/messages",
+          "description": "Send message to a space"
+        },
+        {
+          "method": "GET",
+          "path": "/spaces/{space}/messages/{message}",
+          "description": "Get message details"
+        },
+        {
+          "method": "PUT",
+          "path": "/spaces/{space}/messages/{message}",
+          "description": "Update a message"
+        },
+        {
+          "method": "DELETE",
+          "path": "/spaces/{space}/messages/{message}",
+          "description": "Delete a message"
+        },
+        {
+          "method": "GET",
+          "path": "/spaces",
+          "description": "List spaces"
+        },
+        {
+          "method": "GET",
+          "path": "/spaces/{space}/members",
+          "description": "List space members"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Send a message to a Google Chat space\nconst spaceId = 'spaces/AAAAA';\nconst response = await fetch(`https://chat.googleapis.com/v1/${spaceId}/messages`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    text: 'Hello from Google Chat API!'\n  })\n});\nconst message = await response.json();\n\n// Send a card message with button\nconst cardResponse = await fetch(`https://chat.googleapis.com/v1/${spaceId}/messages`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    cardsV2: [{\n      card: {\n        header: { title: 'Task Update' },\n        sections: [{\n          widgets: [{\n            textParagraph: { text: 'Your task is complete!' }\n          }]\n        }]\n      }\n    }]\n  })\n});\nconst cardMessage = await cardResponse.json();"
+    },
+    {
+      "name": "Admin SDK API",
+      "description": "Google Admin SDK API provides administrative control over Google Workspace domain and users. Manage users, groups, organizational units, devices, and domain settings. Audit user activity and generate reports. Requires admin privileges and OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 with admin privileges (Bearer token with Admin SDK scopes)",
+      "base_url": "https://admin.googleapis.com/admin/directory/v1",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/users",
+          "description": "List domain users"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "description": "Create a new user"
+        },
+        {
+          "method": "GET",
+          "path": "/users/{userKey}",
+          "description": "Get user details"
+        },
+        {
+          "method": "PUT",
+          "path": "/users/{userKey}",
+          "description": "Update user"
+        },
+        {
+          "method": "GET",
+          "path": "/groups",
+          "description": "List groups"
+        },
+        {
+          "method": "POST",
+          "path": "/groups",
+          "description": "Create a new group"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// List users in domain\nconst response = await fetch('https://admin.googleapis.com/admin/directory/v1/users?customer=my_customer&maxResults=10', {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst users = await response.json();\n\n// Create a new user\nconst createResponse = await fetch('https://admin.googleapis.com/admin/directory/v1/users', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    primaryEmail: 'newuser@example.com',\n    name: {\n      givenName: 'New',\n      familyName: 'User'\n    },\n    password: 'SecurePassword123!'\n  })\n});\nconst newUser = await createResponse.json();\n\n// List groups\nconst groupsResponse = await fetch('https://admin.googleapis.com/admin/directory/v1/groups?customer=my_customer', {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst groups = await groupsResponse.json();"
+    },
+    {
       "name": "Google Meet API",
       "description": "Google Meet API (part of Google Workspace) allows you to create and manage video meetings programmatically. Create meeting spaces, get meeting details, manage participants, and integrate Google Meet into your applications. Requires Google Cloud project with Meet API enabled and OAuth 2.0 authentication.",
       "authentication": "OAuth 2.0 (Bearer token with Google Workspace scopes)",
@@ -342,6 +671,77 @@
         "Content-Type": "application/json"
       },
       "code_example": "// Create a new meeting space\nconst response = await fetch('https://meet.googleapis.com/v2/spaces', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    config: {\n      accessType: 'OPEN',\n      entryPointAccess: 'ALL'\n    }\n  })\n});\nconst meeting = await response.json();\n// meeting.meetingUri contains the join URL\n// meeting.meetingCode contains the meeting code\n\n// Get meeting details\nconst detailsResponse = await fetch(`https://meet.googleapis.com/v2/${meeting.name}`, {\n  headers: {\n    'Authorization': `Bearer ${accessToken}`\n  }\n});\nconst details = await detailsResponse.json();"
+    },
+    {
+      "name": "Google Slides API",
+      "description": "Google Slides API provides programmatic access to Google Slides presentations. Create, read, and update presentations. Add slides, insert text, images, and shapes. Apply formatting and manage presentation structure. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Slides scopes like presentations, presentations.readonly)",
+      "base_url": "https://slides.googleapis.com/v1/presentations",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "",
+          "description": "Create new presentation"
+        },
+        {
+          "method": "GET",
+          "path": "/{presentationId}",
+          "description": "Get presentation details"
+        },
+        {
+          "method": "POST",
+          "path": "/{presentationId}:batchUpdate",
+          "description": "Batch update presentation content"
+        },
+        {
+          "method": "GET",
+          "path": "/{presentationId}/pages/{pageObjectId}",
+          "description": "Get slide details"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a new presentation\nconst createResponse = await fetch('https://slides.googleapis.com/v1/presentations', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    title: 'My Presentation'\n  })\n});\nconst presentation = await createResponse.json();\n\n// Add a slide with text\nconst slideId = 'slide_' + Date.now();\nconst textBoxId = 'textbox_' + Date.now();\nconst updateResponse = await fetch(`https://slides.googleapis.com/v1/presentations/${presentation.presentationId}:batchUpdate`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    requests: [\n      { createSlide: { objectId: slideId } },\n      {\n        createShape: {\n          objectId: textBoxId,\n          shapeType: 'TEXT_BOX',\n          elementProperties: {\n            pageObjectId: slideId,\n            size: { width: { magnitude: 300, unit: 'PT' }, height: { magnitude: 50, unit: 'PT' } },\n            transform: { scaleX: 1, scaleY: 1, translateX: 100, translateY: 100, unit: 'PT' }\n          }\n        }\n      },\n      {\n        insertText: {\n          objectId: textBoxId,\n          text: 'Hello from Slides API!'\n        }\n      }\n    ]\n  })\n});\nconst result = await updateResponse.json();"
+    },
+    {
+      "name": "Google Forms API",
+      "description": "Google Forms API provides programmatic access to Google Forms. Create forms, add questions, retrieve responses, and manage form settings. Build form automation and integrate form data into your workflows. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Forms scopes like forms.body, forms.responses.readonly)",
+      "base_url": "https://forms.googleapis.com/v1/forms",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "",
+          "description": "Create a new form"
+        },
+        {
+          "method": "GET",
+          "path": "/{formId}",
+          "description": "Get form details"
+        },
+        {
+          "method": "POST",
+          "path": "/{formId}:batchUpdate",
+          "description": "Update form content"
+        },
+        {
+          "method": "GET",
+          "path": "/{formId}/responses",
+          "description": "List form responses"
+        },
+        {
+          "method": "GET",
+          "path": "/{formId}/responses/{responseId}",
+          "description": "Get specific response"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a new form\nconst createResponse = await fetch('https://forms.googleapis.com/v1/forms', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    info: {\n      title: 'Customer Feedback Form'\n    }\n  })\n});\nconst form = await createResponse.json();\n\n// Add a question to the form\nconst updateResponse = await fetch(`https://forms.googleapis.com/v1/forms/${form.formId}:batchUpdate`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    requests: [{\n      createItem: {\n        item: {\n          title: 'What is your email?',\n          questionItem: {\n            question: {\n              required: true,\n              textQuestion: { paragraph: false }\n            }\n          }\n        },\n        location: { index: 0 }\n      }\n    }]\n  })\n});\nconst result = await updateResponse.json();\n\n// Get form responses\nconst responsesResponse = await fetch(`https://forms.googleapis.com/v1/forms/${form.formId}/responses`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst responses = await responsesResponse.json();"
     }
   ]
 }
