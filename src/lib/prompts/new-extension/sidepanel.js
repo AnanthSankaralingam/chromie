@@ -1,3 +1,6 @@
+import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from './workspace-auth-instructions.js';
+import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from './workspace-oauth-setup-prompt.js';
+
 export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the user request.
 
 <user_request>
@@ -11,6 +14,8 @@ export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development 
 <external_resources>
 {EXTERNAL_RESOURCES}
 </external_resources>
+
+${WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL}
 
 <side_panel_implementation_requirements>
 <side_panel_strategy>
@@ -101,13 +106,14 @@ Example: document.getElementById('icon').src = chrome.runtime.getURL('icons/home
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "BRIEF markdown explanation of how the extension works",
+  "explanation": "BRIEF markdown explanation of how the extension works. IF this extension uses Google Workspace APIs (check manifest.json for oauth2 section), APPEND the workspace OAuth setup instructions from WORKSPACE_OAUTH_SETUP_EXPLANATION to your explanation.",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
   "sidepanel.html": "side panel HTML as raw text",
   "sidepanel.js": "side panel JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
-  "styles.css": "optional: side panel styling as raw text"
+  "styles.css": "optional: side panel styling as raw text",
+  "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:

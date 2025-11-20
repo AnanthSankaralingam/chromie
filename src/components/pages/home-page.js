@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef, useLayoutEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/forms-and-input/textarea"
-import { Send, Paperclip, Sparkles, Edit3 } from "lucide-react"
+import { Send, LoaderIcon } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -11,8 +10,9 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
-import TypingSuggestions from "@/components/ui/typing-suggestions"
 import PersonaChipCarousel from "@/components/ui/persona-chip-carousel"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -23,29 +23,30 @@ export default function HomePage() {
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [isTypingSuggestionsActive, setIsTypingSuggestionsActive] = useState(true)
   const [showPersonaCarousel, setShowPersonaCarousel] = useState(true)
+  const [inputFocused, setInputFocused] = useState(false)
   const router = useRouter()
   const textareaRef = useRef(null)
 
-  const resizeTextarea = () => {
+  // Auto-resize textarea hook
+  const adjustHeight = useCallback((reset = false) => {
     const textarea = textareaRef.current
     if (!textarea) return
-    textarea.style.height = 'auto'
-    const EXTRA_SPACE_PX = 30
-    const newHeight = Math.max(120, textarea.scrollHeight + EXTRA_SPACE_PX)
-    textarea.style.height = newHeight + 'px'
-  }
 
-  const handleTextareaInput = () => {
-    requestAnimationFrame(() => {
-      resizeTextarea()
-    })
-  }
+    if (reset) {
+      textarea.style.height = '80px'
+      return
+    }
+
+    textarea.style.height = '80px'
+    const newHeight = Math.max(80, Math.min(textarea.scrollHeight, 240))
+    textarea.style.height = `${newHeight}px`
+  }, [])
 
   const handleTextareaChange = (e) => {
     const value = e.target.value
     setPrompt(value)
+    adjustHeight()
 
     // Show suggestions when user starts typing
     if (value.trim().length >= 2) {
@@ -68,8 +69,7 @@ export default function HomePage() {
   }
 
   const handleTextareaFocus = () => {
-    // Stop typing suggestions when user focuses on input
-    setIsTypingSuggestionsActive(false)
+    setInputFocused(true)
 
     // Show suggestions if there's existing text
     if (prompt.trim().length >= 2) {
@@ -82,12 +82,10 @@ export default function HomePage() {
   }
 
   const handleTextareaBlur = () => {
-    // Don't hide suggestions immediately to allow clicking on them
-    // The autocomplete component handles hiding via click outside
+    setInputFocused(false)
 
     // Restart typing suggestions and show carousel when user blurs and textarea is empty
     if (!prompt.trim()) {
-      setIsTypingSuggestionsActive(true)
       setShowPersonaCarousel(true)
     }
   }
@@ -172,21 +170,7 @@ export default function HomePage() {
       handleSubmit(e)
       return
     }
-    if (e.key === 'Enter' && e.shiftKey) {
-      // Ensure the textarea grows immediately after newline is inserted
-      requestAnimationFrame(() => {
-        resizeTextarea()
-      })
-    }
   }
-
-  useLayoutEffect(() => {
-    resizeTextarea()
-  }, [prompt])
-
-  useEffect(() => {
-    resizeTextarea()
-  }, [])
 
   // Restore prompt from URL params or sessionStorage on component mount
   useEffect(() => {
@@ -228,6 +212,10 @@ export default function HomePage() {
     restorePrompt()
   }, [])
 
+  useEffect(() => {
+    adjustHeight()
+  }, [prompt, adjustHeight])
+
   const handleUpgradePlan = () => {
     // Close the modal and redirect to pricing page
     setIsProjectLimitModalOpen(false)
@@ -250,102 +238,178 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex flex-col">
         {/* Header */}
         <AppBar />
 
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px]"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px]"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
+
         {/* Main Content */}
-        <main className="flex-1 flex items-center justify-center px-6 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
-              what do you want to build?
-            </h1>
-            <p className="text-xl text-slate-400 mb-8 md:mb-12 max-w-2xl mx-auto px-2">
-              create powerful chrome extensions by chatting with ai.
-            </p>
-
-            {/* Chat Input */}
-            <form onSubmit={handleSubmit} className="mb-8">
-              <div className="relative max-w-3xl mx-auto">
-                <Textarea
-                  value={prompt}
-                  onChange={handleTextareaChange}
-                  onInput={handleTextareaInput}
-                  onKeyDown={handleKeyDown}
-                  onFocus={handleTextareaFocus}
-                  onBlur={handleTextareaBlur}
-                  onPaste={() => {
-                    requestAnimationFrame(() => {
-                      resizeTextarea()
-                    })
+        <main className="flex-1 flex items-center justify-center px-6 pt-12 pb-20 relative z-10">
+          <div className="w-full max-w-3xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              {/* Title Section with proper spacing */}
+              <div className="text-center mb-12">
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.6 }}
+                  className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 pb-2"
+                  style={{
+                    background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    lineHeight: '1.2'
                   }}
-                  placeholder="describe your extension..."
-                  className="w-full min-h-[120px] p-4 md:p-6 pb-32 text-base md:text-lg bg-slate-800/50 border-slate-600 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent overflow-hidden"
-                  ref={textareaRef}
-                  disabled={isGenerating}
-                />
+                >
+                  what do you want to build?
+                </motion.h1>
+                <motion.p
+                  className="text-lg md:text-xl text-slate-400"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  build chrome extensions in seconds by chatting with ai
+                </motion.p>
+              </div>
 
-                {/* Typing Suggestions - only show when textarea is empty and not focused */}
-                {/* {!prompt && !isGenerating && (
-                  <div className="absolute top-4 left-4 md:top-6 md:left-6 pointer-events-none z-10">
-                    <TypingSuggestions
-                      className="text-base md:text-lg text-slate-500"
-                      typingSpeed={50}
-                      pauseDuration={3000}
-                      eraseSpeed={30}
-                      erasePause={1500}
-                      isActive={isTypingSuggestionsActive}
+              {/* Chat Input Form */}
+              <motion.form
+                onSubmit={handleSubmit}
+                className="relative mb-8"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+              >
+                <div className={cn(
+                  "relative backdrop-blur-xl bg-slate-800/30 rounded-2xl border transition-all duration-300 shadow-2xl",
+                  inputFocused 
+                    ? "border-purple-500/60 shadow-purple-500/20" 
+                    : "border-slate-700/40 hover:border-slate-600/60"
+                )}>
+                  {/* Tab Complete Suggestions */}
+                  <TabCompleteSuggestions
+                    query={prompt}
+                    onSuggestionSelect={handleSuggestionSelect}
+                    isVisible={showSuggestions}
+                    onVisibilityChange={setShowSuggestions}
+                    inputRef={textareaRef}
+                  />
+
+                  <div className="p-6">
+                    <textarea
+                      ref={textareaRef}
+                      value={prompt}
+                      onChange={handleTextareaChange}
+                      onKeyDown={handleKeyDown}
+                      onFocus={handleTextareaFocus}
+                      onBlur={handleTextareaBlur}
+                      placeholder="describe your extension..."
+                      disabled={isGenerating}
+                      className={cn(
+                        "w-full px-0 py-0",
+                        "resize-none",
+                        "bg-transparent",
+                        "border-none",
+                        "text-white text-base md:text-lg leading-relaxed",
+                        "focus:outline-none focus:ring-0",
+                        "placeholder:text-slate-500",
+                        "min-h-[80px]",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                      )}
+                      style={{
+                        overflow: "hidden",
+                      }}
                     />
                   </div>
-                )} */}
 
-                {/* Tab Complete Suggestions */}
-                <TabCompleteSuggestions
-                  query={prompt}
-                  onSuggestionSelect={handleSuggestionSelect}
-                  isVisible={showSuggestions}
-                  onVisibilityChange={setShowSuggestions}
-                  inputRef={textareaRef}
-                />
+                  <div className="px-6 pb-6 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <kbd className="px-2 py-1.5 bg-slate-700/60 rounded-md border border-slate-600/50 font-mono">Enter</kbd>
+                      <span>to send</span>
+                    </div>
 
-                {/* Action Buttons TODO enable attach files*/}
-                {/* <div className="absolute bottom-3 md:bottom-4 left-3 md:left-4 flex items-center space-x-2 md:space-x-3">
-                  <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
-                    <Sparkles className="h-4 w-4" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="text-slate-400 hover:text-white p-2">
-                    <Edit3 className="h-4 w-4" />
-                  </Button>
-                </div> */}
-
-                <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4">
-                  <Button
-                    type="submit"
-                    disabled={!prompt.trim() || isGenerating}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-5 md:px-6"
-                  >
-                    {isGenerating ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    {isGenerating ? "generating..." : "build"}
-                  </Button>
+                    <Button
+                      type="submit"
+                      disabled={isGenerating || !prompt.trim()}
+                      size="lg"
+                      className={cn(
+                        "font-semibold transition-all duration-300 px-6 py-2.5",
+                        prompt.trim() && !isGenerating
+                          ? "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105"
+                          : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
+                      )}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <LoaderIcon className="w-4 h-4 animate-spin" />
+                          <span className="ml-2">generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span className="ml-2">build</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </motion.form>
 
-            {/* Persona Chip Carousel */}
-            <PersonaChipCarousel
-              onSuggestionSelect={handleSuggestionSelect}
-              isVisible={showPersonaCarousel && !prompt && !isGenerating}
-              className="max-w-3xl mx-auto"
-            />
+              {/* Persona Chip Carousel */}
+              <AnimatePresence>
+                {showPersonaCarousel && !prompt && !isGenerating && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                  >
+                    <PersonaChipCarousel
+                      onSuggestionSelect={handleSuggestionSelect}
+                      isVisible={true}
+                      className="max-w-3xl mx-auto"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </div>
         </main>
+
       </div>
 
       {/* Auth Modal */}
@@ -372,3 +436,4 @@ export default function HomePage() {
     </>
   )
 }
+

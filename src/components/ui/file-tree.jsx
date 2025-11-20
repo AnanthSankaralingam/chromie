@@ -189,6 +189,5 @@ export default function FileTree({
     </div>
   )
 }
-
 // Import missing icons
 import { FileCode, Settings, Globe, Palette, Image, FileText, Package } from "lucide-react" 

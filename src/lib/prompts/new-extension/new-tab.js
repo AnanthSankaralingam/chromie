@@ -1,3 +1,6 @@
+import { WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB } from './workspace-auth-instructions.js';
+import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from './workspace-oauth-setup-prompt.js';
+
 export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension that replaces the new tab page.
 
 <user_request>
@@ -11,6 +14,8 @@ export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development ex
 <external_resources>
 {EXTERNAL_RESOURCES}
 </external_resources>
+
+${WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB}
 
 <new_tab_implementation_requirements>
 
@@ -69,12 +74,13 @@ icons/world.png, icons/youtube.png
 <output_requirements>
 Return a JSON object with the following structure:
 {
-  "explanation": "BRIEF markdown explanation of how the extension works",
+  "explanation": "BRIEF markdown explanation of how the extension works. IF this extension uses Google Workspace APIs (check manifest.json for oauth2 section), APPEND the workspace OAuth setup instructions from WORKSPACE_OAUTH_SETUP_EXPLANATION to your explanation.",
   "manifest.json": {valid JSON object},
   "background.js": "optional: service worker code as raw text",
   "newtab.html": "new tab page HTML as raw text",
   "newtab.js": "new tab page JavaScript as raw text",
-  "styles.css": "cutting-edge, full-page styling as raw text"
+  "styles.css": "cutting-edge, full-page styling as raw text",
+  "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:

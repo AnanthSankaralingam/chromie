@@ -100,7 +100,10 @@ export async function* generateChromeExtensionStream({
         matchedUseCase: planningResult.useCaseResult.matched_use_case,
         codeSnippet: planningResult.codeSnippet,
         planningResult: planningResult, // Store original for later re-formatting with webpage data
-        planningOutputs: formatPlanningOutputs(planningResult)
+        planningOutputs: formatPlanningOutputs(planningResult),
+        workspaceAPIs: planningResult.workspaceAPIs || [],
+        usesWorkspaceAPIs: planningResult.usesWorkspaceAPIs || false,
+        workspaceScopes: planningResult.workspaceScopes || []
       }
 
       planningTokenUsage = planningResult.tokenUsage
