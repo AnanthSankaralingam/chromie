@@ -401,6 +401,15 @@ export default function StreamingChat({
                 case "requires_url":
                   // Handle URL requirement
                   console.log('📋 Received requires_url signal:', data)
+                  console.log('📊 Has analysisData:', !!data.analysisData)
+                  if (data.analysisData) {
+                    console.log('📊 analysisData structure:', {
+                      hasRequirements: !!data.analysisData.requirements,
+                      hasTokenUsage: !!data.analysisData.tokenUsage
+                    })
+                  } else {
+                    console.warn('⚠️ requires_url event missing analysisData! This will cause re-planning.')
+                  }
                   addNewAssistantMessage("I need to analyze a specific website to build this extension properly. Let me get that information from you...")
 
                   // Store the current request info for URL continuation
@@ -411,6 +420,7 @@ export default function StreamingChat({
                     // Preserve analysis data so we can resume without re-planning
                     analysisData: data.analysisData
                   }
+                  console.log('💾 Stored currentRequestRef with analysisData:', !!currentRequestRef.current.analysisData)
 
                   const urlModalData = {
                     data: {
@@ -569,8 +579,13 @@ export default function StreamingChat({
     }
   }
 
-  const startGenerationWithUrl = async (prompt, userUrl, requestType, projectId) => {
+  const startGenerationWithUrl = async (prompt, userUrl, requestType, projectId, analysisData = null) => {
     if (isGenerating) return
+
+    console.log('🔗 [startGenerationWithUrl] Starting with URL:', userUrl, 'Has analysisData:', !!analysisData)
+    if (analysisData) {
+      console.log('♻️ [startGenerationWithUrl] Reusing previous planning results - will skip orchestrator')
+    }
 
     setIsGenerating(true)
 
@@ -608,21 +623,35 @@ export default function StreamingChat({
       const hasPrev = Boolean(previousResponseIdRef.current)
       const pathUsed = requestType === REQUEST_TYPES.ADD_TO_EXISTING && hasPrev ? 'responses_api' : 'manual_file_context'
 
+      const requestPayload = {
+        prompt: prompt,
+        projectId: projectId,
+        requestType: requestType,
+        userProvidedUrl: userUrl,
+        skipScraping: false,
+        previousResponseId: previousResponseIdRef.current,
+        conversationTokenTotal,
+        modelOverride,
+        // Pass analysis data to preserve planning results
+        ...(analysisData && {
+          initialRequirementsAnalysis: analysisData.requirements,
+          initialPlanningTokenUsage: analysisData.tokenUsage
+        })
+      }
+
+      console.log('📤 [startGenerationWithUrl] Sending to API:', {
+        userProvidedUrl: userUrl,
+        skipScraping: false,
+        hasInitialRequirementsAnalysis: !!requestPayload.initialRequirementsAnalysis,
+        hasInitialPlanningTokenUsage: !!requestPayload.initialPlanningTokenUsage
+      })
+
       const response = await fetch("/api/generate/stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          prompt: prompt,
-          projectId: projectId,
-          requestType: requestType,
-          userProvidedUrl: userUrl,
-          skipScraping: false,
-          previousResponseId: previousResponseIdRef.current,
-          conversationTokenTotal,
-          modelOverride
-        }),
+        body: JSON.stringify(requestPayload),
       })
 
       if (!response.ok) {
@@ -887,6 +916,13 @@ export default function StreamingChat({
     if (requestInfo) {
       if (userUrl === null) {
         // User chose to skip scraping; call streaming API with skipScraping=true
+        console.log('🚫 [handleUrlSubmit] User skipped URL - checking analysisData')
+        console.log('📊 requestInfo.analysisData exists:', !!requestInfo.analysisData)
+        if (requestInfo.analysisData) {
+          console.log('✅ Will pass analysis data to skip re-planning')
+        } else {
+          console.error('❌ BUG: analysisData is missing! Planning will run twice.')
+        }
         try {
           setIsGenerating(true)
 
@@ -911,23 +947,31 @@ export default function StreamingChat({
             onGenerationStart()
           }
 
+          const requestPayload = {
+            prompt: requestInfo.prompt,
+            projectId: requestInfo.projectId,
+            requestType: requestInfo.requestType,
+            userProvidedUrl: null,
+            skipScraping: true,
+            // Use analysis data if available (for resuming after URL skip)
+            ...(requestInfo.analysisData && {
+              initialRequirementsAnalysis: requestInfo.analysisData.requirements,
+              initialPlanningTokenUsage: requestInfo.analysisData.tokenUsage
+            })
+          }
+          
+          console.log('📤 [handleUrlSubmit Skip] Sending to API:', {
+            skipScraping: true,
+            hasInitialRequirementsAnalysis: !!requestPayload.initialRequirementsAnalysis,
+            hasInitialPlanningTokenUsage: !!requestPayload.initialPlanningTokenUsage
+          })
+
           const response = await fetch("/api/generate/stream", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              prompt: requestInfo.prompt,
-              projectId: requestInfo.projectId,
-              requestType: requestInfo.requestType,
-              userProvidedUrl: null,
-              skipScraping: true,
-              // Use analysis data if available (for resuming after URL skip)
-              ...(requestInfo.analysisData && {
-                initialRequirementsAnalysis: requestInfo.analysisData.requirements,
-                initialPlanningTokenUsage: requestInfo.analysisData.tokenUsage
-              })
-            }),
+            body: JSON.stringify(requestPayload),
           })
 
           if (!response.ok) {
@@ -1082,7 +1126,7 @@ export default function StreamingChat({
           }
         }
       } else {
-        await startGenerationWithUrl(requestInfo.prompt, userUrl, requestInfo.requestType, requestInfo.projectId)
+        await startGenerationWithUrl(requestInfo.prompt, userUrl, requestInfo.requestType, requestInfo.projectId, requestInfo.analysisData)
       }
     }
   }

@@ -299,6 +299,49 @@
       ],
       "headers": {},
       "code_example": "// Geocode an address\nconst response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,+Mountain+View,+CA&key=${apiKey}`);\nconst data = await response.json();"
+    },
+    {
+      "name": "Google Meet API",
+      "description": "Google Meet API (part of Google Workspace) allows you to create and manage video meetings programmatically. Create meeting spaces, get meeting details, manage participants, and integrate Google Meet into your applications. Requires Google Cloud project with Meet API enabled and OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token with Google Workspace scopes)",
+      "base_url": "https://meet.googleapis.com/v2",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/spaces",
+          "description": "Create a new meeting space"
+        },
+        {
+          "method": "GET",
+          "path": "/spaces/{space}",
+          "description": "Get meeting space details"
+        },
+        {
+          "method": "PATCH",
+          "path": "/spaces/{space}",
+          "description": "Update a meeting space"
+        },
+        {
+          "method": "POST",
+          "path": "/spaces/{space}:endActiveConference",
+          "description": "End an active conference"
+        },
+        {
+          "method": "GET",
+          "path": "/conferenceRecords",
+          "description": "List conference records"
+        },
+        {
+          "method": "GET",
+          "path": "/conferenceRecords/{conferenceRecord}/participants",
+          "description": "List participants in a conference"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a new meeting space\nconst response = await fetch('https://meet.googleapis.com/v2/spaces', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    config: {\n      accessType: 'OPEN',\n      entryPointAccess: 'ALL'\n    }\n  })\n});\nconst meeting = await response.json();\n// meeting.meetingUri contains the join URL\n// meeting.meetingCode contains the meeting code\n\n// Get meeting details\nconst detailsResponse = await fetch(`https://meet.googleapis.com/v2/${meeting.name}`, {\n  headers: {\n    'Authorization': `Bearer ${accessToken}`\n  }\n});\nconst details = await detailsResponse.json();"
     }
   ]
 }
