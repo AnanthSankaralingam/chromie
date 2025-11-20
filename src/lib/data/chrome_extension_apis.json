@@ -126,6 +126,14 @@
       "description": "Host extension content in the browser's side panel, providing persistent contextual UI alongside web content.",
       "permissions": ["sidePanel"],
       "code_snippet": "// manifest.json\n{\n  \"name\": \"My Side Panel Extension\",\n  \"manifest_version\": 3,\n  \"permissions\": [\"sidePanel\"],\n  \"side_panel\": {\n    \"default_path\": \"sidepanel.html\"\n  },\n  \"action\": {\n    \"default_title\": \"Open Side Panel\"\n  }\n}\n\n// background.js (service worker)\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });\n});"
+    },
+    {
+      "name": "tabCapture",
+      "description": "Use the chrome.tabCapture API to interact with tab media streams. Access a MediaStream containing video and audio of the current tab. Can only be called after user invokes the extension (e.g., clicking action button), similar to activeTab permission behavior. When a MediaStream is obtained, audio playback to the user stops unless explicitly reconnected using AudioContext.",
+      "permissions": [
+        "tabCapture"
+      ],
+      "code_snippet": "// Get media stream ID for current tab\nconst streamId = await chrome.tabCapture.getMediaStreamId({\n  targetTabId: tabId  // optional, defaults to active tab\n});\n\n// Use the stream ID with getUserMedia\nconst stream = await navigator.mediaDevices.getUserMedia({\n  audio: {\n    mandatory: {\n      chromeMediaSource: \"tab\",\n      chromeMediaSourceId: streamId\n    }\n  },\n  video: {\n    mandatory: {\n      chromeMediaSource: \"tab\",\n      chromeMediaSourceId: streamId\n    }\n  }\n});\n\n// Preserve audio playback to user\nconst output = new AudioContext();\nconst source = output.createMediaStreamSource(stream);\nsource.connect(output.destination);\n\n// Listen for capture status changes\nchrome.tabCapture.onStatusChanged.addListener((info) => {\n  console.log(`Tab ${info.tabId} capture status: ${info.status}`);\n});\n\n// Get list of currently captured tabs\nconst capturedTabs = await chrome.tabCapture.getCapturedTabs();"
     }
   ]
 }

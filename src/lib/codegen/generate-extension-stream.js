@@ -48,6 +48,8 @@ export async function* generateChromeExtensionStream({
     // Step 1: Analyze requirements based on request type
     if (initialRequirementsAnalysis && initialPlanningTokenUsage) {
       // If initial analysis is provided, we're resuming after a URL prompt
+      console.log('♻️ [generate-extension-stream] SKIPPING planning orchestrator - reusing previous analysis results')
+      console.log('📊 Previous planning tokens:', planningTokenUsage)
       requirementsAnalysis = initialRequirementsAnalysis;
       planningTokenUsage = initialPlanningTokenUsage;
       yield {
@@ -85,7 +87,7 @@ export async function* generateChromeExtensionStream({
       };
 
       // Use new planning orchestrator (non-streaming)
-      console.log('🎯 [generate-extension-stream] Calling planning orchestrator...')
+      console.log('🎯 [generate-extension-stream] CALLING planning orchestrator (fresh analysis)...')
       const planningResult = await orchestratePlanning(featureRequest)
 
       // Map planning result to requirementsAnalysis structure
