@@ -285,7 +285,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 pb-2"
+                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 pb-2"
                   style={{
                     background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
                     WebkitBackgroundClip: 'text',
