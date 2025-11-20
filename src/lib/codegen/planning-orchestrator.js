@@ -311,16 +311,17 @@ function parseJsonResponse(outputText, prefill) {
  * @param {Object} planningResult - Result from orchestratePlanning
  * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
  * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
+ * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
  * @returns {Object} Formatted strings for prompt replacement
  */
-export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null) {
+export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
   const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
 
   // Format use case and Chrome APIs
   const useCaseFormatted = formatUseCaseOutput(useCaseResult)
 
-  // Format external resources (with webpage data if available and successful)
-  const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode)
+  // Format external resources (with webpage data if available and successful, and user-provided APIs)
+  const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode, userProvidedApis)
 
   // Format code snippet
   const codeSnippetFormatted = formatCodeSnippet(codeSnippet, useCaseResult.matched_use_case?.name)
@@ -389,9 +390,10 @@ function formatUseCaseOutput(useCaseResult) {
  * @param {Object} externalResourcesResult - External resources detection result
  * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
  * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
+ * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
  * @returns {string} Formatted markdown
  */
-function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null) {
+function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
   const { external_apis, webpages_to_scrape, no_external_needed } = externalResourcesResult
 
   // Check if we have scraped webpage data to include (only if status code is 200)
@@ -401,22 +403,67 @@ function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAn
     scrapedWebpageAnalysis.trim().length > 0 &&
     !scrapedWebpageAnalysis.startsWith('<!--');
 
-  if (no_external_needed && !hasScrapedData) {
+  // Determine which APIs to include
+  // If userProvidedApis is an empty array, user explicitly skipped all APIs - don't include planning result APIs
+  // If userProvidedApis is null/undefined, we're in initial planning - include planning result APIs
+  // If userProvidedApis has items, merge with planning result APIs
+  let allApis = []
+  if (userProvidedApis === null || userProvidedApis === undefined) {
+    // Initial planning phase - use planning result APIs
+    allApis = [...(external_apis || [])]
+  } else if (Array.isArray(userProvidedApis)) {
+    if (userProvidedApis.length === 0) {
+      // User explicitly skipped all APIs - don't include planning result APIs
+      allApis = []
+    } else {
+      // User provided some APIs - start with planning result APIs and merge user-provided ones
+      allApis = [...(external_apis || [])]
+      // Convert user-provided APIs to the same format as planning result APIs
+      userProvidedApis.forEach(userApi => {
+        // Check if this API already exists in planning result (by name)
+        const existingIndex = allApis.findIndex(api => api.name === userApi.name)
+        if (existingIndex >= 0) {
+          // Update existing API with user-provided endpoint
+          allApis[existingIndex] = {
+            ...allApis[existingIndex],
+            endpoint_url: userApi.endpoint,
+            // Keep purpose from planning if available, otherwise use name
+            purpose: allApis[existingIndex].purpose || `User-provided ${userApi.name} API`
+          }
+        } else {
+          // Add new user-provided API
+          allApis.push({
+            name: userApi.name,
+            endpoint_url: userApi.endpoint,
+            purpose: `User-provided ${userApi.name} API`
+          })
+        }
+      })
+    }
+  } else {
+    // Fallback: if userProvidedApis is not null/undefined/array, use planning result APIs
+    allApis = [...(external_apis || [])]
+  }
+
+  const hasApis = allApis.length > 0
+  const hasWebpages = webpages_to_scrape && webpages_to_scrape.length > 0
+
+  if (no_external_needed && !hasScrapedData && !hasApis && !hasWebpages) {
     return 'No external resources needed for this extension.'
   }
 
   let output = ''
 
-  if (external_apis && external_apis.length > 0) {
+  if (hasApis) {
     output += 'External APIs\n'
-    external_apis.forEach(api => {
+    allApis.forEach(api => {
       output += `- **${api.name}**: ${api.purpose}\n`
       output += `  Endpoint: ${api.endpoint_url}\n`
     })
     output += '\n'
   }
 
-  if (webpages_to_scrape && webpages_to_scrape.length > 0) {
+  if (hasWebpages) {
     output += 'Target Websites\n'
     output += webpages_to_scrape.map(domain => `- ${domain}`).join('\n')
     output += '\n'
