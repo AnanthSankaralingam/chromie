@@ -1,0 +1,305 @@
+{
+  "api_docs": [
+    {
+      "name": "Stripe API",
+      "description": "Stripe is a payment processing platform. Use the Stripe API to process payments, manage customers, subscriptions, and handle payment methods. Requires API key authentication.",
+      "authentication": "Bearer token (API key in Authorization header)",
+      "base_url": "https://api.stripe.com/v1",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/charges",
+          "description": "Create a charge"
+        },
+        {
+          "method": "GET",
+          "path": "/customers",
+          "description": "List all customers"
+        },
+        {
+          "method": "POST",
+          "path": "/customers",
+          "description": "Create a customer"
+        },
+        {
+          "method": "POST",
+          "path": "/payment_intents",
+          "description": "Create a payment intent"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_SECRET_KEY",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      "code_example": "// Create a payment intent\nconst response = await fetch('https://api.stripe.com/v1/payment_intents', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/x-www-form-urlencoded'\n  },\n  body: new URLSearchParams({\n    amount: '2000',\n    currency: 'usd',\n    payment_method_types: 'card'\n  })\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "OpenAI API",
+      "description": "OpenAI provides AI models for text generation, embeddings, and chat completions. Use for AI-powered features like text generation, summarization, and chat interfaces.",
+      "authentication": "Bearer token (API key in Authorization header)",
+      "base_url": "https://api.openai.com/v1",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/chat/completions",
+          "description": "Create a chat completion"
+        },
+        {
+          "method": "POST",
+          "path": "/completions",
+          "description": "Create a text completion"
+        },
+        {
+          "method": "POST",
+          "path": "/embeddings",
+          "description": "Create embeddings"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Chat completion\nconst response = await fetch('https://api.openai.com/v1/chat/completions', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    model: 'gpt-4',\n    messages: [\n      { role: 'user', content: 'Hello!' }\n    ]\n  })\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "GitHub API",
+      "description": "GitHub API provides access to repositories, issues, pull requests, and user data. Use for GitHub integration features. Supports both authenticated and unauthenticated requests.",
+      "authentication": "Bearer token or Basic auth (optional for public data)",
+      "base_url": "https://api.github.com",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/user",
+          "description": "Get authenticated user"
+        },
+        {
+          "method": "GET",
+          "path": "/user/repos",
+          "description": "List user repositories"
+        },
+        {
+          "method": "GET",
+          "path": "/repos/{owner}/{repo}/issues",
+          "description": "List repository issues"
+        },
+        {
+          "method": "POST",
+          "path": "/repos/{owner}/{repo}/issues",
+          "description": "Create an issue"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "YourAppName"
+      },
+      "code_example": "// Get user repositories\nconst response = await fetch('https://api.github.com/user/repos', {\n  headers: {\n    'Authorization': `Bearer ${token}`,\n    'Accept': 'application/vnd.github.v3+json'\n  }\n});\nconst repos = await response.json();"
+    },
+    {
+      "name": "Twilio API",
+      "description": "Twilio provides SMS, voice, and messaging services. Use for sending text messages, making phone calls, and managing communications.",
+      "authentication": "Basic auth (Account SID and Auth Token)",
+      "base_url": "https://api.twilio.com/2010-04-01",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/Accounts/{AccountSid}/Messages.json",
+          "description": "Send SMS message"
+        },
+        {
+          "method": "GET",
+          "path": "/Accounts/{AccountSid}/Messages.json",
+          "description": "List messages"
+        }
+      ],
+      "headers": {
+        "Authorization": "Basic base64(AccountSid:AuthToken)",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      "code_example": "// Send SMS\nconst credentials = btoa(`${accountSid}:${authToken}`);\nconst response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Basic ${credentials}`,\n    'Content-Type': 'application/x-www-form-urlencoded'\n  },\n  body: new URLSearchParams({\n    To: '+1234567890',\n    From: '+0987654321',\n    Body: 'Hello from Twilio!'\n  })\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "SendGrid API",
+      "description": "SendGrid is an email delivery service. Use for sending transactional and marketing emails programmatically.",
+      "authentication": "Bearer token (API key)",
+      "base_url": "https://api.sendgrid.com/v3",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/mail/send",
+          "description": "Send email"
+        },
+        {
+          "method": "GET",
+          "path": "/user/profile",
+          "description": "Get user profile"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Send email\nconst response = await fetch('https://api.sendgrid.com/v3/mail/send', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    personalizations: [{\n      to: [{ email: 'recipient@example.com' }],\n      subject: 'Hello from SendGrid'\n    }],\n    from: { email: 'sender@example.com' },\n    content: [{\n      type: 'text/plain',\n      value: 'Hello World!'\n    }]\n  })\n});"
+    },
+    {
+      "name": "OpenWeather API",
+      "description": "OpenWeather provides weather data and forecasts. Use for weather-related features like current conditions, forecasts, and weather maps.",
+      "authentication": "API key as query parameter",
+      "base_url": "https://api.openweathermap.org/data/2.5",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/weather",
+          "description": "Get current weather"
+        },
+        {
+          "method": "GET",
+          "path": "/forecast",
+          "description": "Get weather forecast"
+        }
+      ],
+      "headers": {},
+      "code_example": "// Get current weather\nconst response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=London&appid=${apiKey}&units=metric`);\nconst data = await response.json();\n// data.main.temp contains temperature in Celsius"
+    },
+    {
+      "name": "Google Translate API",
+      "description": "Google Cloud Translation API provides language translation services. Use for translating text between languages.",
+      "authentication": "Bearer token (OAuth 2.0) or API key",
+      "base_url": "https://translation.googleapis.com/language/translate/v2",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "",
+          "description": "Translate text"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Translate text\nconst response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${apiKey}`, {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    q: 'Hello, world!',\n    target: 'es',\n    source: 'en'\n  })\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "Alpha Vantage",
+      "description": "Alpha Vantage provides stock market data, forex, and cryptocurrency data. Use for financial data features like stock prices, technical indicators, and market analysis.",
+      "authentication": "API key as query parameter",
+      "base_url": "https://www.alphavantage.co/query",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "",
+          "description": "Query with function parameter (TIME_SERIES_INTRADAY, GLOBAL_QUOTE, etc.)"
+        }
+      ],
+      "headers": {},
+      "code_example": "// Get stock quote\nconst response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${apiKey}`);\nconst data = await response.json();"
+    },
+    {
+      "name": "Spotify API",
+      "description": "Spotify Web API provides access to Spotify music data including tracks, albums, playlists, and user data. Requires OAuth 2.0 authentication.",
+      "authentication": "OAuth 2.0 (Bearer token)",
+      "base_url": "https://api.spotify.com/v1",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/me",
+          "description": "Get current user profile"
+        },
+        {
+          "method": "GET",
+          "path": "/search",
+          "description": "Search for tracks, artists, albums"
+        },
+        {
+          "method": "GET",
+          "path": "/tracks/{id}",
+          "description": "Get track details"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Search for tracks\nconst response = await fetch('https://api.spotify.com/v1/search?q=artist:beatles&type=track&limit=10', {\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  }\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "Twitter API",
+      "description": "Twitter API (now X API) provides access to tweets, users, and Twitter data. Requires OAuth 2.0 authentication with Bearer token.",
+      "authentication": "OAuth 2.0 Bearer token",
+      "base_url": "https://api.twitter.com/2",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/tweets",
+          "description": "Get tweets"
+        },
+        {
+          "method": "GET",
+          "path": "/users/by/username/{username}",
+          "description": "Get user by username"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "description": "Create a tweet"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_BEARER_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Get user by username\nconst response = await fetch('https://api.twitter.com/2/users/by/username/elonmusk', {\n  headers: {\n    'Authorization': `Bearer ${bearerToken}`,\n    'Content-Type': 'application/json'\n  }\n});\nconst data = await response.json();"
+    },
+    {
+      "name": "YouTube API",
+      "description": "YouTube Data API provides access to YouTube videos, channels, playlists, and comments. Requires API key or OAuth 2.0.",
+      "authentication": "API key as query parameter or OAuth 2.0",
+      "base_url": "https://www.googleapis.com/youtube/v3",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/search",
+          "description": "Search for videos"
+        },
+        {
+          "method": "GET",
+          "path": "/videos",
+          "description": "Get video details"
+        },
+        {
+          "method": "GET",
+          "path": "/channels",
+          "description": "Get channel information"
+        }
+      ],
+      "headers": {},
+      "code_example": "// Search for videos\nconst response = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=javascript&key=${apiKey}&maxResults=10`);\nconst data = await response.json();"
+    },
+    {
+      "name": "Google Maps API",
+      "description": "Google Maps Platform provides geocoding, places, directions, and maps services. Use for location-based features, maps, and geocoding.",
+      "authentication": "API key as query parameter",
+      "base_url": "https://maps.googleapis.com/maps/api",
+      "common_endpoints": [
+        {
+          "method": "GET",
+          "path": "/geocode/json",
+          "description": "Geocode an address"
+        },
+        {
+          "method": "GET",
+          "path": "/place/textsearch/json",
+          "description": "Search for places"
+        },
+        {
+          "method": "GET",
+          "path": "/directions/json",
+          "description": "Get directions"
+        }
+      ],
+      "headers": {},
+      "code_example": "// Geocode an address\nconst response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,+Mountain+View,+CA&key=${apiKey}`);\nconst data = await response.json();"
+    }
+  ]
+}
+

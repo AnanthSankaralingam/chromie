@@ -5,6 +5,7 @@ import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '../prompt
 import useCasesData from '../data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
 import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
+import { fetchExternalApiDocs } from './external-api-docs.js'
 import { PLANNING_MODELS } from '../constants.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
@@ -461,6 +462,14 @@ function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAn
       output += `  Endpoint: ${api.endpoint_url}\n`
     })
     output += '\n'
+    
+    // Include detailed API documentation
+    const apiDocumentation = fetchExternalApiDocs(allApis)
+    if (apiDocumentation) {
+      output += '## External API Documentation\n\n'
+      output += apiDocumentation
+      output += '\n\n'
+    }
   }
 
   if (hasWebpages) {

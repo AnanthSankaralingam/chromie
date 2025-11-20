@@ -183,13 +183,19 @@ export async function GET(request, { params }) {
     }
 
     // Ensure canonical icon mappings
-    if (!manifest.icons) manifest.icons = {}
+    // Ensure icons is an object, not a string
+    if (!manifest.icons || typeof manifest.icons !== 'object' || Array.isArray(manifest.icons)) {
+      manifest.icons = {}
+    }
     if (!manifest.icons["16"]) manifest.icons["16"] = "icons/icon16.png"
     if (!manifest.icons["48"]) manifest.icons["48"] = "icons/icon48.png"
     if (!manifest.icons["128"]) manifest.icons["128"] = "icons/icon128.png"
 
     if (manifest.action) {
-      if (!manifest.action.default_icon) manifest.action.default_icon = {}
+      // Ensure default_icon is an object, not a string
+      if (!manifest.action.default_icon || typeof manifest.action.default_icon !== 'object' || Array.isArray(manifest.action.default_icon)) {
+        manifest.action.default_icon = {}
+      }
       if (!manifest.action.default_icon["16"]) manifest.action.default_icon["16"] = "icons/icon16.png"
       if (!manifest.action.default_icon["48"]) manifest.action.default_icon["48"] = "icons/icon48.png"
       if (!manifest.action.default_icon["128"]) manifest.action.default_icon["128"] = "icons/icon128.png"
