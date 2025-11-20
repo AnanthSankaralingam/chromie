@@ -63,6 +63,9 @@ export default function StreamingChat({
   // Planning progress state
   const [planningProgress, setPlanningProgress] = useState(null)
   const [currentPlanningPhase, setCurrentPlanningPhase] = useState(null)
+  // Track whether files have been saved before showing completion modal
+  const filesSavedRef = useRef(false)
+  const doneReceivedRef = useRef(false)
 
   // Reset local-only conversation state on project change (navigation/refresh)
   useEffect(() => {
@@ -196,6 +199,9 @@ export default function StreamingChat({
     // Reset planning progress state
     setPlanningProgress(null)
     setCurrentPlanningPhase(null)
+    // Reset file save tracking
+    filesSavedRef.current = false
+    doneReceivedRef.current = false
 
     if (onGenerationStart) {
       onGenerationStart()
@@ -373,6 +379,8 @@ export default function StreamingChat({
                   break
                 case "files_saved":
                 case "generation_complete":
+                  // Mark that files have been saved
+                  filesSavedRef.current = true
                   // On save or completion, try to focus manifest.json after a short delay
                   try {
                     if (typeof window !== 'undefined') {
@@ -382,6 +390,12 @@ export default function StreamingChat({
                       }, 200)
                     }
                   } catch (_) {}
+                  // If done was already received, trigger onCodeGenerated now
+                  if (doneReceivedRef.current && onCodeGenerated) {
+                    onCodeGenerated({ success: true })
+                    doneReceivedRef.current = false
+                    filesSavedRef.current = false
+                  }
                   break
 
                 case "requires_url":
@@ -470,6 +484,9 @@ export default function StreamingChat({
                   break
 
                 case "done":
+                  // Mark that done was received
+                  doneReceivedRef.current = true
+                  
                   // Emit the final explanation once when stream completes
                   if (explanationBufferRef.current.trim()) {
                     addNewAssistantMessage("Here's what I've built for you:\n\n" + explanationBufferRef.current.trim())
@@ -487,8 +504,12 @@ export default function StreamingChat({
                     setHasGeneratedCode(true)
                   }
 
-                  if (onCodeGenerated) {
+                  // Only call onCodeGenerated if files have been saved
+                  // If files haven't been saved yet, wait for files_saved event
+                  if (filesSavedRef.current && onCodeGenerated) {
                     onCodeGenerated({ success: true })
+                    doneReceivedRef.current = false
+                    filesSavedRef.current = false
                   }
 
                   // Call auto-generate complete callback if this was an auto-generation
@@ -574,6 +595,9 @@ export default function StreamingChat({
     // Reset planning progress state
     setPlanningProgress(null)
     setCurrentPlanningPhase(null)
+    // Reset file save tracking
+    filesSavedRef.current = false
+    doneReceivedRef.current = false
 
     if (onGenerationStart) {
       onGenerationStart()
@@ -705,9 +729,17 @@ export default function StreamingChat({
                   break
 
                 case "code":
+                  break
                 case "files_saved":
                 case "generation_complete":
-                  // Skip additional noise
+                  // Mark that files have been saved
+                  filesSavedRef.current = true
+                  // If done was already received, trigger onCodeGenerated now
+                  if (doneReceivedRef.current && onCodeGenerated) {
+                    onCodeGenerated({ success: true })
+                    doneReceivedRef.current = false
+                    filesSavedRef.current = false
+                  }
                   break
 
                 case "requires_url":
@@ -751,6 +783,9 @@ export default function StreamingChat({
                   break
 
                 case "done":
+                  // Mark that done was received
+                  doneReceivedRef.current = true
+                  
                   // Emit final explanation once when stream completes
                   if (explanationBufferRef.current.trim()) {
                     addNewAssistantMessage("Here's what I've built for you:\n\n" + explanationBufferRef.current.trim())
@@ -768,8 +803,12 @@ export default function StreamingChat({
                     setHasGeneratedCode(true)
                   }
 
-                  if (onCodeGenerated) {
+                  // Only call onCodeGenerated if files have been saved
+                  // If files haven't been saved yet, wait for files_saved event
+                  if (filesSavedRef.current && onCodeGenerated) {
                     onCodeGenerated({ success: true })
+                    doneReceivedRef.current = false
+                    filesSavedRef.current = false
                   }
 
                   // Call auto-generate complete callback if this was an auto-generation
@@ -988,6 +1027,9 @@ export default function StreamingChat({
                           }
                           break
                     case "done":
+                      // Mark that done was received
+                      doneReceivedRef.current = true
+                      
                       console.log('✅ [Skip flow] Done signal received, explanation buffer length:', explanationBufferRef.current.length)
                       if (explanationBufferRef.current.trim()) {
                         const explanationContent = "Here's what I've built for you:\n\n" + explanationBufferRef.current.trim()
@@ -1009,8 +1051,12 @@ export default function StreamingChat({
                       if (!hasGeneratedCode) {
                         setHasGeneratedCode(true)
                       }
-                      if (onCodeGenerated) {
+                      // Only call onCodeGenerated if files have been saved
+                      // If files haven't been saved yet, wait for files_saved event
+                      if (filesSavedRef.current && onCodeGenerated) {
                         onCodeGenerated({ success: true })
+                        doneReceivedRef.current = false
+                        filesSavedRef.current = false
                       }
                       break
                     default:
@@ -1079,6 +1125,9 @@ export default function StreamingChat({
         // Reset planning progress state
         setPlanningProgress(null)
         setCurrentPlanningPhase(null)
+        // Reset file save tracking
+        filesSavedRef.current = false
+        doneReceivedRef.current = false
 
         if (onGenerationStart) {
           onGenerationStart()
@@ -1249,6 +1298,8 @@ export default function StreamingChat({
 
                   case "files_saved":
                   case "generation_complete":
+                    // Mark that files have been saved
+                    filesSavedRef.current = true
                     // On save or completion, try to focus manifest.json after a short delay
                     try {
                       if (typeof window !== 'undefined') {
@@ -1258,6 +1309,12 @@ export default function StreamingChat({
                         }, 200)
                       }
                     } catch (_) {}
+                    // If done was already received, trigger onCodeGenerated now
+                    if (doneReceivedRef.current && onCodeGenerated) {
+                      onCodeGenerated({ success: true })
+                      doneReceivedRef.current = false
+                      filesSavedRef.current = false
+                    }
                     break
 
                   case "error":
@@ -1265,6 +1322,9 @@ export default function StreamingChat({
                     break
 
                   case "done":
+                    // Mark that done was received
+                    doneReceivedRef.current = true
+                    
                     // Emit the final explanation once when stream completes
                     if (explanationBufferRef.current.trim()) {
                       addNewAssistantMessage("Here's what I've built for you:\n\n" + explanationBufferRef.current.trim())
@@ -1282,8 +1342,12 @@ export default function StreamingChat({
                       setHasGeneratedCode(true)
                     }
 
-                    if (onCodeGenerated) {
+                    // Only call onCodeGenerated if files have been saved
+                    // If files haven't been saved yet, wait for files_saved event
+                    if (filesSavedRef.current && onCodeGenerated) {
                       onCodeGenerated({ success: true })
+                      doneReceivedRef.current = false
+                      filesSavedRef.current = false
                     }
 
                     // Reset message tracking

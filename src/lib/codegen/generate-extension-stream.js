@@ -330,10 +330,11 @@ export async function* generateChromeExtensionStream({
       const updatedPlanningOutputs = formatPlanningOutputs(
         planningResult,
         scrapedWebpageAnalysis,
-        scrapeStatusCode
+        scrapeStatusCode,
+        userProvidedApis
       );
       
-      console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
+      console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data and user APIs:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
       
       replacements = {
         USER_REQUEST: finalUserPrompt,
