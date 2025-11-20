@@ -158,16 +158,26 @@ export default function HomePage() {
   }
 
   const handleKeyDown = (e) => {
-    // Let tab-complete component handle navigation and completion keys
-    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter' || e.key === 'Escape')) {
+    // Let tab-complete component handle navigation keys (but not Enter or Escape)
+    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       // Let the tab-complete component handle these keys
       return
     }
 
+    // Handle Enter key for form submission (Shift+Enter for new line)
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      setShowSuggestions(false) // Hide suggestions when submitting
-      handleSubmit(e)
+      // Only submit if event wasn't already handled by tab-complete component
+      if (!e.defaultPrevented) {
+        e.preventDefault()
+        setShowSuggestions(false) // Hide suggestions when submitting
+        handleSubmit(e)
+      }
+      return
+    }
+
+    // Handle Escape key
+    if (e.key === 'Escape' && showSuggestions) {
+      setShowSuggestions(false)
       return
     }
   }
