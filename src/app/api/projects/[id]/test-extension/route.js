@@ -91,24 +91,19 @@ export async function POST(request, { params }) {
         }
 
         console.log("[api/projects/test-extension] Pin extension result:", resultSummary)
-
-        const shouldFocus = Boolean(pinResult && (pinResult.alreadyPinned || pinResult.pinned))
-        if (!shouldFocus) {
-          console.log("[api/projects/test-extension] Skipping focus action (extension not confirmed pinned)")
-          return null
-        }
-
-        return runFocusExtensionSurface(session.sessionId)
-          .then((focusResult) => {
-            console.log("[api/projects/test-extension] Focus action complete:", focusResult)
-          })
-          .catch((focusError) => {
-            console.error("[api/projects/test-extension] Focus action failed:", focusError.message)
-          })
       })
       .catch((err) => {
         console.error("Failed to pin extension:", err.message)
         // Don't throw - this is a non-critical operation
+      })
+
+    // Always trigger a focus refresh so popup/sidepanel renders even if pinning fails
+    runFocusExtensionSurface(session.sessionId)
+      .then((focusResult) => {
+        console.log("[api/projects/test-extension] Focus action complete:", focusResult)
+      })
+      .catch((focusError) => {
+        console.error("[api/projects/test-extension] Focus action failed:", focusError.message)
       })
 
     // Skip database storage since browser_sessions table doesn't exist

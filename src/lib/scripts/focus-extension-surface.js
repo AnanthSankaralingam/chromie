@@ -47,6 +47,9 @@ const runFocusExtensionSurface = async (sessionId) => {
         console.log("[FOCUS-EXTENSION] ✨ Dispatching window focus events...");
         await targetPage.evaluate(() => {
           try {
+            const timestamp = new Date().toISOString();
+            console.log(`[chromie] Focus refresh triggered at ${timestamp}`);
+
             window.focus();
             window.dispatchEvent(new Event("focus"));
 
@@ -62,6 +65,8 @@ const runFocusExtensionSurface = async (sessionId) => {
             if (activeElement && activeElement !== document.body && typeof activeElement.blur === "function") {
               activeElement.blur();
             }
+
+            console.log(`[chromie] Focus refresh completed at ${new Date().toISOString()}`);
           } catch (focusError) {
             console.error("Focus script error:", focusError);
           }
