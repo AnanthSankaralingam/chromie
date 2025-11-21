@@ -106,12 +106,14 @@ if (import.meta.url === \`file://\${process.argv[1]}\`) {
 Create specific task descriptions based on the extension type:
 
 FOR SIDE PANEL EXTENSIONS:
-- Task: "Navigate to [relevant URL], click the extension icon to open the side panel, interact with [specific controls], and verify [expected behavior]"
+- Task: "Navigate to [relevant URL], click the extension icon to open the side panel, wait 1-2 seconds for rendering, interact with [specific controls], and verify [expected behavior]"
 - Include multiple tasks to test different features
+- IMPORTANT: Always include a brief wait (1-2 seconds) after clicking the extension icon to allow the side panel UI to fully render in the remote browser
 
 FOR POPUP EXTENSIONS:
-- Task: "Navigate to [relevant URL], click the extension icon to open the popup, click [specific buttons], and verify [expected behavior]"
+- Task: "Navigate to [relevant URL], click the extension icon to open the popup, wait 1-2 seconds for rendering, click [specific buttons], and verify [expected behavior]"
 - Test popup interactions and any webpage modifications
+- IMPORTANT: Always include a brief wait (1-2 seconds) after clicking the extension icon to allow the popup UI to fully render in the remote browser
 
 FOR OVERLAY/CONTENT SCRIPT EXTENSIONS:
 - Task: "Navigate to [specific target website], verify the overlay appears with [specific elements], click [specific buttons], and verify [expected outcomes]"
@@ -127,6 +129,7 @@ IMPORTANT:
 3. Break complex tests into multiple sequential tasks (result1, result2, etc.)
 4. Each task should be a complete, self-contained test instruction
 5. Include verification steps in each task description
+6. For popup and side panel extensions, ALWAYS instruct the agent to wait briefly (1-2 seconds) after clicking the extension icon to ensure the UI fully renders in the remote browser environment
 </test_task_requirements>
 
 <customization_guidelines>
