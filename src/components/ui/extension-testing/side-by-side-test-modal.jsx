@@ -8,11 +8,11 @@ import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
 import ProgressSpinner from "@/components/ui/loading/progress-spinner"
 
-export default function SideBySideTestModal({ 
-  isOpen, 
-  onClose, 
-  sessionData, 
-  onRefresh, 
+export default function SideBySideTestModal({
+  isOpen,
+  onClose,
+  sessionData,
+  onRefresh,
   isLoading = false,
   loadingProgress = 0,
   projectId,
@@ -75,7 +75,7 @@ export default function SideBySideTestModal({
     },
     {
       icon: Eye,
-      iconColor: "green", 
+      iconColor: "green",
       title: "extension features",
       items: [
         "• extension is automatically loaded",
@@ -87,7 +87,7 @@ export default function SideBySideTestModal({
     {
       icon: Info,
       iconColor: "purple",
-      title: "session info", 
+      title: "session info",
       items: [
         "• 3-minute session limit",
         "• use \"test extension\" button for automated ai-agent testing",
@@ -126,8 +126,8 @@ export default function SideBySideTestModal({
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
   const error = sessionData?.error
-  
-  
+
+
 
   // Handle session expiry - just show warning, don't auto-close
   const handleSessionExpire = () => {
@@ -147,7 +147,7 @@ export default function SideBySideTestModal({
       return
     }
 
-    
+
 
     setIsNavigating(true)
     setNavigationError(null)
@@ -165,7 +165,7 @@ export default function SideBySideTestModal({
       })
 
       const result = await response.json()
-      
+
 
       if (result.success) {
         setUrlInput("") // Clear input on success
@@ -234,11 +234,11 @@ export default function SideBySideTestModal({
   const modalExtraHeight = 56 + 50; // Total ~106px
 
   // Log dimensions for debugging
-  
+
 
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -261,9 +261,9 @@ export default function SideBySideTestModal({
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <ExternalLink 
+              <ExternalLink
                 className={cn(
-                  "h-5 w-5", 
+                  "h-5 w-5",
                   sessionData?.status === 'active' ? "text-green-600" : "text-gray-400"
                 )}
               />
@@ -280,7 +280,7 @@ export default function SideBySideTestModal({
           <div className="flex items-center space-x-3">
             {/* Session Timer */}
             {sessionData?.expiresAt && !sessionExpired && (
-              <SessionTimer 
+              <SessionTimer
                 expiresAt={sessionData.expiresAt}
                 onExpire={handleSessionExpire}
                 warningThreshold={30}
@@ -311,6 +311,7 @@ export default function SideBySideTestModal({
                   placeholder="Paste any URL, search term, or content to open in new tab..."
                   className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isNavigating}
+
                 />
                 {navigationError && (
                   <p className="text-red-500 text-xs mt-1">{navigationError}</p>
@@ -347,7 +348,7 @@ export default function SideBySideTestModal({
             <Monitor className="h-4 w-4 text-gray-600" />
             <span className="text-sm font-medium text-gray-700">Live Browser Session</span>
           </div>
-          
+
           <div className="flex-1 relative overflow-hidden">
             {sessionExpired ? (
               <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
@@ -369,7 +370,7 @@ export default function SideBySideTestModal({
                   {/* Progress Bar */}
                   <div className="mb-6">
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                      <div 
+                      <div
                         className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
                       />
@@ -433,9 +434,15 @@ export default function SideBySideTestModal({
               <iframe
                 src={sessionData.iframeUrl}
                 className="absolute inset-0 w-full h-full border-0"
-                sandbox="allow-same-origin allow-scripts"
-                allow="clipboard-read; clipboard-write"
-                title="Test Environment Session"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+                allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
+                loading="eager"
+                title="BrowserBase Session"
+                style={{
+                  transform: 'translateZ(0)',
+                  willChange: 'transform',
+                  backfaceVisibility: 'hidden'
+                }}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
