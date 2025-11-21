@@ -499,13 +499,30 @@ const runPinExtension = async (sessionId) => {
 
     if (isPinned) {
       console.log('[PIN-EXTENSION] ✅ Extension successfully pinned to toolbar');
-      return { success: true, pinned: true };
     } else {
       console.log('[PIN-EXTENSION] ⚠️  Pin toggle clicked but state not verified as pinned');
       console.log('[PIN-EXTENSION] Verification result:', JSON.stringify(verifyResult, null, 2));
-      // Still return success since we clicked it - the state might update later
-      return { success: true, pinned: false, warning: 'State verification failed', verifyResult };
+      // Continue anyway - the state might update later
     }
+
+    // Navigate to a real page to initialize the extension rendering context
+    // This helps "prime" the popup so it renders properly on first click
+    console.log('[PIN-EXTENSION] 🌐 Navigating to example.com to initialize extension context...');
+    try {
+      await page.goto('https://example.com', { waitUntil: 'domcontentloaded', timeout: 10000 });
+      console.log('[PIN-EXTENSION] ✅ Navigation complete');
+      
+      // Wait for the page and extension to fully settle
+      console.log('[PIN-EXTENSION] ⏳ Waiting for extension context to initialize...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('[PIN-EXTENSION] ✅ Extension context should now be initialized');
+      
+    } catch (navError) {
+      console.warn('[PIN-EXTENSION] ⚠️  Navigation to example.com failed:', navError.message);
+      console.warn('[PIN-EXTENSION] Continuing anyway...');
+    }
+
+    return { success: true, pinned: isPinned };
 
   } catch (err) {
     console.error('[PIN-EXTENSION] ❌ Extension pinning failed');

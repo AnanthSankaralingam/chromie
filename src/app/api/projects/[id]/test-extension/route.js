@@ -78,11 +78,24 @@ export async function POST(request, { params }) {
     })
 
     // Automatically pin the extension to toolbar
-    // Run in background without blocking the response
-    runPinExtension(session.sessionId).catch((err) => {
-      console.error("Failed to pin extension:", err.message)
-      // Don't throw - this is a non-critical operation
-    })
+    // WAIT for pinning to complete to avoid race condition with popup rendering
+    console.log("📌 Starting extension pinning process...")
+    try {
+      const pinResult = await runPinExtension(session.sessionId)
+      if (pinResult.success) {
+        console.log("✅ Extension pinned successfully:", pinResult)
+      } else {
+        console.warn("⚠️ Extension pinning failed but continuing:", pinResult.error)
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to pin extension:", err.message)
+      // Don't throw - this is a non-critical operation, continue with session
+    }
+    
+    // Add a small additional delay to ensure extension state is fully settled
+    console.log("⏳ Waiting for extension state to settle...")
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log("✅ Extension ready for testing")
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')
