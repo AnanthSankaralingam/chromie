@@ -14,7 +14,6 @@ function ExtensionPopupRenderer({
   const [popupStyles, setPopupStyles] = useState("")
   const [cspError, setCspError] = useState(false)
   const [usePopupWindow, setUsePopupWindow] = useState(false)
-  const [extensionType, setExtensionType] = useState('popup') // 'popup' or 'sidepanel'
   const iframeRef = useRef(null)
 
   useEffect(() => {
@@ -27,42 +26,6 @@ function ExtensionPopupRenderer({
       onRenderStateChange?.(false)
     }
   }, [extensionFiles, onRenderStateChange])
-
-  // Ensure iframe is properly rendered when content changes
-  // Sidepanel extensions may need slightly longer delay due to larger content
-  useEffect(() => {
-    if (popupContent && iframeRef.current && !usePopupWindow) {
-      // Slightly longer delay for sidepanel (larger content), shorter for popup
-      const delay = extensionType === 'sidepanel' ? 300 : 200
-      
-      setTimeout(() => {
-        const iframe = iframeRef.current
-        if (iframe && iframe.contentWindow) {
-          try {
-            // Focus the iframe to trigger proper rendering
-            // This fixes the issue where popup/sidepanel content doesn't show until window focus changes
-            iframe.focus()
-            iframe.contentWindow.focus()
-            
-            // For sidepanel, also trigger a scroll to ensure full rendering
-            if (extensionType === 'sidepanel' && iframe.contentWindow.document) {
-              try {
-                iframe.contentWindow.scrollTo(0, 0)
-                // Force a reflow
-                iframe.contentWindow.document.body?.offsetHeight
-              } catch (e) {
-                // Cross-origin restrictions may prevent access
-                console.log('Could not access sidepanel document:', e.message)
-              }
-            }
-          } catch (e) {
-            // Cross-origin restrictions may prevent access
-            console.log('Could not focus iframe content window:', e.message)
-          }
-        }
-      }, delay)
-    }
-  }, [popupContent, usePopupWindow, extensionType])
 
   const parseExtensionFiles = () => {
     const popupHTML = extensionFiles.find(f => f.file_path === 'popup.html')
@@ -96,11 +59,9 @@ function ExtensionPopupRenderer({
 
     if (popupHTML) {
       // Handle popup-based extensions
-      setExtensionType('popup')
       renderPopupInterface(popupHTML, popupCSS)
     } else if (sidePanelHTML) {
       // Handle side panel extensions
-      setExtensionType('sidepanel')
       renderSidePanelInterface(sidePanelHTML, popupCSS)
     } else if (contentJS) {
       // Handle overlay/content script extensions
@@ -597,48 +558,6 @@ function ExtensionPopupRenderer({
     setCspError(true)
   }
 
-  const handleIframeLoad = () => {
-    // Ensure iframe content is properly rendered by focusing it
-    // This fixes the issue where popup/sidepanel content doesn't show until window focus changes
-    if (iframeRef.current) {
-      try {
-        // Focus the iframe to trigger rendering
-        iframeRef.current.focus()
-        
-        // Also try to focus the iframe's content window if accessible
-        const iframeWindow = iframeRef.current.contentWindow
-        if (iframeWindow) {
-          // Slightly longer delay for sidepanel (larger content)
-          const delay = extensionType === 'sidepanel' ? 150 : 100
-          
-          setTimeout(() => {
-            try {
-              iframeWindow.focus()
-              // Force a repaint by accessing the document
-              const iframeDoc = iframeWindow.document
-              if (iframeDoc && iframeDoc.body) {
-                // Trigger a reflow to ensure rendering
-                iframeDoc.body.offsetHeight
-                
-                // For sidepanel, also trigger a scroll to ensure full rendering
-                if (extensionType === 'sidepanel') {
-                  iframeWindow.scrollTo(0, 0)
-                  // Force another reflow after scroll
-                  iframeDoc.body.offsetHeight
-                }
-              }
-            } catch (e) {
-              // Cross-origin restrictions may prevent access, which is fine
-              console.log('Could not access iframe content window:', e.message)
-            }
-          }, delay)
-        }
-      } catch (e) {
-        console.log('Error focusing iframe:', e.message)
-      }
-    }
-  }
-
   const openInNewWindow = () => {
     const newWindow = window.open('', '_blank', 'width=800,height=600')
     if (newWindow) {
@@ -708,19 +627,15 @@ function ExtensionPopupRenderer({
             srcDoc={popupContent}
             className="w-full border-0"
             sandbox="allow-same-origin"
-            title={extensionType === 'sidepanel' ? 'Extension Side Panel Preview' : 'Extension Popup Preview'}
+            title="Extension Popup Preview"
             style={{ 
               background: 'white',
               minHeight: '400px',
               height: 'auto',
               borderRadius: '12px',
               border: 'none',
-              outline: 'none',
-              display: 'block',
-              visibility: 'visible',
-              opacity: 1
+              outline: 'none'
             }}
-            onLoad={handleIframeLoad}
             onError={handleIframeError}
           />
         </div>
