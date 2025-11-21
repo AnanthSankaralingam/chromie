@@ -49,6 +49,20 @@ const runPinExtension = async (sessionId) => {
       console.log('[PIN-EXTENSION] ✅ Already on chrome://extensions page');
     }
 
+    // Focus the window to trigger rendering lifecycle for popup/sidepanel extensions
+    // This ensures Chrome fully paints/renders the extension UI before pinning
+    console.log('[PIN-EXTENSION] 🎯 Focusing browser window to trigger rendering...');
+    try {
+      await page.bringToFront();
+      console.log('[PIN-EXTENSION] ✅ Window focused');
+      // Small delay to allow focus event to propagate and rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[PIN-EXTENSION] ✅ Focus event processed');
+    } catch (focusError) {
+      console.warn('[PIN-EXTENSION] ⚠️  Failed to focus window (non-critical):', focusError.message);
+      // Continue anyway - this is a best-effort optimization
+    }
+
     // Wait for the extensions page to load and shadow DOM to be ready
     console.log('[PIN-EXTENSION] ⏳ Waiting for extensions-manager element...');
     await page.waitForSelector('extensions-manager', { timeout: 10000 });
