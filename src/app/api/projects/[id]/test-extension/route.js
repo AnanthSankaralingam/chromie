@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
-import { runFocusStage } from "@/lib/scripts/focus-stage"
 import { runPinExtension } from "@/lib/scripts/pin-extension"
 
 export async function POST(request, { params }) {
@@ -78,18 +77,12 @@ export async function POST(request, { params }) {
       connectUrl: session.connectUrl
     })
 
-    // Run focus stage first, then pin extension
+    // Automatically pin the extension to toolbar
     // Run in background without blocking the response
-    runFocusStage(session.sessionId)
-      .then(() => {
-        console.log("✅ Focus stage completed, starting pin extension flow")
-        // After focus stage completes, run pin extension
-        return runPinExtension(session.sessionId)
-      })
-      .catch((err) => {
-        console.error("Failed in focus/pin flow:", err.message)
-        // Don't throw - these are non-critical operations
-      })
+    runPinExtension(session.sessionId).catch((err) => {
+      console.error("Failed to pin extension:", err.message)
+      // Don't throw - this is a non-critical operation
+    })
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')
