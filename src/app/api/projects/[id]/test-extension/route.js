@@ -80,30 +80,31 @@ export async function POST(request, { params }) {
 
     // Automatically pin the extension to toolbar
     // Run in background without blocking the response
-    runPinExtension(session.sessionId)
-      .then((pinResult) => {
-        const resultSummary = {
-          success: pinResult?.success ?? false,
-          pinned: pinResult?.pinned ?? false,
-          alreadyPinned: pinResult?.alreadyPinned ?? false,
-          warning: pinResult?.warning,
-          error: pinResult?.error
-        }
-
-        console.log("[api/projects/test-extension] Pin extension result:", resultSummary)
-      })
-      .catch((err) => {
-        console.error("Failed to pin extension:", err.message)
-        // Don't throw - this is a non-critical operation
-      })
-
-    // Always trigger a focus refresh so popup/sidepanel renders even if pinning fails
+    // Always trigger a focus refresh first so popup/sidepanel renders even if pinning fails
     runFocusExtensionSurface(session.sessionId)
       .then((focusResult) => {
         console.log("[api/projects/test-extension] Focus action complete:", focusResult)
       })
       .catch((focusError) => {
         console.error("[api/projects/test-extension] Focus action failed:", focusError.message)
+      })
+      .finally(() => {
+        runPinExtension(session.sessionId)
+          .then((pinResult) => {
+            const resultSummary = {
+              success: pinResult?.success ?? false,
+              pinned: pinResult?.pinned ?? false,
+              alreadyPinned: pinResult?.alreadyPinned ?? false,
+              warning: pinResult?.warning,
+              error: pinResult?.error
+            }
+
+            console.log("[api/projects/test-extension] Pin extension result:", resultSummary)
+          })
+          .catch((err) => {
+            console.error("Failed to pin extension:", err.message)
+            // Don't throw - this is a non-critical operation
+          })
       })
 
     // Skip database storage since browser_sessions table doesn't exist
