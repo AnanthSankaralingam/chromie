@@ -103,30 +103,39 @@ if (import.meta.url === \`file://\${process.argv[1]}\`) {
 </browseruse_script_format>
 
 <test_task_requirements>
-Create specific task descriptions based on the extension type:
+Create specific task descriptions based on the extension type, following BrowserUse best practices:
+
+1. BE SPECIFIC & NUMBERED:
+   - Break tasks into clear, numbered steps
+   - Avoid open-ended instructions like "test the extension"
+   - Example: "1. Go to https://example.com 2. Click button 'Submit' 3. Verify text 'Success'"
+
+2. NAME ACTIONS DIRECTLY:
+   - Explicitly state which actions to use
+   - "Use click action on..."
+   - "Use type action to enter..."
+   - "Use scroll action to..."
+   - "Use extract action to get..."
+
+3. HANDLE INTERACTION PROBLEMS:
+   - Include keyboard navigation fallbacks
+   - Example: "If click fails, use send_keys with 'Tab' and 'Enter'"
+
+4. ERROR RECOVERY:
+   - Define what to do if a step fails
+   - Example: "If page doesn't load, refresh and wait 5 seconds"
 
 FOR SIDE PANEL EXTENSIONS:
-- Task: "Navigate to [relevant URL], click the extension icon to open the side panel, interact with [specific controls], and verify [expected behavior]"
-- Include multiple tasks to test different features
+- Task: "1. Navigate to [relevant URL] 2. Click extension icon to open side panel 3. Use click action on [specific controls] 4. Verify [expected behavior]"
 
 FOR POPUP EXTENSIONS:
-- Task: "Navigate to [relevant URL], click the extension icon to open the popup, click [specific buttons], and verify [expected behavior]"
-- Test popup interactions and any webpage modifications
+- Task: "1. Navigate to [relevant URL] 2. Click extension icon to open popup 3. Use click action on [specific buttons] 4. Verify [expected behavior]"
 
 FOR OVERLAY/CONTENT SCRIPT EXTENSIONS:
-- Task: "Navigate to [specific target website], verify the overlay appears with [specific elements], click [specific buttons], and verify [expected outcomes]"
-- Test the overlay UI and webpage interactions
+- Task: "1. Navigate to [specific target website] 2. Verify overlay appears 3. Use click action on [specific elements] 4. Verify [expected outcomes]"
 
 FOR GENERIC EXTENSIONS:
-- Task: "Navigate to [relevant URL], interact with the extension through [specific method], perform [specific actions], and verify [expected results]"
-- Test the core functionality described in the user request
-
-IMPORTANT:
-1. Use REAL URLs that are relevant to the extension (e.g., if it's a YouTube extension, use actual YouTube URLs)
-2. Be SPECIFIC about UI elements to interact with based on the extension files you analyzed
-3. Break complex tests into multiple sequential tasks (result1, result2, etc.)
-4. Each task should be a complete, self-contained test instruction
-5. Include verification steps in each task description
+- Task: "1. Navigate to [relevant URL] 2. Interact with extension via [specific method] 3. Perform [specific actions] 4. Verify [expected results]"
 </test_task_requirements>
 
 <customization_guidelines>
@@ -139,7 +148,7 @@ Based on the extension files provided:
 6. Test the EXACT functionality from the user's original request
 
 Example for a note-taking extension:
-- "Navigate to chrome://newtab/, open the side panel, click the 'Add Note' button with ID 'add-note-btn', type 'Test note' into the textarea with ID 'note-input', click 'Save' button, and verify the note appears in the notes list"
+- "1. Navigate to chrome://newtab/ 2. Open side panel 3. Use click action on button with ID 'add-note-btn' 4. Use type action to enter 'Test note' into textarea '#note-input' 5. Use click action on 'Save' button 6. Verify note appears in list 7. If save fails, use send_keys 'Enter' to submit"
 </customization_guidelines>
 
 Generate the complete executable script now.
@@ -173,7 +182,7 @@ CRITICAL INSTRUCTIONS:
     // Check if response contains thinking/planning text
     if (testScript.includes('**') || testScript.toLowerCase().includes('okay, so') || testScript.toLowerCase().includes("i've got")) {
       console.warn("⚠️ LLM returned thinking instead of code, attempting to extract code...")
-      
+
       // Try to find code block
       const codeBlockMatch = testScript.match(/```(?:javascript)?\s*([\s\S]*?)\s*```/)
       if (codeBlockMatch) {
@@ -217,7 +226,7 @@ CRITICAL INSTRUCTIONS:
 
   } catch (error) {
     console.error("❌ Error generating BrowserUse test script:", error)
-    
+
     // Return a fallback test script if generation fails
     return `import { Hyperbrowser } from "@hyperbrowser/sdk";
 
