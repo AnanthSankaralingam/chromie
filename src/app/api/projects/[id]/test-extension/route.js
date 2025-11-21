@@ -4,6 +4,7 @@ import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
 import { runPinExtension } from "@/lib/scripts/pin-extension"
+import { runFocusExtensionSurface } from "@/lib/scripts/focus-extension-surface"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -79,10 +80,36 @@ export async function POST(request, { params }) {
 
     // Automatically pin the extension to toolbar
     // Run in background without blocking the response
-    runPinExtension(session.sessionId).catch((err) => {
-      console.error("Failed to pin extension:", err.message)
-      // Don't throw - this is a non-critical operation
-    })
+    runPinExtension(session.sessionId)
+      .then((pinResult) => {
+        const resultSummary = {
+          success: pinResult?.success ?? false,
+          pinned: pinResult?.pinned ?? false,
+          alreadyPinned: pinResult?.alreadyPinned ?? false,
+          warning: pinResult?.warning,
+          error: pinResult?.error
+        }
+
+        console.log("[api/projects/test-extension] Pin extension result:", resultSummary)
+
+        const shouldFocus = Boolean(pinResult && (pinResult.alreadyPinned || pinResult.pinned))
+        if (!shouldFocus) {
+          console.log("[api/projects/test-extension] Skipping focus action (extension not confirmed pinned)")
+          return null
+        }
+
+        return runFocusExtensionSurface(session.sessionId)
+          .then((focusResult) => {
+            console.log("[api/projects/test-extension] Focus action complete:", focusResult)
+          })
+          .catch((focusError) => {
+            console.error("[api/projects/test-extension] Focus action failed:", focusError.message)
+          })
+      })
+      .catch((err) => {
+        console.error("Failed to pin extension:", err.message)
+        // Don't throw - this is a non-critical operation
+      })
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')

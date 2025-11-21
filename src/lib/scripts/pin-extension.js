@@ -499,18 +499,6 @@ const runPinExtension = async (sessionId) => {
 
     if (isPinned) {
       console.log('[PIN-EXTENSION] ✅ Extension successfully pinned to toolbar');
-      
-      // Bring window to front to ensure proper rendering for popup/sidepanel extensions
-      console.log('[PIN-EXTENSION] 🎯 Bringing window to front for proper rendering...');
-      try {
-        await page.bringToFront();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        console.log('[PIN-EXTENSION] ✅ Window brought to front');
-      } catch (focusErr) {
-        console.warn('[PIN-EXTENSION] ⚠️  Could not bring window to front:', focusErr.message);
-        // Non-fatal, continue anyway
-      }
-      
       return { success: true, pinned: true };
     } else {
       console.log('[PIN-EXTENSION] ⚠️  Pin toggle clicked but state not verified as pinned');

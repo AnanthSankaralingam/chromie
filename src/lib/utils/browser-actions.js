@@ -113,36 +113,6 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
 }
 
 /**
- * Bring browser window to front and focus the current page
- * This helps with rendering issues in remote browsers where UI doesn't fully paint until focused
- * @param {string} sessionId - Hyperbrowser session ID
- * @param {string} apiKey - Hyperbrowser API key
- * @returns {Promise<boolean>} success
- */
-export async function focusWindow(sessionId, apiKey) {
-  try {
-    console.log("[BROWSER-ACTIONS] 🎯 focusWindow called")
-    console.log("[BROWSER-ACTIONS] Session ID:", sessionId)
-    
-    const { page } = await getPlaywrightSessionContext(sessionId, apiKey)
-    
-    // Bring page to front - this triggers rendering in remote browsers
-    console.log("[BROWSER-ACTIONS] 🔄 Bringing page to front...")
-    await page.bringToFront()
-    console.log("[BROWSER-ACTIONS] ✅ Page brought to front")
-    
-    // Small delay to ensure rendering completes
-    await new Promise(resolve => setTimeout(resolve, 500))
-    console.log("[BROWSER-ACTIONS] ✅ Window focus complete")
-    
-    return true
-  } catch (e) {
-    console.error("[BROWSER-ACTIONS] ❌ Window focus failed:", e?.message)
-    return false
-  }
-}
-
-/**
  * Navigate the active page to a URL (thin wrapper around Playwright page.goto)
  * @param {string} sessionId - Hyperbrowser session ID
  * @param {string} url - URL to navigate to (used as-is, no formatting)

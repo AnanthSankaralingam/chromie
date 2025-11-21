@@ -11,6 +11,7 @@ import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 import PersonaChipCarousel from "@/components/ui/persona-chip-carousel"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -254,8 +255,18 @@ export default function HomePage() {
 
         {/* Animated Background Blobs */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          {/* Flickering Grid Background */}
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+          
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px]"
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.15, 0.25, 0.15],
@@ -267,7 +278,7 @@ export default function HomePage() {
             }}
           />
           <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px]"
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.1, 0.2, 0.1],

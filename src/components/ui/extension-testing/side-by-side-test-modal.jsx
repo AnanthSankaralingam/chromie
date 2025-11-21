@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye, Focus } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
@@ -26,8 +26,6 @@ export default function SideBySideTestModal({
   const [isNavigating, setIsNavigating] = useState(false)
   const [navigationError, setNavigationError] = useState(null)
   const [loadingStage, setLoadingStage] = useState(0)
-  const [isFocusing, setIsFocusing] = useState(false)
-  const [focusSuccess, setFocusSuccess] = useState(false)
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
@@ -188,39 +186,6 @@ export default function SideBySideTestModal({
     }
   }
 
-  // Handle window focus - helps with popup/sidepanel rendering
-  const handleFocusWindow = async () => {
-    if (!sessionData?.sessionId || !projectId) {
-      return
-    }
-
-    setIsFocusing(true)
-    setFocusSuccess(false)
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/test-extension/focus`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionData.sessionId
-        })
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setFocusSuccess(true)
-        setTimeout(() => setFocusSuccess(false), 2000) // Clear success indicator after 2s
-      }
-    } catch (error) {
-      console.error("Failed to focus window:", error)
-    } finally {
-      setIsFocusing(false)
-    }
-  }
-
   // Handle HyperAgent test execution
   const handleRunHyperAgentTest = async () => {
     if (!sessionData?.sessionId || !projectId) {
@@ -371,32 +336,6 @@ export default function SideBySideTestModal({
                   )}
                   {isNavigating ? "Opening..." : "Open in New Tab"}
                 </Button>
-                <div className="group relative">
-                  <Button
-                    onClick={handleFocusWindow}
-                    disabled={isFocusing}
-                    size="sm"
-                    className={cn(
-                      "bg-gradient-to-r disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all",
-                      focusSuccess 
-                        ? "from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600" 
-                        : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-                    )}
-                    title="Bring window to front - fixes popup/sidepanel rendering"
-                  >
-                    {isFocusing ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : focusSuccess ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      <Focus className="h-4 w-4" />
-                    )}
-                    {isFocusing ? "Focusing..." : focusSuccess ? "Focused!" : "Focus"}
-                  </Button>
-                  <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                    Click if popup/sidepanel UI doesn't show up
-                  </div>
-                </div>
               </div>
             </div>
           </div>
