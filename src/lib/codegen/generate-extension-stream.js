@@ -5,6 +5,7 @@ import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel";
 import { NEW_EXT_NEW_TAB_PROMPT } from "../prompts/new-extension/new-tab";
 import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "../prompts/new-extension/content-injection";
 import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs";
+import { generateBrowserUseInstructions } from "../prompts/new-extension/browser-use-instructions";
 import { batchScrapeWebpages } from "../webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
@@ -100,10 +101,12 @@ export async function* generateChromeExtensionStream({
         matchedUseCase: planningResult.useCaseResult.matched_use_case,
         codeSnippet: planningResult.codeSnippet,
         planningResult: planningResult, // Store original for later re-formatting with webpage data
-        planningOutputs: formatPlanningOutputs(planningResult),
+        planningOutputs: formatPlanningOutputs(planningResult, null, null, null, featureRequest),
         workspaceAPIs: planningResult.workspaceAPIs || [],
         usesWorkspaceAPIs: planningResult.usesWorkspaceAPIs || false,
-        workspaceScopes: planningResult.workspaceScopes || []
+        workspaceScopes: planningResult.workspaceScopes || [],
+        requiresBrowserUse: planningResult.requiresBrowserUse || false,
+        browserUseTasks: planningResult.browserUseTasks || []
       }
 
       planningTokenUsage = planningResult.tokenUsage
@@ -336,7 +339,8 @@ export async function* generateChromeExtensionStream({
         planningResult,
         scrapedWebpageAnalysis,
         scrapeStatusCode,
-        userProvidedApis
+        userProvidedApis,
+        finalUserPrompt
       );
       
       console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data and user APIs:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
@@ -346,6 +350,15 @@ export async function* generateChromeExtensionStream({
         USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
         EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES
       };
+      
+      // Add browser-use instructions if needed
+      if (requirementsAnalysis.requiresBrowserUse && requirementsAnalysis.browserUseTasks) {
+        const browserUseInstructions = generateBrowserUseInstructions(requirementsAnalysis.browserUseTasks);
+        replacements.BROWSER_USE_INTEGRATION = browserUseInstructions;
+        console.log('🤖 [generate-extension-stream] Browser-Use AI agent integration will be included');
+      } else {
+        replacements.BROWSER_USE_INTEGRATION = '';
+      }
     }
 
     console.log("🚀 Starting streaming code generation...");

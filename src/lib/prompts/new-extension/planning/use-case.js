@@ -15,8 +15,12 @@ export const USE_CASE_CHROME_APIS_PROMPT = `You are a Chrome extension use case 
 </task>
 
 <chrome_api_examples>
-Common APIs: "storage", "tabs", "bookmarks", "notifications", "identity", "scripting", "alarms", "contextMenus", "history", "webRequest", "cookies", "windows", "action", "tabGroups", "downloads", "runtime", "identity"
+Common APIs: "storage", "tabs", "bookmarks", "notifications", "identity", "scripting", "alarms", "contextMenus", "history", "webRequest", "cookies", "windows", "action", "tabGroups", "downloads", "runtime", "identity", "tabCapture", "offscreen"
 </chrome_api_examples>
+
+<special_instructions>
+- For ANY audio/video recording or stream capturing (e.g., recording meetings, capturing tab audio), you MUST include "tabCapture" and "offscreen" in the required_chrome_apis list. This is critical for Manifest V3 compliance.
+</special_instructions>
 
 <output_schema>
 {

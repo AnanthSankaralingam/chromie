@@ -2,6 +2,7 @@ import { llmService } from '../services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '../prompts/new-extension/planning/use-case.js'
 import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '../prompts/new-extension/planning/external-resources.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '../prompts/new-extension/planning/frontend-selection.js'
+import { BROWSER_USE_DETECTION_PROMPT, BROWSER_USE_DETECTION_PREFILL } from '../prompts/new-extension/planning/browser-use-detection.js'
 import useCasesData from '../data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
 import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
@@ -25,16 +26,18 @@ export async function orchestratePlanning(featureRequest) {
   console.log('📝 Feature Request:', featureRequest.substring(0, 150) + '...')
 
   try {
-    // Step 1: Parallel calls to use-case and external-resources prompts
-    console.log('🔄 [Planning Orchestrator] Making parallel calls to use-case and external-resources prompts...')
+    // Step 1: Parallel calls to use-case, external-resources, and browser-use detection prompts
+    console.log('🔄 [Planning Orchestrator] Making parallel calls to use-case, external-resources, and browser-use detection prompts...')
 
-    const [useCaseResponse, externalResourcesResponse] = await Promise.all([
+    const [useCaseResponse, externalResourcesResponse, browserUseResponse] = await Promise.all([
       callUseCasePrompt(featureRequest),
-      callExternalResourcesPrompt(featureRequest)
+      callExternalResourcesPrompt(featureRequest),
+      callBrowserUseDetectionPrompt(featureRequest)
     ])
 
     console.log('📊 Use Case Result:', JSON.stringify(useCaseResponse.result, null, 2))
     console.log('📊 External Resources Result:', JSON.stringify(externalResourcesResponse.result, null, 2))
+    console.log('📊 Browser-Use Detection Result:', JSON.stringify(browserUseResponse.result, null, 2))
 
     // Step 2: Sequential call to frontend-selection prompt
     console.log('🔄 [Planning Orchestrator] Calling frontend-selection prompt...')
@@ -53,10 +56,12 @@ export async function orchestratePlanning(featureRequest) {
     const totalTokenUsage = {
       prompt_tokens: (useCaseResponse.tokenUsage.prompt_tokens || 0) +
                      (externalResourcesResponse.tokenUsage.prompt_tokens || 0) +
-                     (frontendSelectionResponse.tokenUsage.prompt_tokens || 0),
+                     (frontendSelectionResponse.tokenUsage.prompt_tokens || 0) +
+                     (browserUseResponse.tokenUsage.prompt_tokens || 0),
       completion_tokens: (useCaseResponse.tokenUsage.completion_tokens || 0) +
                         (externalResourcesResponse.tokenUsage.completion_tokens || 0) +
-                        (frontendSelectionResponse.tokenUsage.completion_tokens || 0),
+                        (frontendSelectionResponse.tokenUsage.completion_tokens || 0) +
+                        (browserUseResponse.tokenUsage.completion_tokens || 0),
       total_tokens: 0,
       model: PLANNING_MODEL
     }
@@ -81,6 +86,7 @@ export async function orchestratePlanning(featureRequest) {
     const unifiedOutput = {
       use_case: useCaseResponse.result,
       external_resources: externalResourcesResponse.result,
+      browser_use: browserUseResponse.result,
       frontend_type: frontendSelectionResponse.result.frontend_type,
       workspace_apis: workspaceApis.map(a => a.name),
       workspace_scopes: workspaceScopes,
@@ -90,17 +96,24 @@ export async function orchestratePlanning(featureRequest) {
 
     console.log('📋 [Planning Orchestrator] Unified Planning Output:')
     console.log(JSON.stringify(unifiedOutput, null, 2))
+    
+    if (browserUseResponse.result.requires_browser_use) {
+      console.log('🤖 [Planning Orchestrator] Browser-Use AI agent will be integrated for intelligent tasks')
+    }
 
     // Step 7: Return aggregated planning data
     return {
       useCaseResult: useCaseResponse.result,
       externalResourcesResult: externalResourcesResponse.result,
+      browserUseResult: browserUseResponse.result,
       frontendType: frontendSelectionResponse.result.frontend_type,
       codeSnippet: codeSnippet,
       tokenUsage: totalTokenUsage,
       workspaceAPIs: workspaceApis,
       usesWorkspaceAPIs: usesWorkspaceAPIs,
-      workspaceScopes: workspaceScopes
+      workspaceScopes: workspaceScopes,
+      requiresBrowserUse: browserUseResponse.result.requires_browser_use || false,
+      browserUseTasks: browserUseResponse.result.browser_use_tasks || []
     }
 
   } catch (error) {
@@ -204,6 +217,50 @@ async function callExternalResourcesPrompt(featureRequest) {
         external_apis: [],
         webpages_to_scrape: [],
         no_external_needed: true
+      },
+      tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    }
+  }
+}
+
+/**
+ * Call the browser-use detection prompt
+ * @param {string} featureRequest - User's feature request
+ * @returns {Promise<Object>} Browser-use detection result and token usage
+ */
+async function callBrowserUseDetectionPrompt(featureRequest) {
+  const prompt = BROWSER_USE_DETECTION_PROMPT.replace('{USER_REQUEST}', featureRequest)
+
+  try {
+    const response = await llmService.createResponse({
+      provider: PLANNING_PROVIDER,
+      model: PLANNING_MODEL,
+      input: [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: BROWSER_USE_DETECTION_PREFILL }
+      ],
+      temperature: 0.3,
+      max_output_tokens: 512
+    })
+
+    const result = parseJsonResponse(response.output_text, BROWSER_USE_DETECTION_PREFILL)
+
+    return {
+      result,
+      tokenUsage: {
+        prompt_tokens: response.usage?.prompt_tokens || 0,
+        completion_tokens: response.usage?.completion_tokens || 0,
+        total_tokens: response.usage?.total_tokens || 0
+      }
+    }
+  } catch (error) {
+    console.error('❌ [Planning Orchestrator] Error calling browser-use detection prompt:', error)
+    // Return fallback result - assume no browser-use needed if detection fails
+    return {
+      result: {
+        requires_browser_use: false,
+        browser_use_tasks: [],
+        standard_tasks: []
       },
       tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     }
@@ -334,11 +391,11 @@ function parseJsonResponse(outputText, prefill) {
  * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
  * @returns {Object} Formatted strings for prompt replacement
  */
-export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
+export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null, featureRequest = '') {
   const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
 
   // Format use case and Chrome APIs
-  const useCaseFormatted = formatUseCaseOutput(useCaseResult)
+  const useCaseFormatted = formatUseCaseOutput(useCaseResult, featureRequest)
 
   // Format external resources (with webpage data if available and successful, and user-provided APIs)
   const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode, userProvidedApis)
@@ -356,9 +413,10 @@ export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = n
 /**
  * Format use case output for prompt
  * @param {Object} useCaseResult - Use case detection result
+ * @param {string} featureRequest - User's feature request for keyword detection
  * @returns {string} Formatted markdown
  */
-function formatUseCaseOutput(useCaseResult) {
+function formatUseCaseOutput(useCaseResult, featureRequest = '') {
   const { matched_use_case, required_chrome_apis } = useCaseResult
 
   let output = ''
@@ -375,15 +433,47 @@ function formatUseCaseOutput(useCaseResult) {
     }
   }
 
+  // Ensure offscreen API is included if tabCapture is present (required for MV3 recording)
+  const apiList = [...(required_chrome_apis || [])];
+  
+  // Robust detection for audio/video recording keywords
+  const recordingKeywords = [
+    'record', 
+    'capture audio', 
+    'capture video', 
+    'monitor meeting', 
+    'meeting audio', 
+    'tab audio', 
+    'stream audio',
+    'transcribe',
+    'listening',
+    'hear',
+    'audio stream',
+    'screen recording',
+    'system audio',
+    'record meeting',
+    'capture meeting'
+  ];
+  const isRecordingRequest = recordingKeywords.some(keyword => featureRequest.toLowerCase().includes(keyword));
+  
+  if (isRecordingRequest && !apiList.includes('tabCapture')) {
+    apiList.push('tabCapture');
+  }
+
+  if (apiList.includes('tabCapture') && !apiList.includes('offscreen')) {
+    apiList.push('offscreen');
+  }
+
   // Fetch and format Chrome API documentation
-  if (required_chrome_apis && required_chrome_apis.length > 0) {
+  if (apiList.length > 0) {
     output += `Recommended Chrome APIs\n\n`
 
-    for (const apiName of required_chrome_apis) {
+    for (const apiName of apiList) {
       const apiResult = searchChromeExtensionAPI(apiName)
 
       if (!apiResult.error) {
         output += `### chrome.${apiResult.name}\n`
+        output += `**Description**: ${apiResult.description || 'No description provided'}\n`
         output += `**Permissions**: ${
           Array.isArray(apiResult.permissions)
             ? apiResult.permissions.join(', ')
@@ -398,6 +488,28 @@ function formatUseCaseOutput(useCaseResult) {
         output += `*API documentation not found*\n\n`
       }
     }
+
+    // CRITICAL: Enforce Offscreen Pattern for Audio/Video Recording
+    if (apiList.includes('tabCapture') || apiList.includes('offscreen')) {
+      output += `\n### ⚠️ CRITICAL IMPLEMENTATION RULE: Audio/Video Recording\n`
+      output += `**Manifest V3 Restriction**: Service workers (background.js) CANNOT access \`navigator.mediaDevices.getUserMedia\`. You will get "Cannot read properties of undefined (reading 'getUserMedia')" error.\n\n`
+      output += `**MANDATORY ARCHITECTURE**:\n`
+      output += `1. **manifest.json**: Must include \`"permissions": ["offscreen", "tabCapture"]\`.\n`
+      output += `2. **offscreen.html**: Create a minimal HTML file to host the recording script.\n`
+      output += `3. **offscreen.js**: Handle \`navigator.mediaDevices.getUserMedia\` and \`MediaRecorder\` here. \n`
+      output += `   - Convert recorded Blobs to **Base64 strings** (reader.readAsDataURL).\n`
+      output += `   - Send Base64 data via \`chrome.runtime.sendMessage\`.\n`
+      output += `4. **background.js**: \n`
+      output += `   - Get \`streamId\` using \`chrome.tabCapture.getMediaStreamId\`.\n`
+      output += `   - Create offscreen document: \`await chrome.offscreen.createDocument({ url: 'offscreen.html', ... })\`.\n`
+      output += `   - Send \`streamId\` to offscreen document via \`chrome.runtime.sendMessage\`.\n`
+      output += `   - Proxy recording messages between offscreen and UI (sidepanel/popup).\n`
+      output += `5. **UI (sidepanel.js/popup.js)**: \n`
+      output += `   - Receive Base64 string.\n`
+      output += `   - Convert back to Blob/Source for playback/download if needed.\n`
+      output += `\nFAILURE TO FOLLOW THIS PATTERN WILL CAUSE THE EXTENSION TO FAIL.\n\n`
+    }
+
   } else {
     output += `## Chrome APIs\nNo specific Chrome APIs required for this extension.\n\n`
   }
