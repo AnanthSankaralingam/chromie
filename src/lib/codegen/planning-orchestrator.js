@@ -334,11 +334,11 @@ function parseJsonResponse(outputText, prefill) {
  * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
  * @returns {Object} Formatted strings for prompt replacement
  */
-export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
+export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null, featureRequest = '') {
   const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
 
   // Format use case and Chrome APIs
-  const useCaseFormatted = formatUseCaseOutput(useCaseResult)
+  const useCaseFormatted = formatUseCaseOutput(useCaseResult, featureRequest)
 
   // Format external resources (with webpage data if available and successful, and user-provided APIs)
   const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode, userProvidedApis)
@@ -356,9 +356,10 @@ export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = n
 /**
  * Format use case output for prompt
  * @param {Object} useCaseResult - Use case detection result
+ * @param {string} featureRequest - User's feature request for keyword detection
  * @returns {string} Formatted markdown
  */
-function formatUseCaseOutput(useCaseResult) {
+function formatUseCaseOutput(useCaseResult, featureRequest = '') {
   const { matched_use_case, required_chrome_apis } = useCaseResult
 
   let output = ''
@@ -375,15 +376,47 @@ function formatUseCaseOutput(useCaseResult) {
     }
   }
 
+  // Ensure offscreen API is included if tabCapture is present (required for MV3 recording)
+  const apiList = [...(required_chrome_apis || [])];
+  
+  // Robust detection for audio/video recording keywords
+  const recordingKeywords = [
+    'record', 
+    'capture audio', 
+    'capture video', 
+    'monitor meeting', 
+    'meeting audio', 
+    'tab audio', 
+    'stream audio',
+    'transcribe',
+    'listening',
+    'hear',
+    'audio stream',
+    'screen recording',
+    'system audio',
+    'record meeting',
+    'capture meeting'
+  ];
+  const isRecordingRequest = recordingKeywords.some(keyword => featureRequest.toLowerCase().includes(keyword));
+  
+  if (isRecordingRequest && !apiList.includes('tabCapture')) {
+    apiList.push('tabCapture');
+  }
+
+  if (apiList.includes('tabCapture') && !apiList.includes('offscreen')) {
+    apiList.push('offscreen');
+  }
+
   // Fetch and format Chrome API documentation
-  if (required_chrome_apis && required_chrome_apis.length > 0) {
+  if (apiList.length > 0) {
     output += `Recommended Chrome APIs\n\n`
 
-    for (const apiName of required_chrome_apis) {
+    for (const apiName of apiList) {
       const apiResult = searchChromeExtensionAPI(apiName)
 
       if (!apiResult.error) {
         output += `### chrome.${apiResult.name}\n`
+        output += `**Description**: ${apiResult.description || 'No description provided'}\n`
         output += `**Permissions**: ${
           Array.isArray(apiResult.permissions)
             ? apiResult.permissions.join(', ')
@@ -398,6 +431,28 @@ function formatUseCaseOutput(useCaseResult) {
         output += `*API documentation not found*\n\n`
       }
     }
+
+    // CRITICAL: Enforce Offscreen Pattern for Audio/Video Recording
+    if (apiList.includes('tabCapture') || apiList.includes('offscreen')) {
+      output += `\n### ⚠️ CRITICAL IMPLEMENTATION RULE: Audio/Video Recording\n`
+      output += `**Manifest V3 Restriction**: Service workers (background.js) CANNOT access \`navigator.mediaDevices.getUserMedia\`. You will get "Cannot read properties of undefined (reading 'getUserMedia')" error.\n\n`
+      output += `**MANDATORY ARCHITECTURE**:\n`
+      output += `1. **manifest.json**: Must include \`"permissions": ["offscreen", "tabCapture"]\`.\n`
+      output += `2. **offscreen.html**: Create a minimal HTML file to host the recording script.\n`
+      output += `3. **offscreen.js**: Handle \`navigator.mediaDevices.getUserMedia\` and \`MediaRecorder\` here. \n`
+      output += `   - Convert recorded Blobs to **Base64 strings** (reader.readAsDataURL).\n`
+      output += `   - Send Base64 data via \`chrome.runtime.sendMessage\`.\n`
+      output += `4. **background.js**: \n`
+      output += `   - Get \`streamId\` using \`chrome.tabCapture.getMediaStreamId\`.\n`
+      output += `   - Create offscreen document: \`await chrome.offscreen.createDocument({ url: 'offscreen.html', ... })\`.\n`
+      output += `   - Send \`streamId\` to offscreen document via \`chrome.runtime.sendMessage\`.\n`
+      output += `   - Proxy recording messages between offscreen and UI (sidepanel/popup).\n`
+      output += `5. **UI (sidepanel.js/popup.js)**: \n`
+      output += `   - Receive Base64 string.\n`
+      output += `   - Convert back to Blob/Source for playback/download if needed.\n`
+      output += `\nFAILURE TO FOLLOW THIS PATTERN WILL CAUSE THE EXTENSION TO FAIL.\n\n`
+    }
+
   } else {
     output += `## Chrome APIs\nNo specific Chrome APIs required for this extension.\n\n`
   }

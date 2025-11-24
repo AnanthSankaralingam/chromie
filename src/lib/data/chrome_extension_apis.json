@@ -128,12 +128,19 @@
       "code_snippet": "// manifest.json\n{\n  \"name\": \"My Side Panel Extension\",\n  \"manifest_version\": 3,\n  \"permissions\": [\"sidePanel\"],\n  \"side_panel\": {\n    \"default_path\": \"sidepanel.html\"\n  },\n  \"action\": {\n    \"default_title\": \"Open Side Panel\"\n  }\n}\n\n// background.js (service worker)\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });\n});"
     },
     {
+      "name": "offscreen",
+      "description": "Use the chrome.offscreen API to create and manage offscreen documents. CRITICAL for Manifest V3: Service workers cannot access DOM APIs like getUserMedia, clipboard, or parsing HTML. You MUST use an offscreen document for these tasks.",
+      "permissions": ["offscreen"],
+      "code_snippet": "// Create offscreen document\nawait chrome.offscreen.createDocument({\n  url: 'offscreen.html',\n  reasons: ['USER_MEDIA'],\n  justification: 'Recording from tab'\n});\n\n// Send message to offscreen document to start recording\nchrome.runtime.sendMessage({\n  type: 'start-recording',\n  target: 'offscreen',\n  data: { streamId }\n});"
+    },
+    {
       "name": "tabCapture",
-      "description": "Use the chrome.tabCapture API to interact with tab media streams. Access a MediaStream containing video and audio of the current tab. Can only be called after user invokes the extension (e.g., clicking action button), similar to activeTab permission behavior. When a MediaStream is obtained, audio playback to the user stops unless explicitly reconnected using AudioContext.",
+      "description": "Use the chrome.tabCapture API to capture the visible area of the active tab. CRITICAL: In Manifest V3, you CANNOT use getUserMedia in the background service worker. You MUST create an chrome.offscreen document to handle the MediaStream and MediaRecorder.",
       "permissions": [
-        "tabCapture"
+        "tabCapture",
+        "offscreen"
       ],
-      "code_snippet": "// Get media stream ID for current tab\nconst streamId = await chrome.tabCapture.getMediaStreamId({\n  targetTabId: tabId  // optional, defaults to active tab\n});\n\n// Use the stream ID with getUserMedia\nconst stream = await navigator.mediaDevices.getUserMedia({\n  audio: {\n    mandatory: {\n      chromeMediaSource: \"tab\",\n      chromeMediaSourceId: streamId\n    }\n  },\n  video: {\n    mandatory: {\n      chromeMediaSource: \"tab\",\n      chromeMediaSourceId: streamId\n    }\n  }\n});\n\n// Preserve audio playback to user\nconst output = new AudioContext();\nconst source = output.createMediaStreamSource(stream);\nsource.connect(output.destination);\n\n// Listen for capture status changes\nchrome.tabCapture.onStatusChanged.addListener((info) => {\n  console.log(`Tab ${info.tabId} capture status: ${info.status}`);\n});\n\n// Get list of currently captured tabs\nconst capturedTabs = await chrome.tabCapture.getCapturedTabs();"
+      "code_snippet": "// Background.js: Get streamId and pass to offscreen\nconst streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });\nawait chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA'], justification: 'Recording' });\nchrome.runtime.sendMessage({ type: 'start-recording', target: 'offscreen', streamId });\n\n// Offscreen.js: Handle stream\nnavigator.mediaDevices.getUserMedia({\n  audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } }\n}).then(stream => { /* Record */ });"
     },
     {
       "name": "MediaRecorder",
