@@ -100,7 +100,7 @@ export async function* generateChromeExtensionStream({
         matchedUseCase: planningResult.useCaseResult.matched_use_case,
         codeSnippet: planningResult.codeSnippet,
         planningResult: planningResult, // Store original for later re-formatting with webpage data
-        planningOutputs: formatPlanningOutputs(planningResult),
+        planningOutputs: formatPlanningOutputs(planningResult, null, null, null, featureRequest),
         workspaceAPIs: planningResult.workspaceAPIs || [],
         usesWorkspaceAPIs: planningResult.usesWorkspaceAPIs || false,
         workspaceScopes: planningResult.workspaceScopes || []
@@ -336,7 +336,8 @@ export async function* generateChromeExtensionStream({
         planningResult,
         scrapedWebpageAnalysis,
         scrapeStatusCode,
-        userProvidedApis
+        userProvidedApis,
+        finalUserPrompt
       );
       
       console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data and user APIs:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
