@@ -141,4 +141,45 @@ File Format Rules:
 - Target specific websites if listed in external_resources
 - Implement proper error handling, comments, and logging
 </implementation_guidelines>
+
+<console_logging_requirements>
+MANDATORY: Add comprehensive console.log statements throughout ALL JavaScript files to track extension behavior:
+
+**background.js (if exists):**
+- Log when service worker starts: console.log('[CHROMIE:BACKGROUND] Service worker started')
+- Log all event listeners: console.log('[CHROMIE:BACKGROUND] Event listener registered:', eventName)
+- Log all Chrome API calls with their inputs/outputs
+- Log errors with full context: console.error('[CHROMIE:BACKGROUND] Error:', error)
+
+**content.js:**
+- Log when script loads: console.log('[CHROMIE:CONTENT] Content script loaded on:', window.location.href)
+- Log all DOM manipulations: console.log('[CHROMIE:CONTENT] Injecting UI element')
+- Log all mutation observer callbacks
+- Log communication with background script
+- Log any errors encountered
+
+Use these prefixes consistently with CHROMIE label:
+- [CHROMIE:BACKGROUND] for background.js
+- [CHROMIE:CONTENT] for content.js
+
+Example logging pattern:
+\`\`\`javascript
+// At the start of each file
+console.log('[CHROMIE:COMPONENT] Script loaded');
+
+// Before/after important operations
+console.log('[CHROMIE:COMPONENT] Starting operation:', operationName);
+const result = await performOperation();
+console.log('[CHROMIE:COMPONENT] Operation complete:', result);
+
+// For errors
+try {
+  // operation
+} catch (error) {
+  console.error('[CHROMIE:COMPONENT] Error during operation:', error.message);
+}
+\`\`\`
+
+CRITICAL: Every single console.log, console.error, console.warn, and console.info MUST start with [CHROMIE:COMPONENT] where COMPONENT is the file type (BACKGROUND, CONTENT, etc.).
+</console_logging_requirements>
 `;

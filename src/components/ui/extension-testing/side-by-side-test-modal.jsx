@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
 import ProgressSpinner from "@/components/ui/loading/progress-spinner"
+import ConsoleLogViewer from "./console-log-viewer"
 
 export default function SideBySideTestModal({
   isOpen,
@@ -458,20 +459,29 @@ export default function SideBySideTestModal({
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Extension loaded</span>
-              </div>
-              {sessionData?.browserInfo && (
-                <span>
-                  {sessionData.browserInfo.viewport.width + 'x' + sessionData.browserInfo.viewport.height}
-                </span>
-              )}
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            {/* Console Log Viewer on the Left */}
+            <ConsoleLogViewer
+              sessionId={sessionData?.sessionId}
+              projectId={projectId}
+              isSessionActive={!sessionExpired && !isLoading && sessionData?.sessionId}
+            />
 
-            <div className="flex items-center space-x-4">
+            {/* Right Side - Status and Test Button */}
+            <div className="flex items-center space-x-4 flex-shrink-0">
+              {/* Extension Status */}
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <div className="flex items-center space-x-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Extension loaded</span>
+                </div>
+                {sessionData?.browserInfo && (
+                  <span>
+                    {sessionData.browserInfo.viewport.width + 'x' + sessionData.browserInfo.viewport.height}
+                  </span>
+                )}
+              </div>
+
               {/* HyperAgent Test Results */}
               {hyperAgentResult && (
                 <div className={cn(
@@ -507,7 +517,6 @@ export default function SideBySideTestModal({
                   </>
                 )}
               </Button>
-
             </div>
           </div>
         </div>
