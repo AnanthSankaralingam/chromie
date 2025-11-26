@@ -282,8 +282,7 @@ export async function batchScrapeWebpages(domains, userProvidedUrl = null, optio
     
     let detailedAnalysis = `## ${scrapedData.title.replace('Analysis for ', '')} Analysis${statusInfo}
 URL: ${scrapedData.url}
-Title: ${scrapedData.title}
-Timestamp: ${scrapedData.timestamp}`
+Title: ${scrapedData.title}`
 
     // **MODIFIED LOGIC: Generate report from the new `major_elements` format**
     if (hasMajorElements) {
@@ -296,12 +295,12 @@ Timestamp: ${scrapedData.timestamp}`
         detailedAnalysis += `\n- **CSS Selector:** \`${element.selector}\``
       }
       
-      // Simplified Extension Development Recommendations
-      detailedAnalysis += `\n\n## Extension Development Recommendations`
-      detailedAnalysis += `\n\n### Content Script Strategy:`
-      detailedAnalysis += `\n- **Targeting Elements:** Use \`document.querySelector()\` with the CSS selectors listed above to reliably interact with these key page components.`
-      detailedAnalysis += `\n- **Primary Targets:** Elements like \`main_content_area\`, \`global_header\`, and \`global_navigation_bar\` are stable starting points for adding features or extracting information.`
-      detailedAnalysis += `\n- **Dynamic Content:** For pages that load content dynamically, consider using a \`MutationObserver\` to watch for changes within these major elements.`
+      // // Simplified Extension Development Recommendations
+      // detailedAnalysis += `\n\n## Extension Development Recommendations`
+      // detailedAnalysis += `\n\n### Content Script Strategy:`
+      // detailedAnalysis += `\n- **Targeting Elements:** Use \`document.querySelector()\` with the CSS selectors listed above to reliably interact with these key page components.`
+      // detailedAnalysis += `\n- **Primary Targets:** Elements like \`main_content_area\`, \`global_header\`, and \`global_navigation_bar\` are stable starting points for adding features or extracting information.`
+      // detailedAnalysis += `\n- **Dynamic Content:** For pages that load content dynamically, consider using a \`MutationObserver\` to watch for changes within these major elements.`
 
     } else if (hasElements) {
       // Fallback for any other structure that might exist
