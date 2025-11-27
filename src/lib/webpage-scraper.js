@@ -1,6 +1,41 @@
 /**
  * Webpage scraping functionality for Chrome extension builder
- * Uses Supabase scraper table for cached webpage data from the Python scraper.
+ * 
+ * WORKFLOW:
+ * This module implements a two-step scraping workflow:
+ * 1. Cache Check: First checks Supabase 'scraper' table for cached webpage data
+ *    - Tries specific domain first (e.g., 'youtube.com/watch')
+ *    - Falls back to generic domain (e.g., 'youtube.com')
+ * 2. Lambda API Fallback: If no cache found, calls AWS Lambda scraping API
+ *    - Endpoint: https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod
+ *    - Method: POST
+ *    - Request body: { "url": "<full_url_with_https>" }
+ *    - Response: { statusCode: 200, body: "<json_string>" }
+ * 
+ * LAMBDA API INTEGRATION:
+ * The Lambda function (AWS Lambda) performs the following:
+ * - Scrapes webpage using Hyperbrowser (headless browser)
+ * - Analyzes HTML with Gemini AI to identify major UI elements
+ * - Returns structured data with major_elements, domain, page_title
+ * - Automatically saves results to Supabase 'scraper' table for future cache hits
+ * 
+ * RESPONSE FORMAT:
+ * Lambda returns: {
+ *   statusCode: 200,
+ *   body: "{\"major_elements\": {...}, \"domain\": \"...\", \"page_title\": \"...\", \"token_usage\": {...}, \"saved_to_db\": true}"
+ * }
+ * 
+ * The 'body' field is a JSON string that must be parsed to extract:
+ * - major_elements: Object mapping element keys to {description, selector}
+ * - domain: Extracted domain name
+ * - page_title: Page title from the scraped webpage
+ * - token_usage: LLM token usage statistics
+ * - saved_to_db: Boolean indicating if data was saved to Supabase
+ * 
+ * ERROR HANDLING:
+ * - Supabase cache misses are tracked in 'scraper_misses' table
+ * - Lambda API failures return graceful error responses (not thrown)
+ * - Network errors, timeouts, and invalid responses are handled gracefully
  */
 
 import { createClient } from './supabase/server'
@@ -53,6 +88,79 @@ function extractDomainName(url, specific = false) {
       }
       return domain
     }
+  }
+}
+
+/**
+ * Normalize URL to ensure it has https:// prefix
+ * @param {string} url - URL to normalize
+ * @returns {string} - URL with https:// prefix
+ */
+function normalizeUrl(url) {
+  if (!url) return null
+  if (url.startsWith('https://') || url.startsWith('http://')) {
+    return url
+  }
+  return `https://${url}`
+}
+
+/**
+ * Call AWS Lambda scraping API to scrape a webpage
+ * @param {string} url - Full URL to scrape (will be normalized to include https://)
+ * @returns {Promise<Object>} - Parsed response data with major_elements, domain, page_title
+ * @throws {Error} - If API call fails or response is invalid
+ */
+async function callLambdaScrapingAPI(url) {
+  const LAMBDA_API_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod'
+  const normalizedUrl = normalizeUrl(url)
+  
+  if (!normalizedUrl) {
+    throw new Error('Invalid URL provided')
+  }
+  
+  console.log(`🌐 Calling Lambda API to scrape: ${normalizedUrl}`)
+  
+  try {
+    const response = await fetch(LAMBDA_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: normalizedUrl }),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Lambda API returned status ${response.status}: ${response.statusText}`)
+    }
+    
+    const responseData = await response.json()
+    
+    // Lambda returns { statusCode: 200, body: "<json_string>" }
+    if (responseData.statusCode !== 200) {
+      throw new Error(`Lambda API returned non-200 status: ${responseData.statusCode}`)
+    }
+    
+    // Parse the body field which is a JSON string
+    let parsedBody
+    try {
+      parsedBody = typeof responseData.body === 'string' 
+        ? JSON.parse(responseData.body)
+        : responseData.body
+    } catch (parseError) {
+      throw new Error(`Failed to parse Lambda response body: ${parseError.message}`)
+    }
+    
+    // Validate required fields
+    if (!parsedBody.major_elements) {
+      throw new Error('Lambda response missing required field: major_elements')
+    }
+    
+    console.log(`✅ Lambda API scrape successful for ${normalizedUrl}`)
+    return parsedBody
+    
+  } catch (error) {
+    console.error(`❌ Lambda API call failed for ${normalizedUrl}:`, error)
+    throw error
   }
 }
 
@@ -194,10 +302,57 @@ export async function scrapeWebPage(url, options = {}) {
       throw new Error(`Database lookup failed: ${error.message}`)
     }
     
+    // 3. If no data found in Supabase cache, call Lambda API
     if (!data || !data.scraper_output) {
-      throw new Error(`No scraper data found for URL: ${url} after trying both specific and generic domains.`)
+      console.log(`📡 No cache found in Supabase, calling Lambda API for: ${url}`)
+      
+      try {
+        const lambdaResponse = await callLambdaScrapingAPI(url)
+        
+        // Lambda response contains: major_elements, domain, page_title, token_usage, saved_to_db
+        const body = {
+          major_elements: lambdaResponse.major_elements,
+          domain: lambdaResponse.domain,
+          page_title: lambdaResponse.page_title,
+        }
+        
+        // Use domain from Lambda response for tracking
+        domainNameUsed = lambdaResponse.domain || extractDomainName(url, false)
+        
+        console.log('Retrieved scraper data from Lambda API:', JSON.stringify(body, null, 2))
+        
+        // Format elements array from major_elements
+        const elements = []
+        if (body.major_elements) {
+          for (const [key, value] of Object.entries(body.major_elements)) {
+            elements.push({
+              key: key,
+              description: value.description,
+              selector: value.selector,
+            })
+          }
+        }
+        
+        // Use page_title from Lambda response if available
+        const title = body.page_title || `Analysis for ${domainNameUsed || 'unknown domain'}`
+        
+        return {
+          url: url,
+          title: title,
+          content: `Found ${elements.length} major elements for ${domainNameUsed || 'unknown domain'}.`,
+          elements: elements,
+          timestamp: new Date().toISOString(),
+          statusCode: 200,
+          majorElementsData: body.major_elements || {},
+        }
+      } catch (lambdaError) {
+        // Lambda API failed - return graceful error response
+        console.error(`❌ Lambda API call failed for ${url}:`, lambdaError)
+        throw new Error(`Failed to scrape webpage via Lambda API: ${lambdaError.message}`)
+      }
     }
     
+    // Data found in Supabase cache
     const body = typeof data.scraper_output === 'string'
       ? JSON.parse(data.scraper_output)
       : data.scraper_output
