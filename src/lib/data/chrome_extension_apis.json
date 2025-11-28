@@ -2,7 +2,7 @@
   "api_docs": [
     {
       "name": "storage",
-      "description": "Use the chrome.storage API to store, retrieve, and track changes to user data. Provides extension-specific storage that persists across sessions and syncs across devices. Supports local, sync, session, and managed storage areas.",
+      "description": "Use the chrome.storage API to store, retrieve, and track changes to user data.",
       "permissions": [
         "storage"
       ],
@@ -40,12 +40,12 @@
     },
     {
       "name": "scripting",
-      "description": "Use the chrome.scripting API to execute scripts in different contexts (Manifest V3+). This API replaces the deprecated chrome.tabs.executeScript. You can inject JavaScript and CSS into web pages programmatically. Requires 'scripting' permission and host permissions or 'activeTab'.",
+      "description": "Use the chrome.scripting API to execute scripts in different contexts. Requires 'scripting' permission and host permissions or 'activeTab'.",
       "permissions": [
         "scripting",
         "activeTab"
       ],
-      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"]\n});\n\n// Insert CSS\nchrome.scripting.insertCSS({\n  target: { tabId: tabId },\n  files: [\"styles.css\"]\n});"
+      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"] // or css \n});});"
     },
     {
       "name": "alarms",
@@ -117,7 +117,7 @@
     },
     {
       "name": "runtime",
-      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions. Use this API for message passing, managing extension lifecycle, and accessing extension metadata.",
+      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions.",
       "permissions": [],
       "code_snippet": "// Get manifest information\nconst manifest = chrome.runtime.getManifest();\n\n// Listen for extension installation\nchrome.runtime.onInstalled.addListener(({ reason }) => {\n  if (reason === \"install\") {}\n});"
     },

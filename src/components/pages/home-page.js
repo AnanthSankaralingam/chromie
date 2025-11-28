@@ -306,16 +306,22 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 pb-2"
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 pb-2 whitespace-nowrap overflow-x-auto"
                   style={{
                     background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
-                    lineHeight: '1.2'
+                    lineHeight: 1.15,
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.02em',
+                    maxWidth: '100%',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  what do you want to build?
+                  <i>extend</i> reach. not roadmaps.
                 </motion.h1>
                 <motion.p
                   className="text-lg md:text-xl text-slate-400"
@@ -323,7 +329,7 @@ export default function HomePage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
                 >
-                  build chrome extensions in seconds by chatting with ai
+                  augment your product suite with a browser extension in seconds.
                 </motion.p>
               </div>
 

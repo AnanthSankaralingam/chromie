@@ -4,15 +4,14 @@
 import json
 import logging
 import os
-import re
 import time
-from collections import defaultdict
-from dataclasses import dataclass, field
-from urllib.parse import urlparse # Added for filename generation
+from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Comment
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
-import google.generativeai as genai
+from google import genai
+from pydantic import BaseModel, Field
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -20,17 +19,49 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------
-# Data Structures
+# Configuration
 # ---------------------------
 
-@dataclass
-class ElementInfo:
-    """A dataclass to hold detailed information about a found page element."""
-    tag: str
-    id: str | None
-    classes: list[str] = field(default_factory=list)
-    role: str | None = None
-    selector: str = ""
+# Static list of websites to scrape (in addition to Supabase scraper_misses)
+STATIC_WEBSITES = [
+]
+
+# Maximum HTML length to send to LLM (characters)
+MAX_HTML_LENGTH = 100000
+
+# Maximum output length in characters
+MAX_OUTPUT_LENGTH = 6000
+
+# LLM Prompt Template - Optimized for structured JSON output
+COMPREHENSIVE_PROMPT_TEMPLATE = """Analyze this webpage HTML for Chrome extension development. Identify 8-12 key UI elements that extensions typically interact with.
+
+Page: {page_title}
+URL: {url}
+
+HTML Content (sanitized):
+{html_content}
+
+For each important element, provide:
+- A semantic key name (e.g., search_form, login_button, navigation_menu)
+- A brief one-sentence description of its purpose
+- A reliable CSS selector to target this element
+
+Prioritize: interactive elements (buttons, forms, inputs), navigation, search, main content areas, modals, and dropdowns."""
+
+# ---------------------------
+# Pydantic Models for Structured Output
+# ---------------------------
+
+class PageElement(BaseModel):
+    """Model for a single page element."""
+    description: str = Field(description="One-sentence description of the element's purpose for Chrome extensions")
+    selector: str = Field(description="CSS selector for the element")
+
+class PageSummary(BaseModel):
+    """Model for the complete page summary."""
+    major_elements: Dict[str, PageElement] = Field(
+        description="Dictionary of 8-12 important page elements with semantic key names"
+    )
 
 # ---------------------------
 # Supabase Setup
@@ -47,49 +78,51 @@ def init_supabase() -> Client:
     return create_client(supabase_url, supabase_key)
 
 # ---------------------------
-# Helper Functions
+# HTML Sanitization Functions
 # ---------------------------
 
-def css_escape(s: str) -> str:
-    """Escapes characters in a string for use in a CSS selector."""
-    return re.sub(r"([^\w-])", r"\\\1", s)
-
-def _nth_of_type_index(el: Tag) -> int:
-    """Calculates the nth-of-type index for a given BeautifulSoup element."""
-    if not el or not isinstance(el, Tag) or not el.parent:
-        return 1
-    same_tag_siblings = [c for c in el.parent.children if isinstance(c, Tag) and c.name == el.name]
-    try:
-        return same_tag_siblings.index(el) + 1
-    except ValueError:
-        return 1
-
-def build_css_selector(el: Tag) -> str:
-    """Generates a reasonably stable CSS selector for a BeautifulSoup element."""
-    if not isinstance(el, Tag):
-        return ""
+def sanitize_html(html_content: str) -> str:
+    """
+    Aggressively sanitizes HTML by removing all unnecessary elements.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
     
-    if _id := el.get("id"):
-        return f"#{css_escape(_id)}"
+    # Remove unnecessary tags
+    for tag in soup.find_all(["script", "style", "noscript", "svg", "img", 
+                               "video", "audio", "source", "track", "iframe", 
+                               "canvas", "meta", "link"]):
+        tag.decompose()
+    
+    # Remove comments
+    for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
+        comment.extract()
+    
+    # Remove inline styles and JS handlers
+    for tag in soup.find_all(True):
+        if tag.has_attr("style"):
+            del tag["style"]
+        
+        attrs_to_remove = [attr for attr in tag.attrs 
+                          if attr.startswith("on") or 
+                          attr.startswith("data-analytics") or 
+                          attr.startswith("data-track")]
+        for attr in attrs_to_remove:
+            del tag[attr]
+    
+    sanitized = str(soup)
+    logging.info(f"HTML sanitized: {len(html_content):,} → {len(sanitized):,} characters "
+                f"({(1 - len(sanitized)/len(html_content))*100:.1f}% reduction)")
+    
+    # Truncate if too long
+    if len(sanitized) > MAX_HTML_LENGTH:
+        logging.warning(f"HTML too long ({len(sanitized)} chars), truncating to {MAX_HTML_LENGTH}")
+        sanitized = sanitized[:MAX_HTML_LENGTH] + "\n... [truncated]"
+    
+    return sanitized
 
-    parts = []
-    cur = el
-    while isinstance(cur, Tag) and cur.name not in (None, "[document]"):
-        idx = _nth_of_type_index(cur)
-        parts.append(f"{cur.name}:nth-of-type({idx})")
-        cur = cur.parent
-        if cur is None or cur.name == "html":
-            break
-    parts.append("html")
-    parts.reverse()
-    return " > ".join(parts)
-
-def url_to_filename(url: str) -> str:
-    """Converts a URL into a safe, descriptive filename."""
-    parsed_url = urlparse(url)
-    # Replace dots with underscores and remove www.
-    domain = parsed_url.netloc.replace("www.", "").replace(".", "_")
-    return f"{domain}_summary.json"
+# ---------------------------
+# Helper Functions
+# ---------------------------
 
 def domain_to_url(domain_name: str) -> str:
     """Converts a domain name to a full URL with https:// if not present."""
@@ -98,112 +131,131 @@ def domain_to_url(domain_name: str) -> str:
         return f"https://{domain_name}"
     return domain_name
 
+def extract_domain_from_url(url: str) -> str:
+    """Extracts clean domain name from URL."""
+    parsed = urlparse(url)
+    return parsed.netloc.replace("www.", "")
 
 # ---------------------------
 # Core Logic
 # ---------------------------
 
-def find_balanced_elements(html_content: str) -> list[ElementInfo]:
-    """Parses HTML and finds a balanced set of important elements."""
-    doc = BeautifulSoup(html_content, "html.parser")
-    elements_found = []
-    seen_selectors = set()
-    
-    selectors_to_find = [
-        # Tier 1: Core Semantic Landmarks
-        'header', 'nav', 'main', 'aside', 'footer',
-        '[role="banner"]', '[role="navigation"]', '[role="main"]',
-        '[role="complementary"]', '[role="contentinfo"]',
-        # Tier 2: High-Confidence IDs for main containers
-        '[id="main"]', '[id="content"]', '[id="app"]', '[id="root"]', '[id="page"]',
-        '[id*="main-container"]', '[id*="content-wrapper"]',
-        # Tier 3: Key Functional Components
-        '[role="search"]', 'form:not([role="search"])', '[role="dialog"]', '[role="feed"]'
-    ]
-
-    for sel in selectors_to_find:
-        for element in doc.select(sel, limit=5):
-            selector = build_css_selector(element)
-            if selector and selector not in seen_selectors:
-                elements_found.append(ElementInfo(
-                    tag=element.name,
-                    id=element.get("id"),
-                    classes=element.get("class", []),
-                    role=element.get("role"),
-                    selector=selector
-                ))
-                seen_selectors.add(selector)
-
-    elements_found.sort(key=lambda x: len(x.selector))
-    return elements_found
-
-def generate_description_with_llm(element: ElementInfo, page_title: str) -> str:
-    """Generates a description for a UI element using the Google Gemini API."""
+def generate_comprehensive_summary_with_llm(
+    sanitized_html: str,
+    page_title: str,
+    url: str
+) -> Optional[dict]:
+    """
+    Generates a comprehensive summary using Gemini with JSON output.
+    Returns summary_dict on success, None on failure.
+    """
     api_key = os.getenv("GOOGLE_AI_API_KEY")
-    fallback_desc = f"A page element represented by a <{element.tag}> tag with ID '{element.id or 'none'}'."
-
+    
     if not api_key:
-        logging.warning("GOOGLE_AI_API_KEY not set. Using fallback description.")
-        return fallback_desc
+        logging.error("GOOGLE_AI_API_KEY not set. Cannot proceed without LLM.")
+        return None
 
-    try:scripts/simple_scraper.py
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-
-        class_str = ' '.join(element.classes)
+    try:
+        # Initialize Gemini client
+        client = genai.Client(api_key=api_key)
         
-        # Simplified and more direct prompt
-        prompt = (
-            f"As a web developer, describe the purpose of an HTML element on a page titled '{page_title}'. "
-            f"The element details are: Tag: <{element.tag}>, ID: '{element.id or 'N/A'}', "
-            f"Classes: '{class_str or 'N/A'}', ARIA Role: '{element.role or 'N/A'}'. "
-            "Provide a concise, one-sentence summary of its function."
+        # Build the prompt with explicit structure instructions
+        prompt = f"""{COMPREHENSIVE_PROMPT_TEMPLATE.format(
+            page_title=page_title,
+            url=url,
+            html_content=sanitized_html
+        )}
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure (no other text, no markdown, no explanations):
+
+{{
+  "major_elements": {{
+    "semantic_key_1": {{
+      "description": "Brief one sentence description of what this element does",
+      "selector": "css_selector"
+    }},
+    "semantic_key_2": {{
+      "description": "One sentence description of what this element does",
+      "selector": "css_selector"
+    }}
+  }}
+}}
+
+Rules:
+- Identify 8-12 key interactive elements from the HTML
+- Each key should be a semantic name (e.g., search_form, login_button, navigation_menu)
+- Each description should be exactly one sentence
+- Each selector should be a reliable CSS selector
+- Output ONLY the JSON object, starting with {{ and ending with }}"""
+        
+        logging.info("Sending analysis request to LLM...")
+        
+        # Generate content in JSON mode
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "temperature": 0.1,
+                "max_output_tokens": 4096
+            }
         )
 
-        generation_config = genai.types.GenerationConfig(
-            temperature=0.1,
-            max_output_tokens=1500 # Keeping this at a safe high value
-        )
-        safety_settings = {
-            'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
-            'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
-            'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
-            'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE',
-        }
-
-        response = model.generate_content(
-            prompt,
-            generation_config=generation_config,
-            safety_settings=safety_settings
-        )
-
-        # More robust check for valid content in the response
-        if response.candidates and response.candidates[0].content and response.candidates[0].content.parts:
-            return response.text.strip()
-        else:
-            # Log the finish reason if no content is found
-            finish_reason = "N/A"
-            if response.candidates and response.candidates[0].finish_reason:
-                finish_reason = response.candidates[0].finish_reason.name
-            logging.warning(f"API returned no text content. Finish reason: {finish_reason}. Full response: {response}")
-            return fallback_desc
+        # Parse and validate
+        try:
+            summary = json.loads(response.text)
+            
+            # Validate structure
+            if "major_elements" not in summary:
+                logging.warning("Response missing 'major_elements', wrapping...")
+                summary = {"major_elements": summary}
+            
+            # Validate with Pydantic
+            try:
+                page_summary = PageSummary.model_validate(summary)
+                logging.info("✓ Pydantic validation passed")
+            except Exception as pydantic_error:
+                logging.error(f"Pydantic validation failed: {pydantic_error}")
+                return None
+            
+            # Check character limit
+            json_str = json.dumps(summary)
+            if len(json_str) > MAX_OUTPUT_LENGTH:
+                logging.error(f"LLM output exceeds limit ({len(json_str)} chars)")
+                return None
+            
+            logging.info(f"✓ Successfully generated summary ({len(json_str)} characters, {len(summary['major_elements'])} elements)")
+            return summary
+            
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse JSON response: {e}")
+            logging.error(f"Response text: {response.text[:500]}...")
+            return None
 
     except Exception as e:
         logging.error(f"Google Gemini API call failed: {e}")
-        return fallback_desc
+        return None
 
-def generate_page_summary(url: str) -> dict:
-    """Fetches a URL with Playwright and generates a summary of its important elements."""
-    logging.info(f"Starting balanced analysis for URL: {url}")
-    summary = {"major_elements": {}}
-    key_counts = defaultdict(int)
-
+def generate_page_summary(url: str, source: str = "scraped") -> Optional[dict]:
+    """
+    Fetches a URL with Playwright and generates a Chrome extension-focused summary.
+    Returns summary_dict on success, None on failure.
+    """
+    logging.info(f"Starting analysis for URL: {url} (source: {source})")
+    
     with sync_playwright() as p:
         try:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
+            
+            # Set viewport and user agent
+            page.set_viewport_size({"width": 1920, "height": 1080})
+            
             logging.info("Navigating to page...")
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            
+            # Wait a bit for dynamic content
+            page.wait_for_timeout(2000)
             
             page_title = page.title()
             html_content = page.content()
@@ -212,33 +264,21 @@ def generate_page_summary(url: str) -> dict:
             browser.close()
         except PlaywrightError as e:
             logging.error(f"Playwright failed to load the page: {e}")
-            return {"error": "Failed to load the page with Playwright."}
+            return None
 
-    elements = find_balanced_elements(html_content)
-    logging.info(f"Found {len(elements)} relevant elements to analyze.")
+    # Sanitize HTML
+    logging.info("Sanitizing HTML content...")
+    sanitized_html = sanitize_html(html_content)
     
-    summary["major_elements"]["entire_page_body"] = {
-        "description": "The main wrapper for the entire application, good for global styles.",
-        "selector": "body"
-    }
-
-    for element in elements[:10]:
-        base_key = element.id or element.role or (element.classes[0] if element.classes else element.tag)
-        sanitized_key = re.sub(r'[^a-zA-Z0-9_-]', '_', base_key)
-        
-        key_counts[sanitized_key] += 1
-        final_key = f"{sanitized_key}_{key_counts[sanitized_key]}" if key_counts[sanitized_key] > 1 else sanitized_key
-
-        logging.info(f"Generating description for element: {final_key} ({element.selector})...")
-        description = generate_description_with_llm(element, page_title)
-        
-        summary["major_elements"][final_key] = {
-            "description": description,
-            "selector": element.selector
-        }
-        time.sleep(1) 
-
-    logging.info(f"Analysis complete for {url}")
+    # Generate summary with LLM
+    summary = generate_comprehensive_summary_with_llm(sanitized_html, page_title, url)
+    
+    if summary is None:
+        logging.error("Failed to generate summary")
+        return None
+    
+    final_length = len(json.dumps(summary))
+    logging.info(f"✓ Analysis complete. Final output: {final_length} characters, {len(summary['major_elements'])} elements")
     return summary
 
 # ---------------------------
@@ -246,9 +286,15 @@ def generate_page_summary(url: str) -> dict:
 # ---------------------------
 
 def main():
-    """Main function to scrape domains from scraper_misses and save to scraper table."""
+    """
+    Main function to scrape domains from static list and Supabase scraper_misses.
+    """
     
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(asctime)s - %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
     
     # Initialize Supabase client
     try:
@@ -258,80 +304,139 @@ def main():
         logging.error(f"Failed to initialize Supabase: {e}")
         return
     
-    # Fetch domains from scraper_misses table
+    # Collect all domains to process
+    domains_to_process = []
+    
+    # 1. Add static websites
+    for url in STATIC_WEBSITES:
+        domain_name = extract_domain_from_url(url)
+        domains_to_process.append({
+            "domain_name": domain_name,
+            "url": url,
+            "source": "local",
+            "count": 0
+        })
+    
+    if STATIC_WEBSITES:
+        logging.info(f"✓ Added {len(STATIC_WEBSITES)} static websites")
+    
+    # 2. Fetch domains from scraper_misses table
     try:
         response = supabase.table("scraper_misses").select("domain_name, count").execute()
         scraper_misses = response.data
+        
+        for row in scraper_misses:
+            domain_name = row.get("domain_name")
+            if domain_name:
+                domains_to_process.append({
+                    "domain_name": domain_name,
+                    "url": domain_to_url(domain_name),
+                    "source": "supabase",
+                    "count": row.get("count", 0)
+                })
+        
         logging.info(f"✓ Found {len(scraper_misses)} domains in scraper_misses table")
     except Exception as e:
         logging.error(f"Failed to fetch from scraper_misses: {e}")
-        return
     
-    if not scraper_misses:
+    if not domains_to_process:
         logging.info("No domains to scrape. Exiting.")
         return
     
     # Process each domain
     success_count = 0
-    error_count = 0
+    failed_domains: List[Dict] = []
     
-    for row in scraper_misses:
-        domain_name = row.get("domain_name")
-        count = row.get("count", 0)
+    print("\n" + "=" * 80)
+    print(f"STARTING SCRAPE SESSION - {len(domains_to_process)} DOMAINS TO PROCESS")
+    print("=" * 80 + "\n")
+    
+    for idx, domain_info in enumerate(domains_to_process, 1):
+        domain_name = domain_info["domain_name"]
+        url = domain_info["url"]
+        source_type = domain_info["source"]
+        count = domain_info["count"]
         
-        if not domain_name:
-            logging.warning("Skipping row with no domain_name")
-            continue
-        
-        print("=" * 60)
-        logging.info(f"Processing: {domain_name} (count: {count})")
-        print("=" * 60)
-        
-        # Convert domain to URL
-        url = domain_to_url(domain_name)
-        logging.info(f"Scraping URL: {url}")
+        print("=" * 80)
+        logging.info(f"[{idx}/{len(domains_to_process)}] Processing: {domain_name}")
+        logging.info(f"URL: {url} | Source: {source_type} | Miss Count: {count}")
+        print("=" * 80)
         
         # Scrape the page
-        page_summary = generate_page_summary(url)
+        page_summary = generate_page_summary(url, source=source_type)
         
-        if "error" not in page_summary:
+        if page_summary is not None:
             # Insert into scraper table
             try:
                 insert_data = {
                     "domain_name": domain_name,
                     "scraper_output": page_summary,
-                    "source": "scraped"
+                    "source": source_type
                 }
                 
-                supabase.table("scraper").insert(insert_data).execute()
+                # Upsert to handle duplicates
+                supabase.table("scraper").upsert(
+                    insert_data,
+                    on_conflict="domain_name"
+                ).execute()
+                
                 logging.info(f"✓ Successfully saved {domain_name} to scraper table")
                 
-                # Delete the row from scraper_misses after successful processing
-                try:
-                    supabase.table("scraper_misses").delete().eq("domain_name", domain_name).execute()
-                    logging.info(f"✓ Removed {domain_name} from scraper_misses table")
-                except Exception as delete_error:
-                    logging.warning(f"Failed to delete {domain_name} from scraper_misses: {delete_error}")
+                # Delete from scraper_misses if it came from there
+                if source_type == "supabase":
+                    try:
+                        supabase.table("scraper_misses").delete().eq("domain_name", domain_name).execute()
+                        logging.info(f"✓ Removed {domain_name} from scraper_misses table")
+                    except Exception as delete_error:
+                        logging.warning(f"Failed to delete {domain_name} from scraper_misses: {delete_error}")
                 
                 success_count += 1
                 
             except Exception as e:
                 logging.error(f"Failed to insert {domain_name} into scraper table: {e}")
-                error_count += 1
+                failed_domains.append({
+                    "domain": domain_name,
+                    "url": url,
+                    "reason": f"Database insert error: {str(e)}"
+                })
         else:
-            logging.error(f"Error processing {domain_name}: {page_summary['error']}")
-            error_count += 1
+            logging.error(f"Failed to generate summary for {domain_name}")
+            failed_domains.append({
+                "domain": domain_name,
+                "url": url,
+                "reason": "Summary generation failed"
+            })
         
-        print("-" * 60)
+        print("-" * 80)
+        
+        # Small delay between domains
+        if idx < len(domains_to_process):
+            time.sleep(15)
     
     # Summary
-    print("\n" + "=" * 60)
-    print("SCRAPING SUMMARY")
-    print("=" * 60)
-    print(f"Total domains processed: {len(scraper_misses)}")
-    print(f"Successful: {success_count}")
-    print(f"Errors: {error_count}")
-    print("=" * 60)
+    print("\n" + "=" * 80)
+    print("SCRAPING SESSION COMPLETE")
+    print("=" * 80)
+    print(f"Total domains processed: {len(domains_to_process)}")
+    print(f"├─ From static list: {len(STATIC_WEBSITES)}")
+    print(f"└─ From Supabase: {len(domains_to_process) - len(STATIC_WEBSITES)}")
+    print(f"\nResults:")
+    print(f"✓ Successful: {success_count}")
+    print(f"✗ Failed: {len(failed_domains)}")
+    print(f"Success rate: {success_count/len(domains_to_process)*100:.1f}%")
+    
+    # Output failed domains
+    if failed_domains:
+        print("\n" + "=" * 80)
+        print("FAILED DOMAINS")
+        print("=" * 80)
+        for failure in failed_domains:
+            print(f"\nDomain: {failure['domain']}")
+            print(f"URL: {failure['url']}")
+            print(f"Reason: {failure['reason']}")
+        print("=" * 80)
+    
+    print()
 
 
 if __name__ == "__main__":
