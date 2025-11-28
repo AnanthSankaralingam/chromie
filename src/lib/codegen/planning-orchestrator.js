@@ -188,6 +188,22 @@ async function callExternalResourcesPrompt(featureRequest) {
 
     const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
 
+    // Filter out Chrome APIs from external_apis (Chrome APIs are notated as chrome.*)
+    if (result.external_apis && Array.isArray(result.external_apis)) {
+      const originalCount = result.external_apis.length
+      result.external_apis = result.external_apis.filter(api => {
+        const isChromeApi = api.name && api.endpoint_url.toLowerCase().startsWith('chrome.')
+        if (isChromeApi) {
+          console.log(`🔍 [Planning Orchestrator] Filtered out Chrome API from external resources: ${api.name}`)
+        }
+        return !isChromeApi
+      })
+
+      if (originalCount !== result.external_apis.length) {
+        console.log(`✅ [Planning Orchestrator] Removed ${originalCount - result.external_apis.length} Chrome API(s) from external resources`)
+      }
+    }
+
     return {
       result,
       tokenUsage: {
