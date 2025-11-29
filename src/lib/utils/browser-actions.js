@@ -19,26 +19,16 @@ async function getPuppeteerConnect() {
  * @returns {Promise<{ browser: any, context: any, page: any }>} connected objects
  */
 export async function getPlaywrightSessionContext(sessionId, apiKey) {
-  console.log("[BROWSER-ACTIONS] 🚀 getPlaywrightSessionContext called")
-  console.log("[BROWSER-ACTIONS] Session ID:", sessionId)
-  console.log("[BROWSER-ACTIONS] API key exists:", !!apiKey)
-  console.log("[BROWSER-ACTIONS] Environment:", process.env.VERCEL ? "Vercel" : "Local")
-  
   if (!apiKey) {
     console.error("[BROWSER-ACTIONS] ❌ Missing Hyperbrowser API key")
     throw new Error("Missing Hyperbrowser API key")
   }
   
-  console.log("[BROWSER-ACTIONS] ✅ API key found, initializing Hyperbrowser client")
   const client = new Hyperbrowser({ apiKey })
   let sessionInfo
   
   try {
-    console.log("[BROWSER-ACTIONS] 🔍 Fetching session info from Hyperbrowser API...")
     sessionInfo = await client.sessions.get(sessionId)
-    console.log("[BROWSER-ACTIONS] ✅ Session info received")
-    console.log("[BROWSER-ACTIONS] Session status:", sessionInfo.status)
-    console.log("[BROWSER-ACTIONS] Available fields:", Object.keys(sessionInfo).join(', '))
   } catch (sessionError) {
     console.error("[BROWSER-ACTIONS] ❌ Session lookup failed:", sessionError.message)
     console.error("[BROWSER-ACTIONS] Error stack:", sessionError.stack)

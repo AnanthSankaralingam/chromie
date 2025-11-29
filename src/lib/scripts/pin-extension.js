@@ -5,32 +5,20 @@ import { getPlaywrightSessionContext } from "@/lib/utils/browser-actions";
 
 const runPinExtension = async (sessionId) => {
   console.log('[PIN-EXTENSION] 🚀 runPinExtension called');
-  console.log('[PIN-EXTENSION] Session ID:', sessionId);
-  console.log('[PIN-EXTENSION] Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
-  console.log('[PIN-EXTENSION] Node version:', process.version);
   
   const apiKey = process.env.HYPERBROWSER_API_KEY;
-  console.log('[PIN-EXTENSION] API key exists:', !!apiKey);
   
   if (!apiKey) {
     console.error('[PIN-EXTENSION] ❌ Missing HYPERBROWSER_API_KEY');
     throw new Error("Missing HYPERBROWSER_API_KEY");
   }
 
-  console.log('[PIN-EXTENSION] ✅ API key found, length:', apiKey.length);
-  console.log('[PIN-EXTENSION] 📌 Starting extension pinning script with Playwright');
-
   let browser = null;
   let page = null;
 
   try {
     // Connect to the browser session
-    console.log('[PIN-EXTENSION] 🔌 Connecting to browser session...');
-    console.log('[PIN-EXTENSION] Calling getPlaywrightSessionContext with sessionId:', sessionId);
-    
     const context = await getPlaywrightSessionContext(sessionId, apiKey);
-    console.log('[PIN-EXTENSION] ✅ Got Playwright context');
-    console.log('[PIN-EXTENSION] Context keys:', Object.keys(context));
     
     browser = context.browser;
     page = context.page;

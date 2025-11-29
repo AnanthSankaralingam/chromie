@@ -115,16 +115,11 @@ export class HyperbrowserService {
   async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null) {
     try {
       console.log("[HYPERBROWSER-SERVICE] 🚀 createTestSession called")
-      console.log("[HYPERBROWSER-SERVICE] Project ID:", projectId)
-      console.log("[HYPERBROWSER-SERVICE] User ID:", userId)
-      console.log("[HYPERBROWSER-SERVICE] Environment:", process.env.VERCEL ? "Vercel" : "Local")
       
       if (!this.apiKey || !this.client) {
         console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
         throw new Error("Missing HYPERBROWSER_API_KEY")
       }
-
-      console.log("[HYPERBROWSER-SERVICE] ✅ API key exists, client initialized")
 
       // If extension files were provided, zip and upload them to get an extensionId
       let extensionId = null
@@ -134,11 +129,7 @@ export class HyperbrowserService {
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
 
-      console.log("[HYPERBROWSER-SERVICE] 📂 Extension files array length:", filesArray.length)
-
       if (filesArray.length > 0) {
-        console.log("[HYPERBROWSER-SERVICE] 📦 Starting extension upload...")
-        console.log("[HYPERBROWSER-SERVICE] File paths to upload:", filesArray.map(f => f.file_path))
         extensionId = await this.uploadExtensionFromFiles(filesArray)
         console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded, ID:", extensionId)
       } else {
@@ -157,20 +148,13 @@ export class HyperbrowserService {
       } else {
         console.log("[HYPERBROWSER-SERVICE] ℹ️  No user/supabase client provided, skipping profile")
       }
-
-      // Create a new Hyperbrowser session with optional extension loaded
-      console.log("[HYPERBROWSER-SERVICE] 🌐 Creating Hyperbrowser session...")
-      console.log("[HYPERBROWSER-SERVICE] Session config:", {
-        extensionId,
-        profileId,
-        isNewProfile
-      })
       
       const sessionCreatePayload = {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
-        timeoutMinutes: 3
+        timeoutMinutes: 3,
+        enableWindowManager: true
       }
 
       // Add extension if available
@@ -191,7 +175,6 @@ export class HyperbrowserService {
       }
 
       console.log("[HYPERBROWSER-SERVICE] 📝 Final session payload:", JSON.stringify(sessionCreatePayload, null, 2))
-      console.log("[HYPERBROWSER-SERVICE] 🔄 Calling Hyperbrowser API to create session...")
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
