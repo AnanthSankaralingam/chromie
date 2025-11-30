@@ -1,6 +1,7 @@
 "use client"
 
 import MarkdownMessage from "./markdown-message"
+import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 
 export default function ChatMessage({ message, index, typingCancelSignal }) {
   // Check if this is a final explanation message (contains "Here's what I've built for you")
@@ -8,27 +9,33 @@ export default function ChatMessage({ message, index, typingCancelSignal }) {
     message.content && 
     message.content.includes("Here's what I've built for you")
 
+  const variant = message.role === "user" ? "sent" : "received"
+  
+  // Use Chromie logo for AI avatar
+  const userAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&q=80&crop=faces&fit=crop"
+  const aiAvatar = "/chromie-logo-1.png"
+
   return (
-    <div
-      className={`flex items-start space-x-3 ${
-        message.role === "user" ? "flex-row-reverse space-x-reverse" : ""
-      }`}
-    >
-      <div
-        className={`max-w-[80%] min-w-0 p-4 rounded-2xl ${
-          message.role === "user"
-            ? "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-400/30 text-blue-100 backdrop-blur-sm shadow-lg"
-            : isFinalExplanation
-            ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 text-white backdrop-blur-sm shadow-xl ring-2 ring-green-400/20"
-            : "bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-slate-200 backdrop-blur-sm shadow-lg"
-        }`}
+    <ChatBubble variant={variant}>
+      <ChatBubbleAvatar
+        src={message.role === "user" ? userAvatar : aiAvatar}
+        fallback={message.role === "user" ? "U" : "AI"}
+        className="h-8 w-8 shrink-0"
+      />
+      <ChatBubbleMessage
+        variant={variant}
+        className={
+          isFinalExplanation
+            ? "bg-green-600 text-white"
+            : undefined
+        }
       >
         {message.role === "assistant" ? (
           <MarkdownMessage content={message.content} typingCancelSignal={typingCancelSignal} />
         ) : (
           <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         )}
-      </div>
-    </div>
+      </ChatBubbleMessage>
+    </ChatBubble>
   )
 } 
