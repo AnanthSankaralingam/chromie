@@ -4,6 +4,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Edit3, Chrome, TestTube, Zap, Check, Star } from "lucide-react"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AppBar from "@/components/ui/app-bars/app-bar"
@@ -41,12 +44,51 @@ export default function PricingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex flex-col">
         {/* Header */}
         <AppBar />
 
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          {/* Flickering Grid Background */}
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
+
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="max-w-6xl mx-auto">
             {/* Title */}
             <div className="text-center mb-16 overflow-visible">
@@ -84,7 +126,7 @@ export default function PricingPage() {
                       <span className="text-gray-300">30 mins testing</span>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => window.open('https://buy.stripe.com/28EbJ0105e8o4xF6dM7kc02', '_blank')}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                   >
@@ -123,7 +165,7 @@ export default function PricingPage() {
                       <span className="text-gray-300">120 mins testing</span>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => window.open('https://buy.stripe.com/6oU4gydMRc0g8NVeKi7kc04', '_blank')}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
@@ -160,7 +202,7 @@ export default function PricingPage() {
                       <span className="text-gray-300">cancel anytime</span>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => window.open('https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05', '_blank')}
                     className="w-full bg-green-600 hover:bg-green-700 text-white"
                   >
@@ -174,8 +216,8 @@ export default function PricingPage() {
       </div>
 
       {/* Billing Modal */}
-      <BillingModal 
-        isOpen={billingModalOpen} 
+      <BillingModal
+        isOpen={billingModalOpen}
         onClose={() => setBillingModalOpen(false)}
         selectedPlan={selectedPlan}
       />

@@ -11,10 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import { navigateToBuilderWithProject } from "@/lib/utils"
+import { navigateToBuilderWithProject, cn } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { motion } from "framer-motion"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -167,7 +169,7 @@ export default function ProfilePage() {
       // In a production app, you'd want to implement proper account deletion
       // through a server-side API endpoint with admin privileges
       await supabase.auth.signOut()
-      
+
       // Redirect to home page
       window.location.href = '/'
     } catch (error) {
@@ -259,27 +261,70 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
-        <AppBar />
-        <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-6">
-              <div className="text-center text-white space-y-4">
-                <h2 className="text-2xl font-bold">Welcome to Your Profile</h2>
-                <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
-                <Button 
-                  onClick={() => setAuthModalOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                >
-                  Sign In
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
         </div>
-        
-        <AuthModal 
-          isOpen={authModalOpen} 
+
+        <AppBar />
+        <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+              <CardContent className="p-6">
+                <div className="text-center text-white space-y-4">
+                  <h2 className="text-2xl font-bold">Welcome to Your Profile</h2>
+                  <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
+                  <Button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
+                  >
+                    Sign In
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <AuthModal
+          isOpen={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
           redirectUrl="/profile"
         />
@@ -288,21 +333,63 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+        <FlickeringGrid
+          className="absolute inset-0 z-0"
+          squareSize={4}
+          gridGap={6}
+          color="rgb(139, 92, 246)"
+          maxOpacity={0.15}
+          flickerChance={2.0}
+        />
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.15, 0.25, 0.15],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
+      </div>
+
       <AppBar />
-      <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8">
+      <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
         {/* User Profile Section */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Profile Information
-            </CardTitle>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <CardHeader>
+              <CardTitle className="text-white">
+                Profile Information
+              </CardTitle>
+            </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
-                <AvatarImage 
-                  src={user?.user_metadata?.picture} 
+                <AvatarImage
+                  src={user?.user_metadata?.picture}
                   alt={user?.user_metadata?.name || user?.email}
                 />
                 <AvatarFallback className="bg-purple-600 text-white text-lg font-medium">
@@ -329,15 +416,21 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
 
         {/* Billing Section */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Billing & Subscription
-            </CardTitle>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <CardHeader>
+              <CardTitle className="text-white">
+                Billing & Subscription
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {billingLoading ? (
               <div className="text-center py-8">
@@ -346,7 +439,7 @@ export default function ProfilePage() {
             ) : billing ? (
               <div className="space-y-4">
                 {/* Current Plan */}
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
                   <div className="flex items-center space-x-3">
                     <div className={`p-2 rounded-lg ${getPlanInfo(billing.plan).color}`}>
                       {React.createElement(getPlanInfo(billing.plan).icon, { className: "h-5 w-5 text-white" })}
@@ -356,15 +449,14 @@ export default function ProfilePage() {
                       <p className="text-slate-400 text-sm">{getPlanInfo(billing.plan).price}</p>
                     </div>
                   </div>
-                  <Badge 
-                    variant="secondary" 
-                    className={`${
-                      billing.status === 'active' 
+                  <Badge
+                    variant="secondary"
+                    className={`${billing.status === 'active'
                         ? 'bg-green-500/10 text-green-400 border-green-500/20'
                         : billing.status === 'past_due'
-                        ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                        : 'bg-red-500/10 text-red-400 border-red-500/20'
-                    }`}
+                          ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}
                   >
                     {billing.status === 'active' ? 'Active' : billing.status === 'past_due' ? 'Past Due' : billing.status}
                   </Badge>
@@ -380,17 +472,17 @@ export default function ProfilePage() {
                     <CreditCard className="h-4 w-4 mr-2" />
                     Manage Billing
                   </Button>
-                  
+
                   {billing.plan === 'starter' && (
                     <Button
                       onClick={() => handleBillingAction('upgrade', 'pro')}
-                      className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
+                      className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 text-white"
                     >
                       <ArrowUpRight className="h-4 w-4 mr-2" />
                       Upgrade to Pro
                     </Button>
                   )}
-                  
+
                   {billing.plan === 'pro' && (
                     <Button
                       onClick={() => handleBillingAction('downgrade', 'starter')}
@@ -413,7 +505,7 @@ export default function ProfilePage() {
                 <div className="text-slate-300 mb-4">No active subscription found.</div>
                 <Button
                   onClick={() => setBillingDialogOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   Subscribe Now
@@ -421,25 +513,37 @@ export default function ProfilePage() {
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
 
         {/* Usage Section */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Usage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-4 space-x-8">
-              <TokenUsageDisplay />
-              <BrowserUsageDisplay />
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <CardHeader>
+              <CardTitle className="text-white">
+                Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center py-4 space-x-8">
+                <TokenUsageDisplay />
+                <BrowserUsageDisplay />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Projects Section */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
           <CardHeader>
             <CardTitle className="text-white">Your Projects</CardTitle>
           </CardHeader>
@@ -455,14 +559,14 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-3">
                 {projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div key={project.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
                     <div className="flex-1">
                       {editingProject === project.id ? (
                         <div className="flex items-center space-x-2">
                           <Input
                             value={newProjectName}
                             onChange={(e) => setNewProjectName(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                            className="backdrop-blur-xl bg-slate-700/30 border-slate-600/40 text-white placeholder:text-slate-400"
                             placeholder="Enter new project name"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
@@ -506,59 +610,65 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
-                                         {editingProject !== project.id && (
-                       <div className="flex items-center space-x-2">
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           onClick={() => {
-                             setEditingProject(project.id)
-                             setNewProjectName(project.name)
-                           }}
-                           className="text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 cursor-not-allowed"
-                           title="Renaming is no longer supported - names update automatically"
-                           disabled
-                         >
-                           <Edit className="h-4 w-4" />
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           onClick={() => navigateToBuilderWithProject(project.id)}
-                           className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                           title="Edit project in builder"
-                         >
-                           <ExternalLink className="h-4 w-4" />
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           onClick={() => {
-                             setProjectToDelete(project)
-                             setDeleteDialogOpen(true)
-                           }}
-                           className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                           title="Delete project"
-                         >
-                           <Trash2 className="h-4 w-4" />
-                         </Button>
-                       </div>
-                     )}
+                    {editingProject !== project.id && (
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingProject(project.id)
+                            setNewProjectName(project.name)
+                          }}
+                          className="text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 cursor-not-allowed"
+                          title="Renaming is no longer supported - names update automatically"
+                          disabled
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => navigateToBuilderWithProject(project.id)}
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          title="Edit project in builder"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setProjectToDelete(project)
+                            setDeleteDialogOpen(true)
+                          }}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          title="Delete project"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
 
         {/* Shares Section */}
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center space-x-2">
-              <Share className="h-5 w-5" />
-              <span>Shared Extensions</span>
-            </CardTitle>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center space-x-2">
+                <Share className="h-5 w-5" />
+                <span>Shared Extensions</span>
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {sharesLoading ? (
               <div className="text-center py-8">
@@ -571,7 +681,7 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-3">
                 {shares.map((share) => (
-                  <div key={share.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div key={share.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <div>
@@ -635,7 +745,8 @@ export default function ProfilePage() {
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </motion.div>
 
         {/* Sign Out Button */}
         <div className="flex justify-center pt-4">
@@ -645,7 +756,7 @@ export default function ProfilePage() {
                 Sign Out
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-800 border-slate-700">
+            <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
               <DialogHeader>
                 <DialogTitle className="text-red-400">Sign Out</DialogTitle>
                 <DialogDescription className="text-slate-300">
@@ -676,7 +787,7 @@ export default function ProfilePage() {
 
         {/* Project Deletion Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
             <DialogHeader>
               <DialogTitle className="text-red-400">Delete Project</DialogTitle>
               <DialogDescription className="text-slate-300">
@@ -716,23 +827,23 @@ export default function ProfilePage() {
 
       {/* Billing Modal */}
       <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
           <DialogHeader>
             <DialogTitle className="text-white">
               {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'starter' ? 'Downgrade to Starter' : 'Choose a Plan'}
             </DialogTitle>
             <DialogDescription className="text-slate-300">
-              {selectedPlan === 'pro' 
+              {selectedPlan === 'pro'
                 ? 'Upgrade to Pro for more features and higher limits.'
                 : selectedPlan === 'starter'
-                ? 'Downgrade to Starter plan.'
-                : 'Select a plan that fits your needs.'
+                  ? 'Downgrade to Starter plan.'
+                  : 'Select a plan that fits your needs.'
               }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {selectedPlan && (
-              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-lg ${getPlanInfo(selectedPlan).color}`}>
                     {React.createElement(getPlanInfo(selectedPlan).icon, { className: "h-5 w-5 text-white" })}
@@ -762,7 +873,7 @@ export default function ProfilePage() {
                 }
                 setBillingDialogOpen(false)
               }}
-              className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black"
+              className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
             >
               {selectedPlan === 'pro' ? 'Upgrade Now' : selectedPlan === 'starter' ? 'Downgrade Now' : 'Continue'}
             </Button>

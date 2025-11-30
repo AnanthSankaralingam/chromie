@@ -36,7 +36,7 @@ export default function AppBarBuilder({
     startDownloadButtonHighlight,
     stopAllHighlights
   } = useOnboarding()
-  
+
   const {
     isShareModalOpen,
     shareUrl,
@@ -110,10 +110,10 @@ export default function AppBarBuilder({
           <div className="flex items-center space-x-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Image 
-                  src="/chromie-logo-1.png" 
-                  alt="chromie Logo"   
-                  width={40} 
+                <Image
+                  src="/chromie-logo-1.png"
+                  alt="chromie Logo"
+                  width={40}
                   height={40}
                   className="object-contain"
                 />
@@ -146,7 +146,7 @@ export default function AppBarBuilder({
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
                   className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
-                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box'}}
+                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
                   title="Generate automated test script for your extension"
                 >
                   <Bot className="h-4 w-4 mr-2" />
@@ -160,7 +160,7 @@ export default function AppBarBuilder({
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
                   className={`relative bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium enabled:shadow-lg enabled:shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 enabled:scale-100 hover:scale-105 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-                  style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
+                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   test extension
@@ -176,12 +176,12 @@ export default function AppBarBuilder({
                   onPublishClick={handlePublishClick}
                 />
               </div>
-              
+
               <div className="flex items-center space-x-3 pl-3 border-l border-white/10">
                 <Link href="/profile">
                   <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-purple-400/50 transition-all duration-200 shadow-lg">
-                    <AvatarImage 
-                      src={user?.user_metadata?.picture} 
+                    <AvatarImage
+                      src={user?.user_metadata?.picture}
                       alt={user?.user_metadata?.name || user?.email}
                     />
                     <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-bold">
@@ -189,9 +189,9 @@ export default function AppBarBuilder({
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <Button 
-                  onClick={onSignOut} 
-                  variant="ghost" 
+                <Button
+                  onClick={onSignOut}
+                  variant="ghost"
                   className="text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 p-2"
                   title="Sign Out"
                 >
@@ -210,7 +210,7 @@ export default function AppBarBuilder({
               disabled={isTestDisabled || isGenerating}
               variant="outline"
               className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
-              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box'}}
+              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
             >
               <Bot className="h-4 w-4 mr-2" />
               <span className="inline-flex items-center space-x-1.5">
@@ -223,7 +223,7 @@ export default function AppBarBuilder({
               disabled={isTestDisabled || isGenerating}
               variant="outline"
               className={`w-full bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-green-500/20 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-              style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box'}}
+              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
             >
               <Play className="h-4 w-4 mr-2" />
               test
@@ -244,18 +244,18 @@ export default function AppBarBuilder({
           </div>
         </div>
       )}
-      <PublishModal 
-        isOpen={isPublishOpen} 
-        onClose={() => setIsPublishOpen(false)} 
+      <PublishModal
+        isOpen={isPublishOpen}
+        onClose={() => setIsPublishOpen(false)}
         onConfirm={() => {
           // TODO: implement zipping and publish to Chrome Web Store via supabase and oauth
           console.log('[publish] confirm requested')
           setIsPublishOpen(false)
         }}
       />
-      <ShareModal 
-        isOpen={isShareModalOpen} 
-        onClose={closeShareModal} 
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={closeShareModal}
         onConfirm={handleShareConfirm}
         shareUrl={shareUrl}
         isGenerating={isSharing}
