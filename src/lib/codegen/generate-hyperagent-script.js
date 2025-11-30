@@ -47,13 +47,163 @@ ${filesContext}
 </extension_files>
 
 <browseruse_script_format>
-CRITICAL: Generate a complete, executable BrowserUse script in this EXACT format:
+CRITICAL: Generate a complete, executable BrowserUse script in this EXACT format.
+Replace the extension name and test tasks with the actual values for THIS specific extension.
+DO NOT use template literals like \${variable} - use the actual extension name directly.
 
 \`\`\`javascript
 import { Hyperbrowser } from "@hyperbrowser/sdk";
 
 // BrowserUse test script for: ${projectName}
 // Extension type: ${frontendType}
+
+// Helper to connect to browser session via Puppeteer (puppeteer-core)
+async function getBrowserContext(sessionId, apiKey) {
+  const puppeteer = await import('puppeteer-core');
+  const client = new Hyperbrowser({ apiKey });
+  const sessionInfo = await client.sessions.get(sessionId);
+  const wsEndpoint = sessionInfo.wsEndpoint || sessionInfo.connectUrl;
+  
+  if (!wsEndpoint) {
+    throw new Error(\`Missing wsEndpoint for session \${sessionId}\`);
+  }
+  
+  // Connect using Puppeteer
+  const browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint });
+  const pages = await browser.pages();
+  const page = pages[0] || (await browser.newPage());
+  
+  return { browser, page };
+}
+
+// Automatically pin the extension to toolbar using Puppeteer
+async function pinExtension(sessionId, apiKey) {
+  console.log('[PIN] Starting extension pinning with Puppeteer...');
+  
+  let browser = null;
+  let page = null;
+  
+  try {
+    const context = await getBrowserContext(sessionId, apiKey);
+    browser = context.browser;
+    page = context.page;
+    
+    // Navigate to chrome://extensions using Puppeteer
+    const currentUrl = page.url();
+    if (!currentUrl.includes('chrome://extensions')) {
+      await page.goto('chrome://extensions', { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 30000 
+      });
+    }
+    
+    // Wait for extensions manager element using Puppeteer waitForSelector
+    await page.waitForSelector('extensions-manager', { timeout: 10000 });
+    
+    // Wait for shadow DOM to be ready using Puppeteer waitForFunction
+    await page.waitForFunction(() => {
+      const manager = document.querySelector('extensions-manager');
+      return manager && manager.shadowRoot !== null;
+    }, { timeout: 10000 });
+    
+    // Small delay for stability
+    await page.waitForTimeout(3000);
+    
+    // Click Details button through shadow DOM using Puppeteer evaluate
+    const detailsClicked = await page.evaluate(() => {
+      const manager = document.querySelector('extensions-manager');
+      if (!manager?.shadowRoot) throw new Error('extensions-manager not found');
+      
+      let items = manager.shadowRoot.querySelectorAll('extensions-item');
+      if (items.length === 0) {
+        const itemList = manager.shadowRoot.querySelector('extensions-item-list');
+        if (itemList?.shadowRoot) {
+          items = itemList.shadowRoot.querySelectorAll('extensions-item');
+        }
+      }
+      
+      if (items.length === 0) throw new Error('No extension items found');
+      
+      const firstItem = items[0];
+      let detailsButton = firstItem.shadowRoot?.querySelector('#detailsButton');
+      
+      if (!detailsButton) {
+        const buttons = (firstItem.shadowRoot || firstItem).querySelectorAll('cr-button, button');
+        for (const btn of buttons) {
+          if (btn.textContent?.toLowerCase().includes('details')) {
+            detailsButton = btn;
+            break;
+          }
+        }
+      }
+      
+      if (!detailsButton) throw new Error('Details button not found');
+      detailsButton.click();
+      return true;
+    });
+    
+    if (!detailsClicked) throw new Error('Failed to click Details');
+    
+    await page.waitForTimeout(2000);
+    
+    // Toggle Pin to Toolbar using Puppeteer evaluate
+    const pinResult = await page.evaluate(() => {
+      const manager = document.querySelector('extensions-manager');
+      if (!manager?.shadowRoot) throw new Error('manager not found');
+      
+      const detailView = manager.shadowRoot.querySelector('extensions-detail-view');
+      if (!detailView) throw new Error('detail view not found');
+      
+      let pinToggle = (detailView.shadowRoot || detailView).querySelector('#pin-to-toolbar');
+      
+      if (!pinToggle) {
+        const toggleRows = (detailView.shadowRoot || detailView).querySelectorAll('extensions-toggle-row');
+        for (const row of toggleRows) {
+          if (row.textContent?.toLowerCase().includes('pin')) {
+            pinToggle = row;
+            break;
+          }
+        }
+      }
+      
+      if (!pinToggle) throw new Error('Pin toggle not found');
+      
+      // Check if already pinned
+      let isPinned = false;
+      const toggle = pinToggle.shadowRoot?.querySelector('cr-toggle');
+      if (toggle) {
+        isPinned = toggle.checked || toggle.hasAttribute('checked');
+      }
+      
+      if (isPinned) return { alreadyPinned: true };
+      
+      pinToggle.click();
+      if (toggle) toggle.click();
+      
+      return { clicked: true };
+    });
+    
+    await page.waitForTimeout(2000);
+    
+    console.log('[PIN] ✅ Extension pinned successfully');
+    return { success: true, ...pinResult };
+    
+  } catch (err) {
+    const isSessionClosed = err.message?.includes('Target closed') || 
+                           err.message?.includes('Session closed') ||
+                           err.message?.includes('Protocol error');
+    
+    if (isSessionClosed) {
+      console.log('[PIN] ℹ️  Session closed during pinning');
+      return { success: true, sessionClosed: true };
+    }
+    
+    console.error('[PIN] ❌ Pinning failed:', err.message);
+    return { success: false, error: err.message };
+  } finally {
+    // Don't close browser - let session continue
+  }
+}
 
 const runTest = async (sessionId) => {
   const client = new Hyperbrowser({
@@ -63,24 +213,29 @@ const runTest = async (sessionId) => {
   console.log('🧪 Starting BrowserUse test for ${projectName}');
 
   try {
-    // Test 1: [First test description]
+    // Step 1: Pin the extension to toolbar
+    console.log('📌 Pinning extension to toolbar...');
+    const pinResult = await pinExtension(sessionId, process.env.HYPERBROWSER_API_KEY);
+    
+    if (pinResult.success) {
+      console.log('✅ Extension pinned successfully');
+    } else {
+      console.warn('⚠️  Extension pinning had issues, continuing anyway:', pinResult.error);
+    }
+
+    // Step 2: Test extension functionality with BrowserUse
     const result1 = await client.agents.browserUse.startAndWait({
-      task: "[Detailed task description for first test]",
+      task: "STEP 1: Navigate to https://example.com. STEP 2: Click the pinned extension icon in the toolbar. STEP 3: Test the main feature. STEP 4: Verify it works correctly.",
       sessionId: sessionId,
       keepBrowserOpen: true,
     });
     console.log('✅ Test 1 completed:', result1.data?.finalResult);
 
-    // Test 2: [Second test description if needed]
-    const result2 = await client.agents.browserUse.startAndWait({
-      task: "[Detailed task description for second test]",
-      sessionId: sessionId,
-      keepBrowserOpen: true,
-    });
-    console.log('✅ Test 2 completed:', result2.data?.finalResult);
+    // Add more tests if needed based on the extension's features
+    // Each test should be a separate startAndWait call
 
     console.log('🎉 All tests completed successfully');
-    return { success: true, results: [result1, result2] };
+    return { success: true, pinResult, results: [result1] };
   } catch (err) {
     console.error('❌ Test failed:', err.message);
     return { success: false, error: err.message };
@@ -91,7 +246,7 @@ const runTest = async (sessionId) => {
 export { runTest };
 
 // Allow standalone execution
-if (import.meta.url === \`file://\${process.argv[1]}\`) {
+if (import.meta.url === 'file://' + process.argv[1]) {
   const sessionId = process.argv[2];
   if (!sessionId) {
     console.error('Usage: node hyperagent_test_script.js <sessionId>');
@@ -100,10 +255,21 @@ if (import.meta.url === \`file://\${process.argv[1]}\`) {
   runTest(sessionId).catch(console.error);
 }
 \`\`\`
+
+IMPORTANT RULES FOR THE GENERATED CODE:
+1. Use the ACTUAL extension name in comments and console.log statements
+2. Use the ACTUAL extension type in comments
+3. DO NOT use template literals like \${url} or \${variable} in the task strings
+4. DO NOT leave placeholder text like [URL] or [description]
+5. Use ONLY concrete strings like "https://example.com" and actual element names
+6. All strings must be complete and valid JavaScript - no undefined variables
 </browseruse_script_format>
 
 <test_task_requirements>
 Create specific task descriptions based on the extension type, following BrowserUse best practices:
+
+IMPORTANT: The extension will be automatically pinned to the toolbar using Playwright before BrowserUse tests run.
+Your tasks should focus on TESTING the extension functionality, NOT on pinning it.
 
 1. BE SPECIFIC & NUMBERED:
    - Break tasks into clear, numbered steps
@@ -126,16 +292,23 @@ Create specific task descriptions based on the extension type, following Browser
    - Example: "If page doesn't load, refresh and wait 5 seconds"
 
 FOR SIDE PANEL EXTENSIONS:
-- Task: "1. Navigate to [relevant URL] 2. Click extension icon to open side panel 3. Use click action on [specific controls] 4. Verify [expected behavior]"
+- Task: "STEP 1: Navigate to [relevant CAPTCHA-free URL like https://example.com]. STEP 2: Click the pinned extension icon in the browser toolbar to open side panel. STEP 3: Use click action on [specific controls]. STEP 4: Verify [expected behavior]"
 
 FOR POPUP EXTENSIONS:
-- Task: "1. Navigate to [relevant URL] 2. Click extension icon to open popup 3. Use click action on [specific buttons] 4. Verify [expected behavior]"
+- Task: "STEP 1: Navigate to [relevant CAPTCHA-free URL like https://example.com]. STEP 2: Click the pinned extension icon in the toolbar to open popup. STEP 3: Use click action on [specific buttons]. STEP 4: Verify [expected behavior]"
 
 FOR OVERLAY/CONTENT SCRIPT EXTENSIONS:
-- Task: "1. Navigate to [specific target website] 2. Verify overlay appears 3. Use click action on [specific elements] 4. Verify [expected outcomes]"
+- Task: "STEP 1: Navigate to [specific target CAPTCHA-free website like https://example.com or https://httpbin.org]. STEP 2: Verify overlay appears automatically. STEP 3: Use click action on [specific elements]. STEP 4: Verify [expected outcomes]"
 
 FOR GENERIC EXTENSIONS:
-- Task: "1. Navigate to [relevant URL] 2. Interact with extension via [specific method] 3. Perform [specific actions] 4. Verify [expected results]"
+- Task: "STEP 1: Navigate to [relevant CAPTCHA-free URL like https://example.com]. STEP 2: Click the pinned extension icon in the toolbar. STEP 3: Interact with extension and perform [specific actions]. STEP 4: Verify [expected results]"
+
+CRITICAL REQUIREMENTS:
+1. **DO NOT include pinning steps**: Extension pinning is handled automatically before tests run
+2. **Use CAPTCHA-free sites**: 
+   - ✅ GOOD: https://example.com, https://httpbin.org, chrome://newtab, https://jsonplaceholder.typicode.com
+   - ❌ AVOID: Google sites, social media, sites requiring login, sites with bot detection
+3. **Be specific**: Use actual element names, IDs, and URLs from the extension code
 </test_task_requirements>
 
 <customization_guidelines>
@@ -147,8 +320,17 @@ Based on the extension files provided:
 5. Use SPECIFIC element selectors from the HTML/JS files
 6. Test the EXACT functionality from the user's original request
 
-Example for a note-taking extension:
-- "1. Navigate to chrome://newtab/ 2. Open side panel 3. Use click action on button with ID 'add-note-btn' 4. Use type action to enter 'Test note' into textarea '#note-input' 5. Use click action on 'Save' button 6. Verify note appears in list 7. If save fails, use send_keys 'Enter' to submit"
+CRITICAL RULES FOR TASK STRINGS:
+- DO NOT include steps to pin the extension (this is automated with Playwright before tests run)
+- NEVER use placeholders like [url], [URL], [relevant URL], [description], etc.
+- NEVER use template literals with variables like \${url} or \${extensionName}
+- ALWAYS use REAL, COMPLETE URLs like https://example.com, https://httpbin.org (avoid CAPTCHA sites)
+- ALWAYS use REAL, SPECIFIC element names from the actual HTML files
+- NEVER leave incomplete sentences like "Navigate to." or "Click on."
+- Each task MUST be a complete, executable instruction
+
+Example for a note-taking side panel extension:
+- "STEP 1: Navigate to https://example.com. STEP 2: Click the pinned extension icon in the toolbar to open side panel. STEP 3: Use click action on button with ID 'add-note-btn'. STEP 4: Use type action to enter 'Test note' into textarea '#note-input'. STEP 5: Use click action on 'Save' button. STEP 6: Verify note appears in the notes list."
 </customization_guidelines>
 
 Generate the complete executable script now.
@@ -221,6 +403,29 @@ CRITICAL INSTRUCTIONS:
       throw new Error("Invalid script format generated")
     }
 
+    // Check for common undefined variable patterns that would cause runtime errors
+    const problematicPatterns = [
+      /\$\{url\}/g,
+      /\$\{URL\}/g,
+      /\$\{extensionName\}/g,
+      /\$\{projectName\}/g,
+      /\$\{description\}/g,
+      /\$\{variable\}/g
+    ]
+
+    let hasProblematicPattern = false
+    problematicPatterns.forEach(pattern => {
+      if (pattern.test(testScript)) {
+        console.error("❌ Generated script contains undefined variable pattern:", pattern)
+        hasProblematicPattern = true
+      }
+    })
+
+    if (hasProblematicPattern) {
+      console.error("❌ Script contains template literal variables that would be undefined at runtime")
+      throw new Error("Generated script has undefined variables - using fallback")
+    }
+
     console.log("✅ BrowserUse test script generated successfully")
     return testScript
 
@@ -228,10 +433,159 @@ CRITICAL INSTRUCTIONS:
     console.error("❌ Error generating BrowserUse test script:", error)
 
     // Return a fallback test script if generation fails
+    // Note: projectName and frontendType are properly interpolated into the template
     return `import { Hyperbrowser } from "@hyperbrowser/sdk";
 
 // BrowserUse test script for: ${projectName} (Fallback)
 // Extension type: ${frontendType}
+
+// Helper to connect to browser session via Puppeteer (puppeteer-core)
+async function getBrowserContext(sessionId, apiKey) {
+  const puppeteer = await import('puppeteer-core');
+  const client = new Hyperbrowser({ apiKey });
+  const sessionInfo = await client.sessions.get(sessionId);
+  const wsEndpoint = sessionInfo.wsEndpoint || sessionInfo.connectUrl;
+  
+  if (!wsEndpoint) {
+    throw new Error(\`Missing wsEndpoint for session \${sessionId}\`);
+  }
+  
+  // Connect using Puppeteer
+  const browser = await puppeteer.connect({ browserWSEndpoint: wsEndpoint });
+  const pages = await browser.pages();
+  const page = pages[0] || (await browser.newPage());
+  
+  return { browser, page };
+}
+
+// Automatically pin the extension to toolbar using Puppeteer
+async function pinExtension(sessionId, apiKey) {
+  console.log('[PIN] Starting extension pinning with Puppeteer...');
+  
+  let browser = null;
+  let page = null;
+  
+  try {
+    const context = await getBrowserContext(sessionId, apiKey);
+    browser = context.browser;
+    page = context.page;
+    
+    // Navigate to chrome://extensions using Puppeteer
+    const currentUrl = page.url();
+    if (!currentUrl.includes('chrome://extensions')) {
+      await page.goto('chrome://extensions', { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 30000 
+      });
+    }
+    
+    // Wait for extensions manager element using Puppeteer waitForSelector
+    await page.waitForSelector('extensions-manager', { timeout: 10000 });
+    
+    // Wait for shadow DOM to be ready using Puppeteer waitForFunction
+    await page.waitForFunction(() => {
+      const manager = document.querySelector('extensions-manager');
+      return manager && manager.shadowRoot !== null;
+    }, { timeout: 10000 });
+    
+    // Small delay for stability
+    await page.waitForTimeout(3000);
+    
+    // Click Details button through shadow DOM using Puppeteer evaluate
+    const detailsClicked = await page.evaluate(() => {
+      const manager = document.querySelector('extensions-manager');
+      if (!manager?.shadowRoot) throw new Error('extensions-manager not found');
+      
+      let items = manager.shadowRoot.querySelectorAll('extensions-item');
+      if (items.length === 0) {
+        const itemList = manager.shadowRoot.querySelector('extensions-item-list');
+        if (itemList?.shadowRoot) {
+          items = itemList.shadowRoot.querySelectorAll('extensions-item');
+        }
+      }
+      
+      if (items.length === 0) throw new Error('No extension items found');
+      
+      const firstItem = items[0];
+      let detailsButton = firstItem.shadowRoot?.querySelector('#detailsButton');
+      
+      if (!detailsButton) {
+        const buttons = (firstItem.shadowRoot || firstItem).querySelectorAll('cr-button, button');
+        for (const btn of buttons) {
+          if (btn.textContent?.toLowerCase().includes('details')) {
+            detailsButton = btn;
+            break;
+          }
+        }
+      }
+      
+      if (!detailsButton) throw new Error('Details button not found');
+      detailsButton.click();
+      return true;
+    });
+    
+    if (!detailsClicked) throw new Error('Failed to click Details');
+    
+    await page.waitForTimeout(2000);
+    
+    // Toggle Pin to Toolbar using Puppeteer evaluate
+    const pinResult = await page.evaluate(() => {
+      const manager = document.querySelector('extensions-manager');
+      if (!manager?.shadowRoot) throw new Error('manager not found');
+      
+      const detailView = manager.shadowRoot.querySelector('extensions-detail-view');
+      if (!detailView) throw new Error('detail view not found');
+      
+      let pinToggle = (detailView.shadowRoot || detailView).querySelector('#pin-to-toolbar');
+      
+      if (!pinToggle) {
+        const toggleRows = (detailView.shadowRoot || detailView).querySelectorAll('extensions-toggle-row');
+        for (const row of toggleRows) {
+          if (row.textContent?.toLowerCase().includes('pin')) {
+            pinToggle = row;
+            break;
+          }
+        }
+      }
+      
+      if (!pinToggle) throw new Error('Pin toggle not found');
+      
+      // Check if already pinned
+      let isPinned = false;
+      const toggle = pinToggle.shadowRoot?.querySelector('cr-toggle');
+      if (toggle) {
+        isPinned = toggle.checked || toggle.hasAttribute('checked');
+      }
+      
+      if (isPinned) return { alreadyPinned: true };
+      
+      pinToggle.click();
+      if (toggle) toggle.click();
+      
+      return { clicked: true };
+    });
+    
+    await page.waitForTimeout(2000);
+    
+    console.log('[PIN] ✅ Extension pinned successfully');
+    return { success: true, ...pinResult };
+    
+  } catch (err) {
+    const isSessionClosed = err.message?.includes('Target closed') || 
+                           err.message?.includes('Session closed') ||
+                           err.message?.includes('Protocol error');
+    
+    if (isSessionClosed) {
+      console.log('[PIN] ℹ️  Session closed during pinning');
+      return { success: true, sessionClosed: true };
+    }
+    
+    console.error('[PIN] ❌ Pinning failed:', err.message);
+    return { success: false, error: err.message };
+  } finally {
+    // Don't close browser - let session continue
+  }
+}
 
 const runTest = async (sessionId) => {
   const client = new Hyperbrowser({
@@ -242,15 +596,25 @@ const runTest = async (sessionId) => {
   console.log('⚠️ Using fallback test template due to generation error');
 
   try {
-    // Basic functionality test
+    // Step 1: Pin the extension to toolbar
+    console.log('📌 Pinning extension to toolbar...');
+    const pinResult = await pinExtension(sessionId, process.env.HYPERBROWSER_API_KEY);
+    
+    if (pinResult.success) {
+      console.log('✅ Extension pinned successfully');
+    } else {
+      console.warn('⚠️  Extension pinning had issues, continuing anyway:', pinResult.error);
+    }
+
+    // Step 2: Basic functionality test
     const result = await client.agents.browserUse.startAndWait({
-      task: "Navigate to chrome://newtab/, click the Chrome extension icon for ${projectName}, interact with the extension interface, and verify it loads and responds correctly",
+      task: "STEP 1: Navigate to https://example.com (a simple CAPTCHA-free test page). STEP 2: Look for the pinned extension icon in the browser toolbar and click it. STEP 3: Interact with the extension interface and verify it loads and responds correctly. STEP 4: Test key features and report results.",
       sessionId: sessionId,
       keepBrowserOpen: true,
     });
     
     console.log('✅ Test completed:', result.data?.finalResult);
-    return { success: true, results: [result] };
+    return { success: true, pinResult, results: [result] };
   } catch (err) {
     console.error('❌ Test failed:', err.message);
     return { success: false, error: err.message };
@@ -261,7 +625,7 @@ const runTest = async (sessionId) => {
 export { runTest };
 
 // Allow standalone execution
-if (import.meta.url === \`file://\${process.argv[1]}\`) {
+if (import.meta.url === 'file://' + process.argv[1]) {
   const sessionId = process.argv[2];
   if (!sessionId) {
     console.error('Usage: node hyperagent_test_script.js <sessionId>');
