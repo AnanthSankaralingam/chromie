@@ -6,6 +6,9 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/forms-and-input/textarea"
 import { Zap, Send, Paperclip, Sparkles, Edit3, Github, ArrowRight, Chrome, Code, Play } from "lucide-react"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -25,12 +28,51 @@ export default function AboutPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex flex-col">
         {/* Header */}
         <AppBar />
 
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          {/* Flickering Grid Background */}
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
+
         {/* Main Content */}
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 relative z-10">
           <div className="max-w-6xl mx-auto">
             {/* Title */}
             <div className="text-center mb-16">
@@ -165,7 +207,7 @@ export default function AboutPage() {
 
             {/* call to action */}
             <div className="mt-16 text-center">
-              <Button 
+              <Button
                 onClick={() => router.push('/builder')}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 text-lg"
               >

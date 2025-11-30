@@ -41,7 +41,7 @@ export default function BuilderPage() {
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
-  
+
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
 
@@ -55,11 +55,11 @@ export default function BuilderPage() {
   const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
   const onboardingModal = useOnboardingModal()
-  
+
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
-    projectSetup.currentProjectId, 
-    projectSetup.currentProjectName, 
+    projectSetup.currentProjectId,
+    projectSetup.currentProjectName,
     fileManagement.fileStructure
   )
 
@@ -88,7 +88,7 @@ export default function BuilderPage() {
         // Project name and description are now automatically updated during code generation
         // No need to make additional API calls
       }
-      
+
       // Auto-select manifest.json if no file is currently selected
       if (!selectedFile) {
         const manifestFile = fileManagement.findManifestFile()
@@ -168,7 +168,7 @@ export default function BuilderPage() {
 
     setIsGeneratingTestAgent(true)
     console.log('🤖 Starting AI test agent generation...')
-    
+
     try {
       const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-hyperagent-script`, {
         method: 'POST',
@@ -184,13 +184,13 @@ export default function BuilderPage() {
 
       const result = await response.json()
       console.log('✅ AI test agent generated successfully:', result)
-      
+
       // Refresh file tree to show new test script
       await fileManagement.loadProjectFiles(true)
-      
+
       // Show success message
       alert('AI testing agent created successfully! Check your files for hyperagent_test_script.js')
-      
+
     } catch (error) {
       console.error('❌ Error generating AI test agent:', error)
       alert(`Failed to generate AI test agent: ${error.message}`)
@@ -218,12 +218,12 @@ export default function BuilderPage() {
   // Show error state if project setup failed
   if (projectSetup.projectSetupError && user) {
     return (
-      <ErrorState 
-        projectSetupError={projectSetup.projectSetupError} 
+      <ErrorState
+        projectSetupError={projectSetup.projectSetupError}
         onRetry={() => {
           projectSetup.setProjectSetupError(null)
           projectSetup.checkAndSetupProject()
-        }} 
+        }}
       />
     )
   }
@@ -251,33 +251,30 @@ export default function BuilderPage() {
           <div className="flex">
             <button
               onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'chat' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'chat'
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+                }`}
             >
               <MessageSquare className="h-4 w-4" />
               <span>AI Chat</span>
             </button>
             <button
               onClick={() => setActiveTab('files')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'files' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'files'
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+                }`}
             >
               <FolderOpen className="h-4 w-4" />
               <span>Files</span>
             </button>
             <button
               onClick={() => setActiveTab('editor')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'editor' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'editor'
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+                }`}
             >
               <FileCode className="h-4 w-4" />
               <span>Editor</span>
@@ -342,7 +339,7 @@ export default function BuilderPage() {
               />
             </div>
           )}
-          
+
           {activeTab === 'files' && (
             <div className="h-full">
               <ProjectFilesPanel
@@ -358,10 +355,10 @@ export default function BuilderPage() {
               />
             </div>
           )}
-          
+
           {activeTab === 'editor' && (
             <div className="h-full bg-slate-900">
-              <EditorPanel 
+              <EditorPanel
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
                 allFiles={fileManagement.flatFiles}
@@ -447,7 +444,7 @@ export default function BuilderPage() {
 
             {/* File Editor Panel */}
             <div className="flex flex-col bg-slate-900 border-l border-slate-700/50" style={{ width: `${100 - dividerPosition}%` }}>
-              <EditorPanel 
+              <EditorPanel
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
                 allFiles={fileManagement.flatFiles}
@@ -458,9 +455,9 @@ export default function BuilderPage() {
       </div>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
 
       {/* Test Modal */}

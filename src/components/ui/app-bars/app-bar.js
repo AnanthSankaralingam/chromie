@@ -35,10 +35,10 @@ export default function AppBar() {
             <div className="relative">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                 <Link href="/" className="text-slate-300 hover:text-white transition-colors">
-                  <Image 
-                    src="/chromie-logo-1.png" 
-                    alt="chromie Logo" 
-                    width={40} 
+                  <Image
+                    src="/chromie-logo-1.png"
+                    alt="chromie Logo"
+                    width={40}
                     height={40}
                     className="object-contain"
                   />
@@ -49,69 +49,61 @@ export default function AppBar() {
               <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
                 chromie
               </Link>
-              <span className="text-xs text-slate-400 font-medium tracking-wide">Lovable for chrome extensions</span>
+              {/* <span className="text-xs text-slate-400 font-medium tracking-wide">//TODO add tagline</span> */}
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/about" className="text-slate-300 hover:text-white transition-colors">
-              how it works
-            </Link>
-            <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
-              pricing
-            </Link>
-          </nav>
+          <div className="flex items-center gap-8">
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link href="/about" className="text-slate-300 hover:text-white transition-colors">
+                how it works
+              </Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
+                pricing
+              </Link>
+            </nav>
 
-          <div className="flex items-center space-x-4">
-            <button
-              className="md:hidden p-2 text-slate-300 hover:text-white"
-              aria-label="Open menu"
-              onClick={() => setIsMobileMenuOpen((v) => !v)}
-            >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-            <div className="hidden md:flex items-center space-x-3">
-            </div>
-            {user ? (
-              <div className="flex items-center space-x-3">
-                <Link href="/profile">
-                  <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage 
-                      src={user?.user_metadata?.picture} 
-                      alt={user?.user_metadata?.name || user?.email}
-                    />
-                    <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
-                      {getUserInitials(user)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
-                <Link href="/profile">
-                  <Button 
+            <div className="flex items-center space-x-4">
+              <button
+                className="md:hidden p-2 text-slate-300 hover:text-white"
+                aria-label="Open menu"
+                onClick={() => setIsMobileMenuOpen((v) => !v)}
+              >
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+
+              {user ? (
+                <div className="flex items-center space-x-3">
+                  <Link href="/profile">
+                    <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarImage
+                        src={user?.user_metadata?.picture}
+                        alt={user?.user_metadata?.name || user?.email}
+                      />
+                      <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
+                        {getUserInitials(user)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <Button
                     variant="outline"
-                    className="relative bg-slate-900 text-blue-300 hover:text-blue-200 transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
-                    style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
+                    className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                    onClick={() => setIsAuthModalOpen(true)}
                   >
-                    dashboard
+                    sign in
                   </Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-                  onClick={() => setIsAuthModalOpen(true)}
-                >
-                  sign in
-                </Button>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => setIsAuthModalOpen(true)}
-                >
-                  get started
-                </Button>
-              </>
-            )}
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setIsAuthModalOpen(true)}
+                  >
+                    get started
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {isMobileMenuOpen && (
@@ -125,14 +117,14 @@ export default function AppBar() {
               </Link>
               {!user && (
                 <>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="justify-start border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
                     onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
                   >
                     sign in
                   </Button>
-                  <Button 
+                  <Button
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
                   >
@@ -140,27 +132,17 @@ export default function AppBar() {
                   </Button>
                 </>
               )}
-              {user && (
-                <Link href="/builder" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button 
-                    variant="outline"
-                    className="w-full relative bg-slate-900 text-blue-300 hover:text-blue-200 transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800"
-                    style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(37 99 235), rgb(59 130 246))', backgroundOrigin: 'border-box'}}
-                  >
-                    dashboard
-                  </Button>
-                </Link>
-              )}
+              {/* Dashboard button removed from mobile menu */}
             </div>
           </div>
         )}
       </header>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
     </>
   )
-} 
+}
