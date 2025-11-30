@@ -60,6 +60,21 @@ export default function AppBar() {
     }
   }
 
+  // Handle "Contact" click - scroll if on home page, navigate otherwise
+  const handleContactClick = (e) => {
+    e.preventDefault()
+    if (pathname === '/') {
+      // On home page - scroll to section
+      const section = document.getElementById('contact')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      // On other page - navigate to home page with hash
+      router.push('/#contact')
+    }
+  }
+
   return (
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
@@ -79,7 +94,7 @@ export default function AppBar() {
               </div>
             </div>
             <div className="flex flex-col">
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
+              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>
                 chromie
               </Link>
               {/* <span className="text-xs text-slate-400 font-medium tracking-wide">//TODO add tagline</span> */}
@@ -101,6 +116,13 @@ export default function AppBar() {
                 className="text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 pricing
+              </a>
+              <a
+                href="#contact"
+                onClick={handleContactClick}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                contact
               </a>
             </nav>
 
@@ -167,6 +189,16 @@ export default function AppBar() {
                 className="text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 pricing
+              </a>
+              <a
+                href="#contact"
+                onClick={(e) => {
+                  handleContactClick(e)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                contact
               </a>
               {!user && (
                 <>

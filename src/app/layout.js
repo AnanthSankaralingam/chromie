@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import { Instrument_Serif } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 import AuthHandler from "@/components/AuthHandler";
@@ -10,6 +11,11 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   variable: "--font-instrument-serif",
   weight: ["400"],
+});
+const spaceGrotesk = Space_Grotesk({ 
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata = {
@@ -26,7 +32,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${instrumentSerif.variable}`}>
+      <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
         <SessionProviderClient>
           <AuthHandler />
           {children}
