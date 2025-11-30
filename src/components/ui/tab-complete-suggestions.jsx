@@ -139,23 +139,12 @@ const TabCompleteSuggestions = ({
 
   const getCategoryColor = (category) => {
     const colors = {
-      'Productivity': 'text-blue-400',
-      'Security': 'text-red-400', 
-      'Design': 'text-purple-400',
-      'Development': 'text-green-400',
-      'Shopping': 'text-yellow-400',
-      'Social Media': 'text-pink-400',
-      'Entertainment': 'text-orange-400',
-      'Utility': 'text-gray-400',
-      'Privacy': 'text-indigo-400',
-      'News': 'text-cyan-400',
-      'Finance': 'text-emerald-400',
-      'Education': 'text-teal-400',
-      'Business': 'text-violet-400',
-      'Health': 'text-rose-400',
-      'Accessibility': 'text-lime-400',
-      'Media': 'text-amber-400',
-      'Writing': 'text-sky-400'
+      'Travel': 'text-blue-400',
+      'HR': 'text-green-400',
+      'Deepfake Detection': 'text-red-400',
+      'Writing': 'text-purple-400',
+      'Productivity': 'text-cyan-400',
+      'Sales': 'text-yellow-400'
     }
     return colors[category] || 'text-gray-400'
   }

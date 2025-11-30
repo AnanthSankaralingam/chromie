@@ -91,16 +91,6 @@ export default function HowItWorksSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-slate-700/40 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-gray-200 mb-2">describe your extension</h4>
-              <p className="text-gray-300">tell chromie what you want in plain english. keep it simple and specific.</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
               className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10"
             >
               <Image
@@ -110,6 +100,16 @@ export default function HowItWorksSection() {
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
               />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="backdrop-blur-xl bg-slate-800/30 border border-slate-700/40 rounded-xl p-6"
+            >
+              <h4 className="text-xl md:text-2xl font-semibold text-gray-200 mb-2">describe your extension</h4>
+              <p className="text-gray-300">tell chromie what you want in plain english. keep it simple and specific.</p>
             </motion.div>
           </div>
 
@@ -149,16 +149,6 @@ export default function HowItWorksSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-green-500/20 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-green-200 mb-2">test in the browser simulator</h4>
-              <p className="text-gray-300">run the extension instantly with the built-in test environment to verify behavior.</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
               className="space-y-4"
             >
               <div className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10">
@@ -179,6 +169,16 @@ export default function HowItWorksSection() {
                   className="object-contain"
                 />
               </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="backdrop-blur-xl bg-slate-800/30 border border-green-500/20 rounded-xl p-6"
+            >
+              <h4 className="text-xl md:text-2xl font-semibold text-green-200 mb-2">test in the browser simulator</h4>
+              <p className="text-gray-300">run the extension instantly with the built-in test environment to verify behavior.</p>
             </motion.div>
           </div>
 

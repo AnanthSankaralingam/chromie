@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Send, LoaderIcon } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
@@ -12,11 +12,11 @@ import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
 import PricingSection from "@/components/ui/sections/pricing-section"
+import ContactSection from "@/components/ui/sections/contact-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { InfiniteSlider } from "@/components/ui/infinite-slider"
-import { extensionSuggestions } from "@/lib/data/extension-suggestions"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -27,17 +27,17 @@ export default function HomePage() {
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [showPersonaCarousel, setShowPersonaCarousel] = useState(true)
   const [inputFocused, setInputFocused] = useState(false)
-  const [selectedPersona, setSelectedPersona] = useState(null)
-  const [personaSuggestions, setPersonaSuggestions] = useState([])
+  const [placeholderText, setPlaceholderText] = useState("")
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
   const textareaRef = useRef(null)
 
-  // Extract unique personas from suggestions
-  const personas = [...new Set(extensionSuggestions.map(s => s.persona))]
-    .filter(p => p)
-    .sort()
+  // Typing suggestions for placeholder - extracted from extension suggestions data
+  const typingSuggestions = useMemo(() =>
+    extensionSuggestions.map(suggestion => suggestion.description),
+    []
+  )
 
   // Auto-resize textarea hook
   const adjustHeight = useCallback((reset = false) => {
@@ -62,17 +62,14 @@ export default function HomePage() {
     // Show suggestions when user starts typing
     if (value.trim().length >= 2) {
       setShowSuggestions(true)
-      setShowPersonaCarousel(false)
     } else {
       setShowSuggestions(false)
-      setShowPersonaCarousel(true)
     }
   }
 
   const handleSuggestionSelect = (suggestionText) => {
     setPrompt(suggestionText)
     setShowSuggestions(false)
-    setShowPersonaCarousel(false)
     // Focus back to textarea after selection
     if (textareaRef.current) {
       textareaRef.current.focus()
@@ -85,20 +82,11 @@ export default function HomePage() {
     // Show suggestions if there's existing text
     if (prompt.trim().length >= 2) {
       setShowSuggestions(true)
-      setShowPersonaCarousel(false)
-    } else {
-      // Hide carousel when focused even with empty input
-      setShowPersonaCarousel(false)
     }
   }
 
   const handleTextareaBlur = () => {
     setInputFocused(false)
-
-    // Restart typing suggestions and show carousel when user blurs and textarea is empty
-    if (!prompt.trim()) {
-      setShowPersonaCarousel(true)
-    }
   }
 
   const handleSubmit = async (e) => {
@@ -193,6 +181,56 @@ export default function HomePage() {
     }
   }
 
+  // Typing animation effect for placeholder
+  useEffect(() => {
+    // Only run typing animation when prompt is empty
+    if (prompt) {
+      setPlaceholderText("")
+      return
+    }
+
+    const currentText = typingSuggestions[currentSuggestionIndex]
+    if (!currentText) return
+
+    let charIndex = 0
+    let isTyping = true
+    let pauseTimeout = null
+    let deleteInterval = null
+
+    const typingInterval = setInterval(() => {
+      if (isTyping) {
+        // Typing phase
+        if (charIndex <= currentText.length) {
+          setPlaceholderText(currentText.slice(0, charIndex))
+          charIndex++
+        } else {
+          // Finished typing, pause before deleting
+          clearInterval(typingInterval)
+          pauseTimeout = setTimeout(() => {
+            isTyping = false
+            // Start deleting
+            deleteInterval = setInterval(() => {
+              if (charIndex > 0) {
+                charIndex--
+                setPlaceholderText(currentText.slice(0, charIndex))
+              } else {
+                // Finished deleting, move to next suggestion
+                clearInterval(deleteInterval)
+                setCurrentSuggestionIndex((prev) => (prev + 1) % typingSuggestions.length)
+              }
+            }, 10)
+          }, 2000) // Pause for 2 seconds
+        }
+      }
+    }, 15) // Typing speed
+
+    return () => {
+      clearInterval(typingInterval)
+      if (pauseTimeout) clearTimeout(pauseTimeout)
+      if (deleteInterval) clearInterval(deleteInterval)
+    }
+  }, [prompt, currentSuggestionIndex, typingSuggestions])
+
   // Restore prompt from URL params or sessionStorage on component mount
   useEffect(() => {
     const restorePrompt = () => {
@@ -232,10 +270,10 @@ export default function HomePage() {
 
     restorePrompt()
 
-    // Handle hash navigation (e.g., from /#how-it-works or /#pricing)
+    // Handle hash navigation (e.g., from /#how-it-works, /#pricing, or /#contact)
     const handleHashScroll = () => {
       const hash = window.location.hash
-      if (hash === '#how-it-works' || hash === '#pricing') {
+      if (hash === '#how-it-works' || hash === '#pricing' || hash === '#contact') {
         setTimeout(() => {
           const section = document.getElementById(hash.substring(1))
           if (section) {
@@ -262,32 +300,6 @@ export default function HomePage() {
     // Close the modal and redirect to profile page to manage existing projects
     setIsProjectLimitModalOpen(false)
     router.push('/profile')
-  }
-
-  const handlePersonaClick = (persona) => {
-    // If clicking the same persona, close it
-    if (selectedPersona === persona) {
-      setSelectedPersona(null)
-      setPersonaSuggestions([])
-      return
-    }
-
-    // Get up to 3 suggestions for this persona
-    const suggestions = extensionSuggestions
-      .filter(s => s.persona === persona)
-      .slice(0, 3)
-
-    setSelectedPersona(persona)
-    setPersonaSuggestions(suggestions)
-  }
-
-  const handlePersonaSuggestionClick = (suggestion) => {
-    setPrompt(suggestion.description)
-    setSelectedPersona(null)
-    setPersonaSuggestions([])
-    if (textareaRef.current) {
-      textareaRef.current.focus()
-    }
   }
 
   if (isLoading) {
@@ -357,7 +369,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 pb-2 whitespace-nowrap overflow-x-auto"
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 pb-2 whitespace-nowrap overflow-x-auto"
                   style={{
                     background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
                     WebkitBackgroundClip: 'text',
@@ -415,7 +427,7 @@ export default function HomePage() {
                       onKeyDown={handleKeyDown}
                       onFocus={handleTextareaFocus}
                       onBlur={handleTextareaBlur}
-                      placeholder="describe your extension..."
+                      placeholder={placeholderText || "describe your extension..."}
                       disabled={isGenerating}
                       className={cn(
                         "w-full px-0 py-0",
@@ -466,79 +478,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </motion.form>
-
-              {/* Persona Chip Carousel */}
-              <AnimatePresence>
-                {showPersonaCarousel && !prompt && !isGenerating && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    className="w-full"
-                  >
-                    {/* Persona Chips with InfiniteSlider */}
-                    <InfiniteSlider
-                      durationOnHover={75}
-                      gap={24}
-                      duration={30}
-                      className="mb-4"
-                    >
-                      {personas.map((persona) => (
-                        <button
-                          key={persona}
-                          onClick={() => handlePersonaClick(persona)}
-                          className={cn(
-                            "inline-flex items-center px-6 py-2.5 rounded-full text-sm font-medium",
-                            "transition-all duration-200 flex-shrink-0",
-                            selectedPersona === persona
-                              ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                              : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
-                          )}
-                        >
-                          {persona}
-                        </button>
-                      ))}
-                    </InfiniteSlider>
-
-                    {/* Suggestions List */}
-                    {selectedPersona && personaSuggestions.length > 0 && (
-                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="text-xs text-slate-400 mb-2 px-1">
-                          Suggestions for {selectedPersona}:
-                        </div>
-                        {personaSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion.id}
-                            onClick={() => handlePersonaSuggestionClick(suggestion)}
-                            className="
-                              w-full text-left px-4 py-3 rounded-lg
-                              bg-slate-800/50 border border-slate-700
-                              hover:bg-slate-700/50 hover:border-purple-500/50
-                              transition-all duration-200
-                              group
-                            "
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-white mb-1 group-hover:text-purple-300 transition-colors">
-                                  {suggestion.title}
-                                </div>
-                                <div className="text-xs text-slate-400 line-clamp-2">
-                                  {suggestion.description}
-                                </div>
-                              </div>
-                              <div className="text-xs px-2 py-1 rounded bg-slate-700/50 text-slate-400 flex-shrink-0">
-                                {suggestion.category}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           </div>
         </main>
@@ -548,6 +487,9 @@ export default function HomePage() {
 
         {/* Pricing Section */}
         <PricingSection />
+
+        {/* Contact Section */}
+        <ContactSection />
 
       </div>
 
