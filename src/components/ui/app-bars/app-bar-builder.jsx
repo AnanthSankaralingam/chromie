@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, Video } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -24,7 +24,8 @@ export default function AppBarBuilder({
   isDownloading = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
-  onCreateAITestAgent
+  onCreateAITestAgent,
+  onTestWithAI
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -92,6 +93,10 @@ export default function AppBarBuilder({
     onCreateAITestAgent?.()
   }
 
+  const handleTestWithAI = () => {
+    onTestWithAI?.()
+  }
+
   // Helper function to get user initials
   const getUserInitials = (user) => {
     if (user?.user_metadata?.name) {
@@ -156,6 +161,20 @@ export default function AppBarBuilder({
                   </span>
                 </Button>
                 <Button
+                  onClick={handleTestWithAI}
+                  disabled={isTestDisabled || isGenerating}
+                  variant="outline"
+                  className="relative bg-slate-900 text-purple-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 enabled:scale-100 hover:scale-105"
+                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box' }}
+                  title="Run AI test with video recording"
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  <span className="inline-flex items-center space-x-1.5">
+                    <span>test with ai</span>
+                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-purple-900/50 text-purple-300 border-2 border-purple-500">beta</span>
+                  </span>
+                </Button>
+                <Button
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
@@ -216,6 +235,19 @@ export default function AppBarBuilder({
               <span className="inline-flex items-center space-x-1.5">
                 <span>create ai testing agent</span>
                 <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+              </span>
+            </Button>
+            <Button
+              onClick={() => { handleTestWithAI(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              variant="outline"
+              className="w-full text-xs bg-slate-900 text-purple-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-purple-500/20"
+              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box' }}
+            >
+              <Video className="h-4 w-4 mr-2" />
+              <span className="inline-flex items-center space-x-1.5">
+                <span>test with ai</span>
+                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-purple-900/50 text-purple-300 border-2 border-purple-500">beta</span>
               </span>
             </Button>
             <Button

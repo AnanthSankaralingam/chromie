@@ -22,6 +22,7 @@ import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 import TestingPromptModal from "@/components/ui/modals/testing-prompt-modal"
+import AITestResultModal from "@/components/ui/modals/ai-test-result-modal"
 import { useNotificationSound } from "@/hooks/use-notification-sound"
 import { useAutoGenerateParams, useProjectParams } from "@/hooks/use-url-params"
 
@@ -41,6 +42,9 @@ export default function BuilderPage() {
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
+  const [isTestingWithAI, setIsTestingWithAI] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState(null)
+  const [isAiTestResultModalOpen, setIsAiTestResultModalOpen] = useState(false)
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -199,6 +203,49 @@ export default function BuilderPage() {
     }
   }
 
+  const handleTestWithAI = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error('No project ID available')
+      return
+    }
+
+    setIsTestingWithAI(true)
+    setAiTestResult(null)
+    console.log('🎬 Starting AI test with recording...')
+
+    try {
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to run AI test')
+      }
+
+      const result = await response.json()
+      console.log('✅ AI test completed:', result)
+
+      setAiTestResult(result)
+      setIsAiTestResultModalOpen(true)
+
+      // Log the URL for easy access
+      if (result.videoUrl) {
+        console.log('📹 Video Recording URL:', result.videoUrl)
+        console.log('🔗 Click to watch:', result.videoUrl)
+      }
+
+    } catch (error) {
+      console.error('❌ Error running AI test:', error)
+      alert(`Failed to run AI test: ${error.message}`)
+    } finally {
+      setIsTestingWithAI(false)
+    }
+  }
+
   const handleExploreCode = () => {
     setIsTestingPromptOpen(false)
     // User stays in current view (files/editor)
@@ -239,11 +286,12 @@ export default function BuilderPage() {
           projectId={projectSetup.currentProjectId}
           isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
           isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
-          isGenerating={isGenerating || isGeneratingTestAgent}
+          isGenerating={isGenerating || isGeneratingTestAgent || isTestingWithAI}
           isDownloading={downloadExtension.isDownloading}
           shouldStartTestHighlight={shouldStartTestHighlight}
           shouldStartDownloadHighlight={shouldStartDownloadHighlight}
           onCreateAITestAgent={handleCreateAITestAgent}
+          onTestWithAI={handleTestWithAI}
         />
 
         {/* Mobile Tab Navigation */}
@@ -505,6 +553,13 @@ export default function BuilderPage() {
         onClose={() => setIsTestingPromptOpen(false)}
         onExploreCode={handleExploreCode}
         onTryItOut={handleTryItOut}
+      />
+
+      {/* AI Test Result Modal */}
+      <AITestResultModal
+        isOpen={isAiTestResultModalOpen}
+        onClose={() => setIsAiTestResultModalOpen(false)}
+        result={aiTestResult}
       />
     </>
   )
