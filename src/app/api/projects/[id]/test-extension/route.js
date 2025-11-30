@@ -79,10 +79,26 @@ export async function POST(request, { params }) {
 
     // Automatically pin the extension to toolbar
     // Run in background without blocking the response
-    runPinExtension(session.sessionId).catch((err) => {
-      console.error("Failed to pin extension:", err.message)
-      // Don't throw - this is a non-critical operation
-    })
+    runPinExtension(session.sessionId)
+      .then((result) => {
+        if (result.success) {
+          if (result.sessionClosed) {
+            console.log("[api/projects/test-extension] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
+          } else if (result.alreadyPinned) {
+            console.log("[api/projects/test-extension] ✅ Pin extension: already pinned to toolbar")
+          } else if (result.pinned) {
+            console.log("[api/projects/test-extension] ✅ Pin extension: successfully pinned to toolbar")
+          } else {
+            console.log("[api/projects/test-extension] ⚠️  Pin extension: clicked but state not verified")
+          }
+        } else {
+          console.error("[api/projects/test-extension] ❌ Pin extension failed:", result.error)
+        }
+      })
+      .catch((err) => {
+        console.error("[api/projects/test-extension] ❌ Pin extension error:", err.message)
+        // Don't throw - this is a non-critical operation
+      })
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')

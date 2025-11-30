@@ -496,6 +496,35 @@ const runPinExtension = async (sessionId) => {
     }
 
   } catch (err) {
+    // Check if error is due to session/target being closed
+    // Need to check the entire error chain since it's nested deeply
+    const checkErrorChain = (error) => {
+      if (!error) return false;
+      const message = error.message || '';
+      const name = error.name || '';
+      if (message.includes('Target closed') ||
+          message.includes('Session closed') ||
+          message.includes('Browser has been closed') ||
+          name === 'TargetCloseError') {
+        return true;
+      }
+      // Check cause recursively
+      if (error.cause) {
+        return checkErrorChain(error.cause);
+      }
+      return false;
+    };
+
+    const isSessionClosed = checkErrorChain(err);
+
+    if (isSessionClosed) {
+      console.log('[PIN-EXTENSION] ℹ️  Session was closed during pinning operation');
+      console.log('[PIN-EXTENSION] This is expected if the user stopped the session quickly');
+      // Return success since this isn't a real failure - session was just closed
+      return { success: true, sessionClosed: true, message: 'Session closed during operation' };
+    }
+
+    // Real error - log it
     console.error('[PIN-EXTENSION] ❌ Extension pinning failed');
     console.error('[PIN-EXTENSION] Error message:', err.message);
     console.error('[PIN-EXTENSION] Error stack:', err.stack);
