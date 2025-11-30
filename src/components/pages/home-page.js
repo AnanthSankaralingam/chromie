@@ -10,8 +10,11 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
-import PersonaChipCarousel from "@/components/ui/persona-chip-carousel"
+import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
+import PricingSection from "@/components/ui/sections/pricing-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { InfiniteSlider } from "@/components/ui/infinite-slider"
+import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -26,8 +29,15 @@ export default function HomePage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showPersonaCarousel, setShowPersonaCarousel] = useState(true)
   const [inputFocused, setInputFocused] = useState(false)
+  const [selectedPersona, setSelectedPersona] = useState(null)
+  const [personaSuggestions, setPersonaSuggestions] = useState([])
   const router = useRouter()
   const textareaRef = useRef(null)
+
+  // Extract unique personas from suggestions
+  const personas = [...new Set(extensionSuggestions.map(s => s.persona))]
+    .filter(p => p)
+    .sort()
 
   // Auto-resize textarea hook
   const adjustHeight = useCallback((reset = false) => {
@@ -189,18 +199,18 @@ export default function HomePage() {
       // First try to get prompt from URL params
       const urlParams = new URLSearchParams(window.location.search)
       const urlPrompt = urlParams.get('prompt')
-      
+
       if (urlPrompt) {
         const decodedPrompt = decodeURIComponent(urlPrompt)
         setPrompt(decodedPrompt)
-        
+
         // Clean up URL params
         const url = new URL(window.location)
         url.searchParams.delete('prompt')
         window.history.replaceState({}, '', url.toString())
         return
       }
-      
+
       // Fallback to sessionStorage
       const savedPromptData = sessionStorage.getItem('pending_prompt')
       if (savedPromptData) {
@@ -219,8 +229,23 @@ export default function HomePage() {
         }
       }
     }
-    
+
     restorePrompt()
+
+    // Handle hash navigation (e.g., from /#how-it-works or /#pricing)
+    const handleHashScroll = () => {
+      const hash = window.location.hash
+      if (hash === '#how-it-works' || hash === '#pricing') {
+        setTimeout(() => {
+          const section = document.getElementById(hash.substring(1))
+          if (section) {
+            section.scrollIntoView({ behavior: 'smooth' })
+          }
+        }, 100)
+      }
+    }
+
+    handleHashScroll()
   }, [])
 
   useEffect(() => {
@@ -237,6 +262,32 @@ export default function HomePage() {
     // Close the modal and redirect to profile page to manage existing projects
     setIsProjectLimitModalOpen(false)
     router.push('/profile')
+  }
+
+  const handlePersonaClick = (persona) => {
+    // If clicking the same persona, close it
+    if (selectedPersona === persona) {
+      setSelectedPersona(null)
+      setPersonaSuggestions([])
+      return
+    }
+
+    // Get up to 3 suggestions for this persona
+    const suggestions = extensionSuggestions
+      .filter(s => s.persona === persona)
+      .slice(0, 3)
+
+    setSelectedPersona(persona)
+    setPersonaSuggestions(suggestions)
+  }
+
+  const handlePersonaSuggestionClick = (suggestion) => {
+    setPrompt(suggestion.description)
+    setSelectedPersona(null)
+    setPersonaSuggestions([])
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
   }
 
   if (isLoading) {
@@ -424,18 +475,79 @@ export default function HomePage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
+                    className="w-full"
                   >
-                    <PersonaChipCarousel
-                      onSuggestionSelect={handleSuggestionSelect}
-                      isVisible={true}
-                      className="max-w-3xl mx-auto"
-                    />
+                    {/* Persona Chips with InfiniteSlider */}
+                    <InfiniteSlider
+                      durationOnHover={75}
+                      gap={24}
+                      duration={30}
+                      className="mb-4"
+                    >
+                      {personas.map((persona) => (
+                        <button
+                          key={persona}
+                          onClick={() => handlePersonaClick(persona)}
+                          className={cn(
+                            "inline-flex items-center px-6 py-2.5 rounded-full text-sm font-medium",
+                            "transition-all duration-200 flex-shrink-0",
+                            selectedPersona === persona
+                              ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                              : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 hover:text-white"
+                          )}
+                        >
+                          {persona}
+                        </button>
+                      ))}
+                    </InfiniteSlider>
+
+                    {/* Suggestions List */}
+                    {selectedPersona && personaSuggestions.length > 0 && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="text-xs text-slate-400 mb-2 px-1">
+                          Suggestions for {selectedPersona}:
+                        </div>
+                        {personaSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.id}
+                            onClick={() => handlePersonaSuggestionClick(suggestion)}
+                            className="
+                              w-full text-left px-4 py-3 rounded-lg
+                              bg-slate-800/50 border border-slate-700
+                              hover:bg-slate-700/50 hover:border-purple-500/50
+                              transition-all duration-200
+                              group
+                            "
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-white mb-1 group-hover:text-purple-300 transition-colors">
+                                  {suggestion.title}
+                                </div>
+                                <div className="text-xs text-slate-400 line-clamp-2">
+                                  {suggestion.description}
+                                </div>
+                              </div>
+                              <div className="text-xs px-2 py-1 rounded bg-slate-700/50 text-slate-400 flex-shrink-0">
+                                {suggestion.category}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
           </div>
         </main>
+
+        {/* How It Works Section */}
+        <HowItWorksSection />
+
+        {/* Pricing Section */}
+        <PricingSection />
 
       </div>
 

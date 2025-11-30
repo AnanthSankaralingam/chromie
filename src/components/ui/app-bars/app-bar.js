@@ -9,12 +9,15 @@ import { useSession } from '@/components/SessionProviderClient'
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { useState } from "react"
 import { useIsMobile } from "@/hooks"
+import { usePathname, useRouter } from "next/navigation"
 
 export default function AppBar() {
   const { user } = useSession()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const isMobile = useIsMobile()
+  const pathname = usePathname()
+  const router = useRouter()
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -25,6 +28,36 @@ export default function AppBar() {
       return user.email[0].toUpperCase()
     }
     return 'U'
+  }
+
+  // Handle "How It Works" click - scroll if on home page, navigate otherwise
+  const handleHowItWorksClick = (e) => {
+    e.preventDefault()
+    if (pathname === '/') {
+      // On home page - scroll to section
+      const section = document.getElementById('how-it-works')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      // On other page - navigate to home page with hash
+      router.push('/#how-it-works')
+    }
+  }
+
+  // Handle "Pricing" click - scroll if on home page, navigate otherwise
+  const handlePricingClick = (e) => {
+    e.preventDefault()
+    if (pathname === '/') {
+      // On home page - scroll to section
+      const section = document.getElementById('pricing')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      // On other page - navigate to home page with hash
+      router.push('/#pricing')
+    }
   }
 
   return (
@@ -53,17 +86,25 @@ export default function AppBar() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/about" className="text-slate-300 hover:text-white transition-colors">
+          <div className="flex items-center gap-4">
+            <nav className="hidden md:flex items-center space-x-6">
+              <a
+                href="#how-it-works"
+                onClick={handleHowItWorksClick}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
                 how it works
-              </Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
+              </a>
+              <a
+                href="#pricing"
+                onClick={handlePricingClick}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
                 pricing
-              </Link>
+              </a>
             </nav>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <button
                 className="md:hidden p-2 text-slate-300 hover:text-white"
                 aria-label="Open menu"
@@ -73,19 +114,17 @@ export default function AppBar() {
               </button>
 
               {user ? (
-                <div className="flex items-center space-x-3">
-                  <Link href="/profile">
-                    <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-                      <AvatarImage
-                        src={user?.user_metadata?.picture}
-                        alt={user?.user_metadata?.name || user?.email}
-                      />
-                      <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
-                        {getUserInitials(user)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                </div>
+                <Link href="/profile">
+                  <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage
+                      src={user?.user_metadata?.picture}
+                      alt={user?.user_metadata?.name || user?.email}
+                    />
+                    <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
+                      {getUserInitials(user)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
               ) : (
                 <>
                   <Button
@@ -109,12 +148,26 @@ export default function AppBar() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-white/10 mt-3 pt-3 px-2">
             <div className="flex flex-col space-y-3">
-              <Link href="/about" className="text-slate-300 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+              <a
+                href="#how-it-works"
+                onClick={(e) => {
+                  handleHowItWorksClick(e)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
                 how it works
-              </Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+              </a>
+              <a
+                href="#pricing"
+                onClick={(e) => {
+                  handlePricingClick(e)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
                 pricing
-              </Link>
+              </a>
               {!user && (
                 <>
                   <Button
