@@ -1,44 +1,44 @@
-// Chrome extension suggestions - one per category for tab-complete functionality
+// Chrome extension suggestions - descriptions without "An extension that" prefix
 export const extensionSuggestions = [
   {
     id: "rewards-tracker",
     title: "Loyalty rewards tracker",
-    description: "Build a browser extension that helps users track and manage their loyalty points, cashback rewards, and membership tiers across multiple travel and shopping platforms in one centralized dashboard.",
+    description: "helps users track and manage their loyalty points and rewards.",
     category: "Travel",
     keywords: ["rewards", "loyalty", "points", "cashback", "membership", "travel", "tracking"]
   },
   {
     id: "data-extractor",
     title: "Web data extraction tool",
-    description: "Develop an extension that extracts structured data from websites into CSV or JSON format, supporting table scraping, list extraction, and custom data point collection for business intelligence purposes.",
+    description: "notifies employees when they have redeemable rewards.",
     category: "HR",
     keywords: ["data", "extraction", "scraping", "business", "intelligence", "export", "analysis"]
   },
   {
     id: "media-authenticity-checker",
     title: "Visual media authenticity verifier",
-    description: "Develop an extension that analyzes images and videos on webpages for signs of AI manipulation or deepfakes using metadata analysis, visual artifact detection, and inconsistency highlighting.",
+    description: "analyzes webpage audio for AI deepfakes.",
     category: "Deepfake Detection",
     keywords: ["deepfake", "detection", "ai", "authenticity", "media", "verification", "manipulation"]
   },
   {
     id: "grammar-assistant",
     title: "Advanced grammar and style checker",
-    description: "Develop a writing extension that provides real-time grammar checking, style suggestions, tone analysis, and readability scores across any text field in the browser with contextual recommendations.",
+    description: "provides real-time AI editing and rewriting of text.",
     category: "Writing",
     keywords: ["grammar", "writing", "style", "checker", "proofreading", "editing", "tone"]
   },
   {
     id: "meeting-scheduler",
     title: "Smart meeting scheduler",
-    description: "Develop an extension that integrates with calendar platforms to suggest optimal meeting times, check availability across teams, and automatically generate scheduling links with timezone conversion support.",
+    description: "integrates with calendar platforms to allow users to schedule meetings.",
     category: "Productivity",
     keywords: ["scheduling", "meetings", "calendar", "availability", "timezone", "appointments", "coordination"]
   },
   {
     id: "lead-manager",
     title: "Lead capture and management tool",
-    description: "Build an extension that helps sales teams capture lead information from LinkedIn, company websites, and contact forms, organizing prospects with tags, notes, and follow-up reminders in a centralized system.",
+    description: "surfaces CRM data from any website.",
     category: "Sales",
     keywords: ["leads", "sales", "crm", "prospects", "business", "contact", "management"]
   }

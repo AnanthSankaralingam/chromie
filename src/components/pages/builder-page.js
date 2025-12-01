@@ -244,7 +244,7 @@ export default function BuilderPage() {
 
   return (
     <>
-      <div className={`h-screen bg-black text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <div>
           <AppBarBuilder
@@ -301,7 +301,7 @@ export default function BuilderPage() {
         {/* Mobile Single Panel View */}
         <div className="lg:hidden h-[calc(100vh-73px-49px)] relative z-20">
           {activeTab === 'chat' && isMobile && (
-            <div className="h-full flex flex-col p-4">
+            <div className="h-full flex flex-col">
               <AIChat
                 projectId={projectSetup.currentProjectId}
                 projectName={projectSetup.currentProjectName}
@@ -397,8 +397,8 @@ export default function BuilderPage() {
         <div className="hidden lg:flex h-[calc(100vh-73px)] relative z-20">
           {!isCanvasOpen ? (
             /* Centered Chat View - Initial State */
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full h-full flex flex-col">
                 <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}
@@ -459,7 +459,7 @@ export default function BuilderPage() {
             /* Split View - Chat + Canvas */
             <div className="flex h-full" ref={chatCanvasContainerRef}>
               {/* Left Sidebar - AI Assistant */}
-              <div className="flex flex-col bg-black animate-slide-in-left p-4" style={{ width: `${chatCanvasDividerPosition}%` }}>
+              <div className="flex flex-col bg-black animate-slide-in-left" style={{ width: `${chatCanvasDividerPosition}%` }}>
                 <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}

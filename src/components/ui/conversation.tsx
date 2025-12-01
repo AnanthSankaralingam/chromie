@@ -79,7 +79,7 @@ const ConversationContent = React.forwardRef<HTMLDivElement, ConversationContent
             onTouchMove={disableAutoScroll}
             {...props}
           >
-            <div className="flex flex-col gap-6 p-4">{children}</div>
+            <div className="flex flex-col gap-4 px-6 py-4">{children}</div>
           </div>
         </div>
       </ConversationContext.Provider>

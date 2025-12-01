@@ -32,7 +32,6 @@ const TabCompleteSuggestions = ({
             setCurrentSuggestionIndex(0)
             setShowPreview(results.length > 0)
             setIsLoading(false)
-            console.log('🔍 Tab complete suggestions:', results.length, 'for query:', searchQuery)
           } else {
             setSuggestions([])
             setCurrentSuggestionIndex(0)
