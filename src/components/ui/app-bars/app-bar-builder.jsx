@@ -126,7 +126,6 @@ export default function AppBarBuilder({
               <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
                 chromie
               </Link>
-              <span className="text-xs text-slate-400 font-medium tracking-wide">Lovable for chrome extensions</span>
             </div>
           </div>
         </div>

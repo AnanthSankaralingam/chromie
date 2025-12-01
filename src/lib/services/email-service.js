@@ -330,7 +330,7 @@ export class EmailService {
     <div class="email-wrapper">
         <div class="hero-section">
             <div class="logo">chromie</div>
-            <div class="subtitle">Lovable for chrome extensions</div>
+            <div class="subtitle">or chrome extensions</div>
         </div>
         
         <div class="content">
@@ -428,12 +428,12 @@ chromie makes it effortless to create powerful chrome extensions without writing
 • custom dashboards - build personalized browser experiences tailored to your specific needs
 • api integrations - connect with any service or tool you use 
 
-ready to build your first extension? visit: ${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}
+ready to build your first extension? visit: 'https://chromie.dev'}
 
 i'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
 
 best,
-the chromie team
+chromie 
 
 p.s. need help or have feedback? just reply to this email - we personally read and respond to every message!
 
@@ -441,7 +441,7 @@ p.s. need help or have feedback? just reply to this email - we personally read a
 you're receiving this email because you signed up for chromie.
 chromie • building the future of browser automation
 
-unsubscribe: ${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}/unsubscribe?email=${encodeURIComponent(user.email)}
+unsubscribe: 'https://chromie.dev/unsubscribe?email=${encodeURIComponent(user.email)}
     `
     }
 }

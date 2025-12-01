@@ -95,10 +95,10 @@ export default function MarkdownMessage({ content, typingCancelSignal }) {
 
   return (
     isTyping ? (
-      <div className="text-sm whitespace-pre-wrap break-words">{displayHtml}</div>
+      <div className="text-base whitespace-pre-wrap break-words">{displayHtml}</div>
     ) : (
-      <div 
-        className="text-sm prose prose-invert max-w-none break-words"
+      <div
+        className="text-base prose prose-invert max-w-none break-words"
         style={{
           '--tw-prose-body': 'rgb(203 213 225)',
           '--tw-prose-headings': 'rgb(255 255 255)',

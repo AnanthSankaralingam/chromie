@@ -34,6 +34,7 @@ export default function HomePage() {
   const textareaRef = useRef(null)
 
   // Typing suggestions for placeholder - extracted from extension suggestions data
+  // Descriptions already have no prefix, "An extension that " is added during typing
   const typingSuggestions = useMemo(() =>
     extensionSuggestions.map(suggestion => suggestion.description),
     []
@@ -201,7 +202,7 @@ export default function HomePage() {
       if (isTyping) {
         // Typing phase
         if (charIndex <= currentText.length) {
-          setPlaceholderText(currentText.slice(0, charIndex))
+          setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
           charIndex++
         } else {
           // Finished typing, pause before deleting
@@ -212,17 +213,17 @@ export default function HomePage() {
             deleteInterval = setInterval(() => {
               if (charIndex > 0) {
                 charIndex--
-                setPlaceholderText(currentText.slice(0, charIndex))
+                setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
               } else {
                 // Finished deleting, move to next suggestion
                 clearInterval(deleteInterval)
                 setCurrentSuggestionIndex((prev) => (prev + 1) % typingSuggestions.length)
               }
-            }, 10)
-          }, 2000) // Pause for 2 seconds
+            }, 2)
+          }, 1000) // Pause for 1 second
         }
       }
-    }, 15) // Typing speed
+    }, 8) // Typing speed
 
     return () => {
       clearInterval(typingInterval)
