@@ -188,8 +188,8 @@ export default function StreamingChat({
   return (
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
-      <div className="pt-4 pb-2">
-        <p className="text-sm text-gray-400 pl-[16.67%]">{projectName || "describe what you want to add or modify"}</p>
+      <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full">
+        <p className="text-sm text-gray-400">{projectName || "describe what you want to add or modify"}</p>
       </div>
 
       {/* Messages */}
@@ -318,12 +318,11 @@ export default function StreamingChat({
       {/* Floating Input */}
       <div
         className={cn(
-          "fixed bottom-6 z-50 px-4",
-          isCanvasOpen ? "left-0 right-auto" : "left-0 right-0"
+          "absolute bottom-6 left-0 right-0 z-50 flex justify-center px-4"
         )}
-        style={isCanvasOpen && chatWidth ? { width: `${chatWidth}%` } : undefined}
       >
         <div className={cn(
+          "w-full max-w-4xl",
           isCanvasOpen ? "pl-[16.67%]" : ""
         )}>
           <AIInputWithSearch

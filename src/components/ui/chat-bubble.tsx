@@ -23,7 +23,7 @@ export function ChatBubble({
     <div
       className={cn(
         "flex items-start gap-3 mb-6 w-full",
-        variant === "sent" ? "justify-end pr-[42rem] pl-0" : "pl-[16.67%] pr-0",
+        variant === "sent" ? "justify-end" : "justify-start",
         className,
       )}
     >
