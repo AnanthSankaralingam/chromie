@@ -1,4 +1,4 @@
-import { getPlaywrightSessionContext } from "@/lib/utils/browser-actions";
+import { getPuppeteerSessionContext } from "@/lib/utils/browser-actions";
 
 // Puppeteer script for: automatically pin extension to toolbar
 // Extension type: utility
@@ -18,7 +18,7 @@ const runPinExtension = async (sessionId) => {
 
   try {
     // Connect to the browser session
-    const context = await getPlaywrightSessionContext(sessionId, apiKey);
+    const context = await getPuppeteerSessionContext(sessionId, apiKey);
     
     browser = context.browser;
     page = context.page;
