@@ -8,6 +8,8 @@ import Link from "next/link"
 import { useSession } from '@/components/SessionProviderClient'
 import TestModal from '@/components/ui/modals/modal-testing-extension'
 import AuthModal from '@/components/ui/modals/modal-auth'
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { motion } from "framer-motion"
 
 export default function ShareExtensionPage({ token }) {
   const { user } = useSession()
@@ -191,8 +193,46 @@ export default function ShareExtensionPage({ token }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex items-center justify-center">
+        {/* Animated Background */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+          
+          <motion.div 
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
+        
+        <div className="text-center relative z-10">
           <Loader2 className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">loading extension</h2>
           <p className="text-slate-400">fetching project details...</p>
@@ -203,8 +243,46 @@ export default function ShareExtensionPage({ token }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Card className="w-full max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex items-center justify-center px-6">
+        {/* Animated Background */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(139, 92, 246)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
+          
+          <motion.div 
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.15, 0.25, 0.15],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.1, 0.2, 0.1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
+        
+        <Card className="w-full max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm relative z-10">
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="h-8 w-8 text-red-400" />
@@ -234,8 +312,47 @@ export default function ShareExtensionPage({ token }) {
   const { project, files } = projectData
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-8">
-      <Card className="bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+        <FlickeringGrid
+          className="absolute inset-0 z-0"
+          squareSize={4}
+          gridGap={6}
+          color="rgb(139, 92, 246)"
+          maxOpacity={0.15}
+          flickerChance={2.0}
+        />
+        
+        <motion.div 
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.15, 0.25, 0.15],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
+      </div>
+
+      <main className="max-w-2xl mx-auto px-6 py-8 relative z-10">
+        <Card className="bg-slate-800/95 border-slate-700 backdrop-blur-sm">
         <CardHeader className="text-center pb-6">
           <CardTitle className="text-white text-2xl mb-2">{project.author.name.split(' ')[0].toLowerCase()} shared their chrome extension with you!</CardTitle>
           <CardDescription className="text-slate-400 text-lg">
@@ -387,6 +504,7 @@ export default function ShareExtensionPage({ token }) {
         onClose={() => setIsAuthModalOpen(false)}
         redirectUrl={window.location.pathname}
       />
-    </main>
+      </main>
+    </div>
   )
 }
