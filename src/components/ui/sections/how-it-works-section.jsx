@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import Image from "next/image"
 
 export default function HowItWorksSection() {
   return (
@@ -91,14 +90,22 @@ export default function HowItWorksSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10"
+              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
             >
-              <Image
-                src="/how-to-prompting.png"
-                alt="describe your extension prompt"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
+              <video
+                src="/HIW - 1.mov"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+                style={{ 
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform'
+                }}
               />
             </motion.div>
             <motion.div
@@ -122,22 +129,30 @@ export default function HowItWorksSection() {
               transition={{ duration: 0.5 }}
               className="backdrop-blur-xl bg-slate-800/30 border border-blue-500/20 rounded-xl p-6"
             >
-              <h4 className="text-xl md:text-2xl font-semibold text-blue-200 mb-2">see the code in the editor</h4>
-              <p className="text-gray-300">review the generated files in the in-app editor. adjust anything you need.</p>
+              <h4 className="text-xl md:text-2xl font-semibold text-blue-200 mb-2">interact with chromie agent</h4>
+              <p className="text-gray-300">work with the chromie agent to refine and customize your extension through conversation.</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10"
+              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
             >
-              <Image
-                src="/how-to-code-generated.png"
-                alt="see generated code in the in-app editor"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
+              <video
+                src="/HIW - 2.mov"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+                style={{ 
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform'
+                }}
               />
             </motion.div>
           </div>
@@ -149,29 +164,40 @@ export default function HowItWorksSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="space-y-4"
+              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
             >
-              <div className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                <Image
-                  src="/how-to-testing.png"
-                  alt="test the extension in the simulator"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover object-top"
-                />
-              </div>
-              <div className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                <Image
-                  src="/how-to-browser-simulator.png"
-                  alt="browser simulator view"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-contain"
-                />
-              </div>
+              <video
+                src="/HIW - 3.mov"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+                style={{ 
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform'
+                }}
+              />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="backdrop-blur-xl bg-slate-800/30 border border-purple-500/20 rounded-xl p-6"
+            >
+              <h4 className="text-xl md:text-2xl font-semibold text-purple-200 mb-2">see the code in the editor</h4>
+              <p className="text-gray-300">review the generated files in the in-app editor. adjust anything you need.</p>
+            </motion.div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center mb-8 md:mb-10">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
@@ -180,34 +206,65 @@ export default function HowItWorksSection() {
               <h4 className="text-xl md:text-2xl font-semibold text-green-200 mb-2">test in the browser simulator</h4>
               <p className="text-gray-300">run the extension instantly with the built-in test environment to verify behavior.</p>
             </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
+            >
+              <video
+                src="/HIW - 4.mov"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+                style={{ 
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform'
+                }}
+              />
+            </motion.div>
           </div>
 
-          {/* Step 4 */}
+          {/* Step 5 */}
           <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-slate-500/20 rounded-xl p-6"
+              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
             >
-              <h4 className="text-xl md:text-2xl font-semibold text-slate-200 mb-2">download the zip</h4>
-              <p className="text-gray-300">grab a zip with all the code to run locally or publish to the chrome web store.</p>
+              <video
+                src="/HIW - 5.mov"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="w-full h-full object-cover"
+                style={{ 
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform'
+                }}
+              />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="relative w-full h-48 md:h-64 lg:h-80 rounded-xl overflow-hidden bg-white/5 border border-white/10"
+              className="backdrop-blur-xl bg-slate-800/30 border border-slate-500/20 rounded-xl p-6"
             >
-              <Image
-                src="/how-to-downloading.png"
-                alt="download the zip with your code"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover object-top"
-              />
+              <h4 className="text-xl md:text-2xl font-semibold text-slate-200 mb-2">share your creation</h4>
+              <p className="text-gray-300">share your extension with others or download the zip to publish to the chrome web store.</p>
             </motion.div>
           </div>
         </motion.div>
