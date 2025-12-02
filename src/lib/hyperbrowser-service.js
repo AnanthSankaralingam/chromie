@@ -9,7 +9,7 @@ import {
   validateExtensionFiles,
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
-import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil } from "@/lib/utils/browser-actions"
+import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil, primeExtensionContext as primeExtensionContextUtil } from "@/lib/utils/browser-actions"
 
 export class HyperbrowserService {
   constructor() {
@@ -265,6 +265,15 @@ export class HyperbrowserService {
         console.warn("[HYPERBROWSER-SERVICE] ❌ Failed to navigate to chrome://extensions:", navErr?.message)
         console.warn("[HYPERBROWSER-SERVICE] Navigation error stack:", navErr?.stack)
       }
+
+      // Prime extension context with tab cycle to prevent key errors
+      try {
+        console.log("[HYPERBROWSER-SERVICE] 🔄 Priming extension context...")
+        await this.primeExtensionContext(session.id)
+        console.log("[HYPERBROWSER-SERVICE] ✅ Extension context primed")
+      } catch (primeErr) {
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️ Extension context priming failed:", primeErr?.message)
+      }
       
       console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")
       return result
@@ -293,6 +302,16 @@ export class HyperbrowserService {
   async navigateToUrl(sessionId, url) {
     if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
     return await navigateToUrlUtil(sessionId, url, this.apiKey)
+  }
+
+  /**
+   * Prime extension context with tab cycle to prevent key errors
+   * @param {string} sessionId
+   * @returns {Promise<boolean>} success
+   */
+  async primeExtensionContext(sessionId) {
+    if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
+    return await primeExtensionContextUtil(sessionId, this.apiKey)
   }
 
   /**
