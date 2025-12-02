@@ -193,7 +193,7 @@ export default function StreamingChat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-hidden pb-28">
+      <div className="flex-1 overflow-hidden pb-4">
         <Conversation>
           <ConversationContent smooth={true} className="custom-scrollbar">
             {messages
@@ -315,14 +315,10 @@ export default function StreamingChat({
         </Conversation>
       </div>
 
-      {/* Floating Input */}
-      <div
-        className={cn(
-          "absolute bottom-6 left-0 right-0 z-50 flex justify-center px-4"
-        )}
-      >
+      {/* Input at bottom */}
+      <div className="px-4 pb-6 pt-4">
         <div className={cn(
-          "w-full max-w-4xl",
+          "w-full max-w-4xl mx-auto",
           isCanvasOpen ? "pl-[16.67%]" : ""
         )}>
           <AIInputWithSearch
