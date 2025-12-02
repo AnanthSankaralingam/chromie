@@ -10,6 +10,7 @@ import {
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
 import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil, primeExtensionContext as primeExtensionContextUtil } from "@/lib/utils/browser-actions"
+import { runPinExtension } from "@/lib/scripts/pin-extension"
 
 export class HyperbrowserService {
   constructor() {
@@ -179,14 +180,11 @@ export class HyperbrowserService {
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
-      console.log("[HYPERBROWSER-SERVICE] ✅ Hyperbrowser session created successfully")
-      console.log("[HYPERBROWSER-SERVICE] Session ID:", session.id)
       console.log("[HYPERBROWSER-SERVICE] Session object keys:", Object.keys(session))
 
       // Get session details for embedding
       console.log("[HYPERBROWSER-SERVICE] 🔍 Fetching session details...")
       const sessionDetails = await this.client.sessions.get(session.id)
-      console.log("[HYPERBROWSER-SERVICE] Session details received")
       console.log("[HYPERBROWSER-SERVICE] Session details keys:", Object.keys(sessionDetails))
       
       // Extract live view URL from various possible fields
@@ -202,10 +200,6 @@ export class HyperbrowserService {
       // If no live view URL is found, provide a fallback or error indication
       if (!liveViewUrl) {
         console.warn("[HYPERBROWSER-SERVICE] ⚠️  No live view URL found in session response")
-        console.warn("[HYPERBROWSER-SERVICE] Possible reasons:")
-        console.warn("[HYPERBROWSER-SERVICE] 1. Session is still initializing")
-        console.warn("[HYPERBROWSER-SERVICE] 2. Free plan limitations")
-        console.warn("[HYPERBROWSER-SERVICE] 3. API response structure has changed")
       }
       
       // Return a shape compatible with existing UI
@@ -242,39 +236,34 @@ export class HyperbrowserService {
       await new Promise(resolve => setTimeout(resolve, 2000))
       console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
-      // Debug: Check session status before initial navigation
-      try {
-        console.log("[HYPERBROWSER-SERVICE] 🔍 Checking session status before navigation...")
-        const sessionCheck = await this.client.sessions.get(session.id)
-        console.log("[HYPERBROWSER-SERVICE] Pre-navigation session check:", {
-          id: sessionCheck.id,
-          status: sessionCheck.status,
-          closeReason: sessionCheck.closeReason,
-          endTime: sessionCheck.endTime
-        })
-      } catch (checkError) {
-        console.warn("[HYPERBROWSER-SERVICE] ⚠️  Could not check session before initial navigation:", checkError.message)
-      }
-      
-      // Immediately navigate to chrome://extensions using Puppeteer
-      try {
-        console.log("[HYPERBROWSER-SERVICE] 🚀 Navigating to chrome://extensions...")
-        await this.navigateToUrl(session.id, "chrome://extensions")
-        console.log("[HYPERBROWSER-SERVICE] ✅ Navigated to chrome://extensions successfully")
-      } catch (navErr) {
-        console.warn("[HYPERBROWSER-SERVICE] ❌ Failed to navigate to chrome://extensions:", navErr?.message)
-        console.warn("[HYPERBROWSER-SERVICE] Navigation error stack:", navErr?.stack)
+      // Automatically pin the extension to toolbar
+      // Run in background without blocking the response
+      if (extensionId) {
+        console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...")
+        runPinExtension(session.id)
+          .then((pinResult) => {
+            if (pinResult.success) {
+              if (pinResult.sessionClosed) {
+                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
+              } else if (pinResult.alreadyPinned) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
+              } else if (pinResult.pinned) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: successfully pinned to toolbar")
+              } else {
+                console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
+              }
+            } else {
+              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult.error)
+            }
+          })
+          .catch((pinErr) => {
+            console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr.message)
+            // Don't throw - this is a non-critical operation
+          })
+      } else {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension (no extension loaded)")
       }
 
-      // Prime extension context with tab cycle to prevent key errors
-      try {
-        console.log("[HYPERBROWSER-SERVICE] 🔄 Priming extension context...")
-        await this.primeExtensionContext(session.id)
-        console.log("[HYPERBROWSER-SERVICE] ✅ Extension context primed")
-      } catch (primeErr) {
-        console.warn("[HYPERBROWSER-SERVICE] ⚠️ Extension context priming failed:", primeErr?.message)
-      }
-      
       console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")
       return result
     } catch (error) {

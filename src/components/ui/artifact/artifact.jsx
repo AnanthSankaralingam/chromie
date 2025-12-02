@@ -7,7 +7,7 @@ const Artifact = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border border-slate-600/50 bg-gradient-to-r from-slate-800/50 to-slate-700/50 text-white shadow-lg backdrop-blur-sm",
+      "rounded border border-slate-600/50 bg-gradient-to-r from-slate-800/50 to-slate-700/50 text-white shadow-lg backdrop-blur-sm",
       className
     )}
     {...props}

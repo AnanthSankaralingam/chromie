@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
-import { runPinExtension } from "@/lib/scripts/pin-extension"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -77,28 +76,7 @@ export async function POST(request, { params }) {
       connectUrl: session.connectUrl
     })
 
-    // Automatically pin the extension to toolbar
-    // Run in background without blocking the response
-    runPinExtension(session.sessionId)
-      .then((result) => {
-        if (result.success) {
-          if (result.sessionClosed) {
-            console.log("[api/projects/test-extension] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
-          } else if (result.alreadyPinned) {
-            console.log("[api/projects/test-extension] ✅ Pin extension: already pinned to toolbar")
-          } else if (result.pinned) {
-            console.log("[api/projects/test-extension] ✅ Pin extension: successfully pinned to toolbar")
-          } else {
-            console.log("[api/projects/test-extension] ⚠️  Pin extension: clicked but state not verified")
-          }
-        } else {
-          console.error("[api/projects/test-extension] ❌ Pin extension failed:", result.error)
-        }
-      })
-      .catch((err) => {
-        console.error("[api/projects/test-extension] ❌ Pin extension error:", err.message)
-        // Don't throw - this is a non-critical operation
-      })
+    // Note: Extension pinning is now handled automatically in createTestSession
 
     // Skip database storage since browser_sessions table doesn't exist
     console.log('Skipping database session storage (table does not exist)')

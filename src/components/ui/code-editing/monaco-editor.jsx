@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2, Eye, Code } from 'lucide-react'
+import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ArtifactClose } from '@/components/ui/artifact/artifact'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
 import { loadIcons } from '@/lib/utils/icon-loader'
@@ -13,6 +14,9 @@ export default function MonacoEditor({
   fileName, 
   className = "", 
   onSave,
+  onClose,
+  isFileTreeCollapsed,
+  onToggleFileTree,
   readOnly = false,
   filePath,
   projectFiles = []
@@ -481,6 +485,21 @@ export default function MonacoEditor({
       {!readOnly && (
         <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-700/50">
           <div className="flex items-center space-x-3">
+            {onToggleFileTree && (
+              <Button
+                onClick={onToggleFileTree}
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                title={isFileTreeCollapsed ? 'Show file tree' : 'Hide file tree'}
+              >
+                {isFileTreeCollapsed ? (
+                  <PanelLeftOpen className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </Button>
+            )}
             <Edit3 className="h-4 w-4 text-purple-400" />
             <span className="text-sm text-slate-300 font-medium">{fileName || 'Untitled'}</span>
             {hasChanges && (
@@ -540,6 +559,9 @@ export default function MonacoEditor({
               <Save className="h-3 w-3 mr-1" />
               {isSaving ? 'Saving...' : 'Save'}
             </Button>
+            {onClose && (
+              <ArtifactClose onClick={onClose} />
+            )}
           </div>
         </div>
       )}

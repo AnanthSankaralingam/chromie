@@ -29,11 +29,7 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
 import {
   Artifact,
-  ArtifactHeader,
-  ArtifactTitle,
-  ArtifactDescription,
   ArtifactContent,
-  ArtifactActions,
   ArtifactClose,
 } from "@/components/ui/artifact/artifact"
 
@@ -54,6 +50,7 @@ export default function BuilderPage() {
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
   const [isCanvasOpen, setIsCanvasOpen] = useState(false) // Track if canvas pane is open
+  const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false) // Track if file tree is collapsed
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -520,41 +517,37 @@ export default function BuilderPage() {
               <ChatCanvasResizableDivider />
 
               {/* Canvas Pane - Files + Editor */}
-              <div className="flex flex-col p-4" style={{ width: `${100 - chatCanvasDividerPosition}%` }}>
-                <Artifact className="h-full flex flex-col">
-                  <ArtifactHeader>
-                    <div>
-                      <ArtifactTitle>{projectSetup.currentProjectName || "Chrome Extension"}</ArtifactTitle>
-                      <ArtifactDescription>Generated code files and editor</ArtifactDescription>
-                    </div>
-                    <ArtifactActions>
-                      <ArtifactClose onClick={() => setIsCanvasOpen(false)} />
-                    </ArtifactActions>
-                  </ArtifactHeader>
-                  <ArtifactContent>
+              <div className="flex flex-col p-2" style={{ width: `${100 - chatCanvasDividerPosition}%`, maxWidth: '100%', maxHeight: '100%' }}>
+                <Artifact className="h-full flex flex-col max-w-full max-h-full">
+                  <ArtifactContent className="p-2">
                     {/* Files + Editor */}
                     <div className="flex-1 flex h-full" ref={containerRef}>
                       {/* Project Files Panel */}
-                      <div style={{ width: `${dividerPosition}%` }}>
-                        <ProjectFilesPanel
-                          fileStructure={fileManagement.fileStructure}
-                          selectedFile={selectedFile}
-                          onFileSelect={handleFileSelect}
-                          isLoadingFiles={fileManagement.isLoadingFiles}
-                          searchQuery={searchQuery}
-                          onSearchChange={setSearchQuery}
-                        />
-                      </div>
+                      {!isFileTreeCollapsed && (
+                        <div style={{ width: `${dividerPosition}%` }}>
+                          <ProjectFilesPanel
+                            fileStructure={fileManagement.fileStructure}
+                            selectedFile={selectedFile}
+                            onFileSelect={handleFileSelect}
+                            isLoadingFiles={fileManagement.isLoadingFiles}
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                          />
+                        </div>
+                      )}
 
                       {/* Resizable Divider */}
-                      <ResizableDivider />
+                      {!isFileTreeCollapsed && <ResizableDivider />}
 
                       {/* File Editor Panel */}
-                      <div className="flex flex-col bg-black" style={{ width: `${100 - dividerPosition}%` }}>
+                      <div className="flex flex-col bg-black" style={{ width: isFileTreeCollapsed ? '100%' : `${100 - dividerPosition}%` }}>
                         <EditorPanel
                           selectedFile={selectedFile}
                           onFileSave={handleFileSave}
                           allFiles={fileManagement.flatFiles}
+                          onClose={() => setIsCanvasOpen(false)}
+                          isFileTreeCollapsed={isFileTreeCollapsed}
+                          onToggleFileTree={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
                         />
                       </div>
                     </div>

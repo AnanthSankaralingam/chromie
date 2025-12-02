@@ -10,17 +10,12 @@ import ProgressSpinner from "@/components/ui/loading/progress-spinner"
 export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false, loadingProgress = 0, projectId }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [sessionExpired, setSessionExpired] = useState(false)
-  const [urlInput, setUrlInput] = useState("")
-  const [isNavigating, setIsNavigating] = useState(false)
-  const [navigationError, setNavigationError] = useState(null)
   const [loadingStage, setLoadingStage] = useState(0)
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
     if (isOpen && sessionData?.sessionId) {
       setSessionExpired(false)
-      setNavigationError(null)
-      setUrlInput("")
       console.log("🔄 New test session detected, resetting expired state")
     }
   }, [isOpen, sessionData?.sessionId])
@@ -51,19 +46,19 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   // Define instruction boxes for each stage
   const instructionBoxes = [
     {
-      icon: Navigation,
+      icon: Monitor,
       iconColor: "blue",
-      title: "navigation & testing",
+      title: "interactive testing",
       items: [
-        "• use url input to navigate",
         "• click and interact naturally",
         "• test on different websites",
-        "• use keyboard shortcuts"
+        "• use keyboard shortcuts",
+        "• type directly in the browser"
       ]
     },
     {
       icon: Eye,
-      iconColor: "green", 
+      iconColor: "green",
       title: "extension features",
       items: [
         "• extension is automatically loaded",
@@ -75,7 +70,7 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
     {
       icon: Info,
       iconColor: "purple",
-      title: "session info", 
+      title: "session info",
       items: [
         "• 3-minute session limit",
         "• use \"test extension\" button for automated ai-agent testing",
@@ -132,49 +127,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
     onClose()
   }
 
-  // Handle URL navigation
-  const handleNavigate = async () => {
-    if (!urlInput.trim() || !sessionData?.sessionId || !projectId) {
-      setNavigationError("Missing URL, session, or project ID")
-      return
-    }
-
-    setIsNavigating(true)
-    setNavigationError(null)
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/test-extension/navigate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionData.sessionId,
-          url: urlInput.trim()
-        })
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setUrlInput("") // Clear input on success
-      } else {
-        setNavigationError(result.error || "Navigation failed")
-      }
-    } catch (error) {
-      setNavigationError("Failed to navigate to URL")
-    } finally {
-      setIsNavigating(false)
-    }
-  }
-
-  // Handle Enter key in URL input
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !isNavigating) {
-      handleNavigate()
-    }
-  }
-
   return (
     <div 
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
@@ -224,49 +176,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
             </div>
           </div>
         </div>
-
-        {/* URL Navigation Section */}
-        {sessionData && sessionData.sessionId && !sessionExpired && (
-          <div className="p-4 border-b border-slate-600 bg-slate-700/30">
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Paste URL to navigate..."
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isNavigating}
-                />
-                {navigationError && (
-                  <p className="text-red-400 text-xs mt-1">{navigationError}</p>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-slate-400 cursor-help" />
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                    You cannot directly paste into the testing browser from your local clipboard, so paste URLs here to navigate.
-                  </div>
-                </div>
-                <Button
-                  onClick={handleNavigate}
-                  disabled={!urlInput.trim() || isNavigating}
-                  size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isNavigating ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Navigation className="h-4 w-4" />
-                  )}
-                  {isNavigating ? "Navigating..." : "Navigate"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Content */}
         <div className="flex-1 relative">
