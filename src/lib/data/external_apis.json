@@ -742,6 +742,29 @@
         "Content-Type": "application/json"
       },
       "code_example": "// Create a new form\nconst createResponse = await fetch('https://forms.googleapis.com/v1/forms', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    info: {\n      title: 'Customer Feedback Form'\n    }\n  })\n});\nconst form = await createResponse.json();\n\n// Add a question to the form\nconst updateResponse = await fetch(`https://forms.googleapis.com/v1/forms/${form.formId}:batchUpdate`, {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${accessToken}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    requests: [{\n      createItem: {\n        item: {\n          title: 'What is your email?',\n          questionItem: {\n            question: {\n              required: true,\n              textQuestion: { paragraph: false }\n            }\n          }\n        },\n        location: { index: 0 }\n      }\n    }]\n  })\n});\nconst result = await updateResponse.json();\n\n// Get form responses\nconst responsesResponse = await fetch(`https://forms.googleapis.com/v1/forms/${form.formId}/responses`, {\n  headers: { 'Authorization': `Bearer ${accessToken}` }\n});\nconst responses = await responsesResponse.json();"
+    },
+    {
+      "name": "Resemble AI Deepfake Detection API",
+      "description": "Resemble AI provides deepfake detection services for audio, image, and video content. Analyze media files to detect AI-generated or manipulated content. Use for content verification, security checks, and authenticity validation.",
+      "authentication": "Bearer token (API key in Authorization header)",
+      "base_url": "https://app.resemble.ai/api/v2",
+      "common_endpoints": [
+        {
+          "method": "POST",
+          "path": "/detection",
+          "description": "Create a deepfake detection job for audio, image, or video"
+        },
+        {
+          "method": "GET",
+          "path": "/detect/{uuid}",
+          "description": "Get deepfake detection results by job UUID"
+        }
+      ],
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json"
+      },
+      "code_example": "// Create a deepfake detection job\nconst response = await fetch('https://app.resemble.ai/api/v2/detection', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    url: 'https://example.com/media/file.mp4'\n  })\n});\nconst data = await response.json();\nconst jobUuid = data.item.uuid;\n\n// Get detection results\nconst resultsResponse = await fetch(`https://app.resemble.ai/api/v2/detect/${jobUuid}`, {\n  headers: {\n    'Authorization': `Bearer ${apiKey}`\n  }\n});\nconst results = await resultsResponse.json();\n// results.item.metrics.label contains 'fake' or 'real'\n// results.item.metrics.score contains prediction scores"
     }
   ]
 }
