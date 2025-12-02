@@ -13,12 +13,12 @@ async function getPuppeteerConnect() {
 }
 
 /**
- * Obtain a Playwright browser context connected to the Hyperbrowser session via CDP
+ * Obtain a Puppeteer browser context connected to the Hyperbrowser session via CDP
  * @param {string} sessionId
  * @param {string} apiKey - Hyperbrowser API key
- * @returns {Promise<{ browser: any, context: any, page: any }>} connected objects
+ * @returns {Promise<{ browser: any, page: any }>} connected objects
  */
-export async function getPlaywrightSessionContext(sessionId, apiKey) {
+export async function getPuppeteerSessionContext(sessionId, apiKey) {
   if (!apiKey) {
     console.error("[BROWSER-ACTIONS] ❌ Missing Hyperbrowser API key")
     throw new Error("Missing Hyperbrowser API key")
@@ -90,7 +90,7 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
     
     const page = pages[0] || (await browser.newPage())
     console.log("[BROWSER-ACTIONS] ✅ Page ready:", !!page)
-    console.log("[BROWSER-ACTIONS] 🎉 getPlaywrightSessionContext complete")
+    console.log("[BROWSER-ACTIONS] 🎉 getPuppeteerSessionContext complete")
     
     return { browser, page }
   } catch (puppeteerError) {
@@ -103,7 +103,7 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
 }
 
 /**
- * Navigate the active page to a URL (thin wrapper around Playwright page.goto)
+ * Navigate the active page to a URL (thin wrapper around Puppeteer page.goto)
  * @param {string} sessionId - Hyperbrowser session ID
  * @param {string} url - URL to navigate to (used as-is, no formatting)
  * @param {string} apiKey - Hyperbrowser API key
@@ -112,10 +112,6 @@ export async function getPlaywrightSessionContext(sessionId, apiKey) {
 export async function navigateToUrl(sessionId, url, apiKey) {
   try {
     console.log("[BROWSER-ACTIONS] 🚀 navigateToUrl called")
-    console.log("[BROWSER-ACTIONS] Session ID:", sessionId)
-    console.log("[BROWSER-ACTIONS] Target URL:", url)
-    console.log("[BROWSER-ACTIONS] API key exists:", !!apiKey)
-    console.log("[BROWSER-ACTIONS] Environment:", process.env.VERCEL ? "Vercel" : "Local")
     
     // First, verify the session exists and is valid
     console.log("[BROWSER-ACTIONS] 🔍 Verifying session...")
@@ -175,8 +171,8 @@ export async function navigateToUrl(sessionId, url, apiKey) {
     
     // Use Puppeteer to navigate - open in new tab
     try {
-      console.log("[BROWSER-ACTIONS] 🔌 Getting Playwright context...")
-      const { browser } = await getPlaywrightSessionContext(sessionId, apiKey)
+      console.log("[BROWSER-ACTIONS] 🔌 Getting Puppeteer context...")
+      const { browser } = await getPuppeteerSessionContext(sessionId, apiKey)
       console.log("[BROWSER-ACTIONS] ✅ Got browser context")
 
       // Create a new tab for the navigation

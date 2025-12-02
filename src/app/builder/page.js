@@ -3,8 +3,8 @@ import BuilderPage from '@/components/pages/builder-page'
 
 function BuilderLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-transparent" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
     </div>
   )
 }

@@ -9,7 +9,7 @@ import {
   validateExtensionFiles,
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
-import { navigateToUrl as navigateToUrlUtil, getPlaywrightSessionContext as getPlaywrightContextUtil } from "@/lib/utils/browser-actions"
+import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil } from "@/lib/utils/browser-actions"
 
 export class HyperbrowserService {
   constructor() {
@@ -154,7 +154,8 @@ export class HyperbrowserService {
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
         timeoutMinutes: 3,
-        enableWindowManager: true
+        enableWindowManager: true,
+        enableWindowManagerTaskbar: true
       }
 
       // Add extension if available
@@ -255,7 +256,7 @@ export class HyperbrowserService {
         console.warn("[HYPERBROWSER-SERVICE] ⚠️  Could not check session before initial navigation:", checkError.message)
       }
       
-      // Immediately navigate to chrome://extensions using Playwright
+      // Immediately navigate to chrome://extensions using Puppeteer
       try {
         console.log("[HYPERBROWSER-SERVICE] 🚀 Navigating to chrome://extensions...")
         await this.navigateToUrl(session.id, "chrome://extensions")
@@ -274,17 +275,17 @@ export class HyperbrowserService {
   }
 
   /**
-   * Obtain a Playwright browser context connected to the Hyperbrowser session via CDP
+   * Obtain a Puppeteer browser context connected to the Hyperbrowser session via CDP
    * @param {string} sessionId
-   * @returns {Promise<{ browser: any, context: any, page: any }>} connected objects
+   * @returns {Promise<{ browser: any, page: any }>} connected objects
    */
-  async getPlaywrightSessionContext(sessionId) {
+  async getPuppeteerSessionContext(sessionId) {
     if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
-    return await getPlaywrightContextUtil(sessionId, this.apiKey)
+    return await getPuppeteerContextUtil(sessionId, this.apiKey)
   }
 
   /**
-   * Navigate the active page to a URL (thin wrapper around Playwright page.goto)
+   * Navigate the active page to a URL (thin wrapper around Puppeteer page.goto)
    * @param {string} sessionId
    * @param {string} url
    * @returns {Promise<boolean>} success
