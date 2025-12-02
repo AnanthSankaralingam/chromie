@@ -16,6 +16,7 @@ export function createStreamEventHandler(context) {
     conversationTokenTotal,
     filesSavedRef,
     doneReceivedRef,
+    hasShownStartMessageRef,
     onCodeGenerated,
     hasGeneratedCode,
     setHasGeneratedCode,
@@ -51,8 +52,12 @@ export function createStreamEventHandler(context) {
         break
 
       case "start":
-        if (!hasGeneratedCode) {
+        // Only show start message once per generation cycle
+        if (!hasGeneratedCode && !hasShownStartMessageRef?.current) {
           addNewAssistantMessage("Starting to analyze your request...")
+          if (hasShownStartMessageRef) {
+            hasShownStartMessageRef.current = true
+          }
         }
         break
 
@@ -201,27 +206,11 @@ export function createRequiresUrlHandler(context) {
   const {
     setMessages,
     currentRequestRef,
-    isOnboardingModalOpen,
-    setPendingUrlPrompt,
-    setUrlPromptData,
-    setShowUrlPrompt,
   } = context
 
   return (data, prompt, requestType, projectId) => {
     console.log("📋 Received requires_url signal:", data)
     console.log("📊 Has analysisData:", !!data.analysisData)
-
-    const addNewAssistantMessage = (content) => {
-      const newMessage = {
-        role: "assistant",
-        content: content,
-      }
-      setMessages((prev) => [...prev, newMessage])
-    }
-
-    addNewAssistantMessage(
-      "I need to analyze a specific website to build this extension properly. Let me get that information from you..."
-    )
 
     // Store the current request info for URL continuation
     currentRequestRef.current = {
@@ -232,29 +221,19 @@ export function createRequiresUrlHandler(context) {
     }
     console.log("💾 Stored currentRequestRef with analysisData:", !!currentRequestRef.current.analysisData)
 
-    const urlModalData = {
-      data: {
-        requiresUrl: true,
-        message:
-          data.content ||
-          "This extension would benefit from analyzing specific website structure. Please choose how you'd like to proceed.",
-        detectedSites: data.detectedSites || [],
-        detectedUrls: data.detectedUrls || [],
-        featureRequest: prompt,
-        requestType: requestType,
-      },
-      originalPrompt: prompt,
+    // Add a chat message with URL input request
+    const urlInputMessage = {
+      role: "assistant",
+      type: "url_input_request",
+      content: data.content || "To build your extension, I need the URL of the website you want to interact with. This helps me understand the page structure and create the right selectors.",
+      detectedSites: data.detectedSites || [],
+      detectedUrls: data.detectedUrls || [],
+      featureRequest: prompt,
+      requestType: requestType,
     }
-
-    // If onboarding is open, queue the modal
-    if (isOnboardingModalOpen) {
-      console.log("⏳ Onboarding is open - queueing URL prompt modal")
-      setPendingUrlPrompt(urlModalData)
-    } else {
-      console.log("✅ Showing URL prompt modal immediately")
-      setUrlPromptData(urlModalData)
-      setShowUrlPrompt(true)
-    }
+    
+    setMessages((prev) => [...prev, urlInputMessage])
+    console.log("✅ Added URL input request message to chat")
   }
 }
 
@@ -262,10 +241,6 @@ export function createRequiresApiHandler(context) {
   const {
     setMessages,
     currentRequestRef,
-    isOnboardingModalOpen,
-    setPendingApiPrompt,
-    setApiPromptData,
-    setShowApiPrompt,
   } = context
 
   return (data, prompt, requestType, projectId) => {
@@ -275,16 +250,6 @@ export function createRequiresApiHandler(context) {
       hasAnalysisData: !!data.analysisData,
     })
 
-    const addNewAssistantMessage = (content) => {
-      const newMessage = {
-        role: "assistant",
-        content: content,
-      }
-      setMessages((prev) => [...prev, newMessage])
-    }
-
-    addNewAssistantMessage("This extension looks like it might need external APIs. Let me get endpoint details...")
-
     // Store the current request info for API continuation
     currentRequestRef.current = {
       prompt: prompt,
@@ -293,30 +258,15 @@ export function createRequiresApiHandler(context) {
       analysisData: data.analysisData,
     }
 
-    const apiModalData = {
-      data: {
-        suggestedAPIs: data.suggestedAPIs || [],
-        message:
-          data.content ||
-          "This extension looks like it might need external API endpoints. Please configure them or choose to skip.",
-      },
-      originalPrompt: prompt,
+    // Add a chat message with API input request
+    const apiInputMessage = {
+      role: "assistant",
+      type: "api_input_request",
+      content: data.content || "Your extension needs to connect to external APIs. Please provide the base endpoint URLs for each API below. You can use the default endpoints or provide custom ones.",
+      suggestedAPIs: data.suggestedAPIs || [],
     }
-
-    console.log("🔌 API Modal Data prepared:", {
-      suggestedAPIsCount: apiModalData.data.suggestedAPIs.length,
-      hasMessage: !!apiModalData.data.message,
-      isOnboardingOpen: isOnboardingModalOpen,
-    })
-
-    // If onboarding is open, queue the modal
-    if (isOnboardingModalOpen) {
-      console.log("⏳ Onboarding is open - queueing API prompt modal")
-      setPendingApiPrompt(apiModalData)
-    } else {
-      console.log("✅ Showing API prompt modal immediately")
-      setApiPromptData(apiModalData)
-      setShowApiPrompt(true)
-    }
+    
+    setMessages((prev) => [...prev, apiInputMessage])
+    console.log("✅ Added API input request message to chat")
   }
 }

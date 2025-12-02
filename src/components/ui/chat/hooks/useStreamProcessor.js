@@ -35,6 +35,7 @@ export function useStreamProcessor({
     thinkingChunkCountRef,
     filesSavedRef,
     doneReceivedRef,
+    hasShownStartMessageRef,
     setModelThinkingFull,
     setPlanningProgress,
     setCurrentPlanningPhase,
@@ -42,12 +43,6 @@ export function useStreamProcessor({
     modelThinkingFull,
     setModelThinkingDisplay,
     thinkingTimerRef,
-    setPendingUrlPrompt,
-    setUrlPromptData,
-    setShowUrlPrompt,
-    setPendingApiPrompt,
-    setApiPromptData,
-    setShowApiPrompt,
   } = chatState
 
   const processStream = useCallback(
@@ -84,6 +79,7 @@ export function useStreamProcessor({
         conversationTokenTotal,
         filesSavedRef,
         doneReceivedRef,
+        hasShownStartMessageRef,
         onCodeGenerated,
         hasGeneratedCode,
         setHasGeneratedCode,
@@ -92,13 +88,6 @@ export function useStreamProcessor({
         thinkingTimerRef,
         setTypingCancelSignal,
         currentRequestRef,
-        isOnboardingModalOpen,
-        setPendingUrlPrompt,
-        setUrlPromptData,
-        setShowUrlPrompt,
-        setPendingApiPrompt,
-        setApiPromptData,
-        setShowApiPrompt,
       }
 
       const handleEvent = createStreamEventHandler(handlerContext)
@@ -146,7 +135,7 @@ export function useStreamProcessor({
 
       lastUrlSelectionRef.current = null
       setIsGenerating(true)
-      resetStreamState()
+      resetStreamState(true) // Reset start message flag for new generation
 
       if (onGenerationStart) onGenerationStart()
 
@@ -236,7 +225,7 @@ export function useStreamProcessor({
       console.log("🔗 [startGenerationWithUrl] Starting with URL:", userUrl, "Has analysisData:", !!analysisData)
 
       setIsGenerating(true)
-      resetStreamState()
+      resetStreamState(false) // Don't reset start message flag - this is a continuation
 
       if (onGenerationStart) onGenerationStart()
 
@@ -304,7 +293,7 @@ export function useStreamProcessor({
       console.log("🚫 User skipped URL - checking analysisData")
 
       setIsGenerating(true)
-      resetStreamState()
+      resetStreamState(false) // Don't reset start message flag - this is a continuation
 
       if (onGenerationStart) onGenerationStart()
 
@@ -367,7 +356,7 @@ export function useStreamProcessor({
   const continueGenerationWithApis = useCallback(
     async (requestInfo, userApis) => {
       setIsGenerating(true)
-      resetStreamState()
+      resetStreamState(false) // Don't reset start message flag - this is a continuation
 
       if (onGenerationStart) onGenerationStart()
 
