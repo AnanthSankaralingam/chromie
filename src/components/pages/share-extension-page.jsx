@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, User, Calendar, AlertCircle, Loader2, ExternalLink, CheckCircle, Play } from "lucide-react"
+import { Download, User, Calendar, AlertCircle, Loader2, ExternalLink, CheckCircle, Play, GitFork } from "lucide-react"
 import Link from "next/link"
 import { useSession } from '@/components/SessionProviderClient'
 import TestModal from '@/components/ui/modals/modal-testing-extension'
@@ -13,19 +14,25 @@ import { motion } from "framer-motion"
 
 export default function ShareExtensionPage({ token }) {
   const { user } = useSession()
+  const router = useRouter()
   const [projectData, setProjectData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState(null)
-  
+
   // Test extension state
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testSessionData, setTestSessionData] = useState(null)
   const [isTestLoading, setIsTestLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [testError, setTestError] = useState(null)
-  
+
+  // Fork state
+  const [isForkLoading, setIsForkLoading] = useState(false)
+  const [forkError, setForkError] = useState(null)
+  const [forkSuccess, setForkSuccess] = useState(false)
+
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
@@ -177,10 +184,75 @@ export default function ShareExtensionPage({ token }) {
         console.error("Error cleaning up test session:", error)
       }
     }
-    
+
     setIsTestModalOpen(false)
     setTestSessionData(null)
     setTestError(null)
+  }
+
+  const handleForkProject = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true)
+      return
+    }
+
+    if (!projectData?.project?.id) {
+      setForkError('No project data available')
+      return
+    }
+
+    try {
+      setIsForkLoading(true)
+      setForkError(null)
+      setForkSuccess(false)
+
+      console.log('[share page] Forking project from token:', token)
+
+      const response = await fetch(`/api/share/${token}/fork`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setIsAuthModalOpen(true)
+          return
+        }
+
+        const errorData = await response.json()
+
+        // Handle project limit error
+        if (response.status === 403 && errorData.error === "projects limit reached") {
+          setForkError(`Project limit reached. ${errorData.details?.suggestion || 'Please upgrade your plan.'}`)
+          return
+        }
+
+        throw new Error(errorData.error || 'Fork failed')
+      }
+
+      const data = await response.json()
+      console.log('[share page] Fork successful:', data.project)
+
+      // Show success state briefly
+      setForkSuccess(true)
+
+      // Store project ID and navigate to builder
+      sessionStorage.setItem('chromie_current_project_id', data.project.id)
+
+      // Navigate after brief delay to show success state
+      setTimeout(() => {
+        router.push(`/builder?project=${data.project.id}`)
+      }, 800)
+
+    } catch (err) {
+      console.error('[share page] Fork error:', err)
+      setForkError(err.message || 'Failed to fork project')
+    } finally {
+      setIsForkLoading(false)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -363,8 +435,8 @@ export default function ShareExtensionPage({ token }) {
         <CardContent className="space-y-8">
           {/* Download Section */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button
                 onClick={handleTestExtension}
                 disabled={isTestLoading}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 font-medium"
@@ -379,8 +451,8 @@ export default function ShareExtensionPage({ token }) {
                   'test extension'
                 )}
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={handleDownload}
                 disabled={isDownloading}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
@@ -395,6 +467,29 @@ export default function ShareExtensionPage({ token }) {
                   'download extension'
                 )}
               </Button>
+
+              <Button
+                onClick={handleForkProject}
+                disabled={isForkLoading || forkSuccess}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 font-medium"
+              >
+                {forkSuccess ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    forked!
+                  </>
+                ) : isForkLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    forking...
+                  </>
+                ) : (
+                  <>
+                    <GitFork className="h-4 w-4 mr-2" />
+                    fork project
+                  </>
+                )}
+              </Button>
             </div>
             
             {downloadError && (
@@ -406,7 +501,7 @@ export default function ShareExtensionPage({ token }) {
                 <p className="text-red-300 text-sm">{downloadError}</p>
               </div>
             )}
-            
+
             {testError && (
               <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
                 <div className="flex items-center space-x-2 mb-1">
@@ -416,6 +511,26 @@ export default function ShareExtensionPage({ token }) {
                 <p className="text-red-300 text-sm">{testError}</p>
               </div>
             )}
+
+            {forkError && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <span className="text-red-400 font-medium text-sm">fork error</span>
+                </div>
+                <p className="text-red-300 text-sm">{forkError}</p>
+              </div>
+            )}
+
+            {forkSuccess && (
+              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-1">
+                  <CheckCircle className="h-4 w-4 text-green-400" />
+                  <span className="text-green-400 font-medium text-sm">success!</span>
+                </div>
+                <p className="text-green-300 text-sm">Project forked successfully. Redirecting to builder...</p>
+              </div>
+            )}
           
           <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
             <p className="text-xs text-slate-400">
@@ -423,6 +538,9 @@ export default function ShareExtensionPage({ token }) {
             </p>
             <p className="text-xs text-slate-400">
               <strong>how to install:</strong> after downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">chrome://extensions/</Link>, extract the zip file and hit load unpacked in developer mode.
+            </p>
+            <p className="text-xs text-slate-400">
+              <strong>how to fork:</strong> click "fork project" to create your own copy that you can edit and customize in the builder.
             </p>
           </div>
           </div>
