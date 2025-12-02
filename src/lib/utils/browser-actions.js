@@ -103,6 +103,32 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
 }
 
 /**
+ * Prime extension context with a tab cycle to prevent key errors
+ * @param {string} sessionId - Hyperbrowser session ID
+ * @param {string} apiKey - Hyperbrowser API key
+ * @returns {Promise<boolean>} success
+ */
+export async function primeExtensionContext(sessionId, apiKey) {
+  try {
+    console.log("[BROWSER-ACTIONS] 🔄 Priming extension context with tab cycle...")
+
+    const { browser } = await getPuppeteerSessionContext(sessionId, apiKey)
+    const context = browser.defaultBrowserContext()
+
+    // Create a new tab, navigate briefly, then close it
+    const primingPage = await context.newPage()
+    await primingPage.goto('about:blank', { waitUntil: 'domcontentloaded' })
+    await primingPage.close()
+
+    console.log("[BROWSER-ACTIONS] ✅ Extension context primed")
+    return true
+  } catch (err) {
+    console.warn("[BROWSER-ACTIONS] ⚠️ Tab priming failed:", err.message)
+    return false
+  }
+}
+
+/**
  * Navigate the active page to a URL (thin wrapper around Puppeteer page.goto)
  * @param {string} sessionId - Hyperbrowser session ID
  * @param {string} url - URL to navigate to (used as-is, no formatting)
