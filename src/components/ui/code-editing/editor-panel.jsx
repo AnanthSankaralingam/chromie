@@ -1,7 +1,7 @@
 import { FileCode } from "lucide-react"
 import MonacoEditor from "./monaco-editor"
 
-export default function EditorPanel({ selectedFile, onFileSave, allFiles }) {
+export default function EditorPanel({ selectedFile, onFileSave, allFiles, onClose, isFileTreeCollapsed, onToggleFileTree }) {
   // Focus editor panel on external file selection signal
   if (typeof window !== 'undefined') {
     window.__chromie_focusManifestToEditor ||= () => {
@@ -24,6 +24,9 @@ export default function EditorPanel({ selectedFile, onFileSave, allFiles }) {
         projectFiles={allFiles}
         className="h-full"
         onSave={onFileSave}
+        onClose={onClose}
+        isFileTreeCollapsed={isFileTreeCollapsed}
+        onToggleFileTree={onToggleFileTree}
         readOnly={false}
       />
     )

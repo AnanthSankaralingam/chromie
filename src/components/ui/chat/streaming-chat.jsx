@@ -150,7 +150,7 @@ export default function StreamingChat({
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
       <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full">
-        <p className="text-sm text-gray-400">{projectName || "describe what you want to add or modify"}</p>
+        <p className="text-sm text-gray-200 font-bold">{projectName || "describe what you want to add or modify"}</p>
       </div>
 
       {/* Messages */}

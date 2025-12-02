@@ -2,14 +2,14 @@ import { useState, useRef, useEffect } from "react"
 
 export default function useResizablePanels() {
   const [dividerPosition, setDividerPosition] = useState(() => {
-    // Load saved divider position from localStorage, default to 33.33
+    // Load saved divider position from localStorage, default to 25 (smallest)
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('chromie_divider_position')
-      const position = saved ? parseFloat(saved) : 33.33
+      const position = saved ? parseFloat(saved) : 25
       console.log('Initial divider position loaded:', position)
       return position
     }
-    return 33.33
+    return 25
   })
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef(null)

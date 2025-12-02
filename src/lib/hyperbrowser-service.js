@@ -237,7 +237,6 @@ export class HyperbrowserService {
       console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
       // Automatically pin the extension to toolbar
-      // Note: The pin script will handle navigation to chrome://extensions if needed
       // Run in background without blocking the response
       if (extensionId) {
         console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...")

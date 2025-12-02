@@ -72,7 +72,7 @@ export default function ProjectFilesPanel({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="search files and code..."
+            placeholder="search files and code"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-xs sm:text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
