@@ -55,31 +55,29 @@ Required manifest.json sections:
 </popup_implementation_requirements>
 
 <styling_requirements>
-MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics.
+MANDATORY: Create simple, clean styles.css with basic colors and styling. NO emojis in generated code.
 
 Core Principles:
-- Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
-- Use gradients, glassmorphism, shadows for depth
-- Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
+- Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 8px
+- Use simple solid colors, basic borders, and minimal shadows
+- Simple transitions: ease 0.2s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+1. Light: Primary #2563eb, Background #ffffff, Text #1f2937, Border #e5e7eb
+2. Dark: Primary #3b82f6, Background #1f2937, Text #f9fafb, Border #374151
+3. Neutral: Primary #4b5563, Background #f9fafb, Text #111827, Border #d1d5db
 
 Components:
-- Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
-- Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
+- Typography: system-ui, -apple-system | 14px body, 16px heading | Weights 500-600 for headings
+- Buttons: Padding 8px 16px | Radius 6px | Solid background color + white text | Hover: slight opacity change
+- Inputs: Padding 8px 12px | Radius 6px | Border 1px solid | Focus: 2px solid border
+- Cards: Padding 16px | Radius 8px | Border 1px solid | Simple shadow: 0 1px 3px rgba(0,0,0,0.1)
 
-Premium Effects (MUST include):
-- Gradients on buttons/headers
-- Hover: scale(1.02) or translateY(-2px) + enhanced shadow
-- Backdrop-filter: blur(12px) for overlays/glass
-- Focus: Glowing ring with primary color
-- Layered shadows for realistic depth
-- Custom scrollbar styling (webkit-scrollbar)
+Simple Effects:
+- Basic hover states with opacity or background color change
+- Simple borders and shadows
+- No gradients, glassmorphism, or complex effects
+- No emojis in any generated code
 </styling_requirements>
 
 <icon_configuration>
@@ -104,7 +102,7 @@ Return a JSON object with the following structure exactly as shown:
   "popup.html": "popup HTML as raw text",
   "popup.js": "popup JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
-  "styles.css": "cutting-edge, modern styling as raw text",
+  "styles.css": "simple, clean styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
@@ -115,10 +113,11 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-- Create a stunning, modern popup interface that feels premium and polished
+- Create a simple, clean popup interface
 - Implement quick actions and controls users expect
 - Implement proper error handling, comments, and logging
-- Do not generate placeholder code.
+- Do not generate placeholder code
 - Handle popup closure and state management properly
+- Do not use emojis in any generated code, UI text, or console logs
 </implementation_guidelines>
 `;

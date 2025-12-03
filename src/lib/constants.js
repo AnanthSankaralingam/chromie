@@ -30,8 +30,8 @@ export const PLAN_LIMITS = {
 export const DEFAULT_PLAN = 'free'
 
 // Unified LLM Service defaults
-export const DEFAULT_MODEL = 'gemini-2.5-flash'
-export const DEFAULT_PROVIDER = 'gemini'
+export const DEFAULT_MODEL = 'claude-haiku-4-5-20251001'
+export const DEFAULT_PROVIDER = 'anthropic'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
 
@@ -54,6 +54,9 @@ export const PLANNING_MODELS = {
   DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts
   EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929' // Used for external-resources prompt
 }
+
+// Codegen phase model configuration
+export const CODEGEN_MODEL = 'claude-sonnet-4-5-20250929' // Used for code generation
 
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {

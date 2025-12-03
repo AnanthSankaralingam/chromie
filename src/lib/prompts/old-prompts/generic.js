@@ -24,31 +24,29 @@ IMPORTANT: For external API integrations, never hardcode API keys. Instead, impl
 </external_apis>
 
 <styling_requirements>
-MANDATORY: Create cutting-edge styles with modern, premium aesthetics for any UI components.
+MANDATORY: Create simple, clean styles with basic colors and styling for any UI components. NO emojis in generated code.
 
 Core Principles:
-- Popup: 340-400px | Side panel: Full height, 400-500px width | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
-- Use gradients, glassmorphism, shadows for depth
-- Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
+- Popup: 340-400px | Side panel: Full height, 400-500px width | Spacing: 12px, 16px, 20px, 24px | Border-radius: 8px
+- Use simple solid colors, basic borders, and minimal shadows
+- Simple transitions: ease 0.2s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+1. Light: Primary #2563eb, Background #ffffff, Text #1f2937, Border #e5e7eb
+2. Dark: Primary #3b82f6, Background #1f2937, Text #f9fafb, Border #374151
+3. Neutral: Primary #4b5563, Background #f9fafb, Text #111827, Border #d1d5db
 
 Components:
-- Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
-- Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
+- Typography: system-ui, -apple-system | 14px body, 16px heading | Weights 500-600 for headings
+- Buttons: Padding 8px 16px | Radius 6px | Solid background color + white text | Hover: slight opacity change
+- Inputs: Padding 8px 12px | Radius 6px | Border 1px solid | Focus: 2px solid border
+- Cards: Padding 16px | Radius 8px | Border 1px solid | Simple shadow: 0 1px 3px rgba(0,0,0,0.1)
 
-Premium Effects (MUST include):
-- Gradients on buttons/headers
-- Hover: scale(1.02) or translateY(-2px) + enhanced shadow
-- Backdrop-filter: blur(12px) for overlays/glass
-- Focus: Glowing ring with primary color
-- Layered shadows for realistic depth
-- Custom scrollbar styling (webkit-scrollbar)
+Simple Effects:
+- Basic hover states with opacity or background color change
+- Simple borders and shadows
+- No gradients, glassmorphism, or complex effects
+- No emojis in any generated code
 </styling_requirements>
 
 <icon_configuration>
@@ -76,7 +74,7 @@ Return a JSON object with the following structure:
   "content.js": "content script code as raw text (if needed)",
   "popup.html": "popup HTML as raw text (if needed)",
   "popup.js": "popup JavaScript as raw text (if needed)",
-  "styles.css": "cutting-edge, modern styling as raw text (if needed)",
+  "styles.css": "simple, clean styling as raw text (if needed)",
   "sidepanel.html": "side panel HTML as raw text (if needed)",
   "sidepanel.js": "side panel JavaScript as raw text (if needed)",
 }
@@ -89,7 +87,7 @@ File Format Rules:
 </output_requirements>
 
 <implementation_guidelines>
-- Create stunning, modern UI that feels premium and polished
+- Create simple, clean UI
 - Implement the core functionality described in the user's feature request
 - Use the specified frontend type exclusively - do not mix frontend patterns
 - Utilize Chrome APIs from the API data section if provided
@@ -97,7 +95,8 @@ File Format Rules:
 - Ensure proper manifest.json configuration for the chosen frontend type
 - Include appropriate permissions based on required functionality
 - Implement proper error handling, comments, and logging
-- Push visual boundaries with gradients, shadows, and smooth animations
+- Use simple, clean styling with basic colors and minimal effects
+- Do not use emojis in any generated code, UI text, or console logs
 - Follow Chrome extension best practices and security guidelines
 </implementation_guidelines>
 `;

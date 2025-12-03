@@ -83,22 +83,23 @@ Note: Adjust "matches" to target specific websites if needed
 </content_script_ui_implementation_requirements>
 
 <styling_requirements>
-MANDATORY: Create styles.css that injects cleanly without conflicts.
+MANDATORY: Create simple styles.css that injects cleanly without conflicts. NO emojis in generated code.
 
 Critical Principles:
 - Use unique class prefixes (ext-, extension-) to avoid conflicts
 - CSS resets for injected elements
-- Compact, minimal design
+- Simple, minimal design with basic colors
 
 Color Schemes (choose ONE or custom based on user request):
-1. Vibrant: Primary #6366f1→#8b5cf6 gradient
-2. Dark: Primary #818cf8, dark backgrounds
-3. Minimal: Primary #2563eb
+1. Light: Primary #2563eb, Background #ffffff, Text #1f2937, Border #e5e7eb
+2. Dark: Primary #3b82f6, Background #1f2937, Text #f9fafb, Border #374151
+3. Neutral: Primary #4b5563, Background #f9fafb, Text #111827, Border #d1d5db
 
-Premium Effects:
-- Backdrop-filter: blur(12px) for overlays
-- Smooth transform transitions
-- Hover states with scale or translateY
+Simple Effects:
+- Basic borders and shadows
+- Simple hover states with color/opacity changes
+- No gradients, backdrop-filter, or complex effects
+- No emojis in any generated code
 </styling_requirements>
 
 <icon_configuration>
@@ -137,8 +138,9 @@ File Format Rules:
 - Create UI that integrates naturally with web pages
 - Use mutation observers to handle dynamic content
 - Avoid conflicts with existing page JavaScript and CSS
-- Do not generate placeholder code.
+- Do not generate placeholder code
 - Target specific websites if listed in external_resources
 - Implement proper error handling, comments, and logging
+- Do not use emojis in any generated code, UI text, or console logs
 </implementation_guidelines>
 `;

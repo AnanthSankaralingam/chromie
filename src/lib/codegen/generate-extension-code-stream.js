@@ -2,7 +2,7 @@ import { createClient } from "../supabase/server"
 import { randomUUID } from "crypto"
 import { llmService } from "../services/llm-service"
 import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
-import { DEFAULT_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
+import { DEFAULT_MODEL, CODEGEN_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
 import { formatManifestJson } from "../utils/json-formatter"
 
 function normalizeGeneratedFileContent(str) {
@@ -418,7 +418,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Generate extension code with streaming
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-flash"
+  const modelUsed = modelOverride || CODEGEN_MODEL
   
   // Determine provider from model name
   const getProviderFromModel = (model) => {
@@ -427,7 +427,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       if (model.toLowerCase().includes('claude')) return 'anthropic'
       if (model.toLowerCase().includes('gpt')) return 'openai'
     }
-    return 'gemini' // default fallback
+    return 'anthropic' // default fallback
   }
   
   // Get the provider from the model
@@ -442,7 +442,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     try {
       const response = await llmService.continueResponse({
         provider,
-        model: modelOverride || DEFAULT_MODEL,
+        model: modelOverride || CODEGEN_MODEL,
         previous_response_id: previousResponseId,
         input: finalPrompt,
         store: true,
@@ -523,7 +523,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         
         for await (const s of llmService.streamResponse({
           provider,
-          model: modelOverride || DEFAULT_MODEL,
+          model: modelOverride || CODEGEN_MODEL,
           input: finalPrompt,
           temperature: 0.2,
           max_output_tokens: 32000,  // Increased for more complete code generation
@@ -605,7 +605,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
       const response = await llmService.createResponse({
         provider,
-        model: modelOverride || DEFAULT_MODEL,
+        model: modelOverride || CODEGEN_MODEL,
         input: finalPrompt,
         store: true,
         temperature: 0.2,

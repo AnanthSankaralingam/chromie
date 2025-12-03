@@ -72,7 +72,7 @@ Add sign-in container to popup.html/sidepanel.html BEFORE main content:
   <p style="margin-bottom: 24px; color: #666;">
     This extension needs access to your Google Workspace to function.
   </p>
-  <button id="sign-in-btn" style="padding: 12px 24px; background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  <button id="sign-in-btn" style="padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
     Sign in with Google
   </button>
 </div>
@@ -190,7 +190,7 @@ Add sign-in container to newtab.html:
   <p style="margin-bottom: 32px; color: #666; font-size: 18px;">
     This extension needs access to your Google Workspace to function.
   </p>
-  <button id="sign-in-btn" style="padding: 16px 32px; background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer;">
+  <button id="sign-in-btn" style="padding: 16px 32px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: 500; cursor: pointer;">
     Sign in with Google
   </button>
 </div>

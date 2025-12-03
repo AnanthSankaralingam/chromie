@@ -51,7 +51,7 @@ This extension uses Google Workspace APIs and requires OAuth 2.0 authentication.
 1. Click the extension icon
 2. Click "Sign in with Google"
 3. Approve the permissions
-4. Done! 🎉
+4. Done!
 
 ### Need Help?
 - Full guide: See OAUTH_SETUP.md in this extension folder
@@ -179,7 +179,7 @@ Since your OAuth consent screen is in testing mode, you need to add your email a
 4. A Google sign-in window will appear
 5. Select your account
 6. Review and approve the permissions
-7. You should be signed in and the extension should now work! 🎉
+7. You should be signed in and the extension should now work!
 
 ---
 

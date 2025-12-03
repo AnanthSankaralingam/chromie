@@ -385,40 +385,25 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
     output += `Similar Use Case\n`
     output += `**Name**: ${matched_use_case.name}\n\n`
 
-    // Fetch code snippet from useCasesData
+    // Fetch use case details from useCasesData
     const useCase = useCasesData.find(uc => uc.title === matched_use_case.name)
-    if (useCase && useCase.code_snippet) {
-      output += `**Sample Code Snippet**:\n\`\`\`javascript\n${useCase.code_snippet}\n\`\`\`\n\n`
+    if (useCase) {
+      // Include description if available (may contain detailed implementation guidance)
+      if (useCase.description) {
+        output += `**Description**: ${useCase.description}\n\n`
+      }
+      
+      // Include code snippet if available
+      if (useCase.code_snippet) {
+        output += `**Sample Code Snippet**:\n\`\`\`javascript\n${useCase.code_snippet}\n\`\`\`\n\n`
+      }
     }
   }
 
   // Ensure offscreen API is included if tabCapture is present (required for MV3 recording)
   const apiList = [...(required_chrome_apis || [])];
   
-  // Robust detection for audio/video recording keywords
-  const recordingKeywords = [
-    'record', 
-    'capture audio', 
-    'capture video', 
-    'monitor meeting', 
-    'meeting audio', 
-    'tab audio', 
-    'stream audio',
-    'transcribe',
-    'listening',
-    'hear',
-    'audio stream',
-    'screen recording',
-    'system audio',
-    'record meeting',
-    'capture meeting'
-  ];
-  const isRecordingRequest = recordingKeywords.some(keyword => featureRequest.toLowerCase().includes(keyword));
-  
-  if (isRecordingRequest && !apiList.includes('tabCapture')) {
-    apiList.push('tabCapture');
-  }
-
+  // Safety check: ensure offscreen is included when tabCapture is present (dependency)
   if (apiList.includes('tabCapture') && !apiList.includes('offscreen')) {
     apiList.push('offscreen');
   }
@@ -447,42 +432,6 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
         output += `*API documentation not found*\n\n`
       }
     }
-
-    // CRITICAL: Enforce Offscreen Pattern for Audio/Video Recording
-    if (apiList.includes('tabCapture') || apiList.includes('offscreen')) {
-      output += `\n### ⚠️ CRITICAL IMPLEMENTATION RULE: Audio/Video Recording\n`
-      output += `**Manifest V3 Restriction**: Service workers (background.js) CANNOT access \`navigator.mediaDevices.getUserMedia\`. You will get "Cannot read properties of undefined (reading 'getUserMedia')" error.\n\n`
-      output += `**MANDATORY ARCHITECTURE**:\n`
-      output += `1. **manifest.json**: Must include \`"permissions": ["offscreen", "tabCapture", "tabs"]\`.\n`
-      output += `   - The "tabs" permission is required to check tab URLs before capture.\n`
-      output += `2. **offscreen.html**: Create a minimal HTML file to host the recording script.\n`
-      output += `3. **offscreen.js**: Handle \`navigator.mediaDevices.getUserMedia\` and \`MediaRecorder\` here. \n`
-      output += `   - Convert recorded Blobs to **Base64 strings** (reader.readAsDataURL).\n`
-      output += `   - Send Base64 data via \`chrome.runtime.sendMessage\`.\n`
-      output += `4. **background.js**: \n`
-      output += `   - **CRITICAL**: Before calling \`chrome.tabCapture.getMediaStreamId\`, ALWAYS check the tab URL:\n`
-      output += `     - Get tab info: \`const tab = await chrome.tabs.get(tabId)\`\n`
-      output += `     - Check if URL starts with \`chrome://\`, \`chrome-extension://\`, or \`edge://\` - these CANNOT be captured\n`
-      output += `     - Check if URL is \`about:blank\` or empty - extension may not have been invoked\n`
-      output += `     - Only proceed with capture if URL is a valid web page (http:// or https://)\n`
-      output += `   - Get \`streamId\` using \`chrome.tabCapture.getMediaStreamId({ targetTabId: tabId })\`.\n`
-      output += `   - Create offscreen document: \`await chrome.offscreen.createDocument({ url: 'offscreen.html', ... })\`.\n`
-      output += `   - Send \`streamId\` to offscreen document via \`chrome.runtime.sendMessage\`.\n`
-      output += `   - Proxy recording messages between offscreen and UI (sidepanel/popup).\n`
-      output += `   - Handle errors gracefully and notify UI if capture fails.\n`
-      output += `5. **UI (sidepanel.js/popup.js)**: \n`
-      output += `   - Receive Base64 string.\n`
-      output += `   - Convert back to Blob/Source for playback/download if needed.\n`
-      output += `   - Display user-friendly error messages if capture fails (e.g., "Cannot capture Chrome internal pages").\n`
-      output += `\n**ERROR HANDLING**:\n`
-      output += `- Always wrap \`chrome.tabCapture.getMediaStreamId\` in try-catch blocks.\n`
-      output += `- If error message contains "Extension has not been invoked" or "Chrome pages cannot be captured", show a user-friendly message.\n`
-      output += `- Common error: "Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured."\n`
-      output += `  - This means the tab is a chrome:// page OR the extension hasn't been clicked/interacted with on that page.\n`
-      output += `  - Solution: Check tab URL first, and ensure user clicks extension icon/button before starting capture.\n`
-      output += `\nFAILURE TO FOLLOW THIS PATTERN WILL CAUSE THE EXTENSION TO FAIL.\n\n`
-    }
-
   } else {
     output += `## Chrome APIs\nNo specific Chrome APIs required for this extension.\n\n`
   }

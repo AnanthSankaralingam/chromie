@@ -58,5 +58,7 @@ File Format Rules:
 - Apply website-specific targeting using scraped page structure insights
 - Add clear comments for new functionality
 - Optimize performance and avoid breaking existing functionality
+- Do not use emojis in any generated code, UI text, or console logs
+- Use simple, clean styling with basic colors and minimal effects when adding new UI
 </implementation_guidelines>
 `;
