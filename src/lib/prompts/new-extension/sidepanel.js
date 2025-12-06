@@ -122,57 +122,19 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
+<console_logging_requirements>
+MANDATORY: Add console.log statements to track key events. Include the filename in each log:
+- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
+- Log important operations and user interactions
+- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
+
+All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:sidepanel.js], [CHROMIE:content.js]).
+</console_logging_requirements>
+
 <implementation_guidelines>
 - Create a comprehensive side panel interface
 - Implement proper messaging between panel and content scripts
 - Do not generate placeholder code.
 - Implement proper error handling, comments, and logging
 </implementation_guidelines>
-
-<console_logging_requirements>
-MANDATORY: Add comprehensive console.log statements throughout ALL JavaScript files to track extension behavior:
-
-**background.js:**
-- Log when service worker starts: console.log('[CHROMIE:BACKGROUND] Service worker started')
-- Log all event listeners: console.log('[CHROMIE:BACKGROUND] Event listener registered:', eventName)
-- Log all Chrome API calls with their inputs/outputs
-- Log errors with full context: console.error('[CHROMIE:BACKGROUND] Error:', error)
-
-**sidepanel.js:**
-- Log when sidepanel loads: console.log('[CHROMIE:SIDEPANEL] Side panel initialized')
-- Log all user interactions: console.log('[CHROMIE:SIDEPANEL] User clicked:', buttonId)
-- Log all messages sent/received
-- Log state changes and data updates
-
-**content.js (if exists):**
-- Log when script loads: console.log('[CHROMIE:CONTENT] Content script loaded on:', window.location.href)
-- Log all DOM manipulations and observer callbacks
-- Log communication with background script
-- Log any errors encountered
-
-Use these prefixes consistently with CHROMIE label:
-- [CHROMIE:BACKGROUND] for background.js
-- [CHROMIE:SIDEPANEL] for sidepanel.js
-- [CHROMIE:CONTENT] for content.js
-
-Example logging pattern:
-\`\`\`javascript
-// At the start of each file
-console.log('[CHROMIE:COMPONENT] Script loaded');
-
-// Before/after important operations
-console.log('[CHROMIE:COMPONENT] Starting operation:', operationName);
-const result = await performOperation();
-console.log('[CHROMIE:COMPONENT] Operation complete:', result);
-
-// For errors
-try {
-  // operation
-} catch (error) {
-  console.error('[CHROMIE:COMPONENT] Error during operation:', error.message);
-}
-\`\`\`
-
-CRITICAL: Every single console.log, console.error, console.warn, and console.info MUST start with [CHROMIE:COMPONENT] where COMPONENT is the file type (BACKGROUND, SIDEPANEL, CONTENT, etc.).
-</console_logging_requirements>
 `;
