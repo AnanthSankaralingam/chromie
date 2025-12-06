@@ -3,53 +3,53 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export class EmailService {
-  constructor() {
-    this.from = process.env.RESEND_FROM_EMAIL || 'Chromie <welcome@chromie.dev>'
-  }
-
-  /**
-   * Send welcome email to new user
-   * @param {Object} user - User object with email, name, etc.
-   * @returns {Promise<Object>} Email sending result
-   */
-  async sendWelcomeEmail(user) {
-    if (!process.env.RESEND_API_KEY) {
-      console.warn('RESEND_API_KEY not configured, skipping welcome email')
-      return { success: false, error: 'Email service not configured' }
+    constructor() {
+        this.from = process.env.RESEND_FROM_EMAIL || 'Chromie <welcome@chromie.dev>'
     }
 
-    try {
-      const { data, error } = await resend.emails.send({
-        from: this.from,
-        to: [user.email],
-        subject: 'welcome to chromie! 🎉',
-        html: this.generateWelcomeEmailHTML(user),
-        text: this.generateWelcomeEmailText(user)
-      })
+    /**
+     * Send welcome email to new user
+     * @param {Object} user - User object with email, name, etc.
+     * @returns {Promise<Object>} Email sending result
+     */
+    async sendWelcomeEmail(user) {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn('RESEND_API_KEY not configured, skipping welcome email')
+            return { success: false, error: 'Email service not configured' }
+        }
 
-      if (error) {
-        console.error('Failed to send welcome email:', error)
-        return { success: false, error }
-      }
+        try {
+            const { data, error } = await resend.emails.send({
+                from: this.from,
+                to: [user.email],
+                subject: 'welcome to chromie! 🎉',
+                html: this.generateWelcomeEmailHTML(user),
+                text: this.generateWelcomeEmailText(user)
+            })
 
-      console.log('Welcome email sent successfully:', data)
-      return { success: true, data }
-    } catch (error) {
-      console.error('Error sending welcome email:', error)
-      return { success: false, error: error.message }
+            if (error) {
+                console.error('Failed to send welcome email:', error)
+                return { success: false, error }
+            }
+
+            console.log('Welcome email sent successfully:', data)
+            return { success: true, data }
+        } catch (error) {
+            console.error('Error sending welcome email:', error)
+            return { success: false, error: error.message }
+        }
     }
-  }
 
-  /**
-   * Generate HTML version of welcome email
-   * @param {Object} user - User object
-   * @returns {string} HTML email content
-   */
-  generateWelcomeEmailHTML(user) {
-    const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
-    const firstName = userName.split(' ')[0] || 'there'
-    
-    return `
+    /**
+     * Generate HTML version of welcome email
+     * @param {Object} user - User object
+     * @returns {string} HTML email content
+     */
+    generateWelcomeEmailHTML(user) {
+        const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
+        const firstName = userName.split(' ')[0] || 'there'
+
+        return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -330,7 +330,7 @@ export class EmailService {
     <div class="email-wrapper">
         <div class="hero-section">
             <div class="logo">chromie</div>
-            <div class="subtitle">Lovable for chrome extensions</div>
+            <div class="subtitle">or chrome extensions</div>
         </div>
         
         <div class="content">
@@ -400,19 +400,19 @@ export class EmailService {
 </body>
 </html>
     `
-  }
+    }
 
-  /**
-   * Generate text version of welcome email
-   * @param {Object} user - User object
-   * @returns {string} Text email content
-   */
-  generateWelcomeEmailText(user) {
-    const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
-    const firstName = userName.split(' ')[0] || 'there'
-    
-    return `
-chromie - lovable for chrome extensions
+    /**
+     * Generate text version of welcome email
+     * @param {Object} user - User object
+     * @returns {string} Text email content
+     */
+    generateWelcomeEmailText(user) {
+        const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
+        const firstName = userName.split(' ')[0] || 'there'
+
+        return `
+chromie - chrome extensions in seconds
 
 hey ${firstName}! 👋
 
@@ -426,14 +426,14 @@ chromie makes it effortless to create powerful chrome extensions without writing
 • google workspace integration - connect seamlessly with gmail, drive, calendar, and all your favorite google services  
 • data collection - scrape and organize web data effortlessly with powerful extraction tools
 • custom dashboards - build personalized browser experiences tailored to your specific needs
-• api integrations - connect with any service or tool you use through our extensive api library
+• api integrations - connect with any service or tool you use 
 
-ready to build your first extension? visit: ${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}
+ready to build your first extension? visit: 'https://chromie.dev'}
 
 i'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
 
 best,
-the chromie team
+chromie 
 
 p.s. need help or have feedback? just reply to this email - we personally read and respond to every message!
 
@@ -441,9 +441,9 @@ p.s. need help or have feedback? just reply to this email - we personally read a
 you're receiving this email because you signed up for chromie.
 chromie • building the future of browser automation
 
-unsubscribe: ${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}/unsubscribe?email=${encodeURIComponent(user.email)}
+unsubscribe: 'https://chromie.dev/unsubscribe?email=${encodeURIComponent(user.email)}
     `
-  }
+    }
 }
 
 export default new EmailService()

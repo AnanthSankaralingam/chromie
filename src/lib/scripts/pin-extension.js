@@ -1,36 +1,24 @@
-import { getPlaywrightSessionContext } from "@/lib/utils/browser-actions";
+import { getPuppeteerSessionContext } from "@/lib/utils/browser-actions";
 
 // Puppeteer script for: automatically pin extension to toolbar
 // Extension type: utility
 
 const runPinExtension = async (sessionId) => {
   console.log('[PIN-EXTENSION] 🚀 runPinExtension called');
-  console.log('[PIN-EXTENSION] Session ID:', sessionId);
-  console.log('[PIN-EXTENSION] Environment:', process.env.VERCEL ? 'Vercel' : 'Local');
-  console.log('[PIN-EXTENSION] Node version:', process.version);
   
   const apiKey = process.env.HYPERBROWSER_API_KEY;
-  console.log('[PIN-EXTENSION] API key exists:', !!apiKey);
   
   if (!apiKey) {
     console.error('[PIN-EXTENSION] ❌ Missing HYPERBROWSER_API_KEY');
     throw new Error("Missing HYPERBROWSER_API_KEY");
   }
 
-  console.log('[PIN-EXTENSION] ✅ API key found, length:', apiKey.length);
-  console.log('[PIN-EXTENSION] 📌 Starting extension pinning script with Playwright');
-
   let browser = null;
   let page = null;
 
   try {
     // Connect to the browser session
-    console.log('[PIN-EXTENSION] 🔌 Connecting to browser session...');
-    console.log('[PIN-EXTENSION] Calling getPlaywrightSessionContext with sessionId:', sessionId);
-    
-    const context = await getPlaywrightSessionContext(sessionId, apiKey);
-    console.log('[PIN-EXTENSION] ✅ Got Playwright context');
-    console.log('[PIN-EXTENSION] Context keys:', Object.keys(context));
+    const context = await getPuppeteerSessionContext(sessionId, apiKey);
     
     browser = context.browser;
     page = context.page;
@@ -508,6 +496,35 @@ const runPinExtension = async (sessionId) => {
     }
 
   } catch (err) {
+    // Check if error is due to session/target being closed
+    // Need to check the entire error chain since it's nested deeply
+    const checkErrorChain = (error) => {
+      if (!error) return false;
+      const message = error.message || '';
+      const name = error.name || '';
+      if (message.includes('Target closed') ||
+          message.includes('Session closed') ||
+          message.includes('Browser has been closed') ||
+          name === 'TargetCloseError') {
+        return true;
+      }
+      // Check cause recursively
+      if (error.cause) {
+        return checkErrorChain(error.cause);
+      }
+      return false;
+    };
+
+    const isSessionClosed = checkErrorChain(err);
+
+    if (isSessionClosed) {
+      console.log('[PIN-EXTENSION] ℹ️  Session was closed during pinning operation');
+      console.log('[PIN-EXTENSION] This is expected if the user stopped the session quickly');
+      // Return success since this isn't a real failure - session was just closed
+      return { success: true, sessionClosed: true, message: 'Session closed during operation' };
+    }
+
+    // Real error - log it
     console.error('[PIN-EXTENSION] ❌ Extension pinning failed');
     console.error('[PIN-EXTENSION] Error message:', err.message);
     console.error('[PIN-EXTENSION] Error stack:', err.stack);

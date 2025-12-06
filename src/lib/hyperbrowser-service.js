@@ -9,7 +9,8 @@ import {
   validateExtensionFiles,
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
-import { navigateToUrl as navigateToUrlUtil, getPlaywrightSessionContext as getPlaywrightContextUtil } from "@/lib/utils/browser-actions"
+import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil, primeExtensionContext as primeExtensionContextUtil } from "@/lib/utils/browser-actions"
+import { runPinExtension } from "@/lib/scripts/pin-extension"
 
 export class HyperbrowserService {
   constructor() {
@@ -115,16 +116,11 @@ export class HyperbrowserService {
   async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null) {
     try {
       console.log("[HYPERBROWSER-SERVICE] 🚀 createTestSession called")
-      console.log("[HYPERBROWSER-SERVICE] Project ID:", projectId)
-      console.log("[HYPERBROWSER-SERVICE] User ID:", userId)
-      console.log("[HYPERBROWSER-SERVICE] Environment:", process.env.VERCEL ? "Vercel" : "Local")
       
       if (!this.apiKey || !this.client) {
         console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
         throw new Error("Missing HYPERBROWSER_API_KEY")
       }
-
-      console.log("[HYPERBROWSER-SERVICE] ✅ API key exists, client initialized")
 
       // If extension files were provided, zip and upload them to get an extensionId
       let extensionId = null
@@ -134,11 +130,7 @@ export class HyperbrowserService {
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
 
-      console.log("[HYPERBROWSER-SERVICE] 📂 Extension files array length:", filesArray.length)
-
       if (filesArray.length > 0) {
-        console.log("[HYPERBROWSER-SERVICE] 📦 Starting extension upload...")
-        console.log("[HYPERBROWSER-SERVICE] File paths to upload:", filesArray.map(f => f.file_path))
         extensionId = await this.uploadExtensionFromFiles(filesArray)
         console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded, ID:", extensionId)
       } else {
@@ -157,20 +149,14 @@ export class HyperbrowserService {
       } else {
         console.log("[HYPERBROWSER-SERVICE] ℹ️  No user/supabase client provided, skipping profile")
       }
-
-      // Create a new Hyperbrowser session with optional extension loaded
-      console.log("[HYPERBROWSER-SERVICE] 🌐 Creating Hyperbrowser session...")
-      console.log("[HYPERBROWSER-SERVICE] Session config:", {
-        extensionId,
-        profileId,
-        isNewProfile
-      })
       
       const sessionCreatePayload = {
         // Hyperbrowser session configuration - using only free plan features
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
-        timeoutMinutes: 3
+        timeoutMinutes: 3,
+        enableWindowManager: true,
+        enableWindowManagerTaskbar: true
       }
 
       // Add extension if available
@@ -191,18 +177,14 @@ export class HyperbrowserService {
       }
 
       console.log("[HYPERBROWSER-SERVICE] 📝 Final session payload:", JSON.stringify(sessionCreatePayload, null, 2))
-      console.log("[HYPERBROWSER-SERVICE] 🔄 Calling Hyperbrowser API to create session...")
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
-      console.log("[HYPERBROWSER-SERVICE] ✅ Hyperbrowser session created successfully")
-      console.log("[HYPERBROWSER-SERVICE] Session ID:", session.id)
       console.log("[HYPERBROWSER-SERVICE] Session object keys:", Object.keys(session))
 
       // Get session details for embedding
       console.log("[HYPERBROWSER-SERVICE] 🔍 Fetching session details...")
       const sessionDetails = await this.client.sessions.get(session.id)
-      console.log("[HYPERBROWSER-SERVICE] Session details received")
       console.log("[HYPERBROWSER-SERVICE] Session details keys:", Object.keys(sessionDetails))
       
       // Extract live view URL from various possible fields
@@ -218,10 +200,6 @@ export class HyperbrowserService {
       // If no live view URL is found, provide a fallback or error indication
       if (!liveViewUrl) {
         console.warn("[HYPERBROWSER-SERVICE] ⚠️  No live view URL found in session response")
-        console.warn("[HYPERBROWSER-SERVICE] Possible reasons:")
-        console.warn("[HYPERBROWSER-SERVICE] 1. Session is still initializing")
-        console.warn("[HYPERBROWSER-SERVICE] 2. Free plan limitations")
-        console.warn("[HYPERBROWSER-SERVICE] 3. API response structure has changed")
       }
       
       // Return a shape compatible with existing UI
@@ -258,30 +236,34 @@ export class HyperbrowserService {
       await new Promise(resolve => setTimeout(resolve, 2000))
       console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
-      // Debug: Check session status before initial navigation
-      try {
-        console.log("[HYPERBROWSER-SERVICE] 🔍 Checking session status before navigation...")
-        const sessionCheck = await this.client.sessions.get(session.id)
-        console.log("[HYPERBROWSER-SERVICE] Pre-navigation session check:", {
-          id: sessionCheck.id,
-          status: sessionCheck.status,
-          closeReason: sessionCheck.closeReason,
-          endTime: sessionCheck.endTime
-        })
-      } catch (checkError) {
-        console.warn("[HYPERBROWSER-SERVICE] ⚠️  Could not check session before initial navigation:", checkError.message)
+      // Automatically pin the extension to toolbar
+      // Run in background without blocking the response
+      if (extensionId) {
+        console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...")
+        runPinExtension(session.id)
+          .then((pinResult) => {
+            if (pinResult.success) {
+              if (pinResult.sessionClosed) {
+                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
+              } else if (pinResult.alreadyPinned) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
+              } else if (pinResult.pinned) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: successfully pinned to toolbar")
+              } else {
+                console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
+              }
+            } else {
+              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult.error)
+            }
+          })
+          .catch((pinErr) => {
+            console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr.message)
+            // Don't throw - this is a non-critical operation
+          })
+      } else {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension (no extension loaded)")
       }
-      
-      // Immediately navigate to chrome://extensions using Playwright
-      try {
-        console.log("[HYPERBROWSER-SERVICE] 🚀 Navigating to chrome://extensions...")
-        await this.navigateToUrl(session.id, "chrome://extensions")
-        console.log("[HYPERBROWSER-SERVICE] ✅ Navigated to chrome://extensions successfully")
-      } catch (navErr) {
-        console.warn("[HYPERBROWSER-SERVICE] ❌ Failed to navigate to chrome://extensions:", navErr?.message)
-        console.warn("[HYPERBROWSER-SERVICE] Navigation error stack:", navErr?.stack)
-      }
-      
+
       console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")
       return result
     } catch (error) {
@@ -291,17 +273,17 @@ export class HyperbrowserService {
   }
 
   /**
-   * Obtain a Playwright browser context connected to the Hyperbrowser session via CDP
+   * Obtain a Puppeteer browser context connected to the Hyperbrowser session via CDP
    * @param {string} sessionId
-   * @returns {Promise<{ browser: any, context: any, page: any }>} connected objects
+   * @returns {Promise<{ browser: any, page: any }>} connected objects
    */
-  async getPlaywrightSessionContext(sessionId) {
+  async getPuppeteerSessionContext(sessionId) {
     if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
-    return await getPlaywrightContextUtil(sessionId, this.apiKey)
+    return await getPuppeteerContextUtil(sessionId, this.apiKey)
   }
 
   /**
-   * Navigate the active page to a URL (thin wrapper around Playwright page.goto)
+   * Navigate the active page to a URL (thin wrapper around Puppeteer page.goto)
    * @param {string} sessionId
    * @param {string} url
    * @returns {Promise<boolean>} success
@@ -309,6 +291,16 @@ export class HyperbrowserService {
   async navigateToUrl(sessionId, url) {
     if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
     return await navigateToUrlUtil(sessionId, url, this.apiKey)
+  }
+
+  /**
+   * Prime extension context with tab cycle to prevent key errors
+   * @param {string} sessionId
+   * @returns {Promise<boolean>} success
+   */
+  async primeExtensionContext(sessionId) {
+    if (!this.apiKey) throw new Error("Hyperbrowser API key not initialized")
+    return await primeExtensionContextUtil(sessionId, this.apiKey)
   }
 
   /**

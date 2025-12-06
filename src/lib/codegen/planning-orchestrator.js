@@ -188,6 +188,22 @@ async function callExternalResourcesPrompt(featureRequest) {
 
     const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
 
+    // Filter out Chrome APIs from external_apis (Chrome APIs are notated as chrome.*)
+    if (result.external_apis && Array.isArray(result.external_apis)) {
+      const originalCount = result.external_apis.length
+      result.external_apis = result.external_apis.filter(api => {
+        const isChromeApi = api.name && api.endpoint_url.toLowerCase().startsWith('chrome.')
+        if (isChromeApi) {
+          console.log(`🔍 [Planning Orchestrator] Filtered out Chrome API from external resources: ${api.name}`)
+        }
+        return !isChromeApi
+      })
+
+      if (originalCount !== result.external_apis.length) {
+        console.log(`✅ [Planning Orchestrator] Removed ${originalCount - result.external_apis.length} Chrome API(s) from external resources`)
+      }
+    }
+
     return {
       result,
       tokenUsage: {
@@ -437,19 +453,33 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
       output += `\n### ⚠️ CRITICAL IMPLEMENTATION RULE: Audio/Video Recording\n`
       output += `**Manifest V3 Restriction**: Service workers (background.js) CANNOT access \`navigator.mediaDevices.getUserMedia\`. You will get "Cannot read properties of undefined (reading 'getUserMedia')" error.\n\n`
       output += `**MANDATORY ARCHITECTURE**:\n`
-      output += `1. **manifest.json**: Must include \`"permissions": ["offscreen", "tabCapture"]\`.\n`
+      output += `1. **manifest.json**: Must include \`"permissions": ["offscreen", "tabCapture", "tabs"]\`.\n`
+      output += `   - The "tabs" permission is required to check tab URLs before capture.\n`
       output += `2. **offscreen.html**: Create a minimal HTML file to host the recording script.\n`
       output += `3. **offscreen.js**: Handle \`navigator.mediaDevices.getUserMedia\` and \`MediaRecorder\` here. \n`
       output += `   - Convert recorded Blobs to **Base64 strings** (reader.readAsDataURL).\n`
       output += `   - Send Base64 data via \`chrome.runtime.sendMessage\`.\n`
       output += `4. **background.js**: \n`
-      output += `   - Get \`streamId\` using \`chrome.tabCapture.getMediaStreamId\`.\n`
+      output += `   - **CRITICAL**: Before calling \`chrome.tabCapture.getMediaStreamId\`, ALWAYS check the tab URL:\n`
+      output += `     - Get tab info: \`const tab = await chrome.tabs.get(tabId)\`\n`
+      output += `     - Check if URL starts with \`chrome://\`, \`chrome-extension://\`, or \`edge://\` - these CANNOT be captured\n`
+      output += `     - Check if URL is \`about:blank\` or empty - extension may not have been invoked\n`
+      output += `     - Only proceed with capture if URL is a valid web page (http:// or https://)\n`
+      output += `   - Get \`streamId\` using \`chrome.tabCapture.getMediaStreamId({ targetTabId: tabId })\`.\n`
       output += `   - Create offscreen document: \`await chrome.offscreen.createDocument({ url: 'offscreen.html', ... })\`.\n`
       output += `   - Send \`streamId\` to offscreen document via \`chrome.runtime.sendMessage\`.\n`
       output += `   - Proxy recording messages between offscreen and UI (sidepanel/popup).\n`
+      output += `   - Handle errors gracefully and notify UI if capture fails.\n`
       output += `5. **UI (sidepanel.js/popup.js)**: \n`
       output += `   - Receive Base64 string.\n`
       output += `   - Convert back to Blob/Source for playback/download if needed.\n`
+      output += `   - Display user-friendly error messages if capture fails (e.g., "Cannot capture Chrome internal pages").\n`
+      output += `\n**ERROR HANDLING**:\n`
+      output += `- Always wrap \`chrome.tabCapture.getMediaStreamId\` in try-catch blocks.\n`
+      output += `- If error message contains "Extension has not been invoked" or "Chrome pages cannot be captured", show a user-friendly message.\n`
+      output += `- Common error: "Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured."\n`
+      output += `  - This means the tab is a chrome:// page OR the extension hasn't been clicked/interacted with on that page.\n`
+      output += `  - Solution: Check tab URL first, and ensure user clicks extension icon/button before starting capture.\n`
       output += `\nFAILURE TO FOLLOW THIS PATTERN WILL CAUSE THE EXTENSION TO FAIL.\n\n`
     }
 

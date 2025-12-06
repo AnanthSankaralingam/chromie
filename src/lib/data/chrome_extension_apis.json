@@ -2,7 +2,7 @@
   "api_docs": [
     {
       "name": "storage",
-      "description": "Use the chrome.storage API to store, retrieve, and track changes to user data. Provides extension-specific storage that persists across sessions and syncs across devices. Supports local, sync, session, and managed storage areas.",
+      "description": "Use the chrome.storage API to store, retrieve, and track changes to user data.",
       "permissions": [
         "storage"
       ],
@@ -40,12 +40,12 @@
     },
     {
       "name": "scripting",
-      "description": "Use the chrome.scripting API to execute scripts in different contexts (Manifest V3+). This API replaces the deprecated chrome.tabs.executeScript. You can inject JavaScript and CSS into web pages programmatically. Requires 'scripting' permission and host permissions or 'activeTab'.",
+      "description": "Use the chrome.scripting API to execute scripts in different contexts. Requires 'scripting' permission and host permissions or 'activeTab'.",
       "permissions": [
         "scripting",
         "activeTab"
       ],
-      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"]\n});\n\n// Insert CSS\nchrome.scripting.insertCSS({\n  target: { tabId: tabId },\n  files: [\"styles.css\"]\n});"
+      "code_snippet": "// Execute script from file\nchrome.scripting.executeScript({\n  target: { tabId: tabId },\n  files: [\"content.js\"] // or css \n});});"
     },
     {
       "name": "alarms",
@@ -117,7 +117,7 @@
     },
     {
       "name": "runtime",
-      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions. Use this API for message passing, managing extension lifecycle, and accessing extension metadata.",
+      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions.",
       "permissions": [],
       "code_snippet": "// Get manifest information\nconst manifest = chrome.runtime.getManifest();\n\n// Listen for extension installation\nchrome.runtime.onInstalled.addListener(({ reason }) => {\n  if (reason === \"install\") {}\n});"
     },
@@ -135,12 +135,13 @@
     },
     {
       "name": "tabCapture",
-      "description": "Use the chrome.tabCapture API to capture the visible area of the active tab. CRITICAL: In Manifest V3, you CANNOT use getUserMedia in the background service worker. You MUST create an chrome.offscreen document to handle the MediaStream and MediaRecorder.",
+      "description": "Use the chrome.tabCapture API to capture the visible area of the active tab. CRITICAL: In Manifest V3, you CANNOT use getUserMedia in the background service worker. You MUST create an chrome.offscreen document to handle the MediaStream and MediaRecorder. CRITICAL: Chrome internal pages (chrome://) cannot be captured. Always check the tab URL before attempting capture.",
       "permissions": [
         "tabCapture",
-        "offscreen"
+        "offscreen",
+        "tabs"
       ],
-      "code_snippet": "// Background.js: Get streamId and pass to offscreen\nconst streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });\nawait chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA'], justification: 'Recording' });\nchrome.runtime.sendMessage({ type: 'start-recording', target: 'offscreen', streamId });\n\n// Offscreen.js: Handle stream\nnavigator.mediaDevices.getUserMedia({\n  audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } }\n}).then(stream => { /* Record */ });"
+      "code_snippet": "// Background.js: Get streamId and pass to offscreen\n// CRITICAL: Always check if tab can be captured before attempting\nasync function startCapture(tabId) {\n  try {\n    // Get tab info to check URL\n    const tab = await chrome.tabs.get(tabId);\n    \n    // Check if URL is a Chrome internal page (cannot be captured)\n    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('edge://'))) {\n      throw new Error('Chrome internal pages cannot be captured');\n    }\n    \n    // Check if extension has been invoked on this page (activeTab requirement)\n    if (!tab.url || tab.url === 'about:blank') {\n      throw new Error('Extension has not been invoked for the current page (see activeTab permission)');\n    }\n    \n    const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });\n    await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA'], justification: 'Recording' });\n    chrome.runtime.sendMessage({ type: 'start-recording', target: 'offscreen', streamId });\n  } catch (error) {\n    console.error('Failed to start capture:', error);\n    // Notify UI about the error\n    chrome.runtime.sendMessage({ type: 'capture-error', error: error.message });\n  }\n}\n\n// Offscreen.js: Handle stream\nnavigator.mediaDevices.getUserMedia({\n  audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } }\n}).then(stream => { /* Record */ }).catch(error => {\n  console.error('Failed to get media stream:', error);\n});"
     },
     {
       "name": "MediaRecorder",

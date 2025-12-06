@@ -66,16 +66,26 @@ export default function FileTree({
     }
   }
 
-  // Filter files based on search query
+  // Filter files based on search query (searches both file names and content)
   const filterFileTree = (items, query) => {
     if (!query) return items
     
+    const queryLower = query.toLowerCase()
+    
     return items.filter(item => {
       if (item.type === 'file') {
-        return item.name.toLowerCase().includes(query.toLowerCase())
+        // Check if query matches file name
+        const nameMatch = item.name.toLowerCase().includes(queryLower)
+        
+        // Check if query matches file content
+        const contentMatch = item.content && 
+          typeof item.content === 'string' && 
+          item.content.toLowerCase().includes(queryLower)
+        
+        return nameMatch || contentMatch
       } else if (item.type === 'folder' && item.children) {
         const filteredChildren = filterFileTree(item.children, query)
-        return filteredChildren.length > 0 || item.name.toLowerCase().includes(query.toLowerCase())
+        return filteredChildren.length > 0 || item.name.toLowerCase().includes(queryLower)
       }
       return false
     }).map(item => {

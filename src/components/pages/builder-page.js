@@ -18,12 +18,20 @@ import useProjectSetup from "@/components/ui/project-setup"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import useFileManagement from "@/components/ui/file-management"
 import useResizablePanels from "@/components/ui/resizable-panels"
+import useResizableChatCanvas from "@/components/ui/resizable-chat-canvas"
 import useTestExtension from "@/components/ui/extension-testing/test-extension"
 import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 import TestingPromptModal from "@/components/ui/modals/testing-prompt-modal"
 import { useNotificationSound } from "@/hooks/use-notification-sound"
 import { useAutoGenerateParams, useProjectParams } from "@/hooks/use-url-params"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { motion } from "framer-motion"
+import {
+  Artifact,
+  ArtifactContent,
+  ArtifactClose,
+} from "@/components/ui/artifact/artifact"
 
 export default function BuilderPage() {
   const { isLoading, session, user, supabase } = useSession()
@@ -41,7 +49,9 @@ export default function BuilderPage() {
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
-  
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false) // Track if canvas pane is open
+  const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false) // Track if file tree is collapsed
+
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
 
@@ -53,13 +63,14 @@ export default function BuilderPage() {
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
   const projectSetup = useProjectSetup(user, isLoading)
   const { dividerPosition, containerRef, ResizableDivider } = useResizablePanels()
+  const { dividerPosition: chatCanvasDividerPosition, containerRef: chatCanvasContainerRef, ResizableDivider: ChatCanvasResizableDivider } = useResizableChatCanvas()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
   const onboardingModal = useOnboardingModal()
-  
+
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
-    projectSetup.currentProjectId, 
-    projectSetup.currentProjectName, 
+    projectSetup.currentProjectId,
+    projectSetup.currentProjectName,
     fileManagement.fileStructure
   )
 
@@ -88,7 +99,7 @@ export default function BuilderPage() {
         // Project name and description are now automatically updated during code generation
         // No need to make additional API calls
       }
-      
+
       // Auto-select manifest.json if no file is currently selected
       if (!selectedFile) {
         const manifestFile = fileManagement.findManifestFile()
@@ -168,7 +179,7 @@ export default function BuilderPage() {
 
     setIsGeneratingTestAgent(true)
     console.log('🤖 Starting AI test agent generation...')
-    
+
     try {
       const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-hyperagent-script`, {
         method: 'POST',
@@ -184,13 +195,13 @@ export default function BuilderPage() {
 
       const result = await response.json()
       console.log('✅ AI test agent generated successfully:', result)
-      
+
       // Refresh file tree to show new test script
       await fileManagement.loadProjectFiles(true)
-      
+
       // Show success message
       alert('AI testing agent created successfully! Check your files for hyperagent_test_script.js')
-      
+
     } catch (error) {
       console.error('❌ Error generating AI test agent:', error)
       alert(`Failed to generate AI test agent: ${error.message}`)
@@ -218,66 +229,65 @@ export default function BuilderPage() {
   // Show error state if project setup failed
   if (projectSetup.projectSetupError && user) {
     return (
-      <ErrorState 
-        projectSetupError={projectSetup.projectSetupError} 
+      <ErrorState
+        projectSetupError={projectSetup.projectSetupError}
         onRetry={() => {
           projectSetup.setProjectSetupError(null)
           projectSetup.checkAndSetupProject()
-        }} 
+        }}
       />
     )
   }
 
   return (
     <>
-      <div className={`h-screen bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
-        <AppBarBuilder
-          onTestExtension={testExtension.handleTestExtension}
-          onDownloadZip={downloadExtension.handleDownloadZip}
-          onSignOut={handleSignOut}
-          projectId={projectSetup.currentProjectId}
-          isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
-          isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
-          isGenerating={isGenerating || isGeneratingTestAgent}
-          isDownloading={downloadExtension.isDownloading}
-          shouldStartTestHighlight={shouldStartTestHighlight}
-          shouldStartDownloadHighlight={shouldStartDownloadHighlight}
-          onCreateAITestAgent={handleCreateAITestAgent}
-        />
+        <div>
+          <AppBarBuilder
+            onTestExtension={testExtension.handleTestExtension}
+            onDownloadZip={downloadExtension.handleDownloadZip}
+            onSignOut={handleSignOut}
+            projectId={projectSetup.currentProjectId}
+            isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
+            isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
+            isGenerating={isGenerating || isGeneratingTestAgent}
+            isDownloading={downloadExtension.isDownloading}
+            shouldStartTestHighlight={shouldStartTestHighlight}
+            shouldStartDownloadHighlight={shouldStartDownloadHighlight}
+            onCreateAITestAgent={handleCreateAITestAgent}
+          />
+        </div>
 
         {/* Mobile Tab Navigation */}
-        <div className="lg:hidden border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+        <div className="lg:hidden border-b border-gray-800 bg-black relative z-20">
           <div className="flex">
             <button
               onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'chat' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'chat'
+                  ? 'text-gray-300 border-b-2 border-gray-700 bg-gray-900'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-900'
+                }`}
             >
               <MessageSquare className="h-4 w-4" />
               <span>AI Chat</span>
             </button>
             <button
               onClick={() => setActiveTab('files')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'files' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'files'
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+                }`}
             >
               <FolderOpen className="h-4 w-4" />
               <span>Files</span>
             </button>
             <button
               onClick={() => setActiveTab('editor')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${
-                activeTab === 'editor' 
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10' 
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'editor'
+                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-              }`}
+                }`}
             >
               <FileCode className="h-4 w-4" />
               <span>Editor</span>
@@ -286,7 +296,7 @@ export default function BuilderPage() {
         </div>
 
         {/* Mobile Single Panel View */}
-        <div className="lg:hidden h-[calc(100vh-73px-49px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
+        <div className="lg:hidden h-[calc(100vh-73px-49px)] relative z-20">
           {activeTab === 'chat' && isMobile && (
             <div className="h-full flex flex-col">
               <AIChat
@@ -297,6 +307,7 @@ export default function BuilderPage() {
                 onCodeGenerated={async (response) => {
                   await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                   setIsGenerating(false)
+                  setHasGeneratedCode(true)
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
 
@@ -337,12 +348,21 @@ export default function BuilderPage() {
                 onGenerationEnd={() => {
                   setIsGenerating(false)
                 }}
+                onOpenCanvas={() => {
+                  setActiveTab('files')
+                  const manifestFile = fileManagement.findManifestFile()
+                  if (manifestFile) {
+                    setSelectedFile(manifestFile)
+                  }
+                }}
+                hasGeneratedCode={hasGeneratedCode}
+                isCanvasOpen={false}
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
               />
             </div>
           )}
-          
+
           {activeTab === 'files' && (
             <div className="h-full">
               <ProjectFilesPanel
@@ -358,10 +378,10 @@ export default function BuilderPage() {
               />
             </div>
           )}
-          
+
           {activeTab === 'editor' && (
-            <div className="h-full bg-slate-900">
-              <EditorPanel 
+            <div className="h-full bg-black">
+              <EditorPanel
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
                 allFiles={fileManagement.flatFiles}
@@ -371,96 +391,178 @@ export default function BuilderPage() {
         </div>
 
         {/* Desktop Layout - Hidden on Mobile */}
-        <div className="hidden lg:flex h-[calc(100vh-73px)] bg-gradient-to-r from-slate-800/50 to-slate-700/50 backdrop-blur-sm">
-          {/* Left Sidebar - AI Assistant */}
-          <div className="w-[40%] border-r border-white/10 flex flex-col glass-effect animate-slide-in-left">
-            {!isMobile && (
-              <AIChat
-                projectId={projectSetup.currentProjectId}
-                projectName={projectSetup.currentProjectName}
-                autoGeneratePrompt={autoGeneratePrompt}
-                onAutoGenerateComplete={handleAutoGenerateComplete}
-                onCodeGenerated={async (response) => {
-                  await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
-                  setIsGenerating(false)
-                  // Refresh project details (name/description) after generation updates
-                  await projectSetup.refreshCurrentProjectDetails?.()
+        <div className="hidden lg:flex h-[calc(100vh-73px)] relative z-20">
+          {!isCanvasOpen ? (
+            /* Centered Chat View - Initial State */
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full h-full flex flex-col">
+                <AIChat
+                  projectId={projectSetup.currentProjectId}
+                  projectName={projectSetup.currentProjectName}
+                  autoGeneratePrompt={autoGeneratePrompt}
+                  onAutoGenerateComplete={handleAutoGenerateComplete}
+                  onCodeGenerated={async (response) => {
+                    await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
+                    setIsGenerating(false)
+                    setHasGeneratedCode(true)
+                    // Refresh project details (name/description) after generation updates
+                    await projectSetup.refreshCurrentProjectDetails?.()
 
-                  // Play notification sound if user is not on the page
-                  playNotificationSound()
+                    // Play notification sound if user is not on the page
+                    playNotificationSound()
 
-                  // Check if this was first generation and show testing prompt modal
-                  if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
-                    const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
-                    const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
+                    // Check if this was first generation and show testing prompt modal
+                    if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
+                      const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
+                      const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
 
-                    if (!hasShownPrompt) {
-                      // Mark as shown immediately
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem(localStorageKey, 'true')
+                      if (!hasShownPrompt) {
+                        // Mark as shown immediately
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(localStorageKey, 'true')
+                        }
+                        // Show modal after a short delay to ensure page state is updated
+                        setTimeout(() => {
+                          setIsTestingPromptOpen(true)
+                        }, 500)
                       }
-                      // Show modal after a short delay to ensure page state is updated
-                      setTimeout(() => {
-                        setIsTestingPromptOpen(true)
-                      }, 500)
                     }
-                  }
 
-                  // Auto-select manifest.json file after code generation
-                  setTimeout(() => {
-                    const manifestFile = fileManagement.findManifestFile()
-                    if (manifestFile) {
-                      setSelectedFile(manifestFile)
+                    // Auto-select manifest.json file after code generation
+                    setTimeout(() => {
+                      const manifestFile = fileManagement.findManifestFile()
+                      if (manifestFile) {
+                        setSelectedFile(manifestFile)
+                      }
+                    }, 500) // Small delay to ensure file structure is updated
+                  }}
+                  onGenerationStart={() => {
+                    setIsGenerating(true)
+                    // Track hasGeneratedCode state before generation starts
+                    hasGeneratedCodeBeforeRef.current = hasGeneratedCode
+                  }}
+                  onGenerationEnd={() => {
+                    setIsGenerating(false)
+                  }}
+                  onOpenCanvas={() => setIsCanvasOpen(true)}
+                  hasGeneratedCode={hasGeneratedCode}
+                  isCanvasOpen={isCanvasOpen}
+                  isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+                  isOnboardingModalOpen={onboardingModal.isModalOpen}
+                />
+              </div>
+            </div>
+          ) : (
+            /* Split View - Chat + Canvas */
+            <div className="flex h-full" ref={chatCanvasContainerRef}>
+              {/* Left Sidebar - AI Assistant */}
+              <div className="flex flex-col bg-black animate-slide-in-left" style={{ width: `${chatCanvasDividerPosition}%` }}>
+                <AIChat
+                  projectId={projectSetup.currentProjectId}
+                  projectName={projectSetup.currentProjectName}
+                  autoGeneratePrompt={autoGeneratePrompt}
+                  onAutoGenerateComplete={handleAutoGenerateComplete}
+                  onCodeGenerated={async (response) => {
+                    await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
+                    setIsGenerating(false)
+                    setHasGeneratedCode(true)
+                    // Refresh project details (name/description) after generation updates
+                    await projectSetup.refreshCurrentProjectDetails?.()
+
+                    // Play notification sound if user is not on the page
+                    playNotificationSound()
+
+                    // Check if this was first generation and show testing prompt modal
+                    if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
+                      const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
+                      const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
+
+                      if (!hasShownPrompt) {
+                        // Mark as shown immediately
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(localStorageKey, 'true')
+                        }
+                        // Show modal after a short delay to ensure page state is updated
+                        setTimeout(() => {
+                          setIsTestingPromptOpen(true)
+                        }, 500)
+                      }
                     }
-                  }, 500) // Small delay to ensure file structure is updated
-                }}
-                onGenerationStart={() => {
-                  setIsGenerating(true)
-                  // Track hasGeneratedCode state before generation starts
-                  hasGeneratedCodeBeforeRef.current = hasGeneratedCode
-                }}
-                onGenerationEnd={() => {
-                  setIsGenerating(false)
-                }}
-                isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
-                isOnboardingModalOpen={onboardingModal.isModalOpen}
-              />
-            )}
-          </div>
 
-          {/* Main Content Area with Resizable Panels */}
-          <div className="flex-1 flex" ref={containerRef}>
-            {/* Project Files Panel */}
-            <div style={{ width: `${dividerPosition}%` }}>
-              <ProjectFilesPanel
-                fileStructure={fileManagement.fileStructure}
-                selectedFile={selectedFile}
-                onFileSelect={handleFileSelect}
-                isLoadingFiles={fileManagement.isLoadingFiles}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-              />
+                    // Auto-select manifest.json file after code generation
+                    setTimeout(() => {
+                      const manifestFile = fileManagement.findManifestFile()
+                      if (manifestFile) {
+                        setSelectedFile(manifestFile)
+                      }
+                    }, 500) // Small delay to ensure file structure is updated
+                  }}
+                  onGenerationStart={() => {
+                    setIsGenerating(true)
+                    // Track hasGeneratedCode state before generation starts
+                    hasGeneratedCodeBeforeRef.current = hasGeneratedCode
+                  }}
+                  onGenerationEnd={() => {
+                    setIsGenerating(false)
+                  }}
+                  onOpenCanvas={() => setIsCanvasOpen(true)}
+                  hasGeneratedCode={hasGeneratedCode}
+                  isCanvasOpen={isCanvasOpen}
+                  isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
+                  isOnboardingModalOpen={onboardingModal.isModalOpen}
+                />
+              </div>
+
+              {/* Resizable Divider */}
+              <ChatCanvasResizableDivider />
+
+              {/* Canvas Pane - Files + Editor */}
+              <div className="flex flex-col p-2" style={{ width: `${100 - chatCanvasDividerPosition}%`, maxWidth: '100%', maxHeight: '100%' }}>
+                <Artifact className="h-full flex flex-col max-w-full max-h-full">
+                  <ArtifactContent className="p-2">
+                    {/* Files + Editor */}
+                    <div className="flex-1 flex h-full" ref={containerRef}>
+                      {/* Project Files Panel */}
+                      {!isFileTreeCollapsed && (
+                        <div style={{ width: `${dividerPosition}%` }}>
+                          <ProjectFilesPanel
+                            fileStructure={fileManagement.fileStructure}
+                            selectedFile={selectedFile}
+                            onFileSelect={handleFileSelect}
+                            isLoadingFiles={fileManagement.isLoadingFiles}
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                          />
+                        </div>
+                      )}
+
+                      {/* Resizable Divider */}
+                      {!isFileTreeCollapsed && <ResizableDivider />}
+
+                      {/* File Editor Panel */}
+                      <div className="flex flex-col bg-black" style={{ width: isFileTreeCollapsed ? '100%' : `${100 - dividerPosition}%` }}>
+                        <EditorPanel
+                          selectedFile={selectedFile}
+                          onFileSave={handleFileSave}
+                          allFiles={fileManagement.flatFiles}
+                          onClose={() => setIsCanvasOpen(false)}
+                          isFileTreeCollapsed={isFileTreeCollapsed}
+                          onToggleFileTree={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
+                        />
+                      </div>
+                    </div>
+                  </ArtifactContent>
+                </Artifact>
+              </div>
             </div>
-
-            {/* Resizable Divider */}
-            <ResizableDivider />
-
-            {/* File Editor Panel */}
-            <div className="flex flex-col bg-slate-900 border-l border-slate-700/50" style={{ width: `${100 - dividerPosition}%` }}>
-              <EditorPanel 
-                selectedFile={selectedFile}
-                onFileSave={handleFileSave}
-                allFiles={fileManagement.flatFiles}
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
 
       {/* Test Modal */}

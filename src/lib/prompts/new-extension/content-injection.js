@@ -1,5 +1,5 @@
-import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from './workspace-auth-instructions.js';
-import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from './workspace-oauth-setup-prompt.js';
+import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from '../instructions/workspace-auth-instructions.js';
+import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../instructions/workspace-oauth-setup-prompt.js';
 
 export const NEW_EXT_CONTENT_SCRIPT_UI_PROMPT = `
 You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages based on the user request.

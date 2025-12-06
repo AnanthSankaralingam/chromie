@@ -1,34 +1,63 @@
 "use client"
 
 import MarkdownMessage from "./markdown-message"
+import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
+import { UrlInputRequest, ApiInputRequest } from "./input-request-message"
 
-export default function ChatMessage({ message, index, typingCancelSignal }) {
+export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, setMessages }) {
   // Check if this is a final explanation message (contains "Here's what I've built for you")
-  const isFinalExplanation = message.role === "assistant" && 
-    message.content && 
+  const isFinalExplanation = message.role === "assistant" &&
+    message.content &&
     message.content.includes("Here's what I've built for you")
 
+  const variant = message.role === "user" ? "sent" : "received"
+  const isUser = message.role === "user"
+  const aiAvatar = "/chromie-logo-1.png"
+
+  // Check if this is an input request message
+  const isUrlInputRequest = message.type === "url_input_request"
+  const isApiInputRequest = message.type === "api_input_request"
+
   return (
-    <div
-      className={`flex items-start space-x-3 ${
-        message.role === "user" ? "flex-row-reverse space-x-reverse" : ""
-      }`}
-    >
-      <div
-        className={`max-w-[80%] min-w-0 p-4 rounded-2xl ${
-          message.role === "user"
-            ? "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border border-blue-400/30 text-blue-100 backdrop-blur-sm shadow-lg"
-            : isFinalExplanation
-            ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 text-white backdrop-blur-sm shadow-xl ring-2 ring-green-400/20"
-            : "bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-slate-200 backdrop-blur-sm shadow-lg"
-        }`}
+    <ChatBubble variant={variant}>
+      {/* Show avatar only for first AI message in succession */}
+      {showAvatar && (
+        <ChatBubbleAvatar
+          src={aiAvatar}
+          fallback="AI"
+          className="h-8 w-8 shrink-0"
+        />
+      )}
+      <ChatBubbleMessage
+        variant={variant}
+        className={
+          isFinalExplanation
+            ? "bg-green-600/30 text-white"
+            : undefined
+        }
       >
-        {message.role === "assistant" ? (
+        {isUrlInputRequest ? (
+          <UrlInputRequest
+            message={message}
+            onSubmit={onUrlSubmit}
+            onCancel={onUrlCancel}
+            setMessages={setMessages}
+            messageIndex={index}
+          />
+        ) : isApiInputRequest ? (
+          <ApiInputRequest
+            message={message}
+            onSubmit={onApiSubmit}
+            onCancel={onApiCancel}
+            setMessages={setMessages}
+            messageIndex={index}
+          />
+        ) : message.role === "assistant" ? (
           <MarkdownMessage content={message.content} typingCancelSignal={typingCancelSignal} />
         ) : (
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          <p className="text-base whitespace-pre-wrap break-words">{message.content}</p>
         )}
-      </div>
-    </div>
+      </ChatBubbleMessage>
+    </ChatBubble>
   )
 } 

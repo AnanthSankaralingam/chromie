@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Send, LoaderIcon } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
@@ -10,10 +10,13 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
-import PersonaChipCarousel from "@/components/ui/persona-chip-carousel"
+import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
+import PricingSection from "@/components/ui/sections/pricing-section"
+import ContactSection from "@/components/ui/sections/contact-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -24,10 +27,18 @@ export default function HomePage() {
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [showPersonaCarousel, setShowPersonaCarousel] = useState(true)
   const [inputFocused, setInputFocused] = useState(false)
+  const [placeholderText, setPlaceholderText] = useState("")
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
   const textareaRef = useRef(null)
+
+  // Typing suggestions for placeholder - extracted from extension suggestions data
+  // Descriptions already have no prefix, "An extension that " is added during typing
+  const typingSuggestions = useMemo(() =>
+    extensionSuggestions.map(suggestion => suggestion.description),
+    []
+  )
 
   // Auto-resize textarea hook
   const adjustHeight = useCallback((reset = false) => {
@@ -52,17 +63,14 @@ export default function HomePage() {
     // Show suggestions when user starts typing
     if (value.trim().length >= 2) {
       setShowSuggestions(true)
-      setShowPersonaCarousel(false)
     } else {
       setShowSuggestions(false)
-      setShowPersonaCarousel(true)
     }
   }
 
   const handleSuggestionSelect = (suggestionText) => {
     setPrompt(suggestionText)
     setShowSuggestions(false)
-    setShowPersonaCarousel(false)
     // Focus back to textarea after selection
     if (textareaRef.current) {
       textareaRef.current.focus()
@@ -75,20 +83,11 @@ export default function HomePage() {
     // Show suggestions if there's existing text
     if (prompt.trim().length >= 2) {
       setShowSuggestions(true)
-      setShowPersonaCarousel(false)
-    } else {
-      // Hide carousel when focused even with empty input
-      setShowPersonaCarousel(false)
     }
   }
 
   const handleTextareaBlur = () => {
     setInputFocused(false)
-
-    // Restart typing suggestions and show carousel when user blurs and textarea is empty
-    if (!prompt.trim()) {
-      setShowPersonaCarousel(true)
-    }
   }
 
   const handleSubmit = async (e) => {
@@ -183,24 +182,74 @@ export default function HomePage() {
     }
   }
 
+  // Typing animation effect for placeholder
+  useEffect(() => {
+    // Only run typing animation when prompt is empty
+    if (prompt) {
+      setPlaceholderText("")
+      return
+    }
+
+    const currentText = typingSuggestions[currentSuggestionIndex]
+    if (!currentText) return
+
+    let charIndex = 0
+    let isTyping = true
+    let pauseTimeout = null
+    let deleteInterval = null
+
+    const typingInterval = setInterval(() => {
+      if (isTyping) {
+        // Typing phase
+        if (charIndex <= currentText.length) {
+          setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
+          charIndex++
+        } else {
+          // Finished typing, pause before deleting
+          clearInterval(typingInterval)
+          pauseTimeout = setTimeout(() => {
+            isTyping = false
+            // Start deleting
+            deleteInterval = setInterval(() => {
+              if (charIndex > 0) {
+                charIndex--
+                setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
+              } else {
+                // Finished deleting, move to next suggestion
+                clearInterval(deleteInterval)
+                setCurrentSuggestionIndex((prev) => (prev + 1) % typingSuggestions.length)
+              }
+            }, 2)
+          }, 1000) // Pause for 1 second
+        }
+      }
+    }, 8) // Typing speed
+
+    return () => {
+      clearInterval(typingInterval)
+      if (pauseTimeout) clearTimeout(pauseTimeout)
+      if (deleteInterval) clearInterval(deleteInterval)
+    }
+  }, [prompt, currentSuggestionIndex, typingSuggestions])
+
   // Restore prompt from URL params or sessionStorage on component mount
   useEffect(() => {
     const restorePrompt = () => {
       // First try to get prompt from URL params
       const urlParams = new URLSearchParams(window.location.search)
       const urlPrompt = urlParams.get('prompt')
-      
+
       if (urlPrompt) {
         const decodedPrompt = decodeURIComponent(urlPrompt)
         setPrompt(decodedPrompt)
-        
+
         // Clean up URL params
         const url = new URL(window.location)
         url.searchParams.delete('prompt')
         window.history.replaceState({}, '', url.toString())
         return
       }
-      
+
       // Fallback to sessionStorage
       const savedPromptData = sessionStorage.getItem('pending_prompt')
       if (savedPromptData) {
@@ -219,8 +268,23 @@ export default function HomePage() {
         }
       }
     }
-    
+
     restorePrompt()
+
+    // Handle hash navigation (e.g., from /#how-it-works, /#pricing, or /#contact)
+    const handleHashScroll = () => {
+      const hash = window.location.hash
+      if (hash === '#how-it-works' || hash === '#pricing' || hash === '#contact') {
+        setTimeout(() => {
+          const section = document.getElementById(hash.substring(1))
+          if (section) {
+            section.scrollIntoView({ behavior: 'smooth' })
+          }
+        }, 100)
+      }
+    }
+
+    handleHashScroll()
   }, [])
 
   useEffect(() => {
@@ -306,16 +370,22 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 pb-2"
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 pb-2 whitespace-nowrap overflow-x-auto"
                   style={{
                     background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
-                    lineHeight: '1.2'
+                    lineHeight: 1.15,
+                    letterSpacing: '0.01em',
+                    wordSpacing: '0.02em',
+                    maxWidth: '100%',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  what do you want to build?
+                  <i>extend</i> reach. not roadmaps.
                 </motion.h1>
                 <motion.p
                   className="text-lg md:text-xl text-slate-400"
@@ -323,7 +393,7 @@ export default function HomePage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
                 >
-                  build chrome extensions in seconds by chatting with ai
+                  augment your product suite with a browser extension in seconds.
                 </motion.p>
               </div>
 
@@ -358,7 +428,7 @@ export default function HomePage() {
                       onKeyDown={handleKeyDown}
                       onFocus={handleTextareaFocus}
                       onBlur={handleTextareaBlur}
-                      placeholder="describe your extension..."
+                      placeholder={placeholderText || "describe your extension..."}
                       disabled={isGenerating}
                       className={cn(
                         "w-full px-0 py-0",
@@ -409,27 +479,18 @@ export default function HomePage() {
                   </div>
                 </div>
               </motion.form>
-
-              {/* Persona Chip Carousel */}
-              <AnimatePresence>
-                {showPersonaCarousel && !prompt && !isGenerating && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                  >
-                    <PersonaChipCarousel
-                      onSuggestionSelect={handleSuggestionSelect}
-                      isVisible={true}
-                      className="max-w-3xl mx-auto"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           </div>
         </main>
+
+        {/* How It Works Section */}
+        <HowItWorksSection />
+
+        {/* Pricing Section */}
+        <PricingSection />
+
+        {/* Contact Section */}
+        <ContactSection />
 
       </div>
 
