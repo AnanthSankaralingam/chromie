@@ -22,7 +22,8 @@ export async function GET(request, { params }) {
 
     // Return logs from shared storage
     const logs = getLogs(sessionId)
-    
+    console.log(`[CONSOLE-LOGS] 📊 Found ${logs.length} logs for session ${sessionId}`)
+
     return NextResponse.json({
       success: true,
       logs: logs,
@@ -39,9 +40,6 @@ export async function GET(request, { params }) {
     )
   }
 }
-
-// POST endpoint removed - console log capture is now started automatically
-// when a test session is created in the main test-extension route
 
 /**
  * Clear console logs for a session
