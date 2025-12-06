@@ -567,12 +567,12 @@ export default function MonacoEditor({
       )}
 
       {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         {language === 'html' && isHtmlPreview ? (
-          <div className="h-full w-full">
+          <div className="h-full w-full bg-slate-900 flex items-center justify-center">
             <iframe
               title="HTML Preview"
-              className="w-full h-full bg-white"
+              className="bg-white w-full h-full border-0"
               sandbox="allow-same-origin allow-forms allow-scripts allow-pointer-lock allow-popups"
               srcDoc={buildHtmlSrcDoc(content)}
             />

@@ -46,9 +46,6 @@ GitHub: https://api.github.com
 Twilio: https://api.twilio.com/2010-04-01
 SendGrid: https://api.sendgrid.com/v3
 Google Maps: https://maps.googleapis.com/maps/api
-Spotify: https://api.spotify.com/v1
-Twitter: https://api.twitter.com/2
-YouTube: https://www.googleapis.com/youtube/v3
 Google Translate: https://translation.googleapis.com/language/translate/v2
 OpenWeather: https://api.openweathermap.org/data/2.5
 Alpha Vantage: https://www.alphavantage.co/query
@@ -60,10 +57,7 @@ Google Calendar API: https://www.googleapis.com/calendar/v3
 Google Sheets API: https://sheets.googleapis.com/v4/spreadsheets
 Google Docs API: https://docs.googleapis.com/v1/documents
 Google Tasks API: https://tasks.googleapis.com/tasks/v1
-Google Chat API: https://chat.googleapis.com/v1
-Admin SDK API: https://admin.googleapis.com/admin/directory/v1
 Google Meet API: https://meet.googleapis.com/v2
-Google Slides API: https://slides.googleapis.com/v1/presentations
 Google Forms API: https://forms.googleapis.com/v1/forms
 
 IMPORTANT: When detecting Google Workspace needs:

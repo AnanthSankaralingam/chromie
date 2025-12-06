@@ -89,6 +89,15 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
+<console_logging_requirements>
+MANDATORY: Add console.log statements to track key events. Include the filename in each log:
+- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
+- Log important operations and user interactions
+- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
+
+All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:newtab.js]).
+</console_logging_requirements>
+
 <implementation_guidelines>
 - Create a beautiful, functional new tab experience
 - Implement proper error handling, comments, and logging

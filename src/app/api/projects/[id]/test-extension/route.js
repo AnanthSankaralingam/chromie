@@ -36,7 +36,6 @@ export async function POST(request, { params }) {
     const limitCheck = await checkLimit(user.id, 'browserMinutes', sessionMinutes, supabase)
     
     if (!limitCheck.allowed) {
-      console.log(`[api/projects/test-extension] ❌ Browser minute limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
       return NextResponse.json(
         formatLimitError(limitCheck, 'browserMinutes'),
         { status: 429 }
@@ -65,23 +64,28 @@ export async function POST(request, { params }) {
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
-    console.log("Creating session with existing extension files count:", extensionFiles.length)
     const session = await hyperbrowserService.createTestSession(extensionFiles, id, user.id, supabase)
 
-    // Debug: Log session details after creation
-    console.log("🔍 Session created successfully:", {
-      sessionId: session.sessionId,
-      status: session.status,
-      liveViewUrl: session.liveViewUrl,
-      connectUrl: session.connectUrl
-    })
-
-    // Note: Extension pinning is now handled automatically in createTestSession
+    // Start console log capture in background
+    const apiKey = process.env.HYPERBROWSER_API_KEY
+    if (apiKey) {
+      Promise.all([
+        import("@/lib/utils/browser-actions"),
+        import("@/lib/utils/extension-log-capture")
+      ])
+        .then(([{ getPuppeteerSessionContext }, logCapture]) => {
+          return getPuppeteerSessionContext(session.sessionId, apiKey)
+            .then(({ browser, page }) => ({ browser, page, logCapture }))
+        })
+        .then(async ({ browser, page, logCapture }) => {
+          await logCapture.setupLogCapture(browser, page, session.sessionId)
+        })
+        .catch((err) => {
+          console.error("[test-extension] Failed to start console log capture:", err.message)
+        })
+    }
 
     // Skip database storage since browser_sessions table doesn't exist
-    console.log('Skipping database session storage (table does not exist)')
-
-    console.log(`Session starts at: ${sessionStartTime}, expires at: ${sessionExpiryTime.toISOString()}, remaining minutes: ${remainingMinutes}`)
 
     return NextResponse.json({
       session: {
@@ -116,9 +120,6 @@ export async function DELETE(request, { params }) {
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
-
-    // Skip database session lookup since browser_sessions table doesn't exist
-    console.log('Skipping database session lookup (table does not exist)')
 
     // Calculate actual minutes used based on elapsed time
     let actualMinutesUsed = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES // Default to full session
@@ -196,11 +197,6 @@ export async function DELETE(request, { params }) {
         console.error('Error updating browser usage:', updateError)
       }
     }
-
-    // Skip database session update since browser_sessions table doesn't exist
-    console.log('Skipping database session update (table does not exist)')
-
-    console.log(`Actual minutes used: ${actualMinutesUsed}`)
 
     return NextResponse.json({ 
       success: true,

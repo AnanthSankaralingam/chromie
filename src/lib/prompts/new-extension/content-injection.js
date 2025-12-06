@@ -133,6 +133,15 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
+<console_logging_requirements>
+MANDATORY: Add console.log statements to track key events. Include the filename in each log:
+- Log script initialization: console.log('[CHROMIE:filename] Script loaded')
+- Log important operations and user interactions
+- Log errors: console.error('[CHROMIE:filename] Error:', error)
+
+All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:content.js]).
+</console_logging_requirements>
+
 <implementation_guidelines>
 - Create UI that integrates naturally with web pages
 - Use mutation observers to handle dynamic content

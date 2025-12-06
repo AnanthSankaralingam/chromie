@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import ProgressSpinner from "@/components/ui/loading/progress-spinner"
+import ConsoleLogViewer from "@/components/ui/extension-testing/console-log-viewer"
 
 export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false, loadingProgress = 0, projectId }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
@@ -291,6 +292,13 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
         <div className="p-4 border-t border-slate-600 bg-slate-700/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 text-sm text-slate-300">
+              <ConsoleLogViewer
+                sessionId={sessionData?.sessionId}
+                projectId={projectId}
+                isSessionActive={sessionStatus === "ready" && !sessionExpired}
+              />
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-slate-300">
               <div className="flex items-center space-x-1">
                 <CheckCircle className="h-4 w-4 text-green-400" />
                 <span>Extension loaded</span>
@@ -301,7 +309,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
                 </span>
               )}
             </div>
-
           </div>
         </div>
       </div>
