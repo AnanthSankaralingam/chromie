@@ -24,6 +24,7 @@ export function createStreamEventHandler(context) {
     setModelThinkingDisplay,
     thinkingTimerRef,
     setTypingCancelSignal,
+    setIsActuallyGeneratingCode,
   } = context
 
   const addNewAssistantMessage = (content) => {
@@ -95,8 +96,14 @@ export function createStreamEventHandler(context) {
       case "scraping_complete":
       case "scraping_skipped":
       case "context_ready":
-      case "generation_starting":
       case "phase":
+        break
+
+      case "generation_starting":
+        // Mark that actual code generation (not planning) has started
+        if (setIsActuallyGeneratingCode) {
+          setIsActuallyGeneratingCode(true)
+        }
         break
 
       case "explanation":

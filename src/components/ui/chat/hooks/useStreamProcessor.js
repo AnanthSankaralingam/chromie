@@ -43,6 +43,7 @@ export function useStreamProcessor({
     modelThinkingFull,
     setModelThinkingDisplay,
     thinkingTimerRef,
+    setIsActuallyGeneratingCode,
   } = chatState
 
   const processStream = useCallback(
@@ -88,6 +89,7 @@ export function useStreamProcessor({
         thinkingTimerRef,
         setTypingCancelSignal,
         currentRequestRef,
+        setIsActuallyGeneratingCode,
       }
 
       const handleEvent = createStreamEventHandler(handlerContext)
@@ -172,10 +174,7 @@ export function useStreamProcessor({
 
         await processStream(payload)
 
-        // Handle auto-generation complete
-        if (autoGeneratePrompt && onAutoGenerateComplete) {
-          onAutoGenerateComplete()
-        }
+        // Don't clear autoGeneratePrompt yet - it might pause for URL/API input
         if (autoGeneratePrompt) {
           chatState.setInputMessage("")
         }
@@ -250,9 +249,7 @@ export function useStreamProcessor({
 
         await processStream(payload)
 
-        if (autoGeneratePrompt && onAutoGenerateComplete) {
-          onAutoGenerateComplete()
-        }
+        // Don't clear autoGeneratePrompt yet - it might pause for URL/API input
         if (autoGeneratePrompt) {
           chatState.setInputMessage("")
         }

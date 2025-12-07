@@ -118,15 +118,15 @@ export default function BuilderPage() {
     }
   }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
-  // Check if we should show onboarding modal when auto-generate prompt is set
-  useEffect(() => {
-    if (autoGeneratePrompt) {
+  // Check if we should show onboarding modal when actual code generation starts (not planning)
+  const handleCodeGenerationStarting = () => {
+    if (autoGeneratePrompt && !hasProcessedAutoGenerate.current) {
       hasProcessedAutoGenerate.current = true
       if (onboardingModal.checkShouldShowModal(true)) {
         onboardingModal.showModal()
       }
     }
-  }, [autoGeneratePrompt, onboardingModal.checkShouldShowModal, onboardingModal.showModal])
+  }
 
   // Trigger auto-generation when both prompt and project are ready
   useEffect(() => {
@@ -311,6 +311,11 @@ export default function BuilderPage() {
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
 
+                  // Clear autoGeneratePrompt now that code generation is complete
+                  if (autoGeneratePrompt) {
+                    handleAutoGenerateComplete()
+                  }
+
                   // Play notification sound if user is not on the page
                   playNotificationSound()
 
@@ -359,6 +364,7 @@ export default function BuilderPage() {
                 isCanvasOpen={false}
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
+                onCodeGenerationStarting={handleCodeGenerationStarting}
               />
             </div>
           )}
@@ -408,6 +414,11 @@ export default function BuilderPage() {
                     // Refresh project details (name/description) after generation updates
                     await projectSetup.refreshCurrentProjectDetails?.()
 
+                    // Clear autoGeneratePrompt now that code generation is complete
+                    if (autoGeneratePrompt) {
+                      handleAutoGenerateComplete()
+                    }
+
                     // Play notification sound if user is not on the page
                     playNotificationSound()
 
@@ -449,6 +460,7 @@ export default function BuilderPage() {
                   isCanvasOpen={isCanvasOpen}
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
+                  onCodeGenerationStarting={handleCodeGenerationStarting}
                 />
               </div>
             </div>
@@ -469,6 +481,11 @@ export default function BuilderPage() {
                     // Refresh project details (name/description) after generation updates
                     await projectSetup.refreshCurrentProjectDetails?.()
 
+                    // Clear autoGeneratePrompt now that code generation is complete
+                    if (autoGeneratePrompt) {
+                      handleAutoGenerateComplete()
+                    }
+
                     // Play notification sound if user is not on the page
                     playNotificationSound()
 
@@ -510,6 +527,7 @@ export default function BuilderPage() {
                   isCanvasOpen={isCanvasOpen}
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
+                  onCodeGenerationStarting={handleCodeGenerationStarting}
                 />
               </div>
 
@@ -598,9 +616,6 @@ export default function BuilderPage() {
         isOpen={onboardingModal.isModalOpen}
         onClose={onboardingModal.hideModal}
         currentStep={onboardingModal.currentStep}
-        currentStepNumber={onboardingModal.currentStepNumber}
-        totalSteps={onboardingModal.totalSteps}
-        isLastStep={onboardingModal.isLastStep}
         onNext={onboardingModal.goToNextStep}
       />
 

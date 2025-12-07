@@ -8,10 +8,7 @@ import { FileCode, X } from "lucide-react"
 export default function EditStepModal({
   isOpen,
   onClose,
-  onNext,
-  currentStepNumber,
-  totalSteps,
-  isLastStep
+  onNext
 }) {
   // Handle keyboard navigation - only allow escape to close
   useEffect(() => {
@@ -45,26 +42,19 @@ export default function EditStepModal({
 
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
-              {/* Progress indicator */}
-              <div className="flex items-center justify-center mb-4">
-                <span className="text-sm font-medium text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
-                  {currentStepNumber}/{totalSteps}
-                </span>
-              </div>
-
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <FileCode className="h-8 w-8 text-white" />
                 </div>
               </div>
               <h2 className="text-3xl font-bold text-white mb-3">
-                Edit Your Code
+                Did You Know?
               </h2>
               <p className="text-slate-300 text-lg">
-                Customize your extension by editing the files
+                You have full control over the code
               </p>
             </div>
-            
+
             <div className="space-y-6">
               {/* Main content */}
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
@@ -73,13 +63,13 @@ export default function EditStepModal({
                     <FileCode className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-lg mb-2">Make it yours!</h3>
+                    <h3 className="text-white font-semibold text-lg mb-2">Edit any file directly in the browser</h3>
                     <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                      Click on any file in the left panel to open it in the code editor. You can modify HTML, CSS, JavaScript, and the manifest file.
+                      While chromie generates code for you, you can manually edit any file through our built-in code editor. Fine-tune the AI's output, customize styling, adjust logic, or add your own features. Click any file in the file tree to view and edit it with syntax highlighting and auto-save.
                     </p>
                     <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
                       <p className="text-slate-400 text-xs">
-                        💡 <strong>Tip:</strong> Start with the manifest.json file to change your extension's name and description.
+                        <strong>Why this matters:</strong> You're not locked into AI-generated code. chromie gives you the best of both worlds - AI-powered speed for the heavy lifting, plus manual control for precise customization. Edit manifest.json to change metadata, tweak content scripts for custom behavior, or modify styles to match your brand.
                       </p>
                     </div>
                   </div>
@@ -92,7 +82,7 @@ export default function EditStepModal({
                   onClick={onNext}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8 py-2"
                 >
-                  {isLastStep ? 'Get Started' : 'Next'}
+                  Got It
                 </Button>
               </div>
             </div>

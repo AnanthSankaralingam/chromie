@@ -49,6 +49,9 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   const [planningProgress, setPlanningProgress] = useState(null)
   const [currentPlanningPhase, setCurrentPlanningPhase] = useState(null)
 
+  // Track when actual code generation (not planning) starts
+  const [isActuallyGeneratingCode, setIsActuallyGeneratingCode] = useState(false)
+
   // Reset conversation state on project change
   useEffect(() => {
     previousResponseIdRef.current = null
@@ -110,6 +113,7 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     }
     setPlanningProgress(null)
     setCurrentPlanningPhase(null)
+    setIsActuallyGeneratingCode(false)
     filesSavedRef.current = false
     doneReceivedRef.current = false
     // Only reset start message flag for new generations, not continuations
@@ -173,6 +177,10 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     setPlanningProgress,
     currentPlanningPhase,
     setCurrentPlanningPhase,
+
+    // Code generation state
+    isActuallyGeneratingCode,
+    setIsActuallyGeneratingCode,
 
     // Helpers
     resetStreamState,

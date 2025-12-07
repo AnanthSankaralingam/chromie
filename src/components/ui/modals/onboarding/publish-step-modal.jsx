@@ -8,10 +8,7 @@ import { Store, X } from "lucide-react"
 export default function PublishStepModal({
   isOpen,
   onClose,
-  onNext,
-  currentStepNumber,
-  totalSteps,
-  isLastStep
+  onNext
 }) {
   // Handle keyboard navigation - only allow escape to close
   useEffect(() => {
@@ -45,13 +42,6 @@ export default function PublishStepModal({
 
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
-              {/* Progress indicator */}
-              <div className="flex items-center justify-center mb-4">
-                <span className="text-sm font-medium text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
-                  {currentStepNumber}/{totalSteps}
-                </span>
-              </div>
-
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Store className="h-8 w-8 text-white" />
@@ -79,7 +69,7 @@ export default function PublishStepModal({
                     </p>
                     <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
                       <p className="text-slate-400 text-xs">
-                        💡 <strong>Note:</strong> Publishing requires a Chrome Web Store developer account and follows Google's review process.
+                        💡 <strong>Note:</strong> we're waiting on Google to unblock us from managing public extensions, but we'll get it soon!
                       </p>
                     </div>
                   </div>
@@ -92,7 +82,7 @@ export default function PublishStepModal({
                   onClick={onNext}
                   className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-8 py-2"
                 >
-                  {isLastStep ? 'Get Started' : 'Next'}
+                  Got It
                 </Button>
               </div>
             </div>
