@@ -24,6 +24,7 @@ export function createStreamEventHandler(context) {
     setModelThinkingDisplay,
     thinkingTimerRef,
     setTypingCancelSignal,
+    setIsActuallyGeneratingCode,
   } = context
 
   const addNewAssistantMessage = (content) => {
@@ -95,8 +96,14 @@ export function createStreamEventHandler(context) {
       case "scraping_complete":
       case "scraping_skipped":
       case "context_ready":
-      case "generation_starting":
       case "phase":
+        break
+
+      case "generation_starting":
+        // Mark that actual code generation (not planning) has started
+        if (setIsActuallyGeneratingCode) {
+          setIsActuallyGeneratingCode(true)
+        }
         break
 
       case "explanation":
@@ -209,9 +216,6 @@ export function createRequiresUrlHandler(context) {
   } = context
 
   return (data, prompt, requestType, projectId) => {
-    console.log("📋 Received requires_url signal:", data)
-    console.log("📊 Has analysisData:", !!data.analysisData)
-
     // Store the current request info for URL continuation
     currentRequestRef.current = {
       prompt: prompt,
@@ -219,7 +223,6 @@ export function createRequiresUrlHandler(context) {
       projectId: projectId,
       analysisData: data.analysisData,
     }
-    console.log("💾 Stored currentRequestRef with analysisData:", !!currentRequestRef.current.analysisData)
 
     // Add a chat message with URL input request
     const urlInputMessage = {
@@ -233,7 +236,6 @@ export function createRequiresUrlHandler(context) {
     }
     
     setMessages((prev) => [...prev, urlInputMessage])
-    console.log("✅ Added URL input request message to chat")
   }
 }
 
@@ -244,11 +246,6 @@ export function createRequiresApiHandler(context) {
   } = context
 
   return (data, prompt, requestType, projectId) => {
-    console.log("🔌 Received requires_api event:", {
-      suggestedAPIs: data.suggestedAPIs,
-      content: data.content,
-      hasAnalysisData: !!data.analysisData,
-    })
 
     // Store the current request info for API continuation
     currentRequestRef.current = {
@@ -267,6 +264,5 @@ export function createRequiresApiHandler(context) {
     }
     
     setMessages((prev) => [...prev, apiInputMessage])
-    console.log("✅ Added API input request message to chat")
   }
 }

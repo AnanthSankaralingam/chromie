@@ -26,6 +26,7 @@ export default function StreamingChat({
   isProjectReady,
   isOnboardingModalOpen,
   modelOverride,
+  onCodeGenerationStarting,
 }) {
   const chatState = useChatState(projectId, hasGeneratedCodeProp)
   const {
@@ -49,6 +50,7 @@ export default function StreamingChat({
     thinkingChunkCountRef,
     planningProgress,
     currentPlanningPhase,
+    isActuallyGeneratingCode,
   } = chatState
 
   const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis } =
@@ -84,6 +86,13 @@ export default function StreamingChat({
       startGeneration(autoGeneratePrompt, true)
     }
   }, [autoGeneratePrompt, isProjectReady, hasGeneratedCode, isGenerating])
+
+  // Notify parent when actual code generation starts
+  useEffect(() => {
+    if (isActuallyGeneratingCode && onCodeGenerationStarting) {
+      onCodeGenerationStarting()
+    }
+  }, [isActuallyGeneratingCode, onCodeGenerationStarting])
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
@@ -267,6 +276,7 @@ export default function StreamingChat({
                       </div>
                     </div>
                     <button
+                      id="tour-open-canvas-button"
                       onClick={() => onOpenCanvas()}
                       className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                     >

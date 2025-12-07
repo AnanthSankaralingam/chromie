@@ -24,7 +24,11 @@ export default function AppBarBuilder({
   isDownloading = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
-  onCreateAITestAgent
+  onCreateAITestAgent,
+  tourTestButtonId,
+  tourShareButtonId,
+  onTourTestComplete,
+  onTourShareComplete,
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -65,6 +69,7 @@ export default function AppBarBuilder({
   const handleTestClick = () => {
     stopAllHighlights()
     onTestExtension?.()
+    onTourTestComplete?.()
   }
 
   const handleDownloadClick = () => {
@@ -75,6 +80,7 @@ export default function AppBarBuilder({
   const handleShareClick = () => {
     stopAllHighlights()
     openShareModal()
+    onTourShareComplete?.()
   }
 
   const handleShareConfirm = () => {
@@ -155,6 +161,7 @@ export default function AppBarBuilder({
                   </span>
                 </Button>
                 <Button
+                  id={tourTestButtonId}
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
                   variant="outline"
@@ -173,6 +180,7 @@ export default function AppBarBuilder({
                   onDownloadZip={handleDownloadClick}
                   onShareClick={handleShareClick}
                   onPublishClick={handlePublishClick}
+                  triggerId={tourShareButtonId}
                 />
               </div>
 
@@ -218,6 +226,7 @@ export default function AppBarBuilder({
               </span>
             </Button>
             <Button
+              id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               variant="outline"
@@ -238,6 +247,7 @@ export default function AppBarBuilder({
                 onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
                 onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
                 className="w-full"
+                triggerId={tourShareButtonId ? `${tourShareButtonId}-mobile` : undefined}
               />
             </div>
           </div>

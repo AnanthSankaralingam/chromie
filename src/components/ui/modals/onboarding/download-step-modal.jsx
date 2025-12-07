@@ -8,10 +8,7 @@ import { Download, X } from "lucide-react"
 export default function DownloadStepModal({
   isOpen,
   onClose,
-  onNext,
-  currentStepNumber,
-  totalSteps,
-  isLastStep
+  onNext
 }) {
   // Handle keyboard navigation - only allow escape to close
   useEffect(() => {
@@ -45,13 +42,6 @@ export default function DownloadStepModal({
 
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
-              {/* Progress indicator */}
-              <div className="flex items-center justify-center mb-4">
-                <span className="text-sm font-medium text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
-                  {currentStepNumber}/{totalSteps}
-                </span>
-              </div>
-
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Download className="h-8 w-8 text-white" />
@@ -75,24 +65,24 @@ export default function DownloadStepModal({
                   <div>
                     <h3 className="text-white font-semibold text-lg mb-2">Ready to install!</h3>
                     <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                      Click the download button to get a ZIP file of your extension. Then install it in Chrome for local testing.
+                      You can download your extension files to your device and install it in your own browser!
                     </p>
                     <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
                       <p className="text-slate-400 text-xs">
-                        💡 <strong>Tip:</strong> To install in Chrome: Go to chrome://extensions/, enable "Developer mode", then click "Load unpacked" and select the downloaded folder.
+                        💡 <strong>Tip:</strong> To install in Chrome: Go to chrome://extensions/, enable "Developer mode", then click "Load unpacked" and select the downloaded folder (after extracting the zip file).
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               {/* Action buttons */}
               <div className="flex justify-end pt-4">
                 <Button
                   onClick={onNext}
                   className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-2"
                 >
-                  {isLastStep ? 'Get Started' : 'Next'}
+                  Got It
                 </Button>
               </div>
             </div>

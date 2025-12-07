@@ -144,7 +144,6 @@ const ConversationScrollButton = React.forwardRef<HTMLButtonElement, Conversatio
     } catch {
       // Not within ConversationContent, use props only
       if (isAtBottomProp === undefined || onScrollToBottomProp === undefined) {
-        console.warn("ConversationScrollButton should be used within ConversationContent or provide both isAtBottom and onScrollToBottom props")
         return null
       }
       isAtBottom = isAtBottomProp

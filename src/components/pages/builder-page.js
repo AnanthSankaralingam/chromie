@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useOnboardingModal } from "@/hooks/use-onboarding-modal"
 import { useIsMobile } from "@/hooks/use-is-mobile"
@@ -32,8 +32,9 @@ import {
   ArtifactContent,
   ArtifactClose,
 } from "@/components/ui/artifact/artifact"
+import { TourProvider, useTour, TOUR_STEP_IDS } from "@/components/ui/tour"
 
-export default function BuilderPage() {
+function BuilderPageContent() {
   const { isLoading, session, user, supabase } = useSession()
   const router = useRouter()
   const hasProcessedAutoGenerate = useRef(false)
@@ -66,6 +67,8 @@ export default function BuilderPage() {
   const { dividerPosition: chatCanvasDividerPosition, containerRef: chatCanvasContainerRef, ResizableDivider: ChatCanvasResizableDivider } = useResizableChatCanvas()
   const testExtension = useTestExtension(projectSetup.currentProjectId)
   const onboardingModal = useOnboardingModal()
+  const { setSteps, startTour, completeStepById, isTourCompleted } = useTour()
+  const tourStartedRef = useRef(false)
 
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
@@ -73,6 +76,66 @@ export default function BuilderPage() {
     projectSetup.currentProjectName,
     fileManagement.fileStructure
   )
+
+  const buildTourSteps = useCallback(() => {
+    const steps = [
+      {
+        id: TOUR_STEP_IDS.OPEN_CANVAS,
+        selectorId: "tour-open-canvas-button",
+        position: "bottom",
+        title: "Open your generated code",
+        content: (
+          <div className="space-y-1">
+            <p>Click Open to jump into the canvas and view your files.</p>
+            <p className="text-xs text-slate-400">We’ll guide you through previewing, testing, and sharing.</p>
+          </div>
+        ),
+      },
+    ]
+
+    steps.push(
+      {
+        id: TOUR_STEP_IDS.TEST,
+        selectorId: "tour-test-button",
+        position: "bottom",
+        title: "Test your extension",
+        content: (
+          <div className="space-y-1">
+            <p>Launch the test runner to validate your extension in the browser.</p>
+            <p className="text-xs text-slate-400">We pre-wire the flow—just click Test to start.</p>
+          </div>
+        ),
+      },
+      {
+        id: TOUR_STEP_IDS.SHARE,
+        selectorId: "tour-share-button",
+        position: "bottom",
+        title: "Share with your team",
+        content: (
+          <div className="space-y-1">
+            <p>Generate a secure share link once you’re happy with the build.</p>
+            <p className="text-xs text-slate-400">We’ll mark onboarding done after this step.</p>
+          </div>
+        ),
+      }
+    )
+    return steps
+  }, [])
+
+  useEffect(() => {
+    if (!hasGeneratedCode || isTourCompleted || tourStartedRef.current) return
+    if (!fileManagement.flatFiles.length || isCanvasOpen) return
+
+    const steps = buildTourSteps()
+    if (steps.length) {
+      setSteps(steps)
+      requestAnimationFrame(() => {
+        startTour()
+        tourStartedRef.current = true
+        console.log("[tour] builder tour started", { steps: steps.map((s) => s.id) })
+      })
+    }
+  }, [buildTourSteps, fileManagement.flatFiles.length, hasGeneratedCode, isCanvasOpen, isTourCompleted, setSteps, startTour])
 
   // Check auth state and show modal if needed
   useEffect(() => {
@@ -118,15 +181,15 @@ export default function BuilderPage() {
     }
   }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
-  // Check if we should show onboarding modal when auto-generate prompt is set
-  useEffect(() => {
-    if (autoGeneratePrompt) {
+  // Check if we should show onboarding modal when actual code generation starts (not planning)
+  const handleCodeGenerationStarting = () => {
+    if (autoGeneratePrompt && !hasProcessedAutoGenerate.current) {
       hasProcessedAutoGenerate.current = true
       if (onboardingModal.checkShouldShowModal(true)) {
         onboardingModal.showModal()
       }
     }
-  }, [autoGeneratePrompt, onboardingModal.checkShouldShowModal, onboardingModal.showModal])
+  }
 
   // Trigger auto-generation when both prompt and project are ready
   useEffect(() => {
@@ -210,6 +273,29 @@ export default function BuilderPage() {
     }
   }
 
+  const handleOpenCanvas = () => {
+    setIsCanvasOpen(true)
+    completeStepById(TOUR_STEP_IDS.OPEN_CANVAS)
+  }
+
+  const handleTestExtensionWithTour = () => {
+    testExtension.handleTestExtension()
+    completeStepById(TOUR_STEP_IDS.TEST)
+  }
+
+  const handleShareWithTour = () => {
+    completeStepById(TOUR_STEP_IDS.SHARE)
+  }
+
+  const handleOpenCanvasFromChat = () => {
+    handleOpenCanvas()
+    const manifestFile = fileManagement.findManifestFile()
+    if (manifestFile) {
+      setSelectedFile(manifestFile)
+    }
+    setActiveTab('files')
+  }
+
   const handleExploreCode = () => {
     setIsTestingPromptOpen(false)
     // User stays in current view (files/editor)
@@ -218,7 +304,7 @@ export default function BuilderPage() {
   const handleTryItOut = () => {
     setIsTestingPromptOpen(false)
     // Open testing modal
-    testExtension.handleTestExtension()
+    handleTestExtensionWithTour()
   }
 
   // Show loading state
@@ -245,7 +331,7 @@ export default function BuilderPage() {
         {/* Header */}
         <div>
           <AppBarBuilder
-            onTestExtension={testExtension.handleTestExtension}
+            onTestExtension={handleTestExtensionWithTour}
             onDownloadZip={downloadExtension.handleDownloadZip}
             onSignOut={handleSignOut}
             projectId={projectSetup.currentProjectId}
@@ -256,6 +342,9 @@ export default function BuilderPage() {
             shouldStartTestHighlight={shouldStartTestHighlight}
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
+            tourTestButtonId="tour-test-button"
+            tourShareButtonId="tour-share-button"
+            onTourShareComplete={handleShareWithTour}
           />
         </div>
 
@@ -311,6 +400,11 @@ export default function BuilderPage() {
                   // Refresh project details (name/description) after generation updates
                   await projectSetup.refreshCurrentProjectDetails?.()
 
+                  // Clear autoGeneratePrompt now that code generation is complete
+                  if (autoGeneratePrompt) {
+                    handleAutoGenerateComplete()
+                  }
+
                   // Play notification sound if user is not on the page
                   playNotificationSound()
 
@@ -348,17 +442,12 @@ export default function BuilderPage() {
                 onGenerationEnd={() => {
                   setIsGenerating(false)
                 }}
-                onOpenCanvas={() => {
-                  setActiveTab('files')
-                  const manifestFile = fileManagement.findManifestFile()
-                  if (manifestFile) {
-                    setSelectedFile(manifestFile)
-                  }
-                }}
+                onOpenCanvas={handleOpenCanvasFromChat}
                 hasGeneratedCode={hasGeneratedCode}
                 isCanvasOpen={false}
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
+                onCodeGenerationStarting={handleCodeGenerationStarting}
               />
             </div>
           )}
@@ -408,6 +497,11 @@ export default function BuilderPage() {
                     // Refresh project details (name/description) after generation updates
                     await projectSetup.refreshCurrentProjectDetails?.()
 
+                    // Clear autoGeneratePrompt now that code generation is complete
+                    if (autoGeneratePrompt) {
+                      handleAutoGenerateComplete()
+                    }
+
                     // Play notification sound if user is not on the page
                     playNotificationSound()
 
@@ -444,11 +538,12 @@ export default function BuilderPage() {
                   onGenerationEnd={() => {
                     setIsGenerating(false)
                   }}
-                  onOpenCanvas={() => setIsCanvasOpen(true)}
+                  onOpenCanvas={handleOpenCanvas}
                   hasGeneratedCode={hasGeneratedCode}
                   isCanvasOpen={isCanvasOpen}
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
+                  onCodeGenerationStarting={handleCodeGenerationStarting}
                 />
               </div>
             </div>
@@ -469,6 +564,11 @@ export default function BuilderPage() {
                     // Refresh project details (name/description) after generation updates
                     await projectSetup.refreshCurrentProjectDetails?.()
 
+                    // Clear autoGeneratePrompt now that code generation is complete
+                    if (autoGeneratePrompt) {
+                      handleAutoGenerateComplete()
+                    }
+
                     // Play notification sound if user is not on the page
                     playNotificationSound()
 
@@ -505,11 +605,12 @@ export default function BuilderPage() {
                   onGenerationEnd={() => {
                     setIsGenerating(false)
                   }}
-                  onOpenCanvas={() => setIsCanvasOpen(true)}
+                  onOpenCanvas={handleOpenCanvas}
                   hasGeneratedCode={hasGeneratedCode}
                   isCanvasOpen={isCanvasOpen}
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
+                  onCodeGenerationStarting={handleCodeGenerationStarting}
                 />
               </div>
 
@@ -598,9 +699,6 @@ export default function BuilderPage() {
         isOpen={onboardingModal.isModalOpen}
         onClose={onboardingModal.hideModal}
         currentStep={onboardingModal.currentStep}
-        currentStepNumber={onboardingModal.currentStepNumber}
-        totalSteps={onboardingModal.totalSteps}
-        isLastStep={onboardingModal.isLastStep}
         onNext={onboardingModal.goToNextStep}
       />
 
@@ -612,5 +710,13 @@ export default function BuilderPage() {
         onTryItOut={handleTryItOut}
       />
     </>
+  )
+}
+
+export default function BuilderPage() {
+  return (
+    <TourProvider>
+      <BuilderPageContent />
+    </TourProvider>
   )
 }
