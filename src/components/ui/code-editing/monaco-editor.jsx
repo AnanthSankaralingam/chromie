@@ -19,7 +19,8 @@ export default function MonacoEditor({
   onToggleFileTree,
   readOnly = false,
   filePath,
-  projectFiles = []
+  projectFiles = [],
+  onHtmlPreviewToggle,
 }) {
   const editorRef = useRef(null)
   const [content, setContent] = useState(code)
@@ -166,6 +167,11 @@ export default function MonacoEditor({
       } catch (e) {
         // non-blocking
       }
+    }
+    try {
+      onHtmlPreviewToggle?.(next)
+    } catch (e) {
+      console.warn('[MonacoEditor] onHtmlPreviewToggle error', e)
     }
   }
 
@@ -536,6 +542,7 @@ export default function MonacoEditor({
             )}
             {language === 'html' && (
               <Button
+                id="tour-see-html-button"
                 onClick={handleToggleHtmlPreview}
                 size="sm"
                 className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"

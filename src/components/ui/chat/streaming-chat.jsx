@@ -276,6 +276,7 @@ export default function StreamingChat({
                       </div>
                     </div>
                     <button
+                      id="tour-open-canvas-button"
                       onClick={() => onOpenCanvas()}
                       className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                     >
