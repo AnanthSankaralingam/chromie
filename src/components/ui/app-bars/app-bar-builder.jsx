@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -12,9 +12,16 @@ import { useShareExtension } from '@/hooks/use-share-extension'
 import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/forms-and-input/dropdown-menu"
 
 export default function AppBarBuilder({
   onTestExtension,
+  onTestWithAI,
   onDownloadZip,
   onSignOut,
   projectId,
@@ -22,6 +29,8 @@ export default function AppBarBuilder({
   isDownloadDisabled = false,
   isGenerating = false,
   isDownloading = false,
+  isTestingWithAI = false,
+  isGeneratingTestAgent = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
@@ -72,6 +81,11 @@ export default function AppBarBuilder({
     onTourTestComplete?.()
   }
 
+  const handleTestWithAIClick = () => {
+    stopAllHighlights()
+    onTestWithAI?.()
+  }
+
   const handleDownloadClick = () => {
     stopAllHighlights()
     onDownloadZip?.()
@@ -96,6 +110,18 @@ export default function AppBarBuilder({
 
   const handleCreateAITestAgent = () => {
     onCreateAITestAgent?.()
+  }
+
+  const [isAITestDropdownOpen, setIsAITestDropdownOpen] = useState(false)
+
+  const handleCreateTestingAgentClick = () => {
+    setIsAITestDropdownOpen(false)
+    handleCreateAITestAgent()
+  }
+
+  const handleKickoffAIAnalysisClick = () => {
+    setIsAITestDropdownOpen(false)
+    handleTestWithAIClick()
   }
 
   // Helper function to get user initials
@@ -147,20 +173,6 @@ export default function AppBarBuilder({
               </button>
               <div className="hidden sm:flex items-center space-x-3">
                 <Button
-                  onClick={handleCreateAITestAgent}
-                  disabled={isTestDisabled || isGenerating}
-                  variant="outline"
-                  className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
-                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
-                  title="Generate automated test script for your extension"
-                >
-                  <Bot className="h-4 w-4 mr-2" />
-                  <span className="inline-flex items-center space-x-1.5">
-                    <span>create ai testing agent</span>
-                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
-                  </span>
-                </Button>
-                <Button
                   id={tourTestButtonId}
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
@@ -169,8 +181,61 @@ export default function AppBarBuilder({
                   style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  test extension
+                  try it out
                 </Button>
+                <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                      variant="outline"
+                      className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
+                      style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
+                      title="AI Testing Options"
+                    >
+                      {isTestingWithAI ? (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                          <span>testing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          <span className="inline-flex items-center space-x-1.5">
+                            <span>test with ai</span>
+                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                          </span>
+                          <ChevronDown className="h-4 w-4 ml-1" />
+                        </>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+                  >
+                    <DropdownMenuItem 
+                      onClick={handleCreateTestingAgentClick}
+                      disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                      <span className="flex-1">
+                        {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
+                      </span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      onClick={handleKickoffAIAnalysisClick}
+                      disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                      <span className="flex-1">
+                        {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <ShareDropdown
                   projectId={projectId}
                   isDownloading={isDownloading}
@@ -212,19 +277,58 @@ export default function AppBarBuilder({
       {isMobileMenuOpen && (
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
-            <Button
-              onClick={() => { handleCreateAITestAgent(); setIsMobileMenuOpen(false) }}
-              disabled={isTestDisabled || isGenerating}
-              variant="outline"
-              className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
-              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
-            >
-              <Bot className="h-4 w-4 mr-2" />
-              <span className="inline-flex items-center space-x-1.5">
-                <span>create ai testing agent</span>
-                <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
-              </span>
-            </Button>
+            <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                  variant="outline"
+                  className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
+                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
+                >
+                  {isTestingWithAI ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                      <span>testing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      <span className="inline-flex items-center space-x-1.5">
+                        <span>test with ai</span>
+                        <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                      </span>
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    </>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                align="end" 
+                className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+              >
+                <DropdownMenuItem 
+                  onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                  <span className="flex-1">
+                    {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
+                  </span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                  <span className="flex-1">
+                    {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
@@ -234,7 +338,7 @@ export default function AppBarBuilder({
               style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
             >
               <Play className="h-4 w-4 mr-2" />
-              test
+              try it out
             </Button>
             <div className="w-full">
               <ShareDropdown
