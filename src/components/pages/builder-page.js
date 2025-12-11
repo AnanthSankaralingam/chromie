@@ -9,6 +9,7 @@ import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { OnboardingModal } from "@/components/ui/modals/onboarding"
 import AppBarBuilder from "@/components/ui/app-bars/app-bar-builder"
+import AITestResultModal from "@/components/ui/modals/ai-test-result-modal"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import { useSession } from '@/components/SessionProviderClient'
 import { LoadingState, ErrorState } from "@/components/ui/feedback/loading-error-states"
@@ -52,6 +53,9 @@ function BuilderPageContent() {
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
   const [isCanvasOpen, setIsCanvasOpen] = useState(false) // Track if canvas pane is open
   const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false) // Track if file tree is collapsed
+  const [isTestingWithAI, setIsTestingWithAI] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState(null)
+  const [isAITestResultModalOpen, setIsAITestResultModalOpen] = useState(false)
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -273,6 +277,42 @@ function BuilderPageContent() {
     }
   }
 
+  const handleTestWithAI = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error('No project ID available')
+      return
+    }
+
+    setIsTestingWithAI(true)
+    setAiTestResult(null)
+    setIsAITestResultModalOpen(false)
+    console.log('🤖 Starting AI test with headless browser...')
+
+    try {
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run AI test')
+      }
+
+      console.log('✅ AI test completed:', data)
+      setAiTestResult(data)
+      setIsAITestResultModalOpen(true)
+    } catch (error) {
+      console.error('❌ Error running AI test:', error)
+      alert(`Failed to run AI test: ${error.message}`)
+    } finally {
+      setIsTestingWithAI(false)
+    }
+  }
+
   const handleOpenCanvas = () => {
     setIsCanvasOpen(true)
     completeStepById(TOUR_STEP_IDS.OPEN_CANVAS)
@@ -332,6 +372,7 @@ function BuilderPageContent() {
         <div>
           <AppBarBuilder
             onTestExtension={handleTestExtensionWithTour}
+            onTestWithAI={handleTestWithAI}
             onDownloadZip={downloadExtension.handleDownloadZip}
             onSignOut={handleSignOut}
             projectId={projectSetup.currentProjectId}
@@ -339,6 +380,8 @@ function BuilderPageContent() {
             isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
             isGenerating={isGenerating || isGeneratingTestAgent}
             isDownloading={downloadExtension.isDownloading}
+            isTestingWithAI={isTestingWithAI}
+            isGeneratingTestAgent={isGeneratingTestAgent}
             shouldStartTestHighlight={shouldStartTestHighlight}
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
@@ -708,6 +751,13 @@ function BuilderPageContent() {
         onClose={() => setIsTestingPromptOpen(false)}
         onExploreCode={handleExploreCode}
         onTryItOut={handleTryItOut}
+      />
+
+      {/* AI Test Result Modal */}
+      <AITestResultModal
+        isOpen={isAITestResultModalOpen}
+        onClose={() => setIsAITestResultModalOpen(false)}
+        result={aiTestResult}
       />
     </>
   )
