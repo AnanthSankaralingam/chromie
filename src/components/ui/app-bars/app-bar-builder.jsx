@@ -39,6 +39,7 @@ export default function AppBarBuilder({
   tourShareButtonId,
   onTourTestComplete,
   onTourShareComplete,
+  hasSavedAITestResults = false,
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -120,9 +121,14 @@ export default function AppBarBuilder({
     handleCreateAITestAgent()
   }
 
+  const handleViewAIAnalysisClick = () => {
+    setIsAITestDropdownOpen(false)
+    onTestWithAI?.(true) // Pass viewOnly=true to view saved results
+  }
+
   const handleKickoffAIAnalysisClick = () => {
     setIsAITestDropdownOpen(false)
-    handleTestWithAIClick()
+    handleTestWithAIClick() // Run new test
   }
 
   // Helper function to get user initials
@@ -226,6 +232,16 @@ export default function AppBarBuilder({
                       </span>
                     </DropdownMenuItem>
                     
+                    {hasSavedAITestResults && (
+                      <DropdownMenuItem 
+                        onClick={handleViewAIAnalysisClick}
+                        disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                        className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      >
+                        <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
+                        <span className="flex-1">View Past AI Analysis</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem 
                       onClick={handleKickoffAIAnalysisClick}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
@@ -320,6 +336,16 @@ export default function AppBarBuilder({
                   </span>
                 </DropdownMenuItem>
                 
+                {hasSavedAITestResults && (
+                  <DropdownMenuItem 
+                    onClick={() => { handleViewAIAnalysisClick(); setIsMobileMenuOpen(false) }}
+                    disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                    className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  >
+                    <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
+                    <span className="flex-1">View Past AI Analysis</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem 
                   onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI}
