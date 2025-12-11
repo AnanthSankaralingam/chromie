@@ -289,6 +289,7 @@ export const TOUR_STEP_IDS = {
   OPEN_CANVAS: "tour-open-canvas",
   SEE_HTML: "tour-see-html",
   TEST: "tour-test",
+  TEST_WITH_AI: "tour-test-with-ai",
   SHARE: "tour-share",
 }
 

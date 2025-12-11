@@ -35,6 +35,7 @@ export default function AppBarBuilder({
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
   tourTestButtonId,
+  tourTestWithAIButtonId,
   tourShareButtonId,
   onTourTestComplete,
   onTourShareComplete,
@@ -186,6 +187,7 @@ export default function AppBarBuilder({
                 <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button
+                      id={tourTestWithAIButtonId}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
                       variant="outline"
                       className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
@@ -280,6 +282,7 @@ export default function AppBarBuilder({
             <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  id={tourTestWithAIButtonId ? `${tourTestWithAIButtonId}-mobile` : undefined}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI}
                   variant="outline"
                   className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
