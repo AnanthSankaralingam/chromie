@@ -56,6 +56,7 @@ function BuilderPageContent() {
   const [isTestingWithAI, setIsTestingWithAI] = useState(false)
   const [aiTestResult, setAiTestResult] = useState(null)
   const [isAITestResultModalOpen, setIsAITestResultModalOpen] = useState(false)
+  const [hasSavedAITestResults, setHasSavedAITestResults] = useState(false)
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -277,12 +278,63 @@ function BuilderPageContent() {
     }
   }
 
-  const handleTestWithAI = async () => {
+  // Check for saved AI test results when project loads
+  useEffect(() => {
+    const checkSavedResults = async () => {
+      if (!projectSetup.currentProjectId || !user) return
+
+      try {
+        const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
+          method: 'GET',
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setHasSavedAITestResults(data.exists === true)
+        }
+      } catch (error) {
+        console.error('Error checking for saved test results:', error)
+        setHasSavedAITestResults(false)
+      }
+    }
+
+    checkSavedResults()
+  }, [projectSetup.currentProjectId, user])
+
+  const handleTestWithAI = async (viewOnly = false) => {
     if (!projectSetup.currentProjectId) {
       console.error('No project ID available')
       return
     }
 
+    // If viewing saved results, fetch them instead of running a new test
+    if (viewOnly) {
+      try {
+        const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
+          method: 'GET',
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch saved test results')
+        }
+
+        const data = await response.json()
+        if (data.exists) {
+          console.log('✅ Loaded saved AI test results:', data)
+          setAiTestResult(data)
+          setIsAITestResultModalOpen(true)
+        } else {
+          // Fallback to running new test if no saved results found
+          handleTestWithAI(false)
+        }
+      } catch (error) {
+        console.error('❌ Error loading saved test results:', error)
+        alert(`Failed to load saved test results: ${error.message}`)
+      }
+      return
+    }
+
+    // Run new test
     setIsTestingWithAI(true)
     setAiTestResult(null)
     setIsAITestResultModalOpen(false)
@@ -305,6 +357,7 @@ function BuilderPageContent() {
       console.log('✅ AI test completed:', data)
       setAiTestResult(data)
       setIsAITestResultModalOpen(true)
+      setHasSavedAITestResults(true) // Mark that we now have saved results
     } catch (error) {
       console.error('❌ Error running AI test:', error)
       alert(`Failed to run AI test: ${error.message}`)
@@ -388,6 +441,7 @@ function BuilderPageContent() {
             tourTestButtonId="tour-test-button"
             tourShareButtonId="tour-share-button"
             onTourShareComplete={handleShareWithTour}
+            hasSavedAITestResults={hasSavedAITestResults}
           />
         </div>
 

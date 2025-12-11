@@ -3,6 +3,57 @@ import { createClient } from "@/lib/supabase/server"
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 
+export async function GET(request, { params }) {
+  const supabase = createClient()
+  const projectId = params.id
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    // Verify project ownership and fetch saved test results
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id, ai_test_message, ai_test_result, ai_test_task, ai_test_session_id, ai_test_video_url, ai_test_recording_status, ai_test_note, ai_test_updated_at")
+      .eq("id", projectId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
+    }
+
+    // Check if test results exist
+    if (!project.ai_test_video_url && !project.ai_test_result) {
+      return NextResponse.json({ exists: false }, { status: 200 })
+    }
+
+    // Return the saved test results in the same format as POST
+    return NextResponse.json({
+      exists: true,
+      success: true,
+      message: project.ai_test_message,
+      result: project.ai_test_result,
+      task: project.ai_test_task,
+      sessionId: project.ai_test_session_id,
+      videoUrl: project.ai_test_video_url,
+      recordingStatus: project.ai_test_recording_status,
+      note: project.ai_test_note,
+      updatedAt: project.ai_test_updated_at
+    })
+
+  } catch (error) {
+    console.error("❌ Error fetching test results:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
 export async function POST(request, { params }) {
   const supabase = createClient()
   const projectId = params.id
@@ -202,8 +253,8 @@ Note: Stay on simple websites without CAPTCHAs during testing`
       recordingStatus = 'error'
     }
 
-    // Return the test results with video URL
-    return NextResponse.json({
+    // Prepare test results data
+    const testResults = {
       success: true,
       message: "AI test completed successfully",
       result: result.data?.finalResult || "Test completed",
@@ -212,7 +263,38 @@ Note: Stay on simple websites without CAPTCHAs during testing`
       videoUrl: videoUrl,
       recordingStatus: recordingStatus,
       note: videoUrl ? "Video recording is ready for playback" : "Video recording may still be processing. Try checking again in a few moments."
-    })
+    }
+
+    // Save test results to database (stored in projects table)
+    try {
+      const { error: saveError } = await supabase
+        .from("projects")
+        .update({
+          ai_test_message: testResults.message,
+          ai_test_result: testResults.result,
+          ai_test_task: testResults.task,
+          ai_test_session_id: testResults.sessionId,
+          ai_test_video_url: testResults.videoUrl,
+          ai_test_recording_status: testResults.recordingStatus,
+          ai_test_note: testResults.note,
+          ai_test_updated_at: new Date().toISOString()
+        })
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+
+      if (saveError) {
+        console.error("⚠️ Failed to save test results to database:", saveError)
+        // Continue anyway - don't fail the request
+      } else {
+        console.log("✅ Test results saved to database")
+      }
+    } catch (saveError) {
+      console.error("⚠️ Error saving test results:", saveError)
+      // Continue anyway - don't fail the request
+    }
+
+    // Return the test results with video URL
+    return NextResponse.json(testResults)
 
   } catch (error) {
     console.error("❌ AI test execution failed:", error)
