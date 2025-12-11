@@ -111,6 +111,18 @@ function BuilderPageContent() {
         ),
       },
       {
+        id: TOUR_STEP_IDS.TEST_WITH_AI,
+        selectorId: "tour-test-with-ai-button",
+        position: "bottom",
+        title: "Test with AI (Beta)",
+        content: (
+          <div className="space-y-1">
+            <p>Use AI-powered testing to automatically identify vulnerabilities and validate your extension end-to-end.</p>
+            <p className="text-xs text-slate-400">Create a testing agent first, then kickoff AI analysis.</p>
+          </div>
+        ),
+      },
+      {
         id: TOUR_STEP_IDS.SHARE,
         selectorId: "tour-share-button",
         position: "bottom",
@@ -386,6 +398,7 @@ function BuilderPageContent() {
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
             tourTestButtonId="tour-test-button"
+            tourTestWithAIButtonId="tour-test-with-ai-button"
             tourShareButtonId="tour-share-button"
             onTourShareComplete={handleShareWithTour}
           />
