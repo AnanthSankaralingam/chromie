@@ -14,7 +14,7 @@ export default function DownloadStepModal({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isOpen) return
-      
+
       if (e.key === 'Escape') {
         e.preventDefault()
         onClose?.()
@@ -31,7 +31,7 @@ export default function DownloadStepModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700 backdrop-blur-sm">
         <DialogTitle className="sr-only">Download Your Extension</DialogTitle>
-        
+
         <div className="relative">
           <button
             onClick={onClose}
@@ -43,7 +43,7 @@ export default function DownloadStepModal({
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-8">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Download className="h-8 w-8 text-white" />
                 </div>
               </div>
@@ -54,12 +54,12 @@ export default function DownloadStepModal({
                 Get your extension ready for Chrome
               </p>
             </div>
-            
+
             <div className="space-y-6">
               {/* Main content */}
               <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
                 <div className="flex items-start space-x-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Download className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -80,7 +80,7 @@ export default function DownloadStepModal({
               <div className="flex justify-end pt-4">
                 <Button
                   onClick={onNext}
-                  className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-2"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-8 py-2"
                 >
                   Got It
                 </Button>

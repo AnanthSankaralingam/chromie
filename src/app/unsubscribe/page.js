@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, XCircle } from "lucide-react"
+import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams()
@@ -26,32 +26,32 @@ function UnsubscribeContent() {
   }, [email])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="text-2xl font-bold text-foreground">
             Unsubscribe from Chromie
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground">
             Manage your email preferences
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {status === 'loading' && (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Processing...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <p className="mt-2 text-muted-foreground">Processing...</p>
             </div>
           )}
 
           {status === 'success' && (
             <div className="text-center py-4">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <p className="text-gray-700 mb-4">{message}</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-foreground mb-4">{message}</p>
+              <p className="text-sm text-muted-foreground">
                 You can still use Chromie - this only affects marketing emails.
               </p>
-              <Button 
+              <Button
                 onClick={() => window.location.href = '/'}
                 className="mt-4 w-full"
               >
@@ -62,9 +62,9 @@ function UnsubscribeContent() {
 
           {status === 'error' && (
             <div className="text-center py-4">
-              <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-gray-700 mb-4">{message}</p>
-              <Button 
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <p className="text-foreground mb-4">{message}</p>
+              <Button
                 onClick={() => window.location.href = '/'}
                 className="mt-4 w-full"
               >
@@ -74,7 +74,7 @@ function UnsubscribeContent() {
           )}
 
           {email && (
-            <div className="text-center text-sm text-gray-500 border-t pt-4">
+            <div className="text-center text-sm text-muted-foreground border-t border-border pt-4">
               <p>Email: {email}</p>
             </div>
           )}
@@ -87,20 +87,20 @@ function UnsubscribeContent() {
 export default function UnsubscribePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-card border-border">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-foreground">
               Unsubscribe from Chromie
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               Manage your email preferences
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <p className="mt-2 text-muted-foreground">Loading...</p>
             </div>
           </CardContent>
         </Card>

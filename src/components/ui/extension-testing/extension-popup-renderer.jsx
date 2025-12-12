@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Play, Settings, Bookmark, Download, ToggleLeft, ToggleRight, Bell, Layers, Monitor, Palette, Zap, Wifi, ExternalLink, AlertTriangle } from "lucide-react"
 
-function ExtensionPopupRenderer({ 
-  extensionFiles = [], 
+function ExtensionPopupRenderer({
+  extensionFiles = [],
   onRenderStateChange
 }) {
   const [popupContent, setPopupContent] = useState(null)
@@ -18,7 +18,7 @@ function ExtensionPopupRenderer({
 
   useEffect(() => {
     console.log("ExtensionPopupRenderer received files:", extensionFiles.length)
-    
+
     if (extensionFiles.length > 0) {
       parseExtensionFiles()
       onRenderStateChange?.(true)
@@ -74,39 +74,39 @@ function ExtensionPopupRenderer({
 
   const renderPopupInterface = (popupHTML, popupCSS) => {
     let content = popupHTML.content
-    
+
     // Remove script tags for security and replace with our action buttons
     content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    
+
     // Add CSS if available
     if (popupCSS) {
       const styleTag = `<style>${popupCSS.content}</style>`
       content = content.replace('</head>', `${styleTag}</head>`)
     }
-    
+
     // Add base styling
     const baseStyles = getBasePopupStyles()
     content = content.replace('</head>', `${baseStyles}</head>`)
-    
+
     setPopupContent(content)
   }
 
   const renderSidePanelInterface = (sidePanelHTML, popupCSS) => {
     let content = sidePanelHTML.content
-    
+
     // Remove script tags for security
     content = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    
+
     // Add CSS if available
     if (popupCSS) {
       const styleTag = `<style>${popupCSS.content}</style>`
       content = content.replace('</head>', `${styleTag}</head>`)
     }
-    
+
     // Add base styling optimized for side panel preview
     const baseStyles = getBaseSidePanelStyles()
     content = content.replace('</head>', `${baseStyles}</head>`)
-    
+
     setPopupContent(content)
   }
 
@@ -120,7 +120,7 @@ function ExtensionPopupRenderer({
         const manifestContent = JSON.parse(manifest.content)
         extensionName = manifestContent.name || extensionName
         extensionDescription = manifestContent.description || extensionDescription
-        
+
         // Extract features from content script
         if (contentJS) {
           const contentCode = contentJS.content
@@ -155,7 +155,7 @@ function ExtensionPopupRenderer({
 
   const extractOverlayFeatures = (contentCode) => {
     const features = []
-    
+
     // Look for common overlay patterns
     if (contentCode.includes('createOverlayElement') || contentCode.includes('overlay')) {
       features.push('Creates overlay UI on web pages')
@@ -172,14 +172,14 @@ function ExtensionPopupRenderer({
     if (contentCode.includes('chrome.runtime.sendMessage') || contentCode.includes('chrome.tabs')) {
       features.push('Communicates with extension background')
     }
-    
+
     return features.length > 0 ? features : ['Injects custom functionality into web pages']
   }
 
   // Check if content contains CSP-restricted sites
   const isCSPRestricted = (content) => {
     if (!content) return false
-    
+
     const cspRestrictedSites = [
       'chatgpt.com',
       'claude.ai',
@@ -187,14 +187,14 @@ function ExtensionPopupRenderer({
       'openai.com',
       'anthropic.com'
     ]
-    
+
     return cspRestrictedSites.some(site => content.toLowerCase().includes(site))
   }
 
   // Open popup window with content
   const openPopupWindow = (content, title = 'Extension Popup') => {
     const popupWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes')
-    
+
     if (popupWindow) {
       popupWindow.document.write(`
         <!DOCTYPE html>
@@ -219,7 +219,7 @@ function ExtensionPopupRenderer({
       `)
       popupWindow.document.close()
       popupWindow.focus()
-      
+
       // Set up communication with popup
       const checkClosed = setInterval(() => {
         if (popupWindow.closed) {
@@ -228,7 +228,7 @@ function ExtensionPopupRenderer({
         }
       }, 1000)
     }
-    
+
     return popupWindow
   }
 
@@ -568,7 +568,7 @@ function ExtensionPopupRenderer({
 
   if (cspError) {
     return (
-      <div className="h-full flex flex-col bg-white">
+      <div className="h-full flex flex-col bg-card">
         <div className="flex-1 min-h-0 p-4 overflow-auto">
           <div className="border border-red-200 rounded-xl overflow-hidden shadow-lg bg-red-50">
             <div className="p-6 text-center">
@@ -577,7 +577,7 @@ function ExtensionPopupRenderer({
               <p className="text-red-600 mb-4">
                 This extension popup cannot be displayed due to security restrictions.
               </p>
-              <Button 
+              <Button
                 onClick={openInNewWindow}
                 className="bg-red-500 hover:bg-red-600 text-white"
               >
@@ -593,7 +593,7 @@ function ExtensionPopupRenderer({
 
   if (usePopupWindow) {
     return (
-      <div className="h-full flex flex-col bg-white">
+      <div className="h-full flex flex-col bg-card">
         <div className="flex-1 min-h-0 p-4 overflow-auto">
           <div className="border border-blue-200 rounded-xl overflow-hidden shadow-lg bg-blue-50">
             <div className="p-6 text-center">
@@ -603,7 +603,7 @@ function ExtensionPopupRenderer({
                 This extension contains content that cannot be embedded due to security restrictions.
                 Click below to open it in a popup window.
               </p>
-              <Button 
+              <Button
                 onClick={() => openPopupWindow(popupContent, 'Extension Popup')}
                 className="bg-blue-500 hover:bg-blue-600 text-white"
               >
@@ -618,17 +618,17 @@ function ExtensionPopupRenderer({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-card">
       {/* Popup Iframe */}
       <div className="flex-1 min-h-0 p-4 overflow-auto">
-        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-white">
+        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-lg bg-card">
           <iframe
             ref={iframeRef}
             srcDoc={popupContent}
             className="w-full border-0"
             sandbox="allow-same-origin"
             title="Extension Popup Preview"
-            style={{ 
+            style={{
               background: 'white',
               minHeight: '400px',
               height: 'auto',
@@ -647,7 +647,7 @@ function ExtensionPopupRenderer({
 // Separate component for header buttons
 export function ExtensionActionButtons({ popupActions = [], onAction }) {
   const [isToggled, setIsToggled] = useState(false)
-  
+
   if (popupActions.length === 0) {
     return null
   }

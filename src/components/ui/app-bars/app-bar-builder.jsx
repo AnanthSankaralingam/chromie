@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 export default function AppBarBuilder({
   onTestExtension,
@@ -143,117 +144,100 @@ export default function AppBarBuilder({
   }
 
   return (
-    <header className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-slate-900/95 via-black/20 to-slate-900/95 backdrop-blur-md shadow-lg">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Image
-                  src="/chromie-logo-1.png"
-                  alt="chromie Logo"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                <Sparkles className="h-2.5 w-2.5 text-white" />
-              </div>
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
+      <div className="container-width flex h-16 items-center justify-between">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="h-4 w-4" />
             </div>
-            <div className="flex flex-col">
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
-                chromie
-              </Link>
-            </div>
-          </div>
+            <span className="text-lg font-bold tracking-tight text-foreground">chromie</span>
+          </Link>
         </div>
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center gap-4">
           {user && (
             <>
               <button
-                className="sm:hidden p-2 text-slate-300 hover:text-white"
+                className="sm:hidden p-2 text-muted-foreground hover:text-foreground"
                 aria-label="Open menu"
                 onClick={() => setIsMobileMenuOpen((v) => !v)}
               >
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
-              <div className="hidden sm:flex items-center space-x-3">
+              <div className="hidden sm:flex items-center gap-3">
                 <Button
                   id={tourTestButtonId}
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
-                  variant="outline"
-                  className={`relative bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium enabled:shadow-lg enabled:shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 enabled:scale-100 hover:scale-105 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
+                  className={cn(
+                    "btn-primary shadow-lg shadow-primary/20 hover:shadow-primary/30",
+                    isTestButtonHighlighted && "ring-2 ring-primary ring-offset-2"
+                  )}
                 >
-                  <Play className="h-4 w-4 mr-2" />
-                  try it out
+                  <Play className="h-4 w-4 mr-2 fill-current" />
+                  Try it out
                 </Button>
+
                 <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       id={tourTestWithAIButtonId}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
                       variant="outline"
-                      className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
-                      style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
-                      title="AI Testing Options"
+                      className="border-border/50 hover:bg-secondary/50"
                     >
                       {isTestingWithAI ? (
                         <>
-                          <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                          <span>testing...</span>
+                          <Sparkles className="h-4 w-4 mr-2 animate-spin text-primary" />
+                          <span>Testing...</span>
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          <span className="inline-flex items-center space-x-1.5">
-                            <span>test with ai</span>
-                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                          <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                          <span className="flex items-center gap-2">
+                            Test with AI
+                            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">
+                              Beta
+                            </span>
                           </span>
-                          <ChevronDown className="h-4 w-4 ml-1" />
+                          <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
                         </>
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
-                    className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
-                  >
-                    <DropdownMenuItem 
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
                       onClick={handleCreateTestingAgentClick}
                       disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
                     >
-                      <Bot className="h-4 w-4 mr-3 text-blue-400" />
-                      <span className="flex-1">
+                      <Bot className="h-4 w-4 mr-2 text-primary" />
+                      <span>
                         {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
                       </span>
                     </DropdownMenuItem>
-                    
+
                     {hasSavedAITestResults && (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={handleViewAIAnalysisClick}
                         disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                        className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
                       >
-                        <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                        <span className="flex-1">View Past AI Analysis</span>
+                        <Sparkles className="h-4 w-4 mr-2 text-blue-500" />
+                        <span>View Past AI Analysis</span>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={handleKickoffAIAnalysisClick}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
                     >
-                      <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
-                      <span className="flex-1">
+                      <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                      <span>
                         {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
                 <ShareDropdown
                   projectId={projectId}
                   isDownloading={isDownloading}
@@ -267,14 +251,14 @@ export default function AppBarBuilder({
                 />
               </div>
 
-              <div className="flex items-center space-x-3 pl-3 border-l border-white/10">
+              <div className="flex items-center gap-3 pl-3 border-l border-border/50">
                 <Link href="/profile">
-                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-purple-400/50 transition-all duration-200 shadow-lg">
+                  <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
                     <AvatarImage
                       src={user?.user_metadata?.picture}
                       alt={user?.user_metadata?.name || user?.email}
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-bold">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                       {getUserInitials(user)}
                     </AvatarFallback>
                   </Avatar>
@@ -282,7 +266,8 @@ export default function AppBarBuilder({
                 <Button
                   onClick={onSignOut}
                   variant="ghost"
-                  className="text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 p-2"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
                   title="Sign Out"
                 >
                   <LogOut className="h-4 w-4" />
@@ -292,105 +277,102 @@ export default function AppBarBuilder({
           )}
         </div>
       </div>
+
       {isMobileMenuOpen && (
-        <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
-          <div className="flex flex-col space-y-3">
-            <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  id={tourTestWithAIButtonId ? `${tourTestWithAIButtonId}-mobile` : undefined}
-                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                  variant="outline"
-                  className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
-                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
-                >
-                  {isTestingWithAI ? (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                      <span>testing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      <span className="inline-flex items-center space-x-1.5">
-                        <span>test with ai</span>
-                        <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
-                      </span>
-                      <ChevronDown className="h-4 w-4 ml-1" />
-                    </>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+        <div className="sm:hidden border-t border-border/50 p-4 space-y-4 bg-background/95 backdrop-blur-md">
+          <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                id={tourTestWithAIButtonId ? `${tourTestWithAIButtonId}-mobile` : undefined}
+                disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                variant="outline"
+                className="w-full justify-between"
               >
-                <DropdownMenuItem 
-                  onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
-                  disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
-                >
-                  <Bot className="h-4 w-4 mr-3 text-blue-400" />
-                  <span className="flex-1">
-                    {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
-                  </span>
-                </DropdownMenuItem>
-                
-                {hasSavedAITestResults && (
-                  <DropdownMenuItem 
-                    onClick={() => { handleViewAIAnalysisClick(); setIsMobileMenuOpen(false) }}
-                    disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                    className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
-                  >
-                    <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                    <span className="flex-1">View Past AI Analysis</span>
-                  </DropdownMenuItem>
+                {isTestingWithAI ? (
+                  <>
+                    <span className="flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 animate-spin text-primary" />
+                      Testing...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                      Test with AI
+                      <span className="ml-2 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary">
+                        Beta
+                      </span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </>
                 )}
-                <DropdownMenuItem 
-                  onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-full">
+              <DropdownMenuItem
+                onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
+                disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
+              >
+                <Bot className="h-4 w-4 mr-2 text-primary" />
+                <span>
+                  {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
+                </span>
+              </DropdownMenuItem>
+
+              {hasSavedAITestResults && (
+                <DropdownMenuItem
+                  onClick={() => { handleViewAIAnalysisClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
                 >
-                  <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
-                  <span className="flex-1">
-                    {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
-                  </span>
+                  <Sparkles className="h-4 w-4 mr-2 text-blue-500" />
+                  <span>View Past AI Analysis</span>
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
-              onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
-              disabled={isTestDisabled || isGenerating}
-              variant="outline"
-              className={`w-full bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-green-500/20 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              try it out
-            </Button>
-            <div className="w-full">
-              <ShareDropdown
-                projectId={projectId}
-                isDownloading={isDownloading}
-                isSharing={isSharing}
-                isGenerating={isGenerating}
-                isTestDisabled={isTestDisabled}
-                onDownloadZip={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
-                onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
-                onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
-                className="w-full"
-                triggerId={tourShareButtonId ? `${tourShareButtonId}-mobile` : undefined}
-              />
-            </div>
-          </div>
+              )}
+              <DropdownMenuItem
+                onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
+                disabled={isTestDisabled || isGenerating || isTestingWithAI}
+              >
+                <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                <span>
+                  {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
+            onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
+            disabled={isTestDisabled || isGenerating}
+            className={cn(
+              "w-full btn-primary",
+              isTestButtonHighlighted && "ring-2 ring-primary ring-offset-2"
+            )}
+          >
+            <Play className="h-4 w-4 mr-2 fill-current" />
+            Try it out
+          </Button>
+
+          <ShareDropdown
+            projectId={projectId}
+            isDownloading={isDownloading}
+            isSharing={isSharing}
+            isGenerating={isGenerating}
+            isTestDisabled={isTestDisabled}
+            onDownloadZip={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
+            onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
+            onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
+            className="w-full"
+            triggerId={tourShareButtonId ? `${tourShareButtonId}-mobile` : undefined}
+          />
         </div>
       )}
+
       <PublishModal
         isOpen={isPublishOpen}
         onClose={() => setIsPublishOpen(false)}
         onConfirm={() => {
-          // TODO: implement zipping and publish to Chrome Web Store via supabase and oauth
           console.log('[publish] confirm requested')
           setIsPublishOpen(false)
         }}

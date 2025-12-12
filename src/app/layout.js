@@ -1,21 +1,15 @@
 import { Inter } from "next/font/google";
-import { Instrument_Serif } from "next/font/google";
-import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 import AuthHandler from "@/components/AuthHandler";
 import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
+import Navbar from "@/components/ui/navbar";
+import Footer from "@/components/ui/footer";
 
-const inter = Inter({ subsets: ["latin"] });
-const instrumentSerif = Instrument_Serif({ 
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
-  weight: ["400"],
-});
-const spaceGrotesk = Space_Grotesk({ 
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata = {
@@ -31,11 +25,15 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} font-sans bg-background text-foreground min-h-screen flex flex-col`}>
         <SessionProviderClient>
           <AuthHandler />
-          {children}
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
           <FloatingFeedbackButton />
         </SessionProviderClient>
       </body>

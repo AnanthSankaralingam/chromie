@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import emailService from "@/lib/services/email-service"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const supabase = createClient()
 
@@ -77,7 +79,7 @@ export async function POST(request) {
 
     // Check project limit using new limit checker
     const limitCheck = await checkLimit(user.id, 'projects', 1, supabase)
-    
+
     if (!limitCheck.allowed) {
       console.log(`User ${user.id} has reached project limit: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
       return NextResponse.json(
@@ -108,7 +110,7 @@ export async function POST(request) {
     }
 
     console.log("Successfully created project:", project.id)
-    
+
     // Send welcome email for new users (first project creation)
     if (!existingProfile) {
       console.log("Sending welcome email to new user:", user.email)
@@ -120,7 +122,7 @@ export async function POST(request) {
             // Update the profile to mark welcome email as sent
             supabase
               .from("profiles")
-              .update({ 
+              .update({
                 welcome_email_sent: true,
                 welcome_email_sent_at: new Date().toISOString()
               })
@@ -141,9 +143,9 @@ export async function POST(request) {
         // Don't fail the project creation if email fails
       }
     }
-    
+
     return NextResponse.json({ project })
-    
+
   } catch (err) {
     console.error("Exception in project creation:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

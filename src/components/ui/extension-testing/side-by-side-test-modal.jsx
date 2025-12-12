@@ -240,7 +240,7 @@ export default function SideBySideTestModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleClose()
@@ -248,7 +248,7 @@ export default function SideBySideTestModal({
       }}
     >
       <div
-        className="bg-white rounded-lg shadow-xl flex flex-col overflow-hidden"
+        className="bg-background rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-border/50"
         style={{
           width: `${viewportWidth}px`,
           height: `${viewportHeight + modalExtraHeight}px`,
@@ -259,20 +259,20 @@ export default function SideBySideTestModal({
         }}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between flex-shrink-0 bg-card/50 backdrop-blur-md">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <ExternalLink
                 className={cn(
                   "h-5 w-5",
-                  sessionData?.status === 'active' ? "text-green-600" : "text-gray-400"
+                  sessionData?.status === 'active' ? "text-green-500" : "text-muted-foreground"
                 )}
               />
-              <h2 className="text-lg font-semibold text-gray-900">Extension Test Environment</h2>
+              <h2 className="text-lg font-bold text-foreground">Extension Test Environment</h2>
             </div>
 
             {sessionData && (
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>Session: {sessionData.sessionId?.slice(-8)}</span>
               </div>
             )}
@@ -289,10 +289,10 @@ export default function SideBySideTestModal({
             )}
 
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" onClick={onRefresh} className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" size="sm" onClick={onRefresh} className="text-muted-foreground hover:text-foreground">
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleClose} className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" size="sm" onClick={handleClose} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -301,7 +301,7 @@ export default function SideBySideTestModal({
 
         {/* URL Navigation Section */}
         {sessionData && sessionData.sessionId && !sessionExpired && (
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="px-6 py-4 border-b border-border/50 bg-secondary/20">
             <div className="flex items-center space-x-3">
               <div className="flex-1 relative">
                 <input
@@ -310,18 +310,17 @@ export default function SideBySideTestModal({
                   onChange={(e) => setUrlInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Paste any URL, search term, or content to open in new tab..."
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-card border border-border/50 rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all shadow-sm"
                   disabled={isNavigating}
-
                 />
                 {navigationError && (
-                  <p className="text-red-500 text-xs mt-1">{navigationError}</p>
+                  <p className="text-destructive text-xs mt-1 ml-1">{navigationError}</p>
                 )}
               </div>
               <div className="flex items-center space-x-2">
                 <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-popover text-popover-foreground text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10 border border-border">
                     Paste any URL, search term, or content here. It will open in a new tab automatically.
                   </div>
                 </div>
@@ -329,7 +328,7 @@ export default function SideBySideTestModal({
                   onClick={handleNavigate}
                   disabled={!urlInput.trim() || isNavigating}
                   size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   {isNavigating ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
@@ -355,7 +354,7 @@ export default function SideBySideTestModal({
               <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
                 <div className="text-center max-w-md">
                   <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Session Time Limit Reached</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">Session Time Limit Reached</h3>
                   <p className="text-gray-600 mb-4">This session has reached its time limit, but you can continue using it. Close the modal when you're done testing.</p>
                   <Button
                     onClick={handleClose}
@@ -366,7 +365,7 @@ export default function SideBySideTestModal({
                 </div>
               </div>
             ) : isLoading ? (
-              <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
+              <div className="absolute inset-0 bg-card flex items-center justify-center p-8">
                 <div className="text-center max-w-4xl w-full">
                   {/* Progress Bar */}
                   <div className="mb-6">
@@ -384,7 +383,7 @@ export default function SideBySideTestModal({
                   {/* Current Stage */}
                   <div className="mb-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                       {loadingStages[loadingStage]?.title || "Initializing..."}
                     </h3>
                     <p className="text-gray-600 text-sm">
@@ -394,17 +393,17 @@ export default function SideBySideTestModal({
 
                   {/* Dynamic Instructions - Show one box per stage */}
                   <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
+                    <h4 className="font-medium text-foreground text-center">testing tips</h4>
                     <div className="flex justify-center">
                       {instructionBoxes[loadingStage] && (
-                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
+                        <div className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
                           <div className="flex items-center mb-4">
                             <div className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}>
                               {React.createElement(instructionBoxes[loadingStage].icon, {
                                 className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`
                               })}
                             </div>
-                            <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
+                            <h5 className="font-medium text-foreground text-lg">{instructionBoxes[loadingStage].title}</h5>
                           </div>
                           <ul className="text-base text-gray-600 space-y-2 text-left">
                             {instructionBoxes[loadingStage].items.map((item, index) => (
@@ -421,7 +420,7 @@ export default function SideBySideTestModal({
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center max-w-md">
                   <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load test environment</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">Failed to load test environment</h3>
                   <p className="text-gray-600 mb-4">
                     There was an error setting up the browser testing environment. Please try again.
                   </p>
@@ -449,7 +448,7 @@ export default function SideBySideTestModal({
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                   <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No test session available</h3>
+                  <h3 className="text-lg font-medium text-foreground mb-2">No test session available</h3>
                   <p className="text-gray-600">Click the Test button to start a new testing session.</p>
                 </div>
               </div>
@@ -458,7 +457,7 @@ export default function SideBySideTestModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="p-4 border-t border-border/50 bg-secondary/20">
           <div className="flex items-center justify-between gap-4">
             {/* Console Log Viewer on the Left */}
             <ConsoleLogViewer
@@ -470,7 +469,7 @@ export default function SideBySideTestModal({
             {/* Right Side - Status and Test Button */}
             <div className="flex items-center space-x-4 flex-shrink-0">
               {/* Extension Status */}
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span>Extension loaded</span>
@@ -486,11 +485,11 @@ export default function SideBySideTestModal({
               {hyperAgentResult && (
                 <div className={cn(
                   "flex items-center space-x-1 text-sm",
-                  hyperAgentResult.success ? "text-green-600" : "text-red-600"
+                  hyperAgentResult.success ? "text-green-600" : "text-destructive"
                 )}>
                   <div className={cn(
                     "w-2 h-2 rounded-full",
-                    hyperAgentResult.success ? "bg-green-500" : "bg-red-500"
+                    hyperAgentResult.success ? "bg-green-500" : "bg-destructive"
                   )} />
                   <span>
                     {hyperAgentResult.success ? "Test passed" : "Test failed"}
@@ -503,16 +502,16 @@ export default function SideBySideTestModal({
                 onClick={handleRunHyperAgentTest}
                 disabled={isRunningHyperAgent || !sessionData?.sessionId}
                 size="sm"
-                className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {isRunningHyperAgent ? (
                   <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2" />
+                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-primary-foreground border-t-transparent mr-2" />
                     Running...
                   </>
                 ) : (
                   <>
-                    <Play className="h-3 w-3 mr-2" />
+                    <Play className="h-3 w-3 mr-2 fill-current" />
                     Test Extension
                   </>
                 )}

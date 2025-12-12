@@ -39,7 +39,7 @@ export function AIInputWithSearch({
   const [internalValue, setInternalValue] = useState("");
   const isControlled = controlledValue !== undefined;
   const value = isControlled ? controlledValue : internalValue;
-  
+
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight,
     maxHeight,
@@ -67,11 +67,10 @@ export function AIInputWithSearch({
       <div className="relative max-w-3xl w-full mx-auto">
         <div
           className={cn(
-            "relative rounded-2xl sm:rounded-3xl",
-            "border border-slate-700/50 bg-slate-800/95 backdrop-blur-lg",
-            "shadow-2xl shadow-black/60",
+            "relative rounded-3xl",
+            "border border-border/50 bg-card shadow-xl shadow-primary/5",
             "transition-all duration-300",
-            "focus-within:border-sky-500/60 focus-within:shadow-sky-500/30",
+            "focus-within:border-primary/50 focus-within:shadow-primary/10",
             "overflow-hidden"
           )}
         >
@@ -88,7 +87,7 @@ export function AIInputWithSearch({
               className={cn(
                 "w-full px-6 py-4",
                 "bg-transparent border-none",
-                "text-white placeholder:text-slate-400",
+                "text-foreground placeholder:text-muted-foreground",
                 "resize-none focus-visible:ring-0",
                 "leading-[1.2]",
                 "flex items-center"
@@ -118,8 +117,8 @@ export function AIInputWithSearch({
               className={cn(
                 "rounded-full p-3 transition-all duration-200",
                 value.trim() && !disabled
-                  ? "bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/30"
-                  : "bg-slate-700/50 text-slate-400 cursor-not-allowed",
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                  : "bg-secondary text-muted-foreground cursor-not-allowed",
                 disabled && "opacity-50"
               )}
             >

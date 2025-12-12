@@ -48,10 +48,10 @@ export function ChatBubbleMessage({
   return (
     <div
       className={cn(
-        "rounded-2xl px-4 py-3",
+        "rounded-2xl px-4 py-3 shadow-sm",
         variant === "sent"
-          ? "bg-slate-800/30 text-white max-w-2xl"
-          : "bg-transparent text-slate-100 max-w-2xl",
+          ? "bg-primary text-primary-foreground max-w-2xl"
+          : "bg-card border border-border/50 text-card-foreground max-w-2xl",
         className
       )}
     >

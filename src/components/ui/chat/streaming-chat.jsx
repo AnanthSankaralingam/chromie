@@ -159,7 +159,7 @@ export default function StreamingChat({
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
       <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full">
-        <p className="text-sm text-gray-200 font-bold">{projectName || "describe what you want to add or modify"}</p>
+        <p className="text-sm text-muted-foreground font-bold">{projectName || "describe what you want to add or modify"}</p>
       </div>
 
       {/* Messages */}
@@ -236,27 +236,27 @@ export default function StreamingChat({
               const shouldShow = (hasContent || forceShow) && !isGenerationComplete
               return shouldShow
             })() && (
-              <div className="mt-2">
-                <button
-                  type="button"
-                  className="flex items-center justify-between w-full text-left text-xs uppercase tracking-wide text-slate-300 bg-slate-800/40 hover:bg-slate-800/60 border border-slate-600/40 px-3 py-2 rounded"
-                  onClick={() => setIsModelThinkingOpen(!isModelThinkingOpen)}
-                  aria-expanded={isModelThinkingOpen}
-                >
-                  <span>Model thoughts ({thinkingChunkCountRef.current} chunks)</span>
-                  {isModelThinkingOpen ? (
-                    <ChevronDown className="h-3 w-3" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3" />
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    className="flex items-center justify-between w-full text-left text-xs uppercase tracking-wide text-muted-foreground bg-secondary/30 hover:bg-secondary/50 border border-border/50 px-3 py-2 rounded"
+                    onClick={() => setIsModelThinkingOpen(!isModelThinkingOpen)}
+                    aria-expanded={isModelThinkingOpen}
+                  >
+                    <span>Model thoughts ({thinkingChunkCountRef.current} chunks)</span>
+                    {isModelThinkingOpen ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </button>
+                  {isModelThinkingOpen && (
+                    <div className="mt-2 p-3 rounded-lg border border-border/50 bg-secondary/20 text-foreground text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
+                      {modelThinkingDisplay || modelThinkingFull}
+                    </div>
                   )}
-                </button>
-                {isModelThinkingOpen && (
-                  <div className="mt-2 p-3 rounded-lg border border-slate-500/20 bg-slate-800/20 text-white text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
-                    {modelThinkingDisplay || modelThinkingFull}
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
             {/* Open Canvas Button */}
             {effectiveHasGeneratedCode && onOpenCanvas && !isGenerating && !isCanvasOpen && (
