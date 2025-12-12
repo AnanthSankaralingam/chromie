@@ -9,10 +9,10 @@ import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
 import { loadIcons } from '@/lib/utils/icon-loader'
 
-export default function MonacoEditor({ 
-  code, 
-  fileName, 
-  className = "", 
+export default function MonacoEditor({
+  code,
+  fileName,
+  className = "",
   onSave,
   onClose,
   isFileTreeCollapsed,
@@ -41,9 +41,9 @@ export default function MonacoEditor({
   // Function to detect language from file extension
   const getLanguageFromFileName = (fileName) => {
     if (!fileName) return 'plaintext'
-    
+
     const ext = fileName.split('.').pop()?.toLowerCase()
-    
+
     const languageMap = {
       'js': 'javascript',
       'jsx': 'javascript',
@@ -78,7 +78,7 @@ export default function MonacoEditor({
       'scala': 'scala',
       'sql': 'sql'
     }
-    
+
     return languageMap[ext] || 'plaintext'
   }
 
@@ -91,7 +91,7 @@ export default function MonacoEditor({
 
   const handleSave = async () => {
     if (!onSave || !hasChanges) return
-    
+
     setIsSaving(true)
     try {
       await onSave(content)
@@ -115,7 +115,7 @@ export default function MonacoEditor({
       while ((match = runtimeRegex.exec(html)) !== null) {
         iconPaths.add(match[1])
       }
-      
+
       // Match src/href attributes with icons/*.png
       const attrRegex = /(src|href)=["']([^"']*icons\/[A-Za-z0-9-_]+\.png)["']/gi
       while ((match = attrRegex.exec(html)) !== null) {
@@ -181,12 +181,12 @@ export default function MonacoEditor({
     // Icons follow the pattern: icons/icon_name.png
     const buildIconDataUrlMap = () => {
       const map = new Map()
-      
+
       // First, add icons from local icons directory (from /icons/ folder)
       for (const [path, dataUrl] of localIcons) {
         map.set(path, dataUrl)
       }
-      
+
       // Then, add icons from projectFiles as fallback (if they exist locally)
       try {
         const iconFiles = (projectFiles || []).filter(f => {
@@ -196,7 +196,7 @@ export default function MonacoEditor({
           if (!/\.png$/i.test(f.file_path)) return false
           return true
         })
-        
+
         for (const f of iconFiles) {
           // Only add if not already in map (local icons take priority)
           if (!map.has(f.file_path)) {
@@ -208,9 +208,9 @@ export default function MonacoEditor({
         }
       } catch (e) {
       }
-      
-     
-      
+
+
+
       return map
     }
 
@@ -219,7 +219,7 @@ export default function MonacoEditor({
     const rewriteIconUrls = (html, iconMap) => {
       try {
         let replacedCount = 0
-        
+
         // Replace chrome.runtime.getURL('icons/icon_name.png') - supports single and double quotes
         html = html.replace(/chrome\.runtime\.getURL\(["'](icons\/[A-Za-z0-9-_]+\.png)["']\)/gi, (m, p1) => {
           const url = iconMap.get(p1)
@@ -248,7 +248,7 @@ export default function MonacoEditor({
           }
           return m
         })
-        
+
       } catch (e) {
         console.error('[MonacoEditor] Error rewriting icon URLs:', e)
       }
@@ -260,7 +260,7 @@ export default function MonacoEditor({
       try {
         const styles = (projectFiles || []).find(f => f.file_path === 'styles.css')
         if (styles && typeof styles.content === 'string') return styles.content
-      } catch (e) {}
+      } catch (e) { }
       return ''
     }
 
@@ -336,7 +336,7 @@ export default function MonacoEditor({
       setContent(formattedContent)
       setHasChanges(formattedContent !== code)
       setHideActionButtonsUntilSave(true)
-      
+
       // Focus the editor after formatting
       if (editorRef.current) {
         editorRef.current.focus()
@@ -431,8 +431,8 @@ export default function MonacoEditor({
       }
     })
 
-    // Set minimalistic dark theme
-    monaco.editor.setTheme('vs-dark')
+    // Set minimalistic light theme
+    monaco.editor.setTheme('vs')
 
     // Configure language-specific settings
     if (language === 'javascript' || language === 'typescript') {
@@ -471,7 +471,7 @@ export default function MonacoEditor({
     const focusOnSelect = () => {
       try {
         if (editorRef.current) editorRef.current.focus()
-      } catch (_) {}
+      } catch (_) { }
     }
     window.addEventListener('editor:selectFile', focusOnSelect)
     window.addEventListener('editor:focusManifest', focusOnSelect)
@@ -483,20 +483,20 @@ export default function MonacoEditor({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      <HtmlPreviewInfoModal 
-        isOpen={isPreviewInfoOpen} 
-        onClose={() => setIsPreviewInfoOpen(false)} 
+      <HtmlPreviewInfoModal
+        isOpen={isPreviewInfoOpen}
+        onClose={() => setIsPreviewInfoOpen(false)}
       />
       {/* Editor Header */}
       {!readOnly && (
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-700/50">
+        <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border/50">
           <div className="flex items-center space-x-3">
             {onToggleFileTree && (
               <Button
                 onClick={onToggleFileTree}
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 title={isFileTreeCollapsed ? 'Show file tree' : 'Hide file tree'}
               >
                 {isFileTreeCollapsed ? (
@@ -506,24 +506,24 @@ export default function MonacoEditor({
                 )}
               </Button>
             )}
-            <Edit3 className="h-4 w-4 text-purple-400" />
-            <span className="text-sm text-slate-300 font-medium">{fileName || 'Untitled'}</span>
+            <Edit3 className="h-4 w-4 text-primary" />
+            <span className="text-sm text-foreground font-medium">{fileName || 'Untitled'}</span>
             {hasChanges && (
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-orange-300">Unsaved</span>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-blue-500 font-medium">Unsaved</span>
               </div>
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
+            <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">
               {language}
             </span>
             {isJsonFile(fileName) && !hideActionButtonsUntilSave && (
               <Button
                 onClick={handleFormat}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1"
                 title="Format JSON"
               >
                 <Code2 className="h-3 w-3 mr-1" />
@@ -534,7 +534,7 @@ export default function MonacoEditor({
               <Button
                 onClick={handleBumpManifestVersion}
                 size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1"
                 title="Increase manifest version by 0.1"
               >
                 + Version
@@ -545,7 +545,7 @@ export default function MonacoEditor({
                 id="tour-see-html-button"
                 onClick={handleToggleHtmlPreview}
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"
+                className="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-1"
                 title={isHtmlPreview ? 'Back to Code' : 'See HTML'}
               >
                 {isHtmlPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
@@ -561,7 +561,7 @@ export default function MonacoEditor({
               onClick={handleSave}
               disabled={!hasChanges || isSaving}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-xs px-3 py-1"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs px-3 py-1"
             >
               <Save className="h-3 w-3 mr-1" />
               {isSaving ? 'Saving...' : 'Save'}
@@ -579,7 +579,7 @@ export default function MonacoEditor({
           <div className="h-full w-full bg-slate-900 flex items-center justify-center">
             <iframe
               title="HTML Preview"
-              className="bg-white w-full h-full border-0"
+              className="bg-card w-full h-full border-0"
               sandbox="allow-same-origin allow-forms allow-scripts allow-pointer-lock allow-popups"
               srcDoc={buildHtmlSrcDoc(content)}
             />
@@ -591,7 +591,7 @@ export default function MonacoEditor({
             value={content}
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
-            theme="vs-dark"
+            theme="vs"
             options={{
               readOnly: readOnly,
               automaticLayout: true,
@@ -630,10 +630,10 @@ export default function MonacoEditor({
               }
             }}
             loading={
-              <div className="flex items-center justify-center h-full bg-slate-900">
+              <div className="flex items-center justify-center h-full bg-background">
                 <div className="flex flex-col items-center space-y-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent"></div>
-                  <span className="text-sm text-slate-400">Loading editor...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                  <span className="text-sm text-muted-foreground">Loading editor...</span>
                 </div>
               </div>
             }

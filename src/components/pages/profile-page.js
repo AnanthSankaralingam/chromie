@@ -261,7 +261,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
+      <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
           <FlickeringGrid
@@ -306,11 +306,11 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <Card className="backdrop-blur-xl bg-card border-border/40">
               <CardContent className="p-6">
                 <div className="text-center text-white space-y-4">
                   <h2 className="text-2xl font-bold">Welcome to Your Profile</h2>
-                  <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
+                  <p className="text-muted-foreground">Sign in to view and manage your projects, billing, and account settings.</p>
                   <Button
                     onClick={() => setAuthModalOpen(true)}
                     className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
@@ -333,7 +333,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
         <FlickeringGrid
@@ -379,43 +379,43 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+          <Card className="backdrop-blur-xl bg-card border-border/40">
             <CardHeader>
               <CardTitle className="text-white">
                 Profile Information
               </CardTitle>
             </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage
-                  src={user?.user_metadata?.picture}
-                  alt={user?.user_metadata?.name || user?.email}
-                />
-                <AvatarFallback className="bg-purple-600 text-white text-lg font-medium">
-                  {getUserInitials(user)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                  <span className="text-white">{user.email}</span>
-                </div>
-                {user.user_metadata?.name && (
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage
+                    src={user?.user_metadata?.picture}
+                    alt={user?.user_metadata?.name || user?.email}
+                  />
+                  <AvatarFallback className="bg-purple-600 text-white text-lg font-medium">
+                    {getUserInitials(user)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-slate-400" />
-                    <span className="text-white">{user.user_metadata.name}</span>
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-white">{user.email}</span>
                   </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-300 text-sm">
-                    Member since {formatDate(user.created_at)}
-                  </span>
+                  {user.user_metadata?.name && (
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-white">{user.user_metadata.name}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground text-sm">
+                      Member since {formatDate(user.created_at)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
+            </CardContent>
           </Card>
         </motion.div>
 
@@ -425,94 +425,94 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+          <Card className="backdrop-blur-xl bg-card border-border/40">
             <CardHeader>
               <CardTitle className="text-white">
                 Billing & Subscription
               </CardTitle>
             </CardHeader>
-          <CardContent>
-            {billingLoading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading billing information...</div>
-              </div>
-            ) : billing ? (
-              <div className="space-y-4">
-                {/* Current Plan */}
-                <div className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${getPlanInfo(billing.plan).color}`}>
-                      {React.createElement(getPlanInfo(billing.plan).icon, { className: "h-5 w-5 text-white" })}
+            <CardContent>
+              {billingLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-white">Loading billing information...</div>
+                </div>
+              ) : billing ? (
+                <div className="space-y-4">
+                  {/* Current Plan */}
+                  <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg border border-border/30">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${getPlanInfo(billing.plan).color}`}>
+                        {React.createElement(getPlanInfo(billing.plan).icon, { className: "h-5 w-5 text-white" })}
+                      </div>
+                      <div>
+                        <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
+                        <p className="text-muted-foreground text-sm">{getPlanInfo(billing.plan).price}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
-                      <p className="text-slate-400 text-sm">{getPlanInfo(billing.plan).price}</p>
-                    </div>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={`${billing.status === 'active'
+                    <Badge
+                      variant="secondary"
+                      className={`${billing.status === 'active'
                         ? 'bg-green-500/10 text-green-400 border-green-500/20'
                         : billing.status === 'past_due'
                           ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                           : 'bg-red-500/10 text-red-400 border-red-500/20'
-                      }`}
-                  >
-                    {billing.status === 'active' ? 'Active' : billing.status === 'past_due' ? 'Past Due' : billing.status}
-                  </Badge>
-                </div>
-
-                {/* Billing Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Button
-                    onClick={() => handleBillingAction('manage')}
-                    variant="outline"
-                    className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Manage Billing
-                  </Button>
-
-                  {billing.plan === 'starter' && (
-                    <Button
-                      onClick={() => handleBillingAction('upgrade', 'pro')}
-                      className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 text-white"
+                        }`}
                     >
-                      <ArrowUpRight className="h-4 w-4 mr-2" />
-                      Upgrade to Pro
-                    </Button>
-                  )}
+                      {billing.status === 'active' ? 'Active' : billing.status === 'past_due' ? 'Past Due' : billing.status}
+                    </Badge>
+                  </div>
 
-                  {billing.plan === 'pro' && (
+                  {/* Billing Actions */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <Button
-                      onClick={() => handleBillingAction('downgrade', 'starter')}
+                      onClick={() => handleBillingAction('manage')}
                       variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
                     >
-                      <ArrowDownRight className="h-4 w-4 mr-2" />
-                      Downgrade to Starter
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Manage Billing
                     </Button>
-                  )}
-                </div>
 
-                {/* Subscription Details */}
-                <div className="text-sm text-slate-400 space-y-1">
-                  <p>Valid until: {formatDate(billing.valid_until)}</p>
+                    {billing.plan === 'starter' && (
+                      <Button
+                        onClick={() => handleBillingAction('upgrade', 'pro')}
+                        className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 text-white"
+                      >
+                        <ArrowUpRight className="h-4 w-4 mr-2" />
+                        Upgrade to Pro
+                      </Button>
+                    )}
+
+                    {billing.plan === 'pro' && (
+                      <Button
+                        onClick={() => handleBillingAction('downgrade', 'starter')}
+                        variant="outline"
+                        className="border-slate-600 text-muted-foreground hover:bg-slate-700"
+                      >
+                        <ArrowDownRight className="h-4 w-4 mr-2" />
+                        Downgrade to Starter
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Subscription Details */}
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Valid until: {formatDate(billing.valid_until)}</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-slate-300 mb-4">No active subscription found.</div>
-                <Button
-                  onClick={() => setBillingDialogOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  Subscribe Now
-                </Button>
-              </div>
-            )}
-          </CardContent>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-4">No active subscription found.</div>
+                  <Button
+                    onClick={() => setBillingDialogOpen(true)}
+                    className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
+                  >
+                    <Crown className="h-4 w-4 mr-2" />
+                    Subscribe Now
+                  </Button>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </motion.div>
 
@@ -522,7 +522,7 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+          <Card className="backdrop-blur-xl bg-card border-border/40">
             <CardHeader>
               <CardTitle className="text-white">
                 Usage
@@ -543,116 +543,116 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-          <CardHeader>
-            <CardTitle className="text-white">Your Projects</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading projects...</div>
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-slate-300">No projects found. Create your first project in the builder!</div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                    <div className="flex-1">
-                      {editingProject === project.id ? (
+          <Card className="backdrop-blur-xl bg-card border-border/40">
+            <CardHeader>
+              <CardTitle className="text-white">Your Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="text-white">Loading projects...</div>
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground">No projects found. Create your first project in the builder!</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {projects.map((project) => (
+                    <div key={project.id} className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg border border-border/30">
+                      <div className="flex-1">
+                        {editingProject === project.id ? (
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              value={newProjectName}
+                              onChange={(e) => setNewProjectName(e.target.value)}
+                              className="backdrop-blur-xl bg-slate-700/30 border-slate-600/40 text-white placeholder:text-muted-foreground"
+                              placeholder="Enter new project name"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleRenameProject(project.id, newProjectName)
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleRenameProject(project.id, newProjectName)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingProject(null)
+                                setNewProjectName("")
+                              }}
+                              className="text-muted-foreground hover:text-white hover:bg-slate-800"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            <div>
+                              <h3 className="text-white font-medium">{project.name}</h3>
+                              {project.description && (
+                                <p className="text-muted-foreground text-sm">{project.description}</p>
+                              )}
+                              <p className="text-muted-foreground text-xs mt-1">
+                                Created {formatDate(project.created_at)}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                              {project.archived ? 'Archived' : 'Active'}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      {editingProject !== project.id && (
                         <div className="flex items-center space-x-2">
-                          <Input
-                            value={newProjectName}
-                            onChange={(e) => setNewProjectName(e.target.value)}
-                            className="backdrop-blur-xl bg-slate-700/30 border-slate-600/40 text-white placeholder:text-slate-400"
-                            placeholder="Enter new project name"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameProject(project.id, newProjectName)
-                              }
-                            }}
-                          />
                           <Button
                             size="sm"
-                            onClick={() => handleRenameProject(project.id, newProjectName)}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingProject(project.id)
+                              setNewProjectName(project.name)
+                            }}
+                            className="text-muted-foreground hover:text-muted-foreground hover:bg-slate-800/50 cursor-not-allowed"
+                            title="Renaming is no longer supported - names update automatically"
+                            disabled
                           >
-                            Save
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigateToBuilderWithProject(project.id)}
+                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                            title="Edit project in builder"
+                          >
+                            <ExternalLink className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                              setEditingProject(null)
-                              setNewProjectName("")
+                              setProjectToDelete(project)
+                              setDeleteDialogOpen(true)
                             }}
-                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            title="Delete project"
                           >
-                            Cancel
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-3">
-                          <div>
-                            <h3 className="text-white font-medium">{project.name}</h3>
-                            {project.description && (
-                              <p className="text-slate-400 text-sm">{project.description}</p>
-                            )}
-                            <p className="text-slate-500 text-xs mt-1">
-                              Created {formatDate(project.created_at)}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
-                            {project.archived ? 'Archived' : 'Active'}
-                          </Badge>
                         </div>
                       )}
                     </div>
-                    {editingProject !== project.id && (
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingProject(project.id)
-                            setNewProjectName(project.name)
-                          }}
-                          className="text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 cursor-not-allowed"
-                          title="Renaming is no longer supported - names update automatically"
-                          disabled
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigateToBuilderWithProject(project.id)}
-                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                          title="Edit project in builder"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setProjectToDelete(project)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          title="Delete project"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </motion.div>
 
@@ -662,89 +662,89 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+          <Card className="backdrop-blur-xl bg-card border-border/40">
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
                 <Share className="h-5 w-5" />
                 <span>Shared Extensions</span>
               </CardTitle>
             </CardHeader>
-          <CardContent>
-            {sharesLoading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading shares...</div>
-              </div>
-            ) : shares.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-slate-300">No shared extensions yet. Share your projects from the builder!</div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {shares.map((share) => (
-                  <div key={share.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <h3 className="text-white font-medium">{share.project.name}</h3>
-                          {share.project.description && (
-                            <p className="text-slate-400 text-sm">{share.project.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
-                            <span>Shared {formatDate(share.created_at)}</span>
-                            <span className="flex items-center space-x-1">
-                              <Download className="h-3 w-3" />
-                              <span>{share.download_count} downloads</span>
-                            </span>
+            <CardContent>
+              {sharesLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-white">Loading shares...</div>
+                </div>
+              ) : shares.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground">No shared extensions yet. Share your projects from the builder!</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {shares.map((share) => (
+                    <div key={share.id} className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg border border-border/30">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div>
+                            <h3 className="text-white font-medium">{share.project.name}</h3>
+                            {share.project.description && (
+                              <p className="text-muted-foreground text-sm">{share.project.description}</p>
+                            )}
+                            <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
+                              <span>Shared {formatDate(share.created_at)}</span>
+                              <span className="flex items-center space-x-1">
+                                <Download className="h-3 w-3" />
+                                <span>{share.download_count} downloads</span>
+                              </span>
+                            </div>
                           </div>
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
+                            Active
+                          </Badge>
                         </div>
-                        <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                          Active
-                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyShareLink(share.share_url, share.id)}
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          title="Copy share link"
+                        >
+                          {copiedShareId === share.id ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(share.share_url, '_blank')}
+                          className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                          title="View share page"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRevokeShare(share.project.id, share.id)}
+                          disabled={revokingShareId === share.id}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          title="Revoke share link"
+                        >
+                          {revokingShareId === share.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-400 border-t-transparent"></div>
+                          ) : (
+                            <X className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleCopyShareLink(share.share_url, share.id)}
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                        title="Copy share link"
-                      >
-                        {copiedShareId === share.id ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => window.open(share.share_url, '_blank')}
-                        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-                        title="View share page"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRevokeShare(share.project.id, share.id)}
-                        disabled={revokingShareId === share.id}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        title="Revoke share link"
-                      >
-                        {revokingShareId === share.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-400 border-t-transparent"></div>
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </motion.div>
 
@@ -756,10 +756,10 @@ export default function ProfilePage() {
                 Sign Out
               </Button>
             </DialogTrigger>
-            <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
+            <DialogContent className="backdrop-blur-xl bg-popover/90 border-border/60">
               <DialogHeader>
                 <DialogTitle className="text-red-400">Sign Out</DialogTitle>
-                <DialogDescription className="text-slate-300">
+                <DialogDescription className="text-muted-foreground">
                   Are you sure you want to sign out?
                   Your projects and data will remain safe and you can sign back in anytime.
                 </DialogDescription>
@@ -768,7 +768,7 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   onClick={() => setSignOutDialogOpen(false)}
-                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                  className="border-slate-600 text-muted-foreground hover:text-white hover:bg-slate-800"
                 >
                   Cancel
                 </Button>
@@ -787,10 +787,10 @@ export default function ProfilePage() {
 
         {/* Project Deletion Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
+          <DialogContent className="backdrop-blur-xl bg-popover/90 border-border/60">
             <DialogHeader>
               <DialogTitle className="text-red-400">Delete Project</DialogTitle>
-              <DialogDescription className="text-slate-300">
+              <DialogDescription className="text-muted-foreground">
                 {projectToDelete ? (
                   <>
                     Are you sure you want to delete <strong>"{projectToDelete.name}"</strong>?
@@ -808,7 +808,7 @@ export default function ProfilePage() {
                   setDeleteDialogOpen(false)
                   setProjectToDelete(null)
                 }}
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                className="border-slate-600 text-muted-foreground hover:text-white hover:bg-slate-800"
               >
                 Cancel
               </Button>
@@ -827,12 +827,12 @@ export default function ProfilePage() {
 
       {/* Billing Modal */}
       <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-        <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
+        <DialogContent className="backdrop-blur-xl bg-popover/90 border-border/60">
           <DialogHeader>
             <DialogTitle className="text-white">
               {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'starter' ? 'Downgrade to Starter' : 'Choose a Plan'}
             </DialogTitle>
-            <DialogDescription className="text-slate-300">
+            <DialogDescription className="text-muted-foreground">
               {selectedPlan === 'pro'
                 ? 'Upgrade to Pro for more features and higher limits.'
                 : selectedPlan === 'starter'
@@ -843,14 +843,14 @@ export default function ProfilePage() {
           </DialogHeader>
           <div className="space-y-4">
             {selectedPlan && (
-              <div className="p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
+              <div className="p-4 bg-secondary/20 rounded-lg border border-border/30">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-lg ${getPlanInfo(selectedPlan).color}`}>
                     {React.createElement(getPlanInfo(selectedPlan).icon, { className: "h-5 w-5 text-white" })}
                   </div>
                   <div>
                     <h3 className="text-white font-medium">{getPlanInfo(selectedPlan).name}</h3>
-                    <p className="text-slate-400 text-sm">{getPlanInfo(selectedPlan).price}</p>
+                    <p className="text-muted-foreground text-sm">{getPlanInfo(selectedPlan).price}</p>
                   </div>
                 </div>
               </div>
@@ -860,7 +860,7 @@ export default function ProfilePage() {
             <Button
               variant="outline"
               onClick={() => setBillingDialogOpen(false)}
-              className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+              className="border-slate-600 text-muted-foreground hover:text-white hover:bg-slate-800"
             >
               Cancel
             </Button>

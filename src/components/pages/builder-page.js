@@ -432,7 +432,7 @@ function BuilderPageContent() {
 
   return (
     <>
-      <div className={`h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-background text-foreground overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <div>
           <AppBarBuilder
@@ -459,13 +459,13 @@ function BuilderPageContent() {
         </div>
 
         {/* Mobile Tab Navigation */}
-        <div className="lg:hidden border-b border-gray-800 bg-black relative z-20">
+        <div className="lg:hidden border-b border-gray-800 bg-background relative z-20">
           <div className="flex">
             <button
               onClick={() => setActiveTab('chat')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'chat'
-                  ? 'text-gray-300 border-b-2 border-gray-700 bg-gray-900'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-900'
+                ? 'text-gray-300 border-b-2 border-gray-700 bg-gray-900'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-900'
                 }`}
             >
               <MessageSquare className="h-4 w-4" />
@@ -474,8 +474,8 @@ function BuilderPageContent() {
             <button
               onClick={() => setActiveTab('files')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'files'
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
                 }`}
             >
               <FolderOpen className="h-4 w-4" />
@@ -484,8 +484,8 @@ function BuilderPageContent() {
             <button
               onClick={() => setActiveTab('editor')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'editor'
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+                ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
                 }`}
             >
               <FileCode className="h-4 w-4" />
@@ -579,7 +579,7 @@ function BuilderPageContent() {
           )}
 
           {activeTab === 'editor' && (
-            <div className="h-full bg-black">
+            <div className="h-full bg-background">
               <EditorPanel
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
@@ -661,7 +661,7 @@ function BuilderPageContent() {
             /* Split View - Chat + Canvas */
             <div className="flex h-full" ref={chatCanvasContainerRef}>
               {/* Left Sidebar - AI Assistant */}
-              <div className="flex flex-col bg-black animate-slide-in-left" style={{ width: `${chatCanvasDividerPosition}%` }}>
+              <div className="flex flex-col bg-background animate-slide-in-left" style={{ width: `${chatCanvasDividerPosition}%` }}>
                 <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}
@@ -751,7 +751,7 @@ function BuilderPageContent() {
                       {!isFileTreeCollapsed && <ResizableDivider />}
 
                       {/* File Editor Panel */}
-                      <div className="flex flex-col bg-black" style={{ width: isFileTreeCollapsed ? '100%' : `${100 - dividerPosition}%` }}>
+                      <div className="flex flex-col bg-background" style={{ width: isFileTreeCollapsed ? '100%' : `${100 - dividerPosition}%` }}>
                         <EditorPanel
                           selectedFile={selectedFile}
                           onFileSave={handleFileSave}

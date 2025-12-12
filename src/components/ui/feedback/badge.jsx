@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 const Badge = React.forwardRef(({ className, variant = "default", ...props }, ref) => {
   const variants = {
     default: "border-transparent bg-blue-600 text-white hover:bg-blue-700",
-    secondary: "border-transparent bg-gray-100 text-gray-900 hover:bg-gray-200",
+    secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
     destructive: "border-transparent bg-red-600 text-white hover:bg-red-700",
     outline: "text-gray-950 border-gray-200",
   }

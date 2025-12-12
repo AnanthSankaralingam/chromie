@@ -6,11 +6,11 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Share, Copy, Check, X } from "lucide-react"
 import { useState, useCallback } from "react"
 
-export default function ShareModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  shareUrl = "", 
+export default function ShareModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  shareUrl = "",
   isGenerating = false,
   error = null,
   successMessage = null
@@ -24,7 +24,7 @@ export default function ShareModal({
 
   const handleCopy = useCallback(async () => {
     if (!shareUrl) return
-    
+
     try {
       await navigator.clipboard.writeText(shareUrl)
       setCopied(true)
@@ -51,7 +51,7 @@ export default function ShareModal({
           <Card className="bg-transparent border-none shadow-none">
             <CardHeader className="text-center pb-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
                   <Share className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold text-white">Share Extension</span>
@@ -73,13 +73,13 @@ export default function ShareModal({
               ) : isGenerating ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
                     <span className="text-slate-300">Generating share link...</span>
                   </div>
                 </div>
               ) : shareUrl ? (
                 <div className="space-y-4">
-                  
+
                   <div>
                     <label className="text-sm font-medium text-slate-300 mb-2 block">
                       Share Link
@@ -89,7 +89,7 @@ export default function ShareModal({
                         type="text"
                         value={shareUrl}
                         readOnly
-                        className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <Button
                         onClick={handleCopy}
@@ -108,7 +108,7 @@ export default function ShareModal({
                       <p className="text-xs text-green-400 mt-1">Copied to clipboard!</p>
                     )}
                   </div>
-{/*                   
+                  {/*                   
                   <div className="bg-slate-700/50 rounded-lg p-3">
                     <p className="text-xs text-slate-400">
                       <strong>Note:</strong> Be careyour extension. You can revoke this link anytime.
@@ -136,7 +136,7 @@ export default function ShareModal({
                   <Button
                     onClick={handleConfirm}
                     disabled={isGenerating}
-                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 font-medium disabled:opacity-50"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium disabled:opacity-50"
                   >
                     <Share className="h-4 w-4 mr-2" />
                     {isGenerating ? "Creating..." : "Create Share Link"}
@@ -145,7 +145,7 @@ export default function ShareModal({
                 {error && (
                   <Button
                     onClick={handleConfirm}
-                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 font-medium"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
                   >
                     <Share className="h-4 w-4 mr-2" />
                     Try Again

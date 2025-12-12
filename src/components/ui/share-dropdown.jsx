@@ -44,34 +44,34 @@ export default function ShareDropdown({
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button 
+        <Button
           id={triggerId}
           disabled={isDisabled}
           variant="outline"
           className={`relative bg-slate-900 text-purple-300 hover:text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
-          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box'}}
+          style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box' }}
         >
           <Share className="h-4 w-4 mr-2" />
           share
           <ChevronDown className="h-4 w-4 ml-1" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
       >
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handleDownloadClick}
           disabled={isDownloading}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          <Download className="h-4 w-4 mr-3 text-orange-400" />
+          <Download className="h-4 w-4 mr-3 text-blue-400" />
           <span className="flex-1">
             {isDownloading ? "Downloading..." : "Download Extension"}
           </span>
         </DropdownMenuItem>
-        
-        <DropdownMenuItem 
+
+        <DropdownMenuItem
           onClick={handleShareClick}
           disabled={isSharing}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
@@ -81,8 +81,8 @@ export default function ShareDropdown({
             {isSharing ? "Generating..." : "Get Shareable Link"}
           </span>
         </DropdownMenuItem>
-        
-        <DropdownMenuItem 
+
+        <DropdownMenuItem
           onClick={handlePublishClick}
           disabled={isDisabled}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"

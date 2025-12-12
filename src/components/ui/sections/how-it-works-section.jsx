@@ -2,288 +2,119 @@
 
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 export default function HowItWorksSection() {
+  const steps = [
+    {
+      title: "Describe your extension",
+      description: "Tell Chromie what you want in plain English. Keep it simple and specific.",
+      video: "/HIW - 1.mov",
+      color: "bg-blue-50/10 border-blue-100/20 text-blue-100",
+    },
+    {
+      title: "Interact with Chromie Agent",
+      description: "Work with the Chromie agent to refine and customize your extension through conversation.",
+      video: "/HIW - 2.mov",
+      color: "bg-blue-50 border-blue-100 text-blue-900",
+    },
+    {
+      title: "See the code in the editor",
+      description: "Review the generated files in the in-app editor. Adjust anything you need.",
+      video: "/HIW - 3.mov",
+      color: "bg-purple-50 border-purple-100 text-purple-900",
+    },
+    {
+      title: "Test in the browser simulator",
+      description: "Run the extension instantly with the built-in test environment to verify behavior.",
+      video: "/HIW - 4.mov",
+      color: "bg-green-50 border-green-100 text-green-900",
+    },
+    {
+      title: "Share your creation",
+      description: "Share your extension with others or download the zip to publish to the Chrome Web Store.",
+      video: "/HIW - 5.mov",
+      color: "bg-slate-50 border-slate-100 text-slate-900",
+    },
+  ]
+
   return (
-    <section id="how-it-works" className="relative z-10 px-6 pb-20">
-      <div className="container mx-auto max-w-6xl">
-        {/* Title */}
-        {/* <motion.div
+    <section id="how-it-works" className="py-24 bg-background relative z-10">
+      <div className="container-width">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent leading-tight">
-            about chromie
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            How it works
           </h2>
-        </motion.div> */}
-
-        {/* Workflow Steps */}
-        {/* <div className="grid md:grid-cols-3 gap-8 md:gap-12 mb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex flex-col items-center text-center backdrop-blur-xl bg-slate-800/30 rounded-2xl p-8 md:p-10 border border-purple-500/30 min-h-[280px]"
-          >
-            <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full mb-6 md:mb-8 shadow-lg">
-              <Edit3 className="w-8 h-8 md:w-10 md:h-10 text-white" />
-            </div>
-            <h3 className="text-xl md:text-2xl font-semibold text-gray-300 mb-3 md:mb-4">describe your chrome extension</h3>
-            <p className="text-gray-300 text-base md:text-lg leading-relaxed">
-              tell us what you want your extension to do in plain english. we'll do the rest.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col items-center text-center backdrop-blur-xl bg-slate-800/30 rounded-2xl p-8 md:p-10 border border-green-500/30 min-h-[280px]"
-          >
-            <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-full mb-6 md:mb-8 shadow-lg">
-              <Play className="w-8 h-8 md:w-10 md:h-10 text-white" />
-            </div>
-            <h3 className="text-xl md:text-2xl font-semibold text-gray-300 mb-3 md:mb-4">test within the app</h3>
-            <p className="text-gray-300 text-base md:text-lg leading-relaxed">
-              try your extension immediately in our simulated browser environment, testing all features and functionality in real-time.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col items-center text-center backdrop-blur-xl bg-slate-800/30 rounded-2xl p-8 md:p-10 border border-blue-500/30 min-h-[280px]"
-          >
-            <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full mb-6 md:mb-8 shadow-lg">
-              <Chrome className="w-8 h-8 md:w-10 md:h-10 text-white" />
-            </div>
-            <h3 className="text-xl md:text-2xl font-semibold text-gray-300 mb-3 md:mb-4">download or publish</h3>
-            <p className="text-gray-300 text-base md:text-lg leading-relaxed">
-              get your extension directly to the chrome web store or download the files for manual installation. one-click deployment makes sharing your creation simple and fast.
-            </p>
-          </motion.div>
-        </div> */}
-
-        {/* How-to: side-by-side steps */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-16"
-        >
-          <h3 className="text-2xl md:text-3xl font-semibold text-center mb-8 md:mb-12 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            how to use chromie
-          </h3>
-
-          {/* Step 1 */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center mb-8 md:mb-10">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
-            >
-              <video
-                src="/HIW - 1.mov"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-                style={{ 
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform'
-                }}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-slate-700/40 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-gray-200 mb-2">describe your extension</h4>
-              <p className="text-gray-300">tell chromie what you want in plain english. keep it simple and specific.</p>
-            </motion.div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center mb-8 md:mb-10">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-blue-500/20 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-blue-200 mb-2">interact with chromie agent</h4>
-              <p className="text-gray-300">work with the chromie agent to refine and customize your extension through conversation.</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
-            >
-              <video
-                src="/HIW - 2.mov"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-                style={{ 
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform'
-                }}
-              />
-            </motion.div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center mb-8 md:mb-10">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
-            >
-              <video
-                src="/HIW - 3.mov"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-                style={{ 
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform'
-                }}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-purple-500/20 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-purple-200 mb-2">see the code in the editor</h4>
-              <p className="text-gray-300">review the generated files in the in-app editor. adjust anything you need.</p>
-            </motion.div>
-          </div>
-
-          {/* Step 4 */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center mb-8 md:mb-10">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-green-500/20 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-green-200 mb-2">test in the browser simulator</h4>
-              <p className="text-gray-300">run the extension instantly with the built-in test environment to verify behavior.</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
-            >
-              <video
-                src="/HIW - 4.mov"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-                style={{ 
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform'
-                }}
-              />
-            </motion.div>
-          </div>
-
-          {/* Step 5 */}
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="relative w-full h-64 md:h-80 lg:h-96 rounded-xl overflow-hidden bg-white/5 border border-white/10"
-            >
-              <video
-                src="/HIW - 5.mov"
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover"
-                style={{ 
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                  willChange: 'transform'
-                }}
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="backdrop-blur-xl bg-slate-800/30 border border-slate-500/20 rounded-xl p-6"
-            >
-              <h4 className="text-xl md:text-2xl font-semibold text-slate-200 mb-2">share your creation</h4>
-              <p className="text-gray-300">share your extension with others or download the zip to publish to the chrome web store.</p>
-            </motion.div>
-          </div>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Go from idea to published extension in five simple steps.
+          </p>
         </motion.div>
 
-        {/* Call to action */}
+        <div className="space-y-24">
+          {steps.map((step, index) => (
+            <div key={index} className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className={cn(
+                  "relative rounded-3xl overflow-hidden shadow-2xl border border-border/50 aspect-video bg-slate-100",
+                  index % 2 === 1 && "md:order-2"
+                )}
+              >
+                <video
+                  src={step.video}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: index % 2 === 0 ? 20 : -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className={cn(
+                  "flex flex-col justify-center",
+                  index % 2 === 1 && "md:order-1"
+                )}
+              >
+                <div className={cn("inline-flex self-start px-3 py-1 rounded-full text-xs font-semibold mb-4", step.color)}>
+                  Step {index + 1}
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">{step.title}</h3>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                  {step.description}
+                </p>
+              </motion.div>
+            </div>
+          ))}
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center"
+          className="text-center mt-24"
         >
           <Button
             onClick={() => {
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
-            className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 px-8 py-3 text-lg"
+            className="btn-primary px-8 py-6 text-lg rounded-full shadow-xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all"
           >
-            start building your extension
+            Start Building Now
           </Button>
         </motion.div>
       </div>

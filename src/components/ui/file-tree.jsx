@@ -1,12 +1,12 @@
 import { useState } from "react"
 import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Copy, Check } from "lucide-react"
 
-export default function FileTree({ 
-  fileStructure, 
-  selectedFile, 
-  onFileSelect, 
+export default function FileTree({
+  fileStructure,
+  selectedFile,
+  onFileSelect,
   isLoadingFiles,
-  searchQuery 
+  searchQuery
 }) {
   const [expandedFolders, setExpandedFolders] = useState({})
   const [copiedFile, setCopiedFile] = useState(null)
@@ -43,7 +43,7 @@ export default function FileTree({
       case 'tsx':
         return <FileCode className="h-4 w-4 text-yellow-400" />
       case 'json':
-        return <Settings className="h-4 w-4 text-orange-400" />
+        return <Settings className="h-4 w-4 text-blue-400" />
       case 'html':
       case 'htm':
         return <Globe className="h-4 w-4 text-red-400" />
@@ -69,19 +69,19 @@ export default function FileTree({
   // Filter files based on search query (searches both file names and content)
   const filterFileTree = (items, query) => {
     if (!query) return items
-    
+
     const queryLower = query.toLowerCase()
-    
+
     return items.filter(item => {
       if (item.type === 'file') {
         // Check if query matches file name
         const nameMatch = item.name.toLowerCase().includes(queryLower)
-        
+
         // Check if query matches file content
-        const contentMatch = item.content && 
-          typeof item.content === 'string' && 
+        const contentMatch = item.content &&
+          typeof item.content === 'string' &&
           item.content.toLowerCase().includes(queryLower)
-        
+
         return nameMatch || contentMatch
       } else if (item.type === 'folder' && item.children) {
         const filteredChildren = filterFileTree(item.children, query)
@@ -101,7 +101,7 @@ export default function FileTree({
 
   const renderFileTree = (items, level = 0) => {
     const filteredItems = filterFileTree(items, searchQuery)
-    
+
     return filteredItems.map((item, index) => (
       <div key={index}>
         {item.type === "folder" ? (
@@ -112,8 +112,8 @@ export default function FileTree({
               onClick={() => toggleFolder(item.fullPath || item.name)}
             >
               <div className="flex items-center flex-1">
-                {expandedFolders[item.fullPath || item.name] ? 
-                  <ChevronDown className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" /> : 
+                {expandedFolders[item.fullPath || item.name] ?
+                  <ChevronDown className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" /> :
                   <ChevronRight className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" />
                 }
                 {expandedFolders[item.fullPath || item.name] ? (
@@ -135,17 +135,15 @@ export default function FileTree({
           </div>
         ) : (
           <div
-            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 file-tree-item ${
-              selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
-            }`}
+            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 file-tree-item ${selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
+              }`}
             style={{ marginLeft: `${level * 20}px` }}
             onClick={() => handleFileSelect(item)}
           >
             <div className="flex items-center flex-1">
               {getFileIcon(item.name)}
-              <span className={`text-sm ml-3 transition-colors ${
-                selectedFile?.name === item.name ? "text-white font-medium" : "text-slate-300 group-hover:text-white"
-              }`}>
+              <span className={`text-sm ml-3 transition-colors ${selectedFile?.name === item.name ? "text-white font-medium" : "text-slate-300 group-hover:text-white"
+                }`}>
                 {item.name}
               </span>
             </div>

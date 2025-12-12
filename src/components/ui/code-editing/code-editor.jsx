@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { Save, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export default function CodeEditor({ 
-  code, 
-  fileName, 
-  className = "", 
+export default function CodeEditor({
+  code,
+  fileName,
+  className = "",
   onSave,
-  readOnly = false 
+  readOnly = false
 }) {
   const textareaRef = useRef(null)
   const [content, setContent] = useState(code)
@@ -25,9 +25,9 @@ export default function CodeEditor({
   // Function to detect language from file extension
   const getLanguageFromFileName = (fileName) => {
     if (!fileName) return 'text'
-    
+
     const ext = fileName.split('.').pop()?.toLowerCase()
-    
+
     const languageMap = {
       'js': 'javascript',
       'jsx': 'jsx',
@@ -48,7 +48,7 @@ export default function CodeEditor({
       'yaml': 'yaml',
       'txt': 'text'
     }
-    
+
     return languageMap[ext] || 'text'
   }
 
@@ -62,7 +62,7 @@ export default function CodeEditor({
 
   const handleSave = async () => {
     if (!onSave || !hasChanges) return
-    
+
     setIsSaving(true)
     try {
       await onSave(content)
@@ -83,13 +83,13 @@ export default function CodeEditor({
       const newContent = content.substring(0, start) + '  ' + content.substring(end)
       setContent(newContent)
       setHasChanges(newContent !== code)
-      
+
       // Restore cursor position
       setTimeout(() => {
         e.target.selectionStart = e.target.selectionEnd = start + 2
       }, 0)
     }
-    
+
     // Handle Ctrl/Cmd + S for save
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault()
@@ -106,7 +106,7 @@ export default function CodeEditor({
             <Edit3 className="h-4 w-4 text-purple-400" />
             <span className="text-sm text-slate-300">Editing: {fileName}</span>
             {hasChanges && (
-              <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded">
+              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
                 Unsaved changes
               </span>
             )}
@@ -139,7 +139,7 @@ export default function CodeEditor({
           spellCheck={false}
           placeholder={readOnly ? "Select a file to view its contents" : "Start typing your code..."}
         />
-        
+
         {/* Language indicator */}
         <div className="absolute top-3 right-3 bg-slate-800/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-slate-300 border border-slate-600/50">
           {language}

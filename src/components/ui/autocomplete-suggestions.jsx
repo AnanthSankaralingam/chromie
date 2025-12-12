@@ -5,12 +5,12 @@ import { ChevronRight, Lightbulb, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { searchSuggestions } from "@/lib/data/extension-suggestions"
 
-const AutocompleteSuggestions = ({ 
-  query, 
-  onSuggestionSelect, 
-  isVisible, 
+const AutocompleteSuggestions = ({
+  query,
+  onSuggestionSelect,
+  isVisible,
   onVisibilityChange,
-  inputRef 
+  inputRef
 }) => {
   const [suggestions, setSuggestions] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -59,13 +59,13 @@ const AutocompleteSuggestions = ({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < suggestions.length - 1 ? prev + 1 : 0
         )
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev > 0 ? prev - 1 : suggestions.length - 1
         )
         break
@@ -106,7 +106,7 @@ const AutocompleteSuggestions = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        dropdownRef.current && 
+        dropdownRef.current &&
         !dropdownRef.current.contains(event.target) &&
         inputRef?.current &&
         !inputRef.current.contains(event.target)
@@ -131,12 +131,12 @@ const AutocompleteSuggestions = ({
   const getCategoryColor = (category) => {
     const colors = {
       'Productivity': 'text-blue-400 bg-blue-400/10',
-      'Security': 'text-red-400 bg-red-400/10', 
+      'Security': 'text-red-400 bg-red-400/10',
       'Design': 'text-purple-400 bg-purple-400/10',
       'Development': 'text-green-400 bg-green-400/10',
       'Shopping': 'text-yellow-400 bg-yellow-400/10',
       'Social Media': 'text-pink-400 bg-pink-400/10',
-      'Entertainment': 'text-orange-400 bg-orange-400/10',
+      'Entertainment': 'text-blue-400 bg-blue-400/10',
       'Utility': 'text-gray-400 bg-gray-400/10',
       'Privacy': 'text-indigo-400 bg-indigo-400/10',
       'News': 'text-cyan-400 bg-cyan-400/10',
@@ -154,7 +154,7 @@ const AutocompleteSuggestions = ({
   if (!isVisible) return null
 
   return (
-    <div 
+    <div
       ref={dropdownRef}
       className="absolute top-full left-0 right-0 z-50 mt-2 bg-slate-800/95 backdrop-blur-lg border border-slate-600/50 rounded-xl shadow-2xl max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200"
     >
@@ -215,7 +215,7 @@ const AutocompleteSuggestions = ({
           <p className="text-xs mt-1 opacity-75">Try a different keyword or describe what you want to build</p>
         </div>
       ) : null}
-      
+
       {/* Footer with tip */}
       {suggestions.length > 0 && (
         <div className="p-3 border-t border-slate-600/30 bg-slate-900/50">
