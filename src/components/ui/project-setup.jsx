@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 export default function useProjectSetup(user, isLoading) {
@@ -10,14 +10,26 @@ export default function useProjectSetup(user, isLoading) {
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
+  const hasSetupRunRef = useRef(false) // Prevent duplicate setup calls
 
-  // Helper function to fetch project details
+  // Cache for project details to avoid duplicate fetches
+  const projectDetailsCache = useRef(new Map())
+
+  // Helper function to fetch project details with caching
   const fetchProjectDetails = async (projectId) => {
+    // Return cached data if available
+    if (projectDetailsCache.current.has(projectId)) {
+      return projectDetailsCache.current.get(projectId)
+    }
+
     try {
       const response = await fetch(`/api/projects/${projectId}`)
       if (response.ok) {
         const data = await response.json()
-        return data.project
+        const project = data.project
+        // Cache the result
+        projectDetailsCache.current.set(projectId, project)
+        return project
       }
     } catch (error) {
       console.error('Error fetching project details:', error)
@@ -160,8 +172,13 @@ export default function useProjectSetup(user, isLoading) {
 
   // Check for project and create one if needed
   useEffect(() => {
-    if (user && !isLoading) {
+    if (user && !isLoading && !hasSetupRunRef.current) {
+      hasSetupRunRef.current = true
       checkAndSetupProject()
+    } else if (!user) {
+      // Reset when user logs out
+      hasSetupRunRef.current = false
+      projectDetailsCache.current.clear()
     }
   }, [user, isLoading])
 

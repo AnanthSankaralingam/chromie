@@ -290,10 +290,20 @@ function BuilderPageContent() {
     }
   }
 
-  // Check for saved AI test results when project loads
+  // Check for saved AI test results when project loads (only once per project)
+  const hasCheckedTestResultsRef = useRef(null) // Track which project we've checked
+  
   useEffect(() => {
     const checkSavedResults = async () => {
       if (!projectSetup.currentProjectId || !user) return
+      
+      // Skip if we've already checked this project
+      if (hasCheckedTestResultsRef.current === projectSetup.currentProjectId) {
+        return
+      }
+
+      // Mark as checked immediately to prevent duplicate calls
+      hasCheckedTestResultsRef.current = projectSetup.currentProjectId
 
       try {
         const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
@@ -307,6 +317,10 @@ function BuilderPageContent() {
       } catch (error) {
         console.error('Error checking for saved test results:', error)
         setHasSavedAITestResults(false)
+        // Reset on error so we can retry
+        if (hasCheckedTestResultsRef.current === projectSetup.currentProjectId) {
+          hasCheckedTestResultsRef.current = null
+        }
       }
     }
 
