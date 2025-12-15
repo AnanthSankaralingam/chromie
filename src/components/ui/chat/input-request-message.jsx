@@ -171,7 +171,10 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
         name: api.name || 'Unnamed API',
         endpoint: '',
         defaultEndpoint: getDefaultEndpoint(api.name || ''),
-        isSkipped: false
+        isSkipped: false,
+        // Optional documentation metadata
+        doc_link: '',
+        doc_description: '',
       }))
       setApiConfigs(initialConfigs)
     }
@@ -181,6 +184,23 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
     setApiConfigs(prev => prev.map((config, i) => 
       i === index ? { ...config, endpoint: newEndpoint } : config
     ))
+  }
+
+  const handleDocLinkChange = (index, newLink) => {
+    setApiConfigs(prev =>
+      prev.map((config, i) =>
+        i === index ? { ...config, doc_link: newLink } : config
+      )
+    )
+  }
+
+  const handleDocDescriptionChange = (index, newDescription) => {
+    const limited = newDescription.slice(0, 1000)
+    setApiConfigs(prev =>
+      prev.map((config, i) =>
+        i === index ? { ...config, doc_description: limited } : config
+      )
+    )
   }
 
   const handleUseDefault = (index) => {
@@ -204,7 +224,9 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
       .filter((config, index) => !skippedApis.has(index) && config.endpoint.trim() !== '')
       .map(config => ({
         name: config.name,
-        endpoint: config.endpoint.trim()
+        endpoint: config.endpoint.trim(),
+        doc_link: config.doc_link?.trim() || null,
+        doc_description: config.doc_description?.trim() || null,
       }))
 
     setIsSubmitted(true)
@@ -295,39 +317,88 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                     {isSkipped ? 'Skipped' : 'Skip'}
                   </button>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-300">
+                      API base endpoint
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={config.endpoint}
+                        onChange={(e) => handleEndpointChange(index, e.target.value)}
+                        placeholder="https://api.example.com/v1"
+                        disabled={isSkipped}
+                        className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-all ${
+                          isSkipped
+                            ? 'bg-slate-600/50 border-slate-500/50 text-slate-400 cursor-not-allowed'
+                            : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 placeholder:text-slate-500'
+                        } outline-none`}
+                      />
+                      {config.defaultEndpoint && !isSkipped && (
+                        <button
+                          onClick={() => handleUseDefault(index)}
+                          disabled={isSkipped}
+                          className="px-4 py-2.5 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-lg shadow-blue-500/20"
+                          title={`Use default: ${config.defaultEndpoint}`}
+                        >
+                          Use Default
+                        </button>
+                      )}
+                    </div>
+                    {config.defaultEndpoint && !isSkipped && (
+                      <p className="text-xs text-slate-400 flex items-center gap-1">
+                        <span>Default endpoint:</span>
+                        <code className="px-2 py-0.5 rounded bg-slate-800 text-blue-400 font-mono text-xs">
+                          {config.defaultEndpoint}
+                        </code>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-300">
+                      API docs link <span className="text-slate-500">(optional)</span>
+                    </label>
                     <input
                       type="url"
-                      value={config.endpoint}
-                      onChange={(e) => handleEndpointChange(index, e.target.value)}
-                      placeholder="https://api.example.com/v1"
+                      value={config.doc_link || ''}
+                      onChange={(e) => handleDocLinkChange(index, e.target.value)}
+                      placeholder="https://docs.example.com/api"
                       disabled={isSkipped}
-                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-all ${
+                      className={`w-full px-4 py-2.5 rounded-lg border text-sm transition-all ${
                         isSkipped
                           ? 'bg-slate-600/50 border-slate-500/50 text-slate-400 cursor-not-allowed'
                           : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 placeholder:text-slate-500'
                       } outline-none`}
                     />
-                    {config.defaultEndpoint && !isSkipped && (
-                      <button
-                        onClick={() => handleUseDefault(index)}
-                        disabled={isSkipped}
-                        className="px-4 py-2.5 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-lg shadow-blue-500/20"
-                        title={`Use default: ${config.defaultEndpoint}`}
-                      >
-                        Use Default
-                      </button>
-                    )}
-                  </div>
-                  {config.defaultEndpoint && !isSkipped && (
-                    <p className="text-xs text-slate-400 flex items-center gap-1">
-                      <span>Default endpoint:</span>
-                      <code className="px-2 py-0.5 rounded bg-slate-800 text-blue-400 font-mono text-xs">
-                        {config.defaultEndpoint}
-                      </code>
+                    <p className="text-[11px] text-slate-500">
+                      Paste a public docs URL. This is only used server-side to pull structured API details.
                     </p>
-                  )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-300">
+                      How to use this API <span className="text-slate-500">(optional, max 1000 characters)</span>
+                    </label>
+                    <textarea
+                      value={config.doc_description || ''}
+                      onChange={(e) => handleDocDescriptionChange(index, e.target.value)}
+                      placeholder="Describe how this API should be used in your extension (e.g., key endpoints, common workflows). Avoid pasting full docs URLs here."
+                      rows={3}
+                      disabled={isSkipped}
+                      className={`w-full px-4 py-2.5 rounded-lg border text-sm transition-all resize-none ${
+                        isSkipped
+                          ? 'bg-slate-600/50 border-slate-500/50 text-slate-400 cursor-not-allowed'
+                          : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 placeholder:text-slate-500'
+                      } outline-none`}
+                    />
+                    <div className="flex justify-end">
+                      <span className="text-[11px] text-slate-500">
+                        {(config.doc_description || '').length}/1000
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )

@@ -332,7 +332,7 @@ export async function* generateChromeExtensionStream({
       // For new extensions: use planning outputs
       // Re-format external resources with webpage scraping data if available
       const planningResult = requirementsAnalysis.planningResult;
-      const updatedPlanningOutputs = formatPlanningOutputs(
+      const updatedPlanningOutputs = await formatPlanningOutputs(
         planningResult,
         scrapedWebpageAnalysis,
         scrapeStatusCode,
