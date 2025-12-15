@@ -126,8 +126,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
               </CardTitle>
               <CardDescription className="text-slate-400">
                 {isSignUp 
-                  ? "Start building Chrome extensions with AI" 
-                  : "Sign in to continue building Chrome extensions"
+                  ? "Start building extensions with chromie" 
+                  : "Sign back in to chromie"
                 }
               </CardDescription>
             </CardHeader>

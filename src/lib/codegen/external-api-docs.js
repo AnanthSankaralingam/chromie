@@ -1,5 +1,7 @@
 import externalApisData from '../data/external_apis.json' with { type: 'json' };
 
+const SCRAPER_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/extract-api-docs'
+
 /**
  * Search for external API documentation
  * @param {string} apiName - The name of the API to search for (e.g., "Stripe API", "OpenAI API")
@@ -49,10 +51,10 @@ export function searchExternalAPI(apiName) {
 
 /**
  * Fetch external API documentation for multiple APIs
- * @param {Array} apis - Array of API objects with name and endpoint_url
- * @returns {string} Formatted documentation string
+ * @param {Array} apis - Array of API objects with name, endpoint_url, purpose, and optional doc_link/doc_description
+ * @returns {Promise<string>} Formatted documentation string
  */
-export function fetchExternalApiDocs(apis) {
+export async function fetchExternalApiDocs(apis) {
   if (!apis || apis.length === 0) {
     return "";
   }
@@ -60,40 +62,146 @@ export function fetchExternalApiDocs(apis) {
   const apiDocs = [];
 
   for (const api of apis) {
-    const apiResult = searchExternalAPI(api.name);
-    // Handle both endpoint_url (from planning) and endpoint (from user-provided)
     const endpointUrl = api.endpoint_url || api.endpoint;
-    
-    if (!apiResult.error) {
-      let doc = `## ${apiResult.name}\n`;
-      doc += `**Description**: ${apiResult.description}\n\n`;
-      doc += `**Base URL**: ${endpointUrl || apiResult.base_url}\n\n`;
-      doc += `**Authentication**: ${apiResult.authentication}\n\n`;
-      
-      if (apiResult.common_endpoints && apiResult.common_endpoints.length > 0) {
-        doc += `**Common Endpoints**:\n`;
-        apiResult.common_endpoints.forEach(endpoint => {
-          doc += `- ${endpoint.method} ${endpoint.path}: ${endpoint.description}\n`;
+    const docLink = api.doc_link && typeof api.doc_link === 'string' ? api.doc_link.trim() : '';
+    const docDescription = api.doc_description && typeof api.doc_description === 'string'
+      ? api.doc_description.trim()
+      : '';
+
+    let scraped = null;
+
+    if (docLink) {
+      if (!process.env.AWS_API_SCRAPER_API_KEY) {
+        console.warn('[external-api-docs] AWS_API_SCRAPER_API_KEY not set; skipping scraper call for', api.name);
+      } else {
+        try {
+          const response = await fetch(SCRAPER_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.AWS_API_SCRAPER_API_KEY,
+            },
+            body: JSON.stringify({
+              doc_link: docLink,
+              api_name: api.name,
+            }),
+          });
+
+          if (response.ok) {
+            const json = await response.json();
+            if (json && json.status === 'success' && json.data && json.data.doc_content) {
+              scraped = {
+                source: json.source,
+                apiName: json.data.api_name || api.name,
+                apiUrl: json.data.api_url || null,
+                docContent: json.data.doc_content,
+              };
+            } else {
+              console.warn(
+                '[external-api-docs] Scraper returned non-success for',
+                api.name,
+                '- status:',
+                json?.status
+              );
+            }
+          } else {
+            console.warn(
+              '[external-api-docs] Scraper HTTP error for',
+              api.name,
+              '- status:',
+              response.status
+            );
+          }
+        } catch (error) {
+          console.error('[external-api-docs] Failed to scrape docs for', api.name, '-', error.message);
+        }
+      }
+    }
+
+    let doc = '';
+
+    if (scraped && scraped.docContent) {
+      const { docContent } = scraped;
+      const baseUrl =
+        docContent.base_url ||
+        scraped.apiUrl ||
+        endpointUrl ||
+        null;
+
+      doc += `### ${scraped.apiName}\n`;
+      doc += `**Base URL**: ${baseUrl || 'Unknown'}\n\n`;
+
+      if (Array.isArray(docContent.endpoints) && docContent.endpoints.length > 0) {
+        doc += `**Key endpoints**:\n`;
+        docContent.endpoints.forEach((ep) => {
+          if (!ep) return;
+          const method = ep.method || 'GET';
+          const path = ep.path || '/';
+          const description = ep.description || 'No description provided';
+          doc += `- ${method.toUpperCase()} ${path}: ${description}\n`;
         });
         doc += `\n`;
       }
 
-      if (apiResult.headers && Object.keys(apiResult.headers).length > 0) {
-        doc += `**Required Headers**:\n`;
-        Object.entries(apiResult.headers).forEach(([key, value]) => {
-          doc += `- ${key}: ${value}\n`;
-        });
-        doc += `\n`;
+      if (docContent.authentication && docContent.authentication.type) {
+        const authType = docContent.authentication.type;
+        const authDesc = docContent.authentication.description || '';
+        doc += `**Authentication**: ${authType}${authDesc ? ` — ${authDesc}` : ''}\n\n`;
       }
 
-      if (apiResult.code_example) {
-        doc += `**Code Example**:\n\`\`\`javascript\n${apiResult.code_example}\n\`\`\`\n`;
+      // Optionally include compact examples if present
+      const firstEndpoint = Array.isArray(docContent.endpoints) && docContent.endpoints.length > 0
+        ? docContent.endpoints[0]
+        : null;
+
+      if (firstEndpoint?.request_example) {
+        doc += `**Request example**:\n\`\`\`json\n${firstEndpoint.request_example}\n\`\`\`\n\n`;
       }
 
-      apiDocs.push(doc);
+      if (firstEndpoint?.response_example) {
+        doc += `**Response example**:\n\`\`\`json\n${firstEndpoint.response_example}\n\`\`\`\n\n`;
+      }
     } else {
-      // If API not found in docs, still include basic info
-      apiDocs.push(`## ${api.name}\n**Endpoint**: ${endpointUrl || 'Not specified'}\n*Note: API documentation not available. Use standard REST API patterns.*\n`);
+      // Fallback to local catalog-based documentation
+      const apiResult = searchExternalAPI(api.name);
+
+      if (!apiResult.error) {
+        doc += `### ${apiResult.name}\n`;
+        doc += `**Description**: ${apiResult.description}\n\n`;
+        doc += `**Base URL**: ${endpointUrl || apiResult.base_url}\n\n`;
+        doc += `**Authentication**: ${apiResult.authentication}\n\n`;
+
+        if (apiResult.common_endpoints && apiResult.common_endpoints.length > 0) {
+          doc += `**Common Endpoints**:\n`;
+          apiResult.common_endpoints.forEach((endpoint) => {
+            doc += `- ${endpoint.method} ${endpoint.path}: ${endpoint.description}\n`;
+          });
+          doc += `\n`;
+        }
+
+        if (apiResult.headers && Object.keys(apiResult.headers).length > 0) {
+          doc += `**Required Headers**:\n`;
+          Object.entries(apiResult.headers).forEach(([key, value]) => {
+            doc += `- ${key}: ${value}\n`;
+          });
+          doc += `\n`;
+        }
+
+        if (apiResult.code_example) {
+          doc += `**Code Example**:\n\`\`\`javascript\n${apiResult.code_example}\n\`\`\`\n`;
+        }
+      } else {
+        // If API not found in docs, still include basic info
+        doc += `### ${api.name}\n**Endpoint**: ${endpointUrl || 'Not specified'}\n*Note: API documentation not available. Use standard REST API patterns.*\n`;
+      }
+    }
+
+    if (docDescription) {
+      doc += `\n**User-provided usage notes:**\n${docDescription}\n`;
+    }
+
+    if (doc) {
+      apiDocs.push(doc.trim());
     }
   }
 

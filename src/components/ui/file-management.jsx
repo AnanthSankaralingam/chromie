@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 
 export default function useFileManagement(currentProjectId, user) {
   const [fileStructure, setFileStructure] = useState([])
   const [flatFiles, setFlatFiles] = useState([])
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [loadedProjectId, setLoadedProjectId] = useState(null) // Track which project's files are loaded
+  const isLoadingRef = useRef(false) // Prevent concurrent loads
 
   // Helper function to transform flat file list into tree structure
   const transformFilesToTree = (files) => {
@@ -82,7 +83,7 @@ export default function useFileManagement(currentProjectId, user) {
     
   }
 
-  const loadProjectFiles = async (refreshFromServer = false) => {
+  const loadProjectFiles = useCallback(async (refreshFromServer = false) => {
     if (!currentProjectId) {
       console.error("No project ID available for loading files")
       return
@@ -93,7 +94,12 @@ export default function useFileManagement(currentProjectId, user) {
       return
     }
 
+    // Prevent concurrent loads
+    if (isLoadingRef.current) {
+      return
+    }
 
+    isLoadingRef.current = true
     setIsLoadingFiles(true)
     try {
       const response = await fetch(`/api/projects/${currentProjectId}/files`)
@@ -137,8 +143,9 @@ export default function useFileManagement(currentProjectId, user) {
       console.error("Error loading project files:", error)
     } finally {
       setIsLoadingFiles(false)
+      isLoadingRef.current = false
     }
-  }
+  }, [currentProjectId, loadedProjectId, fileStructure.length])
 
   const handleFileSave = async (selectedFile, content) => {
     if (!selectedFile || !currentProjectId) {
@@ -207,10 +214,10 @@ export default function useFileManagement(currentProjectId, user) {
 
   // Only load files when switching to a new project
   useEffect(() => {
-    if (currentProjectId && user && loadedProjectId !== currentProjectId) {
+    if (currentProjectId && user && loadedProjectId !== currentProjectId && !isLoadingRef.current) {
       loadProjectFiles()
     }
-  }, [currentProjectId, user, loadedProjectId])
+  }, [currentProjectId, user, loadedProjectId, loadProjectFiles])
 
   return {
     fileStructure,

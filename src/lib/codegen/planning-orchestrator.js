@@ -348,16 +348,21 @@ function parseJsonResponse(outputText, prefill) {
  * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
  * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
  * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
- * @returns {Object} Formatted strings for prompt replacement
+ * @returns {Promise<Object>} Formatted strings for prompt replacement
  */
-export function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null, featureRequest = '') {
+export async function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null, featureRequest = '') {
   const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
 
   // Format use case and Chrome APIs
   const useCaseFormatted = formatUseCaseOutput(useCaseResult, featureRequest)
 
   // Format external resources (with webpage data if available and successful, and user-provided APIs)
-  const externalResourcesFormatted = formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis, scrapeStatusCode, userProvidedApis)
+  const externalResourcesFormatted = await formatExternalResourcesOutput(
+    externalResourcesResult,
+    scrapedWebpageAnalysis,
+    scrapeStatusCode,
+    userProvidedApis
+  )
 
   // Format code snippet
   const codeSnippetFormatted = formatCodeSnippet(codeSnippet, useCaseResult.matched_use_case?.name)
@@ -496,9 +501,9 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
  * @param {string|null} scrapedWebpageAnalysis - Optional scraped webpage analysis data
  * @param {number|null} scrapeStatusCode - Optional status code from scraping (200 = success, 404 = no data, 500 = error)
  * @param {Array|null} userProvidedApis - Optional user-provided API configurations with name and endpoint
- * @returns {string} Formatted markdown
+ * @returns {Promise<string>} Formatted markdown
  */
-function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
+async function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
   const { external_apis, webpages_to_scrape, no_external_needed } = externalResourcesResult
 
   // Check if we have scraped webpage data to include (only if status code is 200)
@@ -533,14 +538,19 @@ function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAn
             ...allApis[existingIndex],
             endpoint_url: userApi.endpoint,
             // Keep purpose from planning if available, otherwise use name
-            purpose: allApis[existingIndex].purpose || `User-provided ${userApi.name} API`
+            purpose: allApis[existingIndex].purpose || `User-provided ${userApi.name} API`,
+            // Preserve optional documentation metadata
+            doc_link: userApi.doc_link || allApis[existingIndex].doc_link || null,
+            doc_description: userApi.doc_description || allApis[existingIndex].doc_description || null,
           }
         } else {
           // Add new user-provided API
           allApis.push({
             name: userApi.name,
             endpoint_url: userApi.endpoint,
-            purpose: `User-provided ${userApi.name} API`
+            purpose: `User-provided ${userApi.name} API`,
+            doc_link: userApi.doc_link || null,
+            doc_description: userApi.doc_description || null,
           })
         }
       })
@@ -568,7 +578,7 @@ function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAn
     output += '\n'
     
     // Include detailed API documentation
-    const apiDocumentation = fetchExternalApiDocs(allApis)
+    const apiDocumentation = await fetchExternalApiDocs(allApis)
     if (apiDocumentation) {
       output += '## External API Documentation\n\n'
       output += apiDocumentation

@@ -12,9 +12,6 @@ function AuthCallbackContent() {
   const [maxAttempts] = useState(20) // 10 seconds total wait time
 
   useEffect(() => {
-    console.log('AuthCallback: Component mounted')
-    console.log('AuthCallback: isLoading:', isLoading, 'user:', !!user, 'session:', !!session)
-    
     // Check if we have an error parameter
     const error = searchParams.get('error')
     if (error) {
@@ -22,25 +19,12 @@ function AuthCallbackContent() {
       router.push('/?error=auth_failed')
       return
     }
-
-    // Check if we have a code parameter - let Supabase handle it automatically
-    const code = searchParams.get('code')
-    if (code) {
-      console.log('AuthCallback: OAuth code received, letting Supabase handle it')
-      // Don't manually exchange the code - let Supabase's built-in flow handle it
-      // The code will be automatically processed by Supabase's OAuth callback handling
-    }
   }, [searchParams, router])
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log(`AuthCallback: Attempt ${attempts + 1}/${maxAttempts}`)
-      console.log('AuthCallback: isLoading:', isLoading, 'user:', !!user, 'session:', !!session)
-      
       if (!isLoading) {
         if (user && session) {
-          console.log("AuthCallback: User authenticated, updating profile and redirecting to builder")
-          
           // Update profile last_used_at
           const updateProfile = async () => {
             try {
@@ -129,7 +113,6 @@ function AuthCallbackContent() {
         }
         
         if (attempts >= maxAttempts - 1) {
-          console.log("AuthCallback: Max attempts reached, redirecting to home")
           router.push("/?error=auth_timeout")
           return
         }

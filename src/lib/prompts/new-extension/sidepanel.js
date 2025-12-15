@@ -15,8 +15,6 @@ export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development 
 {EXTERNAL_RESOURCES}
 </external_resources>
 
-${WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL}
-
 <side_panel_implementation_requirements>
 <side_panel_strategy>
 MANDATORY: Implement Chrome's side panel API for persistent extension UI.
