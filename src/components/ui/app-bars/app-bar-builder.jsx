@@ -31,9 +31,13 @@ export default function AppBarBuilder({
   isDownloading = false,
   isTestingWithAI = false,
   isGeneratingTestAgent = false,
+  isGeneratingTestCommands = false,
+  isTestingWithCommands = false,
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
+  onCreateTestingCommands,
+  onKickoffTestingCommands,
   tourTestButtonId,
   tourTestWithAIButtonId,
   tourShareButtonId,
@@ -129,6 +133,16 @@ export default function AppBarBuilder({
   const handleKickoffAIAnalysisClick = () => {
     setIsAITestDropdownOpen(false)
     handleTestWithAIClick() // Run new test
+  }
+
+  const handleCreateTestingCommandsClick = () => {
+    setIsAITestDropdownOpen(false)
+    onCreateTestingCommands?.()
+  }
+
+  const handleKickoffTestingCommandsClick = () => {
+    setIsAITestDropdownOpen(false)
+    onKickoffTestingCommands?.()
   }
 
   // Helper function to get user initials
@@ -252,6 +266,26 @@ export default function AppBarBuilder({
                         {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
                       </span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleCreateTestingCommandsClick}
+                      disabled={isTestDisabled || isGenerating || isGeneratingTestCommands}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <Bot className="h-4 w-4 mr-3 text-green-400" />
+                      <span className="flex-1">
+                        {isGeneratingTestCommands ? "Creating..." : "Create Testing Commands"}
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleKickoffTestingCommandsClick}
+                      disabled={isTestDisabled || isGenerating || isTestingWithCommands}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <Play className="h-4 w-4 mr-3 text-green-400" />
+                      <span className="flex-1">
+                        {isTestingWithCommands ? "Running..." : "Kickoff Testing Commands"}
+                      </span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <ShareDropdown
@@ -354,6 +388,26 @@ export default function AppBarBuilder({
                   <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
                   <span className="flex-1">
                     {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { handleCreateTestingCommandsClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating || isGeneratingTestCommands}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <Bot className="h-4 w-4 mr-3 text-green-400" />
+                  <span className="flex-1">
+                    {isGeneratingTestCommands ? "Creating..." : "Create Testing Commands"}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { handleKickoffTestingCommandsClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating || isTestingWithCommands}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <Play className="h-4 w-4 mr-3 text-green-400" />
+                  <span className="flex-1">
+                    {isTestingWithCommands ? "Running..." : "Kickoff Testing Commands"}
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

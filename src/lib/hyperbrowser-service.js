@@ -354,22 +354,32 @@ export class HyperbrowserService {
     }
 
     const requiredIconPaths = new Set()
-    // From manifest
+    const manifestIconPaths = new Set()
+    // From manifest - these are required
     if (manifest && manifest.icons) {
       for (const p of Object.values(manifest.icons)) {
-        if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
+        if (typeof p === 'string' && p.startsWith('icons/')) {
+          requiredIconPaths.add(p)
+          manifestIconPaths.add(p)
+        }
       }
     }
     if (manifest && manifest.action && manifest.action.default_icon) {
       for (const p of Object.values(manifest.action.default_icon)) {
-        if (typeof p === 'string' && p.startsWith('icons/')) requiredIconPaths.add(p)
+        if (typeof p === 'string' && p.startsWith('icons/')) {
+          requiredIconPaths.add(p)
+          manifestIconPaths.add(p)
+        }
       }
     }
     // From code files: scan for any 'icons/*.png' references, including chrome.runtime.getURL('icons/...')
+    // These are optional and will use fallback if missing
     const iconRefRegex = /icons\/[A-Za-z0-9-_]+\.png/gi
     for (const f of validatedFiles) {
       const filePath = f.file_path || f.path || f.name
       if (!filePath || filePath.startsWith('icons/')) continue
+      // Skip test scripts - they may reference icons that don't exist
+      if (filePath.includes('test') || filePath.includes('puppeteer') || filePath.includes('hyperagent')) continue
       const content = typeof f.content === 'string' ? f.content : ''
       if (!content) continue
       const matches = content.match(iconRefRegex)
@@ -399,12 +409,51 @@ export class HyperbrowserService {
       }
       const byPath = new Map((rows || []).map(r => [r.path_hint, r]))
       const missing = []
+      const fallbackIcons = ['icons/icon16.png', 'icons/icon48.png', 'icons/icon128.png']
+      
+      // Try to get fallback icons first
+      const fallbackMap = new Map()
+      for (const fallbackPath of fallbackIcons) {
+        const fallbackRow = byPath.get(fallbackPath)
+        if (fallbackRow) {
+          try {
+            const binary = Buffer.from(fallbackRow.content_base64, 'base64')
+            fallbackMap.set(fallbackPath, binary)
+          } catch (e) {
+            console.warn(`[hyperbrowser] Failed to decode fallback icon ${fallbackPath}:`, e.message)
+          }
+        }
+      }
+      
+      // Use icon16.png as the default fallback if available
+      const defaultFallback = fallbackMap.get('icons/icon16.png') || fallbackMap.get('icons/icon48.png') || fallbackMap.get('icons/icon128.png')
+      const defaultFallbackPath = fallbackMap.has('icons/icon16.png') ? 'icons/icon16.png' : 
+                                   (fallbackMap.has('icons/icon48.png') ? 'icons/icon48.png' : 'icons/icon128.png')
+      
       for (const iconPath of iconPaths) {
         const row = byPath.get(iconPath)
         if (!row) {
-          console.error(`[hyperbrowser] Missing required icon in shared_icons: ${iconPath}`)
-          missing.push(iconPath)
-          continue
+          // Check if this is a manifest icon (required) or code-referenced icon (optional with fallback)
+          const isManifestIcon = manifestIconPaths.has(iconPath)
+          
+          if (isManifestIcon) {
+            // Manifest icons are required
+            console.error(`[hyperbrowser] Missing required manifest icon in shared_icons: ${iconPath}`)
+            missing.push(iconPath)
+            continue
+          } else {
+            // Code-referenced icons can use fallback
+            if (defaultFallback) {
+              console.warn(`[hyperbrowser] Missing icon ${iconPath} in shared_icons, using fallback: ${defaultFallbackPath}`)
+              zip.file(iconPath, defaultFallback)
+              console.log(`[hyperbrowser] Added fallback icon to zip: ${iconPath} (using ${defaultFallbackPath})`)
+              continue
+            } else {
+              console.error(`[hyperbrowser] Missing icon ${iconPath} and no fallback available`)
+              missing.push(iconPath)
+              continue
+            }
+          }
         }
         try {
           const binary = Buffer.from(row.content_base64, 'base64')
@@ -412,11 +461,22 @@ export class HyperbrowserService {
           console.log(`[hyperbrowser] Added shared icon to zip: ${iconPath}`)
         } catch (e) {
           console.error(`[hyperbrowser] Failed to decode icon ${iconPath}:`, e.message)
-          missing.push(iconPath)
+          // Try fallback for decode errors too
+          if (defaultFallback && !manifestIconPaths.has(iconPath)) {
+            console.warn(`[hyperbrowser] Using fallback for ${iconPath} due to decode error`)
+            zip.file(iconPath, defaultFallback)
+          } else {
+            missing.push(iconPath)
+          }
         }
       }
+      
+      // Only throw error for manifest icons or if no fallback is available
       if (missing.length > 0) {
-        throw new Error(`Missing required icons: ${missing.join(', ')}. Seed them into shared_icons or add a global fallback.`)
+        const missingManifestIcons = missing.filter(p => manifestIconPaths.has(p))
+        if (missingManifestIcons.length > 0 || !defaultFallback) {
+          throw new Error(`Missing required icons: ${missing.join(', ')}. Seed them into shared_icons or add a global fallback.`)
+        }
       }
     } else {
       console.log('[hyperbrowser] No icon paths referenced in manifest')

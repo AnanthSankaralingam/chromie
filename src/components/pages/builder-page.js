@@ -50,6 +50,8 @@ function BuilderPageContent() {
   const [hasTestedExtension, setHasTestedExtension] = useState(false)
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'files', 'editor'
   const [isGeneratingTestAgent, setIsGeneratingTestAgent] = useState(false)
+  const [isGeneratingTestCommands, setIsGeneratingTestCommands] = useState(false)
+  const [isTestingWithCommands, setIsTestingWithCommands] = useState(false)
   const [isTestingPromptOpen, setIsTestingPromptOpen] = useState(false)
   const [isCanvasOpen, setIsCanvasOpen] = useState(false) // Track if canvas pane is open
   const [isFileTreeCollapsed, setIsFileTreeCollapsed] = useState(false) // Track if file tree is collapsed
@@ -290,6 +292,82 @@ function BuilderPageContent() {
     }
   }
 
+  const handleCreateTestingCommands = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error('No project ID available')
+      return
+    }
+
+    setIsGeneratingTestCommands(true)
+    console.log('🤖 Starting puppeteer test commands generation...')
+
+    try {
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-script`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate puppeteer test commands')
+      }
+
+      const result = await response.json()
+      console.log('✅ Puppeteer test commands generated successfully:', result)
+
+      // Refresh file tree to show new test script
+      await fileManagement.loadProjectFiles(true)
+
+      // Show success message
+      alert('Puppeteer testing commands created successfully! Check your files for puppeteer_test_script.js')
+
+    } catch (error) {
+      console.error('❌ Error generating puppeteer test commands:', error)
+      alert(`Failed to generate puppeteer test commands: ${error.message}`)
+    } finally {
+      setIsGeneratingTestCommands(false)
+    }
+  }
+
+  const handleKickoffTestingCommands = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error('No project ID available')
+      return
+    }
+
+    setIsTestingWithCommands(true)
+    setAiTestResult(null)
+    setIsAITestResultModalOpen(false)
+    console.log('🤖 Starting puppeteer test commands execution...')
+
+    try {
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-puppeteer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run puppeteer test commands')
+      }
+
+      console.log('✅ Puppeteer test completed:', data)
+      setAiTestResult(data)
+      setIsAITestResultModalOpen(true)
+      setHasSavedAITestResults(true) // Mark that we now have saved results
+    } catch (error) {
+      console.error('❌ Error running puppeteer test commands:', error)
+      alert(`Failed to run puppeteer test commands: ${error.message}`)
+    } finally {
+      setIsTestingWithCommands(false)
+    }
+  }
+
   // Check for saved AI test results when project loads
   useEffect(() => {
     const checkSavedResults = async () => {
@@ -443,13 +521,17 @@ function BuilderPageContent() {
             projectId={projectSetup.currentProjectId}
             isTestDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
             isDownloadDisabled={!projectSetup.currentProjectId || fileManagement.flatFiles.length === 0}
-            isGenerating={isGenerating || isGeneratingTestAgent}
+            isGenerating={isGenerating || isGeneratingTestAgent || isGeneratingTestCommands}
             isDownloading={downloadExtension.isDownloading}
             isTestingWithAI={isTestingWithAI}
             isGeneratingTestAgent={isGeneratingTestAgent}
+            isGeneratingTestCommands={isGeneratingTestCommands}
+            isTestingWithCommands={isTestingWithCommands}
             shouldStartTestHighlight={shouldStartTestHighlight}
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
+            onCreateTestingCommands={handleCreateTestingCommands}
+            onKickoffTestingCommands={handleKickoffTestingCommands}
             tourTestButtonId="tour-test-button"
             tourTestWithAIButtonId="tour-test-with-ai-button"
             tourShareButtonId="tour-share-button"
