@@ -15,7 +15,13 @@ export function useAutoGenerateParams(hasProcessedAutoGenerate) {
       const autoGenerateFromUrl = urlParams.get('autoGenerate')
       
       if (autoGenerateFromUrl) {
-        setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
+        try {
+          setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
+        } catch (error) {
+          // If URI is malformed, use the original value
+          console.warn('Failed to decode autoGenerate URL parameter:', error)
+          setAutoGeneratePrompt(autoGenerateFromUrl)
+        }
       }
     }
   }, [])
