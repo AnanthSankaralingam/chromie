@@ -35,21 +35,60 @@ Side panels require:
 5. Background script for coordination
 </side_panel_structure>
 
-<side_panel_template>
-// background.js
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'openSidePanel',
-    title: 'Open side panel',
-    contexts: ['all']
+<messaging_pattern>
+CRITICAL: When sidepanel.js communicates with content scripts, use this pattern:
+
+// sidepanel.js - Sending messages to content script
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  if (tabs.length === 0) {
+    console.error('[CHROMIE:sidepanel.js] No active tab found');
+    return;
+  }
+  
+  const tabId = tabs[0].id;
+  
+  chrome.tabs.sendMessage(tabId, { action: 'scanPage' }, (response) => {
+    if (chrome.runtime.lastError) {
+      // CRITICAL: Log chrome.runtime.lastError.message, not the object itself
+      console.error('[CHROMIE:sidepanel.js] Error:', chrome.runtime.lastError.message);
+      // Content script may not be injected (chrome:// pages, extension pages, etc.)
+      return;
+    }
+    
+    if (response && response.elements) {
+      // Handle successful response
+    }
   });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'openSidePanel') {
-    // This will open the panel in all the pages on the current window.
-    chrome.sidePanel.open({ windowId: tab.windowId });
+// Store tabId for later use (e.g., in event handlers)
+let currentTabId = null;
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  if (tabs.length > 0) {
+    currentTabId = tabs[0].id;
   }
+});
+
+// Use stored tabId in event handlers
+card.addEventListener('mouseover', () => {
+  if (currentTabId) {
+    chrome.tabs.sendMessage(currentTabId, { action: 'highlightElement', elementId: elementData.id }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[CHROMIE:sidepanel.js] Error:', chrome.runtime.lastError.message);
+      }
+    });
+  }
+});
+</messaging_pattern>
+
+<side_panel_template>
+// background.js
+console.log('[CHROMIE:background.js] Service worker loaded');
+
+// Set up side panel to open when action button is clicked
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('[CHROMIE:background.js] Extension installed');
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 </side_panel_template>
 
@@ -60,8 +99,17 @@ Required manifest.json sections:
     "default_path": "sidepanel.html"
   },
   "permissions": ["sidePanel", "activeTab"],
-  "action": {}
+  "action": {
+    "default_title": "Open Side Panel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
 }
+
+CRITICAL: Always include the "background" section with a service_worker when using sidePanel.
+The background.js should use chrome.action.onClicked (not contextMenus) to open the side panel.
+This avoids requiring the "contextMenus" permission.
 </manifest_configuration>
 </side_panel_implementation_requirements>
 
@@ -136,5 +184,9 @@ All console.log, console.error, console.warn, and console.info MUST include the 
 - Implement proper messaging between panel and content scripts
 - Do not generate placeholder code.
 - Implement proper error handling, comments, and logging
+- CRITICAL: Only use chrome.sidePanel methods that exist: setPanelBehavior(), open(), getOptions()
+- CRITICAL: chrome.sidePanel has NO event listeners (no onOpen, no onClose, no addListener methods)
+- CRITICAL: Use chrome.action.onClicked instead of chrome.contextMenus to avoid requiring "contextMenus" permission
+- CRITICAL: Ensure all required permissions are declared in manifest.json for any Chrome APIs you use
 </implementation_guidelines>
 `;
