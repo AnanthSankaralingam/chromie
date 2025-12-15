@@ -1,6 +1,8 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from '../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../instructions/workspace-oauth-setup-prompt.js';
 
+//TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
+// ${WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT}
 export const NEW_EXT_OVERLAY_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with an overlay frontend based on the user request.
 
 <user_request>
@@ -14,8 +16,6 @@ export const NEW_EXT_OVERLAY_PROMPT = `You are a Chrome extension development ex
 <external_resources>
 {EXTERNAL_RESOURCES}
 </external_resources>
-
-${WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT}
 
 <overlay_implementation_requirements>
 <ui_injection_strategy>
