@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
-import { Share, Download, Link, Upload, ChevronDown } from "lucide-react"
+import { Share, Download, Link, Upload, ChevronDown, Github } from "lucide-react"
 
 export default function ShareDropdown({
   projectId,
@@ -19,6 +19,9 @@ export default function ShareDropdown({
   onDownloadZip,
   onShareClick,
   onPublishClick,
+  onExportToGithubClick,
+  isExportingToGithub = false,
+   hasGithubRepo = false,
   className = "",
   triggerId,
 }) {
@@ -39,7 +42,16 @@ export default function ShareDropdown({
     onPublishClick?.()
   }
 
+  const handleExportToGithubClick = () => {
+    setIsOpen(false)
+    onExportToGithubClick?.()
+  }
+
   const isDisabled = !projectId || isGenerating || isTestDisabled
+
+  const githubLabel = hasGithubRepo
+    ? (isExportingToGithub ? "Syncing..." : "Sync to GitHub")
+    : (isExportingToGithub ? "Exporting..." : "Export to GitHub")
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -81,7 +93,18 @@ export default function ShareDropdown({
             {isSharing ? "Generating..." : "Get Shareable Link"}
           </span>
         </DropdownMenuItem>
-        
+
+        <DropdownMenuItem 
+          onClick={handleExportToGithubClick}
+          disabled={isDisabled || isExportingToGithub}
+          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+        >
+          <Github className="h-4 w-4 mr-3 text-slate-200" />
+          <span className="flex-1">
+            {githubLabel}
+          </span>
+        </DropdownMenuItem>
+
         <DropdownMenuItem 
           onClick={handlePublishClick}
           disabled={isDisabled}

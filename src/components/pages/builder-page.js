@@ -469,6 +469,7 @@ function BuilderPageContent() {
             tourShareButtonId="tour-share-button"
             onTourShareComplete={handleShareWithTour}
             hasSavedAITestResults={hasSavedAITestResults}
+            hasGithubRepo={projectSetup.currentProjectHasGithubRepo}
           />
         </div>
 
