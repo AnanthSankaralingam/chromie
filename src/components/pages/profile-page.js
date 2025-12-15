@@ -37,6 +37,9 @@ export default function ProfilePage() {
   const [sharesLoading, setSharesLoading] = useState(true)
   const [copiedShareId, setCopiedShareId] = useState(null)
   const [revokingShareId, setRevokingShareId] = useState(null)
+  const [isGithubChecking, setIsGithubChecking] = useState(true)
+  const [isGithubConnected, setIsGithubConnected] = useState(false)
+  const [githubUsername, setGithubUsername] = useState(null)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -82,6 +85,27 @@ export default function ProfilePage() {
     }
   }
 
+  // Fetch GitHub connection status
+  const fetchGithubStatus = async () => {
+    try {
+      setIsGithubChecking(true)
+      const response = await fetch('/api/github/status')
+      if (response.ok) {
+        const data = await response.json()
+        setIsGithubConnected(!!data.connected)
+        setGithubUsername(data.username || null)
+      } else {
+        console.error('Failed to fetch GitHub status')
+        setIsGithubConnected(false)
+      }
+    } catch (error) {
+      console.error('Error fetching GitHub status:', error)
+      setIsGithubConnected(false)
+    } finally {
+      setIsGithubChecking(false)
+    }
+  }
+
   // Fetch user's billing information
   const fetchBilling = async () => {
     try {
@@ -102,6 +126,7 @@ export default function ProfilePage() {
       fetchProjects()
       fetchBilling()
       fetchShares()
+      fetchGithubStatus()
     }
   }, [user])
 
@@ -414,6 +439,36 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* GitHub connection status */}
+            <div className="mt-4 p-3 rounded-lg border border-slate-700/60 bg-slate-900/40 flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-white">GitHub integration</div>
+                {isGithubChecking ? (
+                  <div className="text-xs text-slate-400">Checking GitHub connection...</div>
+                ) : isGithubConnected ? (
+                  <div className="text-xs text-green-400">
+                    Connected{githubUsername ? ` as ${githubUsername}` : ''}. You can export projects directly to GitHub from the builder.
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-400">
+                    Not connected. Connect GitHub once to enable one-click export from the builder.
+                  </div>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant={isGithubConnected ? "outline" : "default"}
+                className={isGithubConnected
+                  ? "border-slate-600 text-slate-200 hover:text-white hover:bg-slate-800"
+                  : "bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 hover:from-slate-700 hover:via-slate-600 hover:to-slate-700"}
+                onClick={() => {
+                  window.location.href = '/api/github/login'
+                }}
+              >
+                {isGithubConnected ? 'Reconnect GitHub' : 'Connect GitHub'}
+              </Button>
             </div>
           </CardContent>
           </Card>

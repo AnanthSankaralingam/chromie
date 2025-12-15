@@ -7,6 +7,7 @@ export default function useProjectSetup(user, isLoading) {
   const [projectSetupError, setProjectSetupError] = useState(null)
   const [currentProjectId, setCurrentProjectId] = useState(null)
   const [currentProjectName, setCurrentProjectName] = useState('')
+  const [currentProjectHasGithubRepo, setCurrentProjectHasGithubRepo] = useState(false)
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
@@ -32,6 +33,7 @@ export default function useProjectSetup(user, isLoading) {
       const project = await fetchProjectDetails(currentProjectId)
       if (project) {
         setCurrentProjectName(project.name)
+        setCurrentProjectHasGithubRepo(!!project.github_repo_full_name)
       }
     } catch (error) {
       console.error('Error refreshing current project details:', error)
@@ -79,6 +81,7 @@ export default function useProjectSetup(user, isLoading) {
       
       setCurrentProjectId(newProject.id)
       setCurrentProjectName(newProject.name)
+      setCurrentProjectHasGithubRepo(false)
       sessionStorage.setItem('chromie_current_project_id', newProject.id)
       setIsSettingUpProject(false)
     } catch (error) {
@@ -97,13 +100,14 @@ export default function useProjectSetup(user, isLoading) {
     const storedProjectId = sessionStorage.getItem('chromie_current_project_id')
     
     // Priority: URL parameter > session storage > most recent project
-    if (projectIdFromUrl) {
+      if (projectIdFromUrl) {
       console.log('Using project ID from URL:', projectIdFromUrl)
       setCurrentProjectId(projectIdFromUrl)
       sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
       const projectDetails = await fetchProjectDetails(projectIdFromUrl)
       if (projectDetails) {
         setCurrentProjectName(projectDetails.name)
+        setCurrentProjectHasGithubRepo(!!projectDetails.github_repo_full_name)
       }
       setIsSettingUpProject(false)
       setProjectSetupError(null)
@@ -115,6 +119,7 @@ export default function useProjectSetup(user, isLoading) {
       const projectDetails = await fetchProjectDetails(storedProjectId)
       if (projectDetails) {
         setCurrentProjectName(projectDetails.name)
+        setCurrentProjectHasGithubRepo(!!projectDetails.github_repo_full_name)
       }
       setIsSettingUpProject(false)
       setProjectSetupError(null)
@@ -147,6 +152,7 @@ export default function useProjectSetup(user, isLoading) {
         console.log('Using existing project:', mostRecentProject.id)
         setCurrentProjectId(mostRecentProject.id)
         setCurrentProjectName(mostRecentProject.name)
+        setCurrentProjectHasGithubRepo(!!mostRecentProject.github_repo_full_name)
         sessionStorage.setItem('chromie_current_project_id', mostRecentProject.id)
       } else {
         await createDefaultProject()
@@ -179,6 +185,7 @@ export default function useProjectSetup(user, isLoading) {
     projectSetupError,
     currentProjectId,
     currentProjectName,
+    currentProjectHasGithubRepo,
     isProjectLimitModalOpen,
     projectLimitDetails,
     setProjectLimitDetails,
