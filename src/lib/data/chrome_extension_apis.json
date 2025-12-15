@@ -10,9 +10,9 @@
     },
     {
       "name": "tabs",
-      "description": "Use the chrome.tabs API to interact with the browser's tab system. You can use this API to create, modify, rearrange tabs, and communicate with tab content scripts. Most features work without permissions, but accessing sensitive properties like url, title requires the 'tabs' permission or host permissions.",
+      "description": "Use the chrome.tabs API to interact with the browser's tab system. You can use this API to create, modify, rearrange tabs, and communicate with tab content scripts. Most features work without permissions, but accessing sensitive properties like url, title requires the 'tabs' permission or host permissions. CRITICAL: When using chrome.tabs.sendMessage(), always check chrome.runtime.lastError and log chrome.runtime.lastError.message (not the object itself). Content scripts may not be injected on all pages (chrome://, extension pages, etc.).",
       "permissions": ["tabs"],
-      "code_snippet": "// Get current active tab\nlet [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });\n// Create a new tab\nchrome.tabs.create({\n  url: \"https://example.com\"\n});"
+      "code_snippet": "// Get current active tab\nchrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {\n  if (tabs.length === 0) return;\n  const tabId = tabs[0].id;\n  \n  // Send message to content script with proper error handling\n  chrome.tabs.sendMessage(tabId, { action: 'doSomething' }, (response) => {\n    if (chrome.runtime.lastError) {\n      console.error('Error:', chrome.runtime.lastError.message);\n      return;\n    }\n    // Handle response\n  });\n});\n\n// Create a new tab\nchrome.tabs.create({ url: \"https://example.com\" });"
     },
     {
       "name": "bookmarks",
@@ -123,7 +123,7 @@
     },
     {
       "name": "sidePanel",
-      "description": "Host extension content in the browser's side panel, providing persistent contextual UI alongside web content.",
+      "description": "Host extension content in the browser's side panel, providing persistent contextual UI alongside web content. Available methods: setPanelBehavior(), open(), getOptions(). CRITICAL: There are NO event listeners (no onOpen, no onClose). To detect when side panel opens, use chrome.runtime.connect() from sidepanel.js and listen with chrome.runtime.onConnect in background.js.",
       "permissions": ["sidePanel"],
       "code_snippet": "// manifest.json\n{\n  \"name\": \"My Side Panel Extension\",\n  \"manifest_version\": 3,\n  \"permissions\": [\"sidePanel\"],\n  \"side_panel\": {\n    \"default_path\": \"sidepanel.html\"\n  },\n  \"action\": {\n    \"default_title\": \"Open Side Panel\"\n  }\n}\n\n// background.js (service worker)\nchrome.runtime.onInstalled.addListener(() => {\n  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });\n});"
     },
