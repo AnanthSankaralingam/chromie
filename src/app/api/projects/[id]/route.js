@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
     // Get project details
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, name, description, created_at, last_used_at")
+      .select("id, name, description, created_at, last_used_at, github_repo_full_name, github_repo_url")
       .eq("id", id)
       .eq("user_id", user.id)
       .single()

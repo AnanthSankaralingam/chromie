@@ -12,6 +12,7 @@ import { useShareExtension } from '@/hooks/use-share-extension'
 import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
+import GithubExportStatusModal from "@/components/ui/modals/github-export-status-modal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ export default function AppBarBuilder({
   onTourTestComplete,
   onTourShareComplete,
   hasSavedAITestResults = false,
+  hasGithubRepo = false,
 }) {
   const { user } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -62,6 +64,13 @@ export default function AppBarBuilder({
     closeShareModal,
     generateShareLink
   } = useShareExtension()
+
+  const [isExportingToGithub, setIsExportingToGithub] = useState(false)
+  const [githubModalOpen, setGithubModalOpen] = useState(false)
+  const [githubModalStatus, setGithubModalStatus] = useState("idle")
+  const [githubModalMessage, setGithubModalMessage] = useState("")
+  const [githubModalRepoUrl, setGithubModalRepoUrl] = useState("")
+  const [githubModalRepoName, setGithubModalRepoName] = useState("")
 
   // Handle highlight triggers
   useEffect(() => {
@@ -108,6 +117,70 @@ export default function AppBarBuilder({
   const handlePublishClick = () => {
     console.log('[publish] open modal')
     setIsPublishOpen(true)
+  }
+
+  const handleExportToGithubClick = async () => {
+    stopAllHighlights()
+
+    if (!projectId) {
+      console.error('[github-export] No project ID available for export')
+      return
+    }
+
+    try {
+      console.log('[github-export] Starting export for project', { projectId })
+      setIsExportingToGithub(true)
+
+      const response = await fetch(`/api/projects/${projectId}/export-to-github`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const message = data.error || 'Failed to export project to GitHub'
+        console.error('[github-export] Export failed:', message)
+
+        if (response.status === 400 && message.toLowerCase().includes('github account not connected')) {
+          setGithubModalStatus("error")
+          setGithubModalMessage("Please connect your GitHub account from the Profile page first, then try exporting again.")
+          setGithubModalRepoUrl("")
+          setGithubModalRepoName("")
+          setGithubModalOpen(true)
+        } else {
+          setGithubModalStatus("error")
+          setGithubModalMessage(message)
+          setGithubModalRepoUrl("")
+          setGithubModalRepoName("")
+          setGithubModalOpen(true)
+        }
+        return
+      }
+
+      console.log('[github-export] Export completed successfully', data)
+
+      const repoFullName = data.repo?.full_name || data.repoFullName || 'GitHub repository'
+      const htmlUrl = data.repo?.html_url || data.htmlUrl
+
+      setGithubModalStatus("success")
+      setGithubModalMessage("Your project has been exported to GitHub.")
+      setGithubModalRepoUrl(htmlUrl || "")
+      setGithubModalRepoName(repoFullName)
+      setGithubModalOpen(true)
+    } catch (error) {
+      console.error('[github-export] Error exporting project to GitHub:', error)
+      setGithubModalStatus("error")
+      setGithubModalMessage(error.message || "Failed to export project to GitHub.")
+      setGithubModalRepoUrl("")
+      setGithubModalRepoName("")
+      setGithubModalOpen(true)
+    } finally {
+      setIsExportingToGithub(false)
+    }
   }
 
   const handleCreateAITestAgent = () => {
@@ -263,6 +336,9 @@ export default function AppBarBuilder({
                   onDownloadZip={handleDownloadClick}
                   onShareClick={handleShareClick}
                   onPublishClick={handlePublishClick}
+                  onExportToGithubClick={handleExportToGithubClick}
+                  isExportingToGithub={isExportingToGithub}
+                  hasGithubRepo={hasGithubRepo}
                   triggerId={tourShareButtonId}
                 />
               </div>
@@ -379,6 +455,9 @@ export default function AppBarBuilder({
                 onDownloadZip={() => { handleDownloadClick(); setIsMobileMenuOpen(false) }}
                 onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
                 onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
+                onExportToGithubClick={() => { handleExportToGithubClick(); setIsMobileMenuOpen(false) }}
+                isExportingToGithub={isExportingToGithub}
+                hasGithubRepo={hasGithubRepo}
                 className="w-full"
                 triggerId={tourShareButtonId ? `${tourShareButtonId}-mobile` : undefined}
               />
@@ -403,6 +482,14 @@ export default function AppBarBuilder({
         isGenerating={isSharing}
         error={shareError}
         successMessage={shareSuccessMessage}
+      />
+      <GithubExportStatusModal
+        isOpen={githubModalOpen}
+        onClose={() => setGithubModalOpen(false)}
+        status={githubModalStatus}
+        message={githubModalMessage}
+        repoUrl={githubModalRepoUrl}
+        repoName={githubModalRepoName}
       />
     </header>
   )
