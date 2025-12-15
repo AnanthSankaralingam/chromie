@@ -162,6 +162,21 @@ Additional indexes and constraints:
 
 ---
 
+### 10. `api_docs_cache`
+
+| Column            | Type                       | Description                              |
+| ----------------- | -------------------------- | ---------------------------------------- |
+| `id`              | `uuid` (PK)                |                                          |
+| `api_url`         | `text`                     | Canonical API root (optional, extracted) |
+| `api_name`        | `text`                     | API name (from user or extracted)        |
+| `doc_link`        | `text`                     | URL of documentation (unique)            |
+| `doc_content`     | `jsonb`                    | Structured content from Hyper Browser    |
+| `last_crawled_at` | `timestamptz`              | Crawl timestamp                          |
+| `source`          | `text`                     | `'hyperbrowser_extract'`                 |
+| `status`          | `enum('success','failed')` | Crawl result status                      |
+| `error_message`   | `text`                     | Optional failure log                     |
+
+---
 ## Project Limits by Plan
 
 | Plan    | Max Projects | Tokens | Browser Minutes | Reset Type | Description                    |
