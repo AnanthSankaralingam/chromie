@@ -9,6 +9,11 @@
 5. samples to home page for easy forking - use for outreach. put easy samples on chrome store
 6. store initial prompts for all projects, only description from manifest is saved right now.
 
+big features
+1. metrics SDK and MVP usage data in chromie
+2. integrate pricing and dashboard for tracking
+
+
 <br>
 ### BUGS
 
