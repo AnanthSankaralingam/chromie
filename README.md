@@ -1,20 +1,23 @@
 # chromie
 
+### Next big features
+1. Follow-up Conversation Prompt. Integrate tools as needed
+2. Conversation History. Don't need to store all but most recent would be useful
+3. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers
+4. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
+5. metrics SDK and MVP usage data dashboard in chromie
 
+---
 ### TODOs
-1. no hybrid ui types, i.e. popup x content injection
+1. no hybrid ui types, i.e. popup + content injection
 2. offline job for scraping api docs. live API expensive and sometimes times out (max 29s)
 3. migrate to sonnet 4.5 for coding. make easy client for model switching
 4. conversation history (sliding window of 3 turns before reintroducing code as context)
 5. samples to home page for easy forking - use for outreach. put easy samples on chrome store
 6. store initial prompts for all projects, only description from manifest is saved right now.
 
-big features
-1. metrics SDK and MVP usage data in chromie
-2. integrate pricing and dashboard for tracking
 
-
-<br>
+---
 ### BUGS
 
 <br>
