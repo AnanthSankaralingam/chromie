@@ -13,6 +13,7 @@ import {
   checkUrlRequirement,
   checkApiRequirement,
   formatExternalApisContext,
+  formatFilesAsXml,
   selectPrompt
 } from "./requirements-helpers";
 
@@ -315,7 +316,8 @@ export async function* generateChromeExtensionStream({
             filteredFiles[filename] = content;
           }
         }
-        replacements.existing_files = JSON.stringify(filteredFiles, null, 2);
+        // Format files as XML tags for universal use in patching and replacement prompts
+        replacements.existing_files = formatFilesAsXml(filteredFiles);
         console.log(
           `📋 Context includes ${
             Object.keys(filteredFiles).length

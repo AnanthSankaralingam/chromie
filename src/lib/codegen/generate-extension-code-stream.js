@@ -4,6 +4,8 @@ import { llmService } from "../services/llm-service"
 import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
 import { DEFAULT_MODEL, CONTEXT_WINDOW_MAX_TOKENS_DEFAULT } from "../constants"
 import { formatManifestJson } from "../utils/json-formatter"
+import { containsPatch, applyAllPatches, extractExplanation } from "../utils/patch-applier"
+import { validateFiles, formatErrors } from "../utils/eslint-validator"
 
 function normalizeGeneratedFileContent(str) {
   try {
@@ -209,6 +211,238 @@ async function* yieldExplanation(implementationResult, context) {
 }
 
 /**
+ * Processes patch output and applies patches to existing files
+ * @param {string} outputText - LLM response text containing patch
+ * @param {Object} existingFiles - Map of existing file paths to contents
+ * @returns {Object} - { success, updatedFiles, deletedFiles, explanation, errors }
+ */
+function processPatchOutput(outputText, existingFiles) {
+  console.log('🔧 [patch-processing] Processing patch output...')
+  
+  if (!containsPatch(outputText)) {
+    console.log('⚠️ [patch-processing] No patch detected in output')
+    return { success: false, errors: ['No valid patch found in LLM response'] }
+  }
+  
+  const patchResult = applyAllPatches(existingFiles, outputText)
+  
+  if (patchResult.success) {
+    console.log(`✅ [patch-processing] Successfully applied patches to ${Object.keys(patchResult.updatedFiles).length} files`)
+    if (patchResult.deletedFiles.length > 0) {
+      console.log(`🗑️ [patch-processing] Marked ${patchResult.deletedFiles.length} files for deletion`)
+    }
+  } else {
+    console.log(`❌ [patch-processing] Patch application had errors:`, patchResult.errors)
+  }
+  
+  return patchResult
+}
+
+/**
+ * Validates patched files and identifies failures
+ * @param {Object} patchedFiles - Map of file paths to patched contents
+ * @returns {Object} - { allValid, validFiles, failedFiles, validationResults }
+ */
+function validatePatchedFiles(patchedFiles) {
+  console.log('🔍 [validation] Validating patched files with ESLint...')
+  
+  const validationResult = validateFiles(patchedFiles)
+  
+  const validFiles = {}
+  for (const [filePath, content] of Object.entries(patchedFiles)) {
+    const result = validationResult.results[filePath]
+    if (result?.valid || result?.skipped) {
+      validFiles[filePath] = content
+    }
+  }
+  
+  if (validationResult.allValid) {
+    console.log('✅ [validation] All patched files passed validation')
+  } else {
+    console.log(`⚠️ [validation] ${validationResult.failedFiles.length} files failed validation:`, validationResult.failedFiles)
+  }
+  
+  return {
+    allValid: validationResult.allValid,
+    validFiles,
+    failedFiles: validationResult.failedFiles,
+    validationResults: validationResult.results
+  }
+}
+
+/**
+ * Creates a single-file replacement prompt for fallback
+ * @param {string} filePath - Path of the file to regenerate
+ * @param {string} originalContent - Original file content
+ * @param {string} userRequest - Original user request
+ * @param {Object} allExistingFiles - All existing files for context
+ * @param {Array} validationErrors - ESLint errors that caused the fallback
+ * @returns {string} - Prompt for regenerating the single file
+ */
+function createSingleFileReplacementPrompt(filePath, originalContent, userRequest, allExistingFiles, validationErrors) {
+  const errorContext = validationErrors
+    .map(err => `Line ${err.line}, Col ${err.column}: ${err.message}`)
+    .join('\n')
+  
+  // Get other relevant files for context (limit to avoid token explosion)
+  const contextFiles = Object.entries(allExistingFiles)
+    .filter(([path]) => path !== filePath)
+    .slice(0, 3)
+    .map(([path, content]) => `<file path="${path}">\n${content}\n</file>`)
+    .join('\n\n')
+  
+  return `You are a Chrome extension developer. A patch was applied to the following file but resulted in syntax errors.
+
+<original_request>
+${userRequest}
+</original_request>
+
+<target_file path="${filePath}">
+${originalContent}
+</target_file>
+
+<syntax_errors>
+${errorContext}
+</syntax_errors>
+
+${contextFiles ? `<context_files>\n${contextFiles}\n</context_files>` : ''}
+
+Please provide the COMPLETE corrected content for ${filePath} that:
+1. Implements the original request
+2. Fixes all syntax errors
+3. Is syntactically valid JavaScript/JSON
+
+Return ONLY the file content, no explanations or markdown code blocks.`
+}
+
+/**
+ * Handles per-file fallback for files that failed ESLint validation
+ * @param {Array} failedFiles - List of file paths that failed validation
+ * @param {Object} existingFiles - Original file contents
+ * @param {Object} validationResults - Validation results with error details
+ * @param {string} userRequest - Original user request
+ * @param {string} provider - LLM provider
+ * @param {string} model - Model to use
+ * @returns {AsyncGenerator} Yields progress and returns regenerated files
+ */
+async function* handlePerFileFallback(failedFiles, existingFiles, validationResults, userRequest, provider, model) {
+  const regeneratedFiles = {}
+  
+  for (const filePath of failedFiles) {
+    console.log(`🔄 [fallback] Regenerating ${filePath} due to validation failure...`)
+    yield { type: "phase", phase: "implementing", content: `Fixing syntax errors in ${filePath}...` }
+    
+    const originalContent = existingFiles[filePath] || ''
+    const errors = validationResults[filePath]?.errors || []
+    
+    const fallbackPrompt = createSingleFileReplacementPrompt(
+      filePath,
+      originalContent,
+      userRequest,
+      existingFiles,
+      errors
+    )
+    
+    try {
+      const response = await llmService.createResponse({
+        provider,
+        model,
+        input: fallbackPrompt,
+        temperature: 0.2,
+        max_output_tokens: 16000
+      })
+      
+      let regeneratedContent = response?.output_text || ''
+      
+      // Clean up the response - remove markdown code blocks if present
+      regeneratedContent = regeneratedContent
+        .replace(/^```(?:javascript|json|js)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim()
+      
+      regeneratedFiles[filePath] = regeneratedContent
+      console.log(`✅ [fallback] Successfully regenerated ${filePath}`)
+    } catch (error) {
+      console.error(`❌ [fallback] Failed to regenerate ${filePath}:`, error.message)
+      // Keep the original file content on failure
+      regeneratedFiles[filePath] = originalContent
+    }
+  }
+  
+  return regeneratedFiles
+}
+
+/**
+ * Processes patch mode output: applies patches, validates, handles fallback
+ * @param {string} outputText - LLM response text containing patch
+ * @param {Object} existingFiles - Original file contents
+ * @param {string} userRequest - Original user request
+ * @param {string} provider - LLM provider
+ * @param {string} model - Model to use
+ * @returns {AsyncGenerator} Yields progress events and final result
+ */
+async function* processPatchModeOutput(outputText, existingFiles, userRequest, provider, model) {
+  console.log('🔧 [patch-mode] Processing patch output...')
+  
+  // Step 1: Apply patches
+  const patchResult = processPatchOutput(outputText, existingFiles)
+  
+  if (!patchResult.success && Object.keys(patchResult.updatedFiles).length === 0) {
+    console.log('❌ [patch-mode] Patch application failed completely')
+    yield { type: "patch_failed", content: "Patch application failed" }
+    return { success: false, files: {}, explanation: patchResult.explanation, errors: patchResult.errors }
+  }
+  
+  yield { type: "phase", phase: "implementing", content: `Applied patches to ${Object.keys(patchResult.updatedFiles).length} files` }
+  
+  // Step 2: Validate patched files
+  const validationResult = validatePatchedFiles(patchResult.updatedFiles)
+  
+  let finalFiles = { ...validationResult.validFiles }
+  
+  // Step 3: Handle failed files with per-file fallback
+  if (!validationResult.allValid && validationResult.failedFiles.length > 0) {
+    console.log(`⚠️ [patch-mode] ${validationResult.failedFiles.length} files need fallback regeneration`)
+    yield { type: "phase", phase: "implementing", content: `Fixing ${validationResult.failedFiles.length} files with syntax errors...` }
+    
+    const fallbackGen = handlePerFileFallback(
+      validationResult.failedFiles,
+      existingFiles,
+      validationResult.validationResults,
+      userRequest,
+      provider,
+      model
+    )
+    
+    // Process the generator
+    let fallbackResult
+    for await (const event of fallbackGen) {
+      if (event.type) {
+        yield event
+      } else {
+        // Final return value
+        fallbackResult = event
+      }
+    }
+    
+    // Get the return value from the generator
+    if (fallbackResult) {
+      finalFiles = { ...finalFiles, ...fallbackResult }
+    }
+  }
+  
+  // Step 4: Handle deleted files
+  const deletedFiles = patchResult.deletedFiles || []
+  
+  return {
+    success: true,
+    files: finalFiles,
+    deletedFiles,
+    explanation: patchResult.explanation || extractExplanation(outputText)
+  }
+}
+
+/**
  * Saves generated files to the database
  * @param {Object} implementationResult - The parsed implementation result
  * @param {string} sessionId - Session/project identifier
@@ -398,12 +632,22 @@ function processResponseMetadata(response, conversationTokenTotal = 0) {
  * @param {Object} replacements - Object containing placeholder replacements
  * @param {string} sessionId - Session/project identifier
  * @param {boolean} skipThinking - Whether to skip the thinking phase (already done in planning)
- * @param {Object} options - Additional options including frontendType and requestType
+ * @param {Object} options - Additional options including frontendType, requestType, and patching mode settings
  * @returns {AsyncGenerator} Stream of code generation
  */
 export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false, options = {}) {
-  const { previousResponseId, conversationTokenTotal = 0, modelOverride, contextWindowMaxTokens, frontendType, requestType } = options
-  console.log("Generating extension code with streaming...")
+  const { 
+    previousResponseId, 
+    conversationTokenTotal = 0, 
+    modelOverride, 
+    contextWindowMaxTokens, 
+    frontendType, 
+    requestType,
+    usePatchingMode = false,
+    existingFilesForPatch = {},
+    userRequest = ''
+  } = options
+  console.log("Generating extension code with streaming...", usePatchingMode ? "(patching mode)" : "(replacement mode)")
   
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
@@ -433,9 +677,11 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   // Get the provider from the model
   const provider = getProviderFromModel(modelUsed)
   
-  // Select the appropriate schema using unified schema system
-  const jsonSchema = selectUnifiedSchema(provider, frontendType || 'generic', requestType || 'NEW_EXTENSION')
-  console.log(`Using ${provider} provider with schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`)
+  // Select the appropriate schema using unified schema system (skip for patching mode)
+  const jsonSchema = usePatchingMode 
+    ? null 
+    : selectUnifiedSchema(provider, frontendType || 'generic', requestType || 'NEW_EXTENSION')
+  console.log(`Using ${provider} provider ${usePatchingMode ? 'in patching mode (no schema)' : `with schema for frontend type: ${frontendType || 'generic'}, request type: ${requestType || 'NEW_EXTENSION'}`}`)
 
   // Use Responses API for both new and follow-up requests
   if (previousResponseId) {
@@ -560,35 +806,81 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
         // Process the response and yield completion
         yield { type: "complete", content: response?.output_text || "" }
 
-        // Extract and stream the explanation
-        let implementationResult
-        try {
-          const outputText = response?.output_text || ''
-          const jsonContent = extractJsonContent(outputText)
-
-          if (jsonContent) {
-            implementationResult = parseJsonWithRetry(jsonContent)
-            if (!implementationResult) {
-              throw new Error("Failed to parse JSON")
+        const outputText = response?.output_text || ''
+        
+        // Branch based on patching mode vs replacement mode
+        if (usePatchingMode && containsPatch(outputText)) {
+          // Patching mode: apply patches, validate, and handle fallback
+          console.log('🔧 [Gemini stream] Processing patch output...')
+          
+          const patchGen = processPatchModeOutput(
+            outputText,
+            existingFilesForPatch,
+            userRequest,
+            provider,
+            modelOverride || DEFAULT_MODEL
+          )
+          
+          let patchResult
+          for await (const event of patchGen) {
+            if (event && event.type) {
+              yield event
+            } else if (event && event.files) {
+              patchResult = event
             }
-            yield* yieldExplanation(implementationResult, "Gemini stream (new)")
           }
-        } catch (error) {
-          console.error("❌ Error parsing explanation from Gemini stream (new):", error)
-          yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+          
+          if (patchResult && patchResult.success) {
+            // Yield explanation from patch
+            if (patchResult.explanation) {
+              yield { type: "explanation", content: patchResult.explanation }
+            }
+            
+            // Save patched files
+            const implementationResult = { ...patchResult.files }
+            if (patchResult.explanation) {
+              implementationResult.explanation = patchResult.explanation
+            }
+            
+            const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
+            await updateProjectMetadata(sessionId, patchResult.files)
+            
+            yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+          } else {
+            console.log('⚠️ [Gemini stream] Patch mode failed, output may not contain valid patch')
+            yield { type: "phase", phase: "implementing", content: "Patch application had issues" }
+          }
+        } else {
+          // Replacement mode: parse JSON output
+          let implementationResult
+          try {
+            const jsonContent = extractJsonContent(outputText)
+
+            if (jsonContent) {
+              implementationResult = parseJsonWithRetry(jsonContent)
+              if (!implementationResult) {
+                throw new Error("Failed to parse JSON")
+              }
+              yield* yieldExplanation(implementationResult, "Gemini stream (new)")
+            }
+          } catch (error) {
+            console.error("❌ Error parsing explanation from Gemini stream (new):", error)
+            yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+          }
+          // Process and save files
+          if (implementationResult && typeof implementationResult === 'object') {
+            const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
+
+            // Get allFiles for project metadata update
+            const allFiles = { ...implementationResult }
+            delete allFiles.explanation
+
+            await updateProjectMetadata(sessionId, allFiles)
+
+            yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+          }
         }
-        // Process and save files
-        if (implementationResult && typeof implementationResult === 'object') {
-          const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
-
-          // Get allFiles for project metadata update
-          const allFiles = { ...implementationResult }
-          delete allFiles.explanation
-
-          await updateProjectMetadata(sessionId, allFiles)
-
-          yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
-        }
+        
         // Emit usage summary (thinking vs completion) if available
         if (exactTokenUsage && (typeof exactTokenUsage.thoughts_tokens === 'number' || typeof exactTokenUsage.completion_tokens === 'number')) {
           const tokenLimit = 32000 // matches max_output_tokens used for this request
@@ -627,39 +919,84 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       // Process the response and yield completion
       yield { type: "complete", content: response?.output_text || "" }
 
-      // Extract and stream the explanation
-      let implementationResult
-      try {
-        const outputText = response?.output_text || ''
-        const jsonContent = extractJsonContent(outputText)
-
-        if (jsonContent) {
-          implementationResult = parseJsonWithRetry(jsonContent)
-          if (!implementationResult) {
-            throw new Error("Failed to parse JSON")
+      const outputText = response?.output_text || ''
+      
+      // Branch based on patching mode vs replacement mode
+      if (usePatchingMode && containsPatch(outputText)) {
+        // Patching mode: apply patches, validate, and handle fallback
+        console.log('🔧 [Responses API] Processing patch output...')
+        
+        const patchGen = processPatchModeOutput(
+          outputText,
+          existingFilesForPatch,
+          userRequest,
+          provider,
+          modelOverride || DEFAULT_MODEL
+        )
+        
+        let patchResult
+        for await (const event of patchGen) {
+          if (event && event.type) {
+            yield event
+          } else if (event && event.files) {
+            patchResult = event
           }
-          yield* yieldExplanation(implementationResult, "Responses API completion (new)")
         }
-      } catch (error) {
-        console.error("❌ Error parsing explanation from Responses API completion (new):", error)
-        yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+        
+        if (patchResult && patchResult.success) {
+          // Yield explanation from patch
+          if (patchResult.explanation) {
+            yield { type: "explanation", content: patchResult.explanation }
+          }
+          
+          // Save patched files
+          const implementationResult = { ...patchResult.files }
+          if (patchResult.explanation) {
+            implementationResult.explanation = patchResult.explanation
+          }
+          
+          const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
+          await updateProjectMetadata(sessionId, patchResult.files)
+          
+          yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+        } else {
+          console.log('⚠️ [Responses API] Patch mode failed, output may not contain valid patch')
+          yield { type: "phase", phase: "implementing", content: "Patch application had issues" }
+        }
+      } else {
+        // Replacement mode: parse JSON output
+        let implementationResult
+        try {
+          const jsonContent = extractJsonContent(outputText)
+
+          if (jsonContent) {
+            implementationResult = parseJsonWithRetry(jsonContent)
+            if (!implementationResult) {
+              throw new Error("Failed to parse JSON")
+            }
+            yield* yieldExplanation(implementationResult, "Responses API completion (new)")
+          }
+        } catch (error) {
+          console.error("❌ Error parsing explanation from Responses API completion (new):", error)
+          yield { type: "phase", phase: "planning", content: "Implementation approach completed" }
+        }
+    
+        // Process and save files
+        if (implementationResult && typeof implementationResult === 'object') {
+          const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
+
+          // Get allFiles for project metadata update
+          const allFiles = { ...implementationResult }
+          delete allFiles.explanation
+
+          await updateProjectMetadata(sessionId, allFiles)
+
+          yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+        }
       }
   
-      // Process and save files
-      if (implementationResult && typeof implementationResult === 'object') {
-        const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
-
-        // Get allFiles for project metadata update
-        const allFiles = { ...implementationResult }
-        delete allFiles.explanation
-
-        await updateProjectMetadata(sessionId, allFiles)
-
-        yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
-      }
-  
-  // Emit implementing phase completion summary
-  yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
+      // Emit implementing phase completion summary
+      yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
       return
     } catch (err) {
       console.error("[generateExtensionCodeStream] LLM Service error (new)", err?.message || err)
