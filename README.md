@@ -10,6 +10,7 @@
 7. Introduce "Ask" mode
 8. Version history of extensions. Can do fuzzy Google Docs type
 9. Branding: allow for user icon upload (verify size based on store requirements, allow only up to 5 and alias them icon-16, icon-48, etc. to fit with what we already have)
+10. Security audit. Scan for risks before exporting (API keys, non-proxy or rate limited calls)
 
 ---
 ### TODOs
