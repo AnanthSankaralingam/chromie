@@ -4,7 +4,7 @@ import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup";
 import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel";
 import { NEW_EXT_NEW_TAB_PROMPT } from "../prompts/new-extension/new-tab";
 import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "../prompts/new-extension/content-injection";
-import { UPDATE_EXT_PROMPT } from "../prompts/followup/generic-no-diffs";
+import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "../prompts/followup/follow-up-file-replacement";
 import { batchScrapeWebpages } from "../webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
@@ -273,7 +273,7 @@ export async function* generateChromeExtensionStream({
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
     const prompts = {
-      UPDATE_EXT_PROMPT,
+      UPDATE_EXT_PROMPT: FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
       NEW_EXT_SIDEPANEL_PROMPT,
       NEW_EXT_POPUP_PROMPT,
       NEW_EXT_OVERLAY_PROMPT,

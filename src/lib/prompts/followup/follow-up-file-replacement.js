@@ -1,4 +1,4 @@
-export const UPDATE_EXT_PROMPT = `
+export const FOLLOW_UP_FILE_REPLACEMENT_PROMPT = `
 You are a Chrome extension development expert. Your task is to modify an existing Chrome extension to implement new features or changes based on the user's request.
 
 <user_request>
