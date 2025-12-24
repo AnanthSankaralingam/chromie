@@ -28,7 +28,8 @@
 ### BUGS
 1. show projects section first on profile page.
 2. shared links section not needed/working on /profile.
-3. can't rename projects 
+3. can't rename projects
+4. WORKSPACE_AUTH_INSTRUCTIONS (commented out) but injected into all coding prompts. needs to be conditional
 
 <br>
 ### SECURITY
