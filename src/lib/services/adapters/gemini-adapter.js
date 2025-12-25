@@ -25,7 +25,7 @@ export class GeminiAdapter {
    * @returns {Promise<Object>} Response object
    */
   async createResponse({
-    model = 'gemini-1.5-pro',
+    model = 'gemini-2.5-flash',
     input,
     response_format,
     temperature = 0.2,
@@ -51,6 +51,7 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
+      //FIXME depracated all newer models have thinking config
       // Only add thinking config for models that support it, if explicitly provided
       if (model.includes('gemini-2.5') && thinkingConfig?.includeThoughts) {
         generationConfig.thinkingConfig = thinkingConfig
@@ -75,7 +76,7 @@ export class GeminiAdapter {
         outputTokens = response.usageMetadata.candidatesTokenCount || 0
         promptTokens = response.usageMetadata.promptTokenCount || 0
         totalTokens = thoughtsTokens + outputTokens + promptTokens
-        console.log(`[gemini-adapter] Exact token usage - Prompt: ${promptTokens}, Thoughts: ${thoughtsTokens}, Output: ${outputTokens}, Total: ${totalTokens}`)
+        console.log(`[gemini-adapter] Exact token usage - ${response.usageMetadata}`)
       }
 
       // Extract content from response
@@ -112,7 +113,7 @@ export class GeminiAdapter {
    * @returns {Promise<Object>} Response object
    */
   async continueResponse({
-    model = 'gemini-1.5-pro',
+    model = 'gemini-2.5-flash',
     previous_response_id,
     input,
     response_format,
@@ -384,7 +385,7 @@ export class GeminiAdapter {
     const message = (error?.message || '').toLowerCase()
     const code = (error?.code || error?.status)?.toString().toLowerCase()
     
-    //TODO use gemini token counter instead
+    //FIXME use gemini token counter instead
     const keywords = [
       'context',
       'token',
