@@ -87,6 +87,22 @@ export function formatExternalApisContext(userProvidedApis) {
 }
 
 /**
+ * Format files as XML tags for use in prompts
+ * Universal format for both patching and replacement prompts
+ * @param {Object} files - Map of file paths to contents
+ * @returns {string} Formatted XML string with file tags
+ */
+export function formatFilesAsXml(files) {
+  if (!files || typeof files !== 'object') {
+    return '';
+  }
+
+  return Object.entries(files)
+    .map(([path, content]) => `<file path="${path}">\n${content}\n</file>`)
+    .join('\n\n');
+}
+
+/**
  * Determine which prompt to use based on request type and frontend type
  * @param {string} requestType - Type of request
  * @param {string} frontendType - Type of frontend (popup, sidepanel, overlay, new_tab, content_script_ui)
