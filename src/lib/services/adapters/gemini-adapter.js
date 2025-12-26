@@ -108,47 +108,6 @@ export class GeminiAdapter {
   }
 
   /**
-   * Continue a response using Gemini API
-   * @param {Object} params - Request parameters
-   * @returns {Promise<Object>} Response object
-   */
-  async continueResponse({
-    model = 'gemini-2.5-flash',
-    previous_response_id,
-    input,
-    response_format,
-    temperature = 0.2,
-    max_output_tokens = this.max_output_tokens,
-    conversation_history = [],
-    store = true,
-    thinkingConfig = null
-  } = {}) {
-    try {
-      console.log('[gemini-adapter] continueResponse', {
-        model,
-        has_previous_response_id: Boolean(previous_response_id),
-        has_conversation_history: conversation_history.length > 0
-      })
-
-      // For Gemini, continueResponse works the same as createResponse
-      // since we maintain conversation history in the messages
-      return await this.createResponse({
-        model,
-        input,
-        response_format,
-        temperature,
-        max_output_tokens,
-        conversation_history,
-        store,
-        thinkingConfig
-      })
-    } catch (error) {
-      console.error('[gemini-adapter] continueResponse error:', error)
-      throw error
-    }
-  }
-
-  /**
    * Stream a response using Gemini API with native SDK for thoughts support
    * @param {Object} params - Request parameters
    * @returns {AsyncGenerator<Object>} Streaming response chunks

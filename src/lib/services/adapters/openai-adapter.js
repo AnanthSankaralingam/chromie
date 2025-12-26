@@ -58,45 +58,6 @@ export class OpenAIAdapter {
   }
 
   /**
-   * Continue a response using OpenAI API
-   * @param {Object} params - Request parameters
-   * @returns {Promise<Object>} Response object
-   */
-  async continueResponse({
-    model = 'gpt-4o',
-    previous_response_id,
-    input,
-    response_format,
-    temperature = 0.2,
-    max_output_tokens = 4096,
-    conversation_history = [],
-    store = true
-  } = {}) {
-    try {
-      console.log('[openai-adapter] continueResponse', {
-        model,
-        has_previous_response_id: Boolean(previous_response_id),
-        has_conversation_history: conversation_history.length > 0
-      })
-
-      // For OpenAI, continueResponse works the same as createResponse
-      // since we maintain conversation history in the messages
-      return await this.createResponse({
-        model,
-        input,
-        response_format,
-        temperature,
-        max_output_tokens,
-        conversation_history,
-        store
-      })
-    } catch (error) {
-      console.error('[openai-adapter] continueResponse error:', error)
-      throw error
-    }
-  }
-
-  /**
    * Stream a response using OpenAI API
    * @param {Object} params - Request parameters
    * @returns {AsyncGenerator<Object>} Streaming response chunks

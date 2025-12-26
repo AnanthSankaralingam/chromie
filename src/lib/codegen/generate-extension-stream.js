@@ -35,7 +35,6 @@ export async function* generateChromeExtensionStream({
   userProvidedUrl = null,
   userProvidedApis = null,
   skipScraping = false,
-  previousResponseId,
   conversationTokenTotal,
   modelOverride,
   contextWindowMaxTokens,
@@ -307,8 +306,8 @@ export async function* generateChromeExtensionStream({
         ext_name: requirementsAnalysis.ext_name || "Existing Extension"
       };
 
-      // Add existing files context only if NOT using a previousResponseId
-      if (!previousResponseId && Object.keys(existingFiles).length > 0) {
+      // Add existing files context for modifications
+      if (Object.keys(existingFiles).length > 0) {
         console.log("📁 Including existing files context for modification");
         const filteredFiles = {};
         for (const [filename, content] of Object.entries(existingFiles)) {
@@ -327,8 +326,6 @@ export async function* generateChromeExtensionStream({
           type: "context_ready",
           content: "context_ready"
         };
-      } else if (previousResponseId) {
-        console.log("[generateChromeExtensionStream] skipping existing files context due to previousResponseId");
       }
     } else {
       // For new extensions: use planning outputs
@@ -369,12 +366,12 @@ export async function* generateChromeExtensionStream({
         replacements,
         sessionId,
         true, {
-          previousResponseId,
           conversationTokenTotal,
           modelOverride,
           contextWindowMaxTokens,
           frontendType: requirementsAnalysis.frontend_type,
           requestType: requestType,
+          originalUserRequest: featureRequest, // For clean history storage
         }
       )) {
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'

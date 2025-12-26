@@ -115,10 +115,9 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, previousResponseId, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage } = await request.json()
 
     console.log('[api/generate/stream] received', {
-      has_previousResponseId: Boolean(previousResponseId),
       conversationTokenTotal_in: conversationTokenTotal ?? null,
       modelOverride: modelOverride || null,
       contextWindowMaxTokens: contextWindowMaxTokens || null,
@@ -208,7 +207,6 @@ export async function POST(request) {
             userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
             userProvidedApis: userProvidedApis || null,
             skipScraping: !!skipScraping,
-            previousResponseId,
             conversationTokenTotal,
             modelOverride,
             contextWindowMaxTokens,
@@ -219,12 +217,15 @@ export async function POST(request) {
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
             
             // Track token usage from chunks
-            if (chunk.type === "response_id" && typeof chunk.tokensUsedThisRequest === 'number') {
-              accumulatedTokens = chunk.tokensUsedThisRequest
-            } else if (chunk.type === "token_usage" && chunk.usage) {
-              const total = chunk.usage.total_tokens || chunk.usage.total || 0
-              if (total > 0) accumulatedTokens = total
-              if (chunk.usage.model) modelUsed = chunk.usage.model
+            if (chunk.type === "token_usage") {
+              // Handle both formats: { total } and { usage: { total_tokens } }
+              if (typeof chunk.total === 'number' && chunk.total > 0) {
+                accumulatedTokens = chunk.total
+              } else if (chunk.usage) {
+                const total = chunk.usage.total_tokens || chunk.usage.total || 0
+                if (total > 0) accumulatedTokens = total
+                if (chunk.usage.model) modelUsed = chunk.usage.model
+              }
             } else if (chunk.type === "usage_summary") {
               const thinking = chunk.thinking_tokens || 0
               const completion = chunk.completion_tokens || 0

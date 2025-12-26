@@ -5,13 +5,11 @@ import StreamingChat from "@/components/ui/chat/streaming-chat"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 
 export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting }) {
-  const [previousResponseId, setPreviousResponseId] = useState(null)
   const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
   const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
 
   useEffect(() => {
     // Reset on navigation/refresh: local-only state
-    setPreviousResponseId(null)
     setConversationTokenTotal(0)
     console.log('[client/ai-chat] reset conversation state')
   }, [projectId])
@@ -32,8 +30,6 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
         chatWidth={chatWidth}
         isProjectReady={isProjectReady}
         isOnboardingModalOpen={isOnboardingModalOpen}
-        previousResponseId={previousResponseId}
-        setPreviousResponseId={setPreviousResponseId}
         conversationTokenTotal={conversationTokenTotal}
         setConversationTokenTotal={setConversationTokenTotal}
         onShowTokenLimitModal={() => setShowTokenLimitModal(true)}

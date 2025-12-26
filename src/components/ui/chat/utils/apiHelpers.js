@@ -54,7 +54,6 @@ export function buildGeneratePayload({
   prompt,
   projectId,
   requestType,
-  previousResponseId,
   conversationTokenTotal,
   modelOverride,
   userProvidedUrl = null,
@@ -66,7 +65,6 @@ export function buildGeneratePayload({
     prompt,
     projectId,
     requestType,
-    previousResponseId,
     conversationTokenTotal,
     modelOverride,
   }
