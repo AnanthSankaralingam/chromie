@@ -26,7 +26,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   const thinkingMessageIndexRef = useRef(null)
   const explanationBufferRef = useRef("")
   const sentGeneratingMessageRef = useRef(false)
-  const previousResponseIdRef = useRef(null)
   const filesSavedRef = useRef(false)
   const doneReceivedRef = useRef(false)
   const hasShownStartMessageRef = useRef(false)
@@ -54,7 +53,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
 
   // Reset conversation state on project change
   useEffect(() => {
-    previousResponseIdRef.current = null
     setConversationTokenTotal(0)
   }, [projectId])
 
@@ -147,7 +145,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     thinkingMessageIndexRef,
     explanationBufferRef,
     sentGeneratingMessageRef,
-    previousResponseIdRef,
     filesSavedRef,
     doneReceivedRef,
     hasShownStartMessageRef,

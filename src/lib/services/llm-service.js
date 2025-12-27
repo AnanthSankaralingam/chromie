@@ -51,7 +51,13 @@ export class LLMService {
       // Get conversation history if session_id is provided
       let conversation_history = []
       if (session_id) {
-        conversation_history = this.chatMessages.getHistory(session_id)
+        conversation_history = await this.chatMessages.getHistory(session_id)
+        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
+          JSON.stringify(conversation_history.map(m => ({
+            role: m.role,
+            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
+          })), null, 2)
+        )
       }
 
       // Create the response using the adapter
@@ -68,11 +74,11 @@ export class LLMService {
 
       // Store the response in conversation history if session_id is provided
       if (session_id && store) {
-        this.chatMessages.addMessage(session_id, {
+        await this.chatMessages.addMessage(session_id, {
           role: 'user',
           content: typeof input === 'string' ? input : JSON.stringify(input)
         })
-        this.chatMessages.addMessage(session_id, {
+        await this.chatMessages.addMessage(session_id, {
           role: 'assistant',
           content: response.output_text || response.choices?.[0]?.message?.content || ''
         })
@@ -81,85 +87,6 @@ export class LLMService {
       return response
     } catch (error) {
       console.error('[llm-service] createResponse error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Continue a conversation using the specified provider and model
-   * @param {Object} params - Request parameters
-   * @param {string} params.provider - Provider name (openai, anthropic, gemini)
-   * @param {string} params.model - Model name
-   * @param {string} params.previous_response_id - ID of previous response
-   * @param {string|Array} params.input - Input text or messages
-   * @param {Object} params.response_format - Response format configuration
-   * @param {number} params.temperature - Temperature setting
-   * @param {number} params.max_output_tokens - Maximum output tokens
-   * @param {string} params.session_id - Session ID for conversation history
-   * @param {boolean} params.store - Whether to store the response
-   * @returns {Promise<Object>} Response object
-   */
-  async continueResponse({
-    provider = 'openai',
-    model,
-    previous_response_id,
-    input,
-    response_format,
-    temperature = 0.2,
-    max_output_tokens = 4096,
-    session_id,
-    store = true,
-    thinkingConfig = null
-  } = {}) {
-    try {
-      console.log('[llm-service] continueResponse', {
-        provider,
-        model,
-        has_previous_response_id: Boolean(previous_response_id),
-        has_session_id: Boolean(session_id),
-        has_thinkingConfig: Boolean(thinkingConfig)
-      })
-
-      // Get the appropriate adapter
-      const adapter = this.providerRegistry.getAdapter(provider)
-      if (!adapter) {
-        throw new Error(`Provider '${provider}' not found`)
-      }
-
-      // Get conversation history if session_id is provided
-      let conversation_history = []
-      if (session_id) {
-        conversation_history = this.chatMessages.getHistory(session_id)
-      }
-
-      // Continue the response using the adapter
-      const response = await adapter.continueResponse({
-        model,
-        previous_response_id,
-        input,
-        response_format,
-        temperature,
-        max_output_tokens,
-        conversation_history,
-        store,
-        thinkingConfig
-      })
-
-      // Store the response in conversation history if session_id is provided
-      if (session_id && store) {
-        this.chatMessages.addMessage(session_id, {
-          role: 'user',
-          content: typeof input === 'string' ? input : JSON.stringify(input)
-        })
-        this.chatMessages.addMessage(session_id, {
-          role: 'assistant',
-          content: response.output_text || response.choices?.[0]?.message?.content || ''
-        })
-      }
-
-      return response
-    } catch (error) {
-      console.error('[llm-service] continueResponse error:', error)
       throw error
     }
   }
@@ -203,7 +130,13 @@ export class LLMService {
       // Get conversation history if session_id is provided
       let conversation_history = []
       if (session_id) {
-        conversation_history = this.chatMessages.getHistory(session_id)
+        conversation_history = await this.chatMessages.getHistory(session_id)
+        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
+          JSON.stringify(conversation_history.map(m => ({
+            role: m.role,
+            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
+          })), null, 2)
+        )
       }
 
       // Stream the response using the adapter
@@ -237,8 +170,8 @@ export class LLMService {
    * Clear conversation history for a session
    * @param {string} session_id - Session ID
    */
-  clearConversationHistory(session_id) {
-    this.chatMessages.clearHistory(session_id)
+  async clearConversationHistory(session_id) {
+    await this.chatMessages.clearHistory(session_id)
   }
 
   /**

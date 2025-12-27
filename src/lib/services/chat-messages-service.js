@@ -1,95 +1,122 @@
 // chat-messages-service.js
-// In-memory conversation history management service
+// Database-backed conversation history management service (JSONB schema)
+import { createServiceClient } from '@/lib/supabase/service'
+
 export class ChatMessagesService {
   constructor() {
-    // Store conversations by session ID
-    this.conversations = new Map()
-    
+    // Initialize Supabase client with service role for server-side operations
+    this.supabase = createServiceClient()
+
     // Configuration
-    this.maxHistoryLength = 50 // Maximum number of messages per conversation
-    this.maxSessions = 1000 // Maximum number of active sessions
+    this.conversationExpiryHours = 2 // Messages older than this are automatically filtered
+
+    console.log('[chat-messages-service] Initialized with JSONB schema')
   }
 
   /**
-   * Add a message to a conversation
-   * @param {string} sessionId - Session ID
+   * Add a message to a conversation using atomic PostgreSQL function
+   * @param {string} sessionId - Session ID (maps to project_id)
    * @param {Object} message - Message object
    * @param {string} message.role - Message role (user, assistant, system)
    * @param {string} message.content - Message content
-   * @param {Object} message.metadata - Optional metadata
    */
-  addMessage(sessionId, message) {
+  async addMessage(sessionId, message) {
     if (!sessionId || !message) {
       console.warn('[chat-messages-service] Invalid sessionId or message')
       return
     }
 
-    // Initialize conversation if it doesn't exist
-    if (!this.conversations.has(sessionId)) {
-      this.conversations.set(sessionId, [])
+    if (!this.supabase) {
+      console.warn('[chat-messages-service] Supabase not initialized - skipping message storage')
+      return
     }
 
-    const conversation = this.conversations.get(sessionId)
-    
-    // Add timestamp if not provided
-    if (!message.timestamp) {
-      message.timestamp = new Date().toISOString()
+    try {
+      // Use PostgreSQL function for atomic append with cleanup
+      const { data, error } = await this.supabase
+        .rpc('add_conversation_message', {
+          p_project_id: sessionId,
+          p_role: message.role,
+          p_content: message.content,
+          p_expiry_hours: this.conversationExpiryHours
+        })
+
+      if (error) {
+        console.error('[chat-messages-service] Error adding message:', error)
+        return
+      }
+
+      console.log('[chat-messages-service] Added message to database', {
+        sessionId,
+        role: message.role,
+        contentLength: message.content?.length || 0,
+        totalMessages: Array.isArray(data) ? data.length : 0
+      })
+    } catch (error) {
+      console.error('[chat-messages-service] Exception adding message:', error)
     }
-
-    // Add message ID if not provided
-    if (!message.id) {
-      message.id = `${sessionId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    }
-
-    // Add the message
-    conversation.push(message)
-
-    // Trim conversation if it exceeds max length
-    if (conversation.length > this.maxHistoryLength) {
-      conversation.splice(0, conversation.length - this.maxHistoryLength)
-    }
-
-    // Clean up old sessions if we exceed the limit
-    this.cleanupOldSessions()
-
-    console.log('[chat-messages-service] Added message', {
-      sessionId,
-      messageId: message.id,
-      role: message.role,
-      contentLength: message.content?.length || 0,
-      conversationLength: conversation.length
-    })
   }
 
   /**
    * Get conversation history for a session
-   * @param {string} sessionId - Session ID
+   * Returns entire history array - no filtering (PostgreSQL function handles expiry on write)
+   * @param {string} sessionId - Session ID (maps to project_id)
    * @param {number} limit - Maximum number of messages to return (optional)
-   * @returns {Array} Conversation history
+   * @returns {Promise<Array>} Conversation history
    */
-  getHistory(sessionId, limit = null) {
+  async getHistory(sessionId, limit = null) {
     if (!sessionId) {
       console.warn('[chat-messages-service] Invalid sessionId')
       return []
     }
 
-    const conversation = this.conversations.get(sessionId) || []
-    
-    if (limit && limit > 0) {
-      return conversation.slice(-limit)
+    if (!this.supabase) {
+      console.warn('[chat-messages-service] Supabase not initialized - returning empty history')
+      return []
     }
 
-    return [...conversation] // Return a copy to prevent external modification
+    try {
+      const { data, error } = await this.supabase
+        .from('conversations')
+        .select('history')
+        .eq('project_id', sessionId)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found - this is expected for new projects
+          return []
+        }
+        console.error('[chat-messages-service] Error fetching history:', error)
+        return []
+      }
+
+      const history = Array.isArray(data?.history) ? data.history : []
+
+      // Apply limit if specified (get most recent messages)
+      const finalHistory = limit && limit > 0 ? history.slice(-limit) : history
+
+      console.log('[chat-messages-service] getHistory', {
+        sessionId,
+        messageCount: finalHistory.length,
+        limit
+      })
+
+      return finalHistory
+    } catch (error) {
+      console.error('[chat-messages-service] Exception fetching history:', error)
+      return []
+    }
   }
 
   /**
    * Get the last N messages from a conversation
    * @param {string} sessionId - Session ID
    * @param {number} count - Number of messages to return
-   * @returns {Array} Last N messages
+   * @returns {Promise<Array>} Last N messages
    */
-  getLastMessages(sessionId, count = 1) {
-    const conversation = this.getHistory(sessionId)
+  async getLastMessages(sessionId, count = 1) {
+    const conversation = await this.getHistory(sessionId)
     return conversation.slice(-count)
   }
 
@@ -97,10 +124,10 @@ export class ChatMessagesService {
    * Get messages by role from a conversation
    * @param {string} sessionId - Session ID
    * @param {string} role - Message role to filter by
-   * @returns {Array} Messages with the specified role
+   * @returns {Promise<Array>} Messages with the specified role
    */
-  getMessagesByRole(sessionId, role) {
-    const conversation = this.getHistory(sessionId)
+  async getMessagesByRole(sessionId, role) {
+    const conversation = await this.getHistory(sessionId)
     return conversation.filter(message => message.role === role)
   }
 
@@ -108,32 +135,42 @@ export class ChatMessagesService {
    * Clear conversation history for a session
    * @param {string} sessionId - Session ID
    */
-  clearHistory(sessionId) {
+  async clearHistory(sessionId) {
     if (!sessionId) {
       console.warn('[chat-messages-service] Invalid sessionId')
       return
     }
 
-    this.conversations.delete(sessionId)
-    console.log('[chat-messages-service] Cleared history for session', { sessionId })
-  }
+    if (!this.supabase) {
+      console.warn('[chat-messages-service] Supabase not initialized')
+      return
+    }
 
-  /**
-   * Clear all conversation histories
-   */
-  clearAllHistories() {
-    this.conversations.clear()
-    console.log('[chat-messages-service] Cleared all conversation histories')
+    try {
+      const { error } = await this.supabase
+        .from('conversations')
+        .delete()
+        .eq('project_id', sessionId)
+
+      if (error) {
+        console.error('[chat-messages-service] Error clearing history:', error)
+        return
+      }
+
+      console.log('[chat-messages-service] Cleared history for session', { sessionId })
+    } catch (error) {
+      console.error('[chat-messages-service] Exception clearing history:', error)
+    }
   }
 
   /**
    * Get conversation statistics
    * @param {string} sessionId - Session ID
-   * @returns {Object} Conversation statistics
+   * @returns {Promise<Object>} Conversation statistics
    */
-  getConversationStats(sessionId) {
-    const conversation = this.getHistory(sessionId)
-    
+  async getConversationStats(sessionId) {
+    const conversation = await this.getHistory(sessionId)
+
     const stats = {
       totalMessages: conversation.length,
       userMessages: conversation.filter(m => m.role === 'user').length,
@@ -148,103 +185,80 @@ export class ChatMessagesService {
   }
 
   /**
-   * Get all active session IDs
-   * @returns {Array<string>} List of active session IDs
+   * Get all active session IDs (projects with recent conversation history)
+   * @returns {Promise<Array<string>>} List of active session IDs
    */
-  getActiveSessions() {
-    return Array.from(this.conversations.keys())
+  async getActiveSessions() {
+    if (!this.supabase) {
+      console.warn('[chat-messages-service] Supabase not initialized')
+      return []
+    }
+
+    try {
+      // Calculate cutoff time (2 hours ago)
+      const cutoffTime = new Date()
+      cutoffTime.setHours(cutoffTime.getHours() - this.conversationExpiryHours)
+
+      const { data, error } = await this.supabase
+        .from('conversations')
+        .select('project_id')
+        .gte('updated_at', cutoffTime.toISOString())
+
+      if (error) {
+        console.error('[chat-messages-service] Error fetching active sessions:', error)
+        return []
+      }
+
+      // Get unique project IDs
+      const uniqueProjectIds = [...new Set((data || []).map(row => row.project_id))]
+      return uniqueProjectIds.filter(id => id !== null)
+    } catch (error) {
+      console.error('[chat-messages-service] Exception fetching active sessions:', error)
+      return []
+    }
   }
 
   /**
    * Get total number of active sessions
-   * @returns {number} Number of active sessions
+   * @returns {Promise<number>} Number of active sessions
    */
-  getActiveSessionCount() {
-    return this.conversations.size
+  async getActiveSessionCount() {
+    const sessions = await this.getActiveSessions()
+    return sessions.length
   }
 
   /**
    * Check if a session exists
    * @param {string} sessionId - Session ID
-   * @returns {boolean} Whether the session exists
+   * @returns {Promise<boolean>} Whether the session exists
    */
-  hasSession(sessionId) {
-    return this.conversations.has(sessionId)
-  }
-
-  /**
-   * Clean up old sessions to prevent memory leaks
-   * @private
-   */
-  cleanupOldSessions() {
-    if (this.conversations.size <= this.maxSessions) {
-      return
-    }
-
-    // Get sessions sorted by last activity (oldest first)
-    const sessions = Array.from(this.conversations.entries())
-      .map(([sessionId, conversation]) => ({
-        sessionId,
-        lastActivity: conversation[conversation.length - 1]?.timestamp || '1970-01-01T00:00:00.000Z'
-      }))
-      .sort((a, b) => new Date(a.lastActivity) - new Date(b.lastActivity))
-
-    // Remove oldest sessions until we're under the limit
-    const sessionsToRemove = sessions.slice(0, sessions.length - this.maxSessions)
-    sessionsToRemove.forEach(({ sessionId }) => {
-      this.conversations.delete(sessionId)
-    })
-
-    console.log('[chat-messages-service] Cleaned up old sessions', {
-      removed: sessionsToRemove.length,
-      remaining: this.conversations.size
-    })
-  }
-
-  /**
-   * Export conversation data for a session
-   * @param {string} sessionId - Session ID
-   * @returns {Object|null} Exported conversation data or null if session doesn't exist
-   */
-  exportConversation(sessionId) {
-    const conversation = this.getHistory(sessionId)
-    if (conversation.length === 0) {
-      return null
-    }
-
-    return {
-      sessionId,
-      exportedAt: new Date().toISOString(),
-      messageCount: conversation.length,
-      messages: conversation
-    }
-  }
-
-  /**
-   * Import conversation data
-   * @param {Object} data - Exported conversation data
-   * @returns {boolean} Whether the import was successful
-   */
-  importConversation(data) {
-    if (!data || !data.sessionId || !Array.isArray(data.messages)) {
-      console.warn('[chat-messages-service] Invalid conversation data for import')
+  async hasSession(sessionId) {
+    if (!sessionId || !this.supabase) {
       return false
     }
 
-    // Clear existing conversation for this session
-    this.clearHistory(data.sessionId)
+    try {
+      // Calculate cutoff time (2 hours ago)
+      const cutoffTime = new Date()
+      cutoffTime.setHours(cutoffTime.getHours() - this.conversationExpiryHours)
 
-    // Import messages
-    data.messages.forEach(message => {
-      this.addMessage(data.sessionId, message)
-    })
+      const { data, error } = await this.supabase
+        .from('conversations')
+        .select('id')
+        .eq('project_id', sessionId)
+        .gte('updated_at', cutoffTime.toISOString())
+        .limit(1)
 
-    console.log('[chat-messages-service] Imported conversation', {
-      sessionId: data.sessionId,
-      messageCount: data.messages.length
-    })
+      if (error) {
+        console.error('[chat-messages-service] Error checking session:', error)
+        return false
+      }
 
-    return true
+      return (data || []).length > 0
+    } catch (error) {
+      console.error('[chat-messages-service] Exception checking session:', error)
+      return false
+    }
   }
 }
 

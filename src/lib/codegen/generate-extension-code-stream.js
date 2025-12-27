@@ -15,27 +15,44 @@ import { saveFilesToDatabase, updateProjectMetadata } from "./file-saver"
  * Processes response metadata and returns token usage info
  * @param {Object} response - LLM response object
  * @param {number} conversationTokenTotal - Running total of conversation tokens
- * @returns {Object} Object containing nextResponseId, tokensUsedThisRequest, nextConversationTokenTotal
+ * @returns {Object} Object containing tokensUsedThisRequest
  */
 function processResponseMetadata(response, conversationTokenTotal = 0) {
   const tokensUsedThisRequest = response?.usage?.total_tokens || response?.usage?.total || 0
-  const nextConversationTokenTotal = (conversationTokenTotal || 0) + (tokensUsedThisRequest || 0)
-  const nextResponseId = response?.id || null
-
-  return { nextResponseId, tokensUsedThisRequest, nextConversationTokenTotal }
+  return { tokensUsedThisRequest }
 }
 
 /**
- * Yields explanation from implementation result
+ * Stores clean conversation history (user query + explanation only, no code)
+ * @param {string} sessionId - Session/project identifier
+ * @param {string} originalUserRequest - Original natural language request
+ * @param {string} explanation - AI explanation text (no code)
+ */
+async function storeConversationHistory(sessionId, originalUserRequest, explanation) {
+  if (!sessionId || !originalUserRequest) {
+    console.log('[conversation-history] Skipping storage - missing sessionId or originalUserRequest')
+    return
+  }
+
+  await llmService.chatMessages.addMessage(sessionId, { role: 'user', content: originalUserRequest })
+  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: explanation })
+  console.log(`✅ [conversation-history] Stored user query and explanation (${explanation.length} chars)`)
+}
+
+/**
+ * Yields explanation from implementation result and returns the explanation text
  */
 async function* yieldExplanation(implementationResult, context) {
+  let explanation = "Implementation complete."
   if (implementationResult?.explanation) {
     console.log(`📝 Extracted explanation from ${context}`)
-    yield { type: "explanation", content: implementationResult.explanation }
+    explanation = implementationResult.explanation
+    yield { type: "explanation", content: explanation }
   } else {
     console.log(`⚠️ No explanation found in ${context}`)
-    yield { type: "explanation", content: "Implementation complete." }
+    yield { type: "explanation", content: explanation }
   }
+  return explanation
 }
 
 /**
@@ -53,7 +70,7 @@ function getProviderFromModel(model) {
 /**
  * Handles patching mode output processing
  */
-async function* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, model, sessionId, replacements) {
+async function* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, model, sessionId, replacements, originalUserRequest = '') {
   console.log('🔧 Processing patch output...')
   
   const patchGen = processPatchModeOutput(outputText, existingFilesForPatch, userRequest, provider, model)
@@ -68,6 +85,7 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
   }
   
   if (patchResult?.success) {
+    const explanation = patchResult.explanation || "Implementation complete."
     if (patchResult.explanation) {
       yield { type: "explanation", content: patchResult.explanation }
     }
@@ -81,6 +99,9 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
     await updateProjectMetadata(sessionId, patchResult.files)
     
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+
+    // Store clean conversation history after successful generation
+    await storeConversationHistory(sessionId, originalUserRequest, explanation)
     return true
   }
   
@@ -92,8 +113,9 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
 /**
  * Handles replacement mode (JSON) output processing
  */
-async function* handleReplacementMode(outputText, sessionId, replacements, context) {
+async function* handleReplacementMode(outputText, sessionId, replacements, context, originalUserRequest = '') {
   let implementationResult
+  let explanation = "Implementation complete."
   try {
     const jsonContent = extractJsonContent(outputText)
     if (jsonContent) {
@@ -101,7 +123,13 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
       if (!implementationResult) {
         throw new Error("Failed to parse JSON")
       }
-      yield* yieldExplanation(implementationResult, context)
+      // Yield explanation and capture the text for history storage
+      for await (const event of yieldExplanation(implementationResult, context)) {
+        yield event
+        if (event.type === "explanation") {
+          explanation = event.content
+        }
+      }
     }
   } catch (error) {
     console.error(`❌ Error parsing from ${context}:`, error)
@@ -116,6 +144,9 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
     
     await updateProjectMetadata(sessionId, allFiles)
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
+
+    // Store clean conversation history after successful generation
+    await storeConversationHistory(sessionId, originalUserRequest, explanation)
   }
 }
 
@@ -130,14 +161,14 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
  */
 export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false, options = {}) {
   const { 
-    previousResponseId, 
     conversationTokenTotal = 0, 
     modelOverride, 
     frontendType, 
     requestType,
     usePatchingMode = false,
     existingFilesForPatch = {},
-    userRequest = ''
+    userRequest = '',
+    originalUserRequest = '' // Original natural language request for clean history storage
   } = options
   
   console.log("Generating extension code with streaming...", usePatchingMode ? "(patching mode)" : "(replacement mode)")
@@ -164,26 +195,23 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   console.log(`Using ${provider} provider ${usePatchingMode ? 'in patching mode (no schema)' : `with schema for frontend type: ${frontendType || 'generic'}`}`)
 
   try {
-    // Handle continuation of previous response
-    if (previousResponseId) {
-      yield* handlePreviousResponseFlow(provider, modelOverride, previousResponseId, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest)
-      return
-    }
-
     // Handle new request with Gemini streaming
     if (provider === 'gemini') {
-      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest)
+      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest)
       return
     }
 
     // Handle new request with other providers
-    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest)
+    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest)
     
   } catch (err) {
     console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
     const adapter = llmService.providerRegistry.getAdapter(provider)
     if (adapter?.isContextLimitError?.(err)) {
-      yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: conversationTokenTotal }
+      // Clear conversation history to resolve context limit
+      await llmService.clearConversationHistory(sessionId)
+      console.log("[generateExtensionCodeStream] Cleared conversation history due to context limit")
+      yield { type: "context_window", content: "Context limit reached. Conversation history has been cleared.", total: conversationTokenTotal }
       return
     }
     throw err
@@ -191,43 +219,9 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 }
 
 /**
- * Handles flow when continuing a previous response
- */
-async function* handlePreviousResponseFlow(provider, modelOverride, previousResponseId, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest) {
-  const response = await llmService.continueResponse({
-    provider,
-    model: modelOverride || DEFAULT_MODEL,
-    previous_response_id: previousResponseId,
-    input: finalPrompt,
-    store: true,
-    temperature: 0.2,
-    max_output_tokens: 32000,
-    response_format: jsonSchema,
-    session_id: sessionId,
-    thinkingConfig: { includeThoughts: true }
-  })
-  
-  const { nextResponseId, tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
-  console.log("[generateExtensionCodeStream] Responses API tokens", { tokensUsedThisRequest, nextResponseId })
-
-  yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
-  yield { type: "complete", content: response?.output_text || "" }
-
-  const outputText = response?.output_text || ''
-  
-  if (usePatchingMode && containsPatch(outputText)) {
-    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements)
-  } else {
-    yield* handleReplacementMode(outputText, sessionId, replacements, "Responses API completion")
-  }
-  
-  yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
-}
-
-/**
  * Handles Gemini streaming flow
  */
-async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest) {
+async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest) {
   console.log("[generateExtensionCodeStream] Using Gemini streaming")
   
   let combinedText = ''
@@ -254,17 +248,17 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
   }
   
   const response = { output_text: combinedText, usage: exactTokenUsage || { total_tokens: 0 } }
-  const { nextResponseId, tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
+  const { tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
   
-  console.log("[generateExtensionCodeStream] Gemini streaming tokens", { tokensUsedThisRequest, nextResponseId })
+  console.log("[generateExtensionCodeStream] Gemini streaming tokens", { tokensUsedThisRequest })
 
-  yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
+  yield { type: "token_usage", total: tokensUsedThisRequest }
   yield { type: "complete", content: combinedText }
 
   if (usePatchingMode && containsPatch(combinedText)) {
-    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements)
+    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
   } else {
-    yield* handleReplacementMode(combinedText, sessionId, replacements, "Gemini stream")
+    yield* handleReplacementMode(combinedText, sessionId, replacements, "Gemini stream", originalUserRequest)
   }
   
   // Emit usage summary if available
@@ -283,14 +277,14 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
 /**
  * Handles standard (non-streaming) response flow
  */
-async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest) {
+async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest) {
   console.log("[generateExtensionCodeStream] Using Responses API (new)")
   
   const response = await llmService.createResponse({
     provider,
     model: modelOverride || DEFAULT_MODEL,
     input: finalPrompt,
-    store: true,
+    store: false, // Manual history storage handles clean content
     temperature: 0.2,
     max_output_tokens: 32000,
     response_format: jsonSchema,
@@ -298,18 +292,18 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
     thinkingConfig: { includeThoughts: true }
   })
   
-  const { nextResponseId, tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
-  console.log("[generateExtensionCodeStream] Responses API tokens (new)", { tokensUsedThisRequest, nextResponseId })
+  const { tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
+  console.log("[generateExtensionCodeStream] Responses API tokens", { tokensUsedThisRequest })
 
-  yield { type: "response_id", id: nextResponseId, tokensUsedThisRequest }
+  yield { type: "token_usage", total: tokensUsedThisRequest }
   yield { type: "complete", content: response?.output_text || "" }
 
   const outputText = response?.output_text || ''
   
   if (usePatchingMode && containsPatch(outputText)) {
-    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements)
+    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
   } else {
-    yield* handleReplacementMode(outputText, sessionId, replacements, "Responses API completion (new)")
+    yield* handleReplacementMode(outputText, sessionId, replacements, "Responses API completion (new)", originalUserRequest)
   }
   
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }

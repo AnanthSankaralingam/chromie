@@ -12,8 +12,6 @@ export function createStreamEventHandler(context) {
     setIsGenerationComplete,
     explanationBufferRef,
     thinkingChunkCountRef,
-    previousResponseIdRef,
-    conversationTokenTotal,
     filesSavedRef,
     doneReceivedRef,
     hasShownStartMessageRef,
@@ -76,14 +74,6 @@ export function createStreamEventHandler(context) {
         addNewAssistantMessage("Context limit reached. Please start a new conversation.")
         if (typeof data.total === "number") {
           setConversationTokenTotal(data.total)
-        }
-        break
-
-      case "response_id":
-        previousResponseIdRef.current = data.id
-        if (typeof data.tokensUsedThisRequest === "number") {
-          const nextTotal = (conversationTokenTotal || 0) + data.tokensUsedThisRequest
-          setConversationTokenTotal(nextTotal)
         }
         break
 
