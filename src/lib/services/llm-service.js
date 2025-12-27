@@ -51,11 +51,11 @@ export class LLMService {
       // Get conversation history if session_id is provided
       let conversation_history = []
       if (session_id) {
-        conversation_history = this.chatMessages.getHistory(session_id)
-        console.log('[llm-service] Retrieved conversation history for session', session_id, ':', 
-          JSON.stringify(conversation_history.map(m => ({ 
-            role: m.role, 
-            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '') 
+        conversation_history = await this.chatMessages.getHistory(session_id)
+        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
+          JSON.stringify(conversation_history.map(m => ({
+            role: m.role,
+            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
           })), null, 2)
         )
       }
@@ -74,11 +74,11 @@ export class LLMService {
 
       // Store the response in conversation history if session_id is provided
       if (session_id && store) {
-        this.chatMessages.addMessage(session_id, {
+        await this.chatMessages.addMessage(session_id, {
           role: 'user',
           content: typeof input === 'string' ? input : JSON.stringify(input)
         })
-        this.chatMessages.addMessage(session_id, {
+        await this.chatMessages.addMessage(session_id, {
           role: 'assistant',
           content: response.output_text || response.choices?.[0]?.message?.content || ''
         })
@@ -130,11 +130,11 @@ export class LLMService {
       // Get conversation history if session_id is provided
       let conversation_history = []
       if (session_id) {
-        conversation_history = this.chatMessages.getHistory(session_id)
-        console.log('[llm-service] Retrieved conversation history for session', session_id, ':', 
-          JSON.stringify(conversation_history.map(m => ({ 
-            role: m.role, 
-            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '') 
+        conversation_history = await this.chatMessages.getHistory(session_id)
+        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
+          JSON.stringify(conversation_history.map(m => ({
+            role: m.role,
+            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
           })), null, 2)
         )
       }
@@ -170,8 +170,8 @@ export class LLMService {
    * Clear conversation history for a session
    * @param {string} session_id - Session ID
    */
-  clearConversationHistory(session_id) {
-    this.chatMessages.clearHistory(session_id)
+  async clearConversationHistory(session_id) {
+    await this.chatMessages.clearHistory(session_id)
   }
 
   /**

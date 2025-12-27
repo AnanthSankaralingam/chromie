@@ -265,8 +265,13 @@ export async function POST(request) {
         } catch (error) {
           console.error("Error in streaming generation:", error)
           if (isContextLimitError(error, defaultProvider)) {
-            const nextConversationTokenTotal = (conversationTokenTotal || 0) 
-            const cw = JSON.stringify({ type: 'context_window', content: 'Context limit reached. Please start a new conversation.', total: nextConversationTokenTotal })
+            // Clear conversation history to resolve context limit
+            if (projectId) {
+              await llmService.clearConversationHistory(projectId)
+              console.log("[api/generate/stream] Cleared conversation history due to context limit")
+            }
+            const nextConversationTokenTotal = (conversationTokenTotal || 0)
+            const cw = JSON.stringify({ type: 'context_window', content: 'Context limit reached. Conversation history has been cleared.', total: nextConversationTokenTotal })
             controller.enqueue(encoder.encode(`data: ${cw}\n\n`))
             controller.close()
             return

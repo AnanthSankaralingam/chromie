@@ -28,14 +28,14 @@ function processResponseMetadata(response, conversationTokenTotal = 0) {
  * @param {string} originalUserRequest - Original natural language request
  * @param {string} explanation - AI explanation text (no code)
  */
-function storeConversationHistory(sessionId, originalUserRequest, explanation) {
+async function storeConversationHistory(sessionId, originalUserRequest, explanation) {
   if (!sessionId || !originalUserRequest) {
     console.log('[conversation-history] Skipping storage - missing sessionId or originalUserRequest')
     return
   }
-  
-  llmService.chatMessages.addMessage(sessionId, { role: 'user', content: originalUserRequest })
-  llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: explanation })
+
+  await llmService.chatMessages.addMessage(sessionId, { role: 'user', content: originalUserRequest })
+  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: explanation })
   console.log(`✅ [conversation-history] Stored user query and explanation (${explanation.length} chars)`)
 }
 
@@ -99,9 +99,9 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
     await updateProjectMetadata(sessionId, patchResult.files)
     
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
-    
+
     // Store clean conversation history after successful generation
-    storeConversationHistory(sessionId, originalUserRequest, explanation)
+    await storeConversationHistory(sessionId, originalUserRequest, explanation)
     return true
   }
   
@@ -144,9 +144,9 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
     
     await updateProjectMetadata(sessionId, allFiles)
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
-    
+
     // Store clean conversation history after successful generation
-    storeConversationHistory(sessionId, originalUserRequest, explanation)
+    await storeConversationHistory(sessionId, originalUserRequest, explanation)
   }
 }
 
@@ -208,7 +208,10 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
     const adapter = llmService.providerRegistry.getAdapter(provider)
     if (adapter?.isContextLimitError?.(err)) {
-      yield { type: "context_window", content: "Context limit reached. Please start a new conversation.", total: conversationTokenTotal }
+      // Clear conversation history to resolve context limit
+      await llmService.clearConversationHistory(sessionId)
+      console.log("[generateExtensionCodeStream] Cleared conversation history due to context limit")
+      yield { type: "context_window", content: "Context limit reached. Conversation history has been cleared.", total: conversationTokenTotal }
       return
     }
     throw err

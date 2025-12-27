@@ -38,9 +38,17 @@ export class GeminiAdapter {
       console.log('[gemini-adapter] createResponse', {
         model,
         has_conversation_history: conversation_history.length > 0,
+        conversation_history_length: conversation_history.length,
         has_response_format: Boolean(response_format),
         has_thinkingConfig: Boolean(thinkingConfig)
       })
+
+      console.log('[gemini-adapter] Conversation history before API call:',
+        JSON.stringify(conversation_history.map(m => ({
+          role: m.role,
+          content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
+        })), null, 2)
+      )
 
       // Convert conversation history to Gemini format
       const contents = this.convertToGeminiFormat(input, conversation_history)
@@ -143,6 +151,13 @@ export class GeminiAdapter {
         has_thinkingConfig: Boolean(thinkingConfig),
         thinkingConfig: generationConfig.thinkingConfig
       })
+
+      console.log('[gemini-adapter] Conversation history before streaming API call:',
+        JSON.stringify(conversation_history.map(m => ({
+          role: m.role,
+          content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
+        })), null, 2)
+      )
 
       // Generate content stream directly
       console.log('[gemini-adapter] calling generateContentStream with config:', JSON.stringify(generationConfig, null, 2))

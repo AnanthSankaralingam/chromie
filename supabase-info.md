@@ -51,15 +51,21 @@ Stores each code file per project.
 ---
 
 ### 4. `conversations`
-Stores AI/user messages per project (for OpenAI codegen context, etc).
+Stores conversation history per project as JSONB array (one row per project).
 
 | Column        | Type         | Details                                   |
 |---------------|--------------|-------------------------------------------|
 | `id`          | uuid         | PK, DEFAULT gen_random_uuid()             |
-| `project_id`  | uuid         | FK → `projects.id`, ON DELETE CASCADE     |
-| `role`        | text         | NOT NULL ('user', 'assistant', etc.)      |
-| `content`     | text         | Message body                              |
+| `project_id`  | uuid         | UNIQUE, FK → `projects.id`, ON DELETE CASCADE |
+| `history`     | jsonb        | NOT NULL, DEFAULT '[]'::jsonb, array of message objects [{role, content, timestamp}, ...] |
 | `created_at`  | timestamptz  | DEFAULT now()                             |
+| `updated_at`  | timestamptz  | DEFAULT now()                             |
+
+**Note**: Messages older than 2 hours are automatically filtered out when adding new messages via the `add_conversation_message()` PostgreSQL function.
+
+Additional indexes:
+- `idx_conversations_project_id` on `project_id` for fast lookups
+- `idx_conversations_updated_at` on `updated_at` for cleanup queries
 
 ---
 
