@@ -1,7 +1,7 @@
 # chromie
 
 ### Next big features
-1. ~Follow-up Conversation tooling: patches (prompt and util), linter verification, file replacement fallback. ~schemas and prefill?
+1. ~Follow-up Conversation tooling: patches (prompt and util), linter verification, file replacement fallback.~ schemas and prefill?
 2. Conversation History. Don't need to store all but window of most recent convos; store user queries and model explanation response (no code). final query includes codebase current state. 
 3. CONNECTORS: reference Lovable, ChatGPT connectors. Probably MCP with auth but can save us a lot of templating solution time if we get it.
 4. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers. If OmniSpeech finds solution use it or implement Promptly Firebase solution.
