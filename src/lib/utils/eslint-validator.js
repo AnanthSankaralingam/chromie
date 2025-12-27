@@ -1,6 +1,6 @@
 /**
  * ESLint Validator Utility
- * Provides programmatic JavaScript validation for generated code
+ * Provides programmatic JavaScript and JSON validation for generated code
  * Uses ESLint's Linter class for syntax checking
  */
 
@@ -14,6 +14,75 @@ const linter = new Linter()
  */
 const SYNTAX_RULES = {
   'no-unexpected-multiline': 'error',
+}
+
+/**
+ * Validates JSON code for syntax errors
+ * @param {string} code - JSON code to validate
+ * @param {string} filename - Optional filename for error messages
+ * @returns {Object} - { valid: boolean, errors: Array<{ line, column, message, severity }> }
+ */
+export function validateJSON(code, filename = 'file.json') {
+  if (!code || typeof code !== 'string') {
+    return { valid: false, errors: [{ line: 0, column: 0, message: 'No code provided', severity: 'error' }] }
+  }
+
+  try {
+    JSON.parse(code)
+    return {
+      valid: true,
+      errors: []
+    }
+  } catch (error) {
+    // Try to extract position from error message
+    // JSON.parse errors can have formats like:
+    // - "Unexpected token X in JSON at position Y"
+    // - "Expected property name or '}' in JSON at position Y"
+    let line = 1
+    let column = 1
+    
+    const positionMatch = error.message.match(/position\s+(\d+)/i)
+    if (positionMatch) {
+      const position = parseInt(positionMatch[1], 10)
+      const beforeError = code.substring(0, position)
+      const lines = beforeError.split('\n')
+      line = lines.length
+      column = lines[lines.length - 1].length + 1
+    } else {
+      // If no position found, try to find the error location by parsing character by character
+      // This is a fallback for cases where the error message doesn't include position
+      const trimmedCode = code.trim()
+      if (trimmedCode.length === 0) {
+        line = 1
+        column = 1
+      } else {
+        // Try to find common JSON error patterns
+        const lines = code.split('\n')
+        for (let i = 0; i < lines.length; i++) {
+          const lineContent = lines[i]
+          // Look for common JSON syntax issues
+          if (lineContent.includes('undefined') || 
+              lineContent.match(/['"]\s*:\s*['"]/) ||
+              lineContent.includes('NaN') ||
+              lineContent.includes('Infinity')) {
+            line = i + 1
+            column = 1
+            break
+          }
+        }
+      }
+    }
+
+    return {
+      valid: false,
+      errors: [{
+        line,
+        column,
+        message: `JSON parse error: ${error.message}`,
+        severity: 'fatal'
+      }]
+    }
+  }
 }
 
 /**
@@ -94,8 +163,19 @@ function isJavaScriptFile(filePath) {
 }
 
 /**
- * Validates multiple JS files and returns a summary
- * Only validates .js, .mjs, .cjs files - skips all others
+ * Checks if a file is a JSON file based on extension
+ * @param {string} filePath - File path to check
+ * @returns {boolean} - True if it's a JSON file
+ */
+function isJSONFile(filePath) {
+  if (!filePath) return false
+  const ext = filePath.split('.').pop()?.toLowerCase()
+  return ext === 'json'
+}
+
+/**
+ * Validates multiple JS and JSON files and returns a summary
+ * Validates .js, .mjs, .cjs, and .json files - skips all others
  * @param {Object} files - Map of file paths to contents
  * @returns {Object} - { allValid: boolean, results: Object, failedFiles: Array<string> }
  */
@@ -108,21 +188,36 @@ export function validateFiles(files) {
   const failedFiles = []
 
   for (const [filePath, content] of Object.entries(files)) {
-    // Only validate JavaScript files
-    if (!isJavaScriptFile(filePath)) {
-      results[filePath] = { valid: true, errors: [], skipped: true }
+    // Validate JavaScript files
+    if (isJavaScriptFile(filePath)) {
+      const result = validateJavaScript(content, filePath)
+      results[filePath] = result
+
+      if (!result.valid) {
+        failedFiles.push(filePath)
+        console.log(`❌ [eslint-validator] Validation failed for ${filePath}:`, result.errors)
+      } else {
+        console.log(`✅ [eslint-validator] Validation passed for ${filePath}`)
+      }
       continue
     }
 
-    const result = validateJavaScript(content, filePath)
-    results[filePath] = result
+    // Validate JSON files
+    if (isJSONFile(filePath)) {
+      const result = validateJSON(content, filePath)
+      results[filePath] = result
 
-    if (!result.valid) {
-      failedFiles.push(filePath)
-      console.log(`❌ [eslint-validator] Validation failed for ${filePath}:`, result.errors)
-    } else {
-      console.log(`✅ [eslint-validator] Validation passed for ${filePath}`)
+      if (!result.valid) {
+        failedFiles.push(filePath)
+        console.log(`❌ [eslint-validator] JSON validation failed for ${filePath}:`, result.errors)
+      } else {
+        console.log(`✅ [eslint-validator] JSON validation passed for ${filePath}`)
+      }
+      continue
     }
+
+    // Skip other file types
+    results[filePath] = { valid: true, errors: [], skipped: true }
   }
 
   return {
