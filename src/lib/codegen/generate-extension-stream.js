@@ -4,7 +4,7 @@ import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup";
 import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel";
 import { NEW_EXT_NEW_TAB_PROMPT } from "../prompts/new-extension/new-tab";
 import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "../prompts/new-extension/content-injection";
-import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "../prompts/followup/follow-up-file-replacement";
+import { FOLLOW_UP_PATCH_PROMPT } from "../prompts/followup/follow-up-patching";
 import { batchScrapeWebpages } from "../webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
 import { generateExtensionCodeStream } from "./generate-extension-code-stream";
@@ -274,7 +274,7 @@ export async function* generateChromeExtensionStream({
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
     const prompts = {
-      UPDATE_EXT_PROMPT: FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
+      UPDATE_EXT_PROMPT: FOLLOW_UP_PATCH_PROMPT,
       NEW_EXT_SIDEPANEL_PROMPT,
       NEW_EXT_POPUP_PROMPT,
       NEW_EXT_OVERLAY_PROMPT,
@@ -364,6 +364,10 @@ export async function* generateChromeExtensionStream({
     };
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
+    // Enable patching mode for add-to-existing requests
+    const usePatchingMode = requestType === REQUEST_TYPES.ADD_TO_EXISTING
+    const existingFilesForPatch = usePatchingMode ? existingFiles : {}
+    
     for await (const chunk of generateExtensionCodeStream(
         selectedCodingPrompt,
         replacements,
@@ -375,6 +379,9 @@ export async function* generateChromeExtensionStream({
           contextWindowMaxTokens,
           frontendType: requirementsAnalysis.frontend_type,
           requestType: requestType,
+          usePatchingMode: usePatchingMode,
+          existingFilesForPatch: existingFilesForPatch,
+          userRequest: featureRequest,
         }
       )) {
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'

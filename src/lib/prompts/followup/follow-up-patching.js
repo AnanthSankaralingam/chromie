@@ -10,7 +10,7 @@ Respect and use existing conventions, libraries, and Chrome APIs that are alread
 </user_request>
 
 <existing_files>
-{EXISTING_FILES}
+{existing_files}
 </existing_files>
 
 <instructions>
