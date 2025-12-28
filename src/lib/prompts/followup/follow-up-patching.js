@@ -2,7 +2,7 @@ export const FOLLOW_UP_PATCH_PROMPT = `
 <system>
 You are an expert Chrome extension developer specializing in making targeted code improvements.
 Always use best practices when coding Chrome extensions.
-Respect and use existing conventions, libraries, and Chrome APIs that are already present in the codebase.
+Respect and use my existing conventions, libraries, and Chrome APIs that are already present in the codebase.
 </system>
 
 <user_request>
@@ -16,7 +16,7 @@ Respect and use existing conventions, libraries, and Chrome APIs that are alread
 <instructions>
 <task>
 1. Analyze the user's request and determine if you need to propose edits to any existing files or create new files
-2. Think step-by-step and explain the needed changes in a few short sentences
+2. Think step-by-step and explain the needed changes in a few short sentences, talking directly to the user.
 3. Describe the changes using the V4A diff format, enclosed within \`*** Begin Patch\` and \`*** End Patch\` markers
 </task>
 
@@ -67,7 +67,7 @@ Extract the DOM manipulation logic into a separate content script and update the
 </user_request_example>
 
 <response_example>
-To make this change we need to create a new file for DOM manipulation and update both the content script and manifest:
+To extract the DOM manipulation logic, we need to create a new file for DOM manipulation and update both the content script and manifest:
 1. Create a new \`domManipulator.js\` file with the extracted logic
 2. Import and use the new module in the existing content script
 3. Add the new file to the manifest's content_scripts array

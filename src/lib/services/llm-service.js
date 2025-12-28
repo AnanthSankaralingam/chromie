@@ -52,12 +52,6 @@ export class LLMService {
       let conversation_history = []
       if (session_id) {
         conversation_history = await this.chatMessages.getHistory(session_id)
-        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
-          JSON.stringify(conversation_history.map(m => ({
-            role: m.role,
-            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
-          })), null, 2)
-        )
       }
 
       // Create the response using the adapter
@@ -131,12 +125,6 @@ export class LLMService {
       let conversation_history = []
       if (session_id) {
         conversation_history = await this.chatMessages.getHistory(session_id)
-        console.log('[llm-service] Retrieved conversation history for session', session_id, ':',
-          JSON.stringify(conversation_history.map(m => ({
-            role: m.role,
-            content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
-          })), null, 2)
-        )
       }
 
       // Stream the response using the adapter

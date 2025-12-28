@@ -1,5 +1,5 @@
-import { llmService } from "../services/llm-service"
-import { DEFAULT_MODEL } from "../constants"
+import { llmService } from "@/lib/services/llm-service"
+import { DEFAULT_MODEL } from "@/lib/constants"
 
 /**
  * Generates a BrowserUse test script for a Chrome extension

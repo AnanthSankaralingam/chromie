@@ -3,13 +3,13 @@
  * Handles LLM-based code generation with streaming support
  */
 
-import { llmService } from "../services/llm-service"
-import { selectUnifiedSchema } from "../response-schemas/unified-schemas"
-import { DEFAULT_MODEL } from "../constants"
-import { containsPatch } from "../utils/patch-applier"
-import { extractJsonContent, parseJsonWithRetry } from "./json-extractor"
-import { processPatchModeOutput } from "./patch-processor"
-import { saveFilesToDatabase, updateProjectMetadata } from "./file-saver"
+import { llmService } from "@/lib/services/llm-service"
+import { selectUnifiedSchema } from "@/lib/response-schemas/unified-schemas"
+import { DEFAULT_MODEL } from "@/lib/constants"
+import { containsPatch } from "@/lib/codegen/patching-handlers/patch-applier"
+import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-handlers/json-extractor"
+import { processPatchModeOutput } from "@/lib/codegen/patching-handlers/patch-processor"
+import { saveFilesToDatabase, updateProjectMetadata } from "@/lib/codegen/output-handlers/file-saver"
 
 /**
  * Processes response metadata and returns token usage info
@@ -77,15 +77,21 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
   
   let patchResult
   for await (const event of patchGen) {
-    if (event?.type) {
+    if (event.type === "final_result") {
+      // Capture the final result from the special event
+      patchResult = event.result
+      console.log('🔧 [handlePatchingMode] Captured final result from generator:', patchResult ? 'YES' : 'NO')
+    } else if (event.type) {
+      // Forward all other typed events to the client
       yield event
-    } else if (event?.files) {
-      patchResult = event
     }
   }
   
   if (patchResult?.success) {
     const explanation = patchResult.explanation || "Implementation complete."
+    console.log(`✅ [patch-mode] Successfully applied patches, extracted explanation (${explanation.length} chars)`)
+    
+    // Yield explanation BEFORE other operations so it renders in the UI
     if (patchResult.explanation) {
       yield { type: "explanation", content: patchResult.explanation }
     }
@@ -98,6 +104,7 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
     const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
     await updateProjectMetadata(sessionId, patchResult.files)
     
+    console.log(`✅ [handlePatchingMode] Saved ${savedFiles.length} files to database`)
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
 
     // Store clean conversation history after successful generation
@@ -255,9 +262,20 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
   yield { type: "token_usage", total: tokensUsedThisRequest }
   yield { type: "complete", content: combinedText }
 
+  // Log raw output when patching mode is active
+  if (usePatchingMode) {
+    console.log('🔧 [Gemini Patch Mode] Raw LLM output:')
+    console.log('─'.repeat(80))
+    console.log(combinedText)
+    console.log('─'.repeat(80))
+  }
+
   if (usePatchingMode && containsPatch(combinedText)) {
     yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
   } else {
+    if (usePatchingMode) {
+      console.log('⚠️ [Gemini] Patching mode was active but no patch detected in output')
+    }
     yield* handleReplacementMode(combinedText, sessionId, replacements, "Gemini stream", originalUserRequest)
   }
   
@@ -300,9 +318,20 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
 
   const outputText = response?.output_text || ''
   
+  // Log raw output when patching mode is active
+  if (usePatchingMode) {
+    console.log('🔧 [Responses API Patch Mode] Raw LLM output:')
+    console.log('─'.repeat(80))
+    console.log(outputText)
+    console.log('─'.repeat(80))
+  }
+  
   if (usePatchingMode && containsPatch(outputText)) {
     yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
   } else {
+    if (usePatchingMode) {
+      console.log('⚠️ [Responses API] Patching mode was active but no patch detected in output')
+    }
     yield* handleReplacementMode(outputText, sessionId, replacements, "Responses API completion (new)", originalUserRequest)
   }
   

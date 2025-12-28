@@ -3,9 +3,9 @@
  * Handles V4A patch application, validation, and fallback logic
  */
 
-import { llmService } from "../services/llm-service"
-import { containsPatch, applyAllPatches, extractExplanation } from "../utils/patch-applier"
-import { validateFiles } from "../utils/eslint-validator"
+import { llmService } from "@/lib/services/llm-service"
+import { containsPatch, applyAllPatches, extractExplanation } from "./patch-applier"
+import { validateFiles } from "./eslint-validator"
 
 /**
  * Processes patch output and applies patches to existing files
@@ -25,6 +25,11 @@ export function processPatchOutput(outputText, existingFiles) {
   
   if (patchResult.success) {
     console.log(`✅ [patch-processing] Successfully applied patches to ${Object.keys(patchResult.updatedFiles).length} files`)
+    if (patchResult.explanation) {
+      console.log(`📝 [patch-processing] Extracted explanation: "${patchResult.explanation.substring(0, 100)}..."`)
+    } else {
+      console.log(`⚠️ [patch-processing] No explanation extracted from patch output`)
+    }
     if (patchResult.deletedFiles.length > 0) {
       console.log(`🗑️ [patch-processing] Marked ${patchResult.deletedFiles.length} files for deletion`)
     }
@@ -164,7 +169,8 @@ async function* handlePerFileFallback(failedFiles, existingFiles, validationResu
     }
   }
   
-  return regeneratedFiles
+  // Yield the result as a special event instead of returning
+  yield { type: "fallback_result", files: regeneratedFiles }
 }
 
 /**
@@ -185,7 +191,8 @@ export async function* processPatchModeOutput(outputText, existingFiles, userReq
   if (!patchResult.success && Object.keys(patchResult.updatedFiles).length === 0) {
     console.log('❌ [patch-mode] Patch application failed completely')
     yield { type: "patch_failed", content: "Patch application failed" }
-    return { success: false, files: {}, explanation: patchResult.explanation, errors: patchResult.errors }
+    yield { type: "final_result", result: { success: false, files: {}, explanation: patchResult.explanation, errors: patchResult.errors } }
+    return
   }
   
   yield { type: "phase", phase: "implementing", content: `Applied patches to ${Object.keys(patchResult.updatedFiles).length} files` }
@@ -209,28 +216,30 @@ export async function* processPatchModeOutput(outputText, existingFiles, userReq
       model
     )
     
-    let fallbackResult
     for await (const event of fallbackGen) {
-      if (event.type) {
-        yield event
+      if (event.type === "fallback_result") {
+        // Merge the regenerated files
+        finalFiles = { ...finalFiles, ...event.files }
       } else {
-        fallbackResult = event
+        // Forward other events (phase updates, etc.)
+        yield event
       }
-    }
-    
-    if (fallbackResult) {
-      finalFiles = { ...finalFiles, ...fallbackResult }
     }
   }
   
   // Step 4: Handle deleted files
   const deletedFiles = patchResult.deletedFiles || []
   
-  return {
+  const finalResult = {
     success: true,
     files: finalFiles,
     deletedFiles,
     explanation: patchResult.explanation || extractExplanation(outputText)
   }
+  
+  console.log(`✅ [patch-mode] Returning final result with ${Object.keys(finalFiles).length} files and explanation: ${finalResult.explanation ? 'YES' : 'NO'}`)
+  
+  // Yield the final result as a special event type instead of returning
+  yield { type: "final_result", result: finalResult }
 }
 

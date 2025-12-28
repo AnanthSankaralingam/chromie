@@ -1,13 +1,13 @@
-import { llmService } from '../services/llm-service.js'
-import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '../prompts/new-extension/planning/use-case.js'
-import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '../prompts/new-extension/planning/external-resources.js'
-import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '../prompts/new-extension/planning/frontend-selection.js'
-import useCasesData from '../data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
-import { extractJsonFieldsManually } from '../utils/planning-helpers.js'
+import { llmService } from '@/lib/services/llm-service.js'
+import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '@/lib/prompts/new-extension/planning/use-case.js'
+import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '@/lib/prompts/new-extension/planning/external-resources.js'
+import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '@/lib/prompts/new-extension/planning/frontend-selection.js'
+import useCasesData from '@/lib/data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
+import { extractJsonFieldsManually } from '@/lib/utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
 import { fetchExternalApiDocs } from './external-api-docs.js'
-import { PLANNING_MODELS } from '../constants.js'
-import { isWorkspaceAPI, collectWorkspaceScopes } from '../utils/google-workspace-scopes.js'
+import { PLANNING_MODELS } from '@/lib/constants.js'
+import { isWorkspaceAPI, collectWorkspaceScopes } from '@/lib/utils/google-workspace-scopes.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES

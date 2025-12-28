@@ -1,4 +1,4 @@
-import { REQUEST_TYPES } from "../prompts/request-types";
+import { REQUEST_TYPES } from "@/lib/prompts/request-types";
 
 /**
  * Create simplified requirements analysis for existing extensions
