@@ -2,14 +2,15 @@
 
 ### Next big features
 1. ~Follow-up Conversation tooling: patches (prompt and util), linter verification, file replacement fallback.~ schemas and prefill?
-2. ~Conversation History. Store most recent convo and expire within 2 hrs no usage; store user queries and model explanation response (no code). final query includes codebase current state.~
-3. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers. If OmniSpeech finds solution use it or implement Promptly Firebase solution.
-4. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
-5. metrics SDK and MVP usage data dashboard in chromie
-6. Introduce "Ask" mode
-7. Version history of extensions. Can do fuzzy Google Docs type
-8. Branding: allow for user icon upload (verify size based on store requirements, allow only up to 5 and alias them icon-16, icon-48, etc. to fit with what we already have)
+2. ~Conversation History. Store most recent convo and expire within 2 hrs no usage; store user queries and model explanation response (no code). final query includes codebase current state.~ expire sooner than 2 hrs?
+3. Branding: allow for user icon upload (verify size based on store requirements, allow only up to 5 and alias them icon-16, icon-48, etc. to fit with what we already have)
+4. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers. If OmniSpeech finds solution use it or implement Promptly Firebase solution.
+5. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
+6. metrics SDK and MVP usage data dashboard in chromie
+7. Introduce "Ask" mode
+8. Version history of extensions. Can do fuzzy Google Docs type
 9. Security audit. Scan for risks before exporting (API keys, non-proxy or rate limited calls)
+10. Yield model thoughts (title, description hidden) how Gemini UI does it. 
 
 ---
 ### TODOs
@@ -26,7 +27,12 @@
 2. shared links section not needed/working on /profile.
 3. can't rename projects
 4. WORKSPACE_AUTH_INSTRUCTIONS (commented out) injected into all coding prompts. needs to be conditional.
-5. 
+5. Remove suggestions?
+6. Remove loading page's purple gradient
+7. API input has commonly hallucinated APIs (LinkedIn, YouTube, etc.). Add these to a list and statically remove them from final planning output if found.
+8. often get random host_permissions. encourage one shot coder to use minimally. maybe API list is getting past planning phase even when user skips.
+9. errors not yielded correctly in UI, giving user a place to go.
+10. prompt_tokens is always extracted from gemini object as 0.
 
 ---
 ### SECURITY
