@@ -1,13 +1,14 @@
-import { REQUEST_TYPES } from "../prompts/request-types";
-import { NEW_EXT_OVERLAY_PROMPT } from "../prompts/new-extension/overlay";
-import { NEW_EXT_POPUP_PROMPT } from "../prompts/new-extension/popup";
-import { NEW_EXT_SIDEPANEL_PROMPT } from "../prompts/new-extension/sidepanel";
-import { NEW_EXT_NEW_TAB_PROMPT } from "../prompts/new-extension/new-tab";
-import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "../prompts/new-extension/content-injection";
-import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "../prompts/followup/follow-up-file-replacement";
-import { batchScrapeWebpages } from "../webpage-scraper";
-import { orchestratePlanning, formatPlanningOutputs } from "./planning-orchestrator";
-import { generateExtensionCodeStream } from "./generate-extension-code-stream";
+import { REQUEST_TYPES } from "@/lib/prompts/request-types";
+import { NEW_EXT_OVERLAY_PROMPT } from "@/lib/prompts/new-extension/overlay";
+import { NEW_EXT_POPUP_PROMPT } from "@/lib/prompts/new-extension/popup";
+import { NEW_EXT_SIDEPANEL_PROMPT } from "@/lib/prompts/new-extension/sidepanel";
+import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/new-tab";
+import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/content-injection";
+import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "@/lib/prompts/followup/follow-up-file-replacement";
+import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patching";
+import { batchScrapeWebpages } from "@/lib/webpage-scraper";
+import { orchestratePlanning, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
+import { generateExtensionCodeStream } from "@/lib/codegen/generate-extension-code-stream";
 import {
   createExistingExtensionRequirements,
   checkUrlRequirement,
@@ -15,7 +16,12 @@ import {
   formatExternalApisContext,
   formatFilesAsXml,
   selectPrompt
-} from "./requirements-helpers";
+} from "@/lib/codegen/patching-handlers/requirements-helpers";
+import {
+  shouldUsePatchingMode,
+  prepareFilesForPatching,
+  buildPatchPromptReplacements
+} from "@/lib/codegen/patching-handlers/patch-mode-handler";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -272,8 +278,11 @@ export async function* generateChromeExtensionStream({
     }
 
     // Step 4: Select appropriate coding prompt based on request type and frontend type
+    // Determine if we should use patching mode for modifications
+    const usePatchingMode = shouldUsePatchingMode(requestType, existingFiles)
+    
     const prompts = {
-      UPDATE_EXT_PROMPT: FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
+      UPDATE_EXT_PROMPT: usePatchingMode ? FOLLOW_UP_PATCH_PROMPT : FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
       NEW_EXT_SIDEPANEL_PROMPT,
       NEW_EXT_POPUP_PROMPT,
       NEW_EXT_OVERLAY_PROMPT,
@@ -281,6 +290,12 @@ export async function* generateChromeExtensionStream({
       NEW_EXT_CONTENT_SCRIPT_UI_PROMPT
     };
     const selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+    
+    if (usePatchingMode) {
+      console.log('🔧 [generate-extension-stream] Using PATCH mode for modifications')
+    } else {
+      console.log('🔄 [generate-extension-stream] Using REPLACEMENT mode')
+    }
     
     yield {
       type: "prompt_selected",
@@ -296,36 +311,42 @@ export async function* generateChromeExtensionStream({
 
     const finalUserPrompt = featureRequest;
 
-    // Build replacements object based on request type
+    // Build replacements object based on request type and mode
     let replacements;
 
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
-      // For modifications: use ext_name and existing_files
-      replacements = {
-        USER_REQUEST: finalUserPrompt,
-        ext_name: requirementsAnalysis.ext_name || "Existing Extension"
-      };
-
-      // Add existing files context for modifications
-      if (Object.keys(existingFiles).length > 0) {
-        console.log("📁 Including existing files context for modification");
-        const filteredFiles = {};
-        for (const [filename, content] of Object.entries(existingFiles)) {
-          if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith("icons/")) {
-            filteredFiles[filename] = content;
+      if (usePatchingMode) {
+        // For patching mode: use specialized patch prompt replacements
+        replacements = buildPatchPromptReplacements(finalUserPrompt, existingFiles)
+        console.log("🔧 Built patch mode replacements with existing files context")
+      } else {
+        // For replacement mode: use ext_name and existing_files
+        replacements = {
+          USER_REQUEST: finalUserPrompt,
+          ext_name: requirementsAnalysis.ext_name || "Existing Extension"
+        }
+        
+        // Add existing files context for modifications
+        if (Object.keys(existingFiles).length > 0) {
+          console.log("📁 Including existing files context for replacement mode")
+          const filteredFiles = {}
+          for (const [filename, content] of Object.entries(existingFiles)) {
+            if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith("icons/")) {
+              filteredFiles[filename] = content
+            }
+          }
+          // Format files as XML tags for universal use in patching and replacement prompts
+          replacements.existing_files = formatFilesAsXml(filteredFiles)
+          console.log(
+            `📋 Context includes ${
+              Object.keys(filteredFiles).length
+            } existing files (excluding icons): ${Object.keys(filteredFiles).join(", ")}`
+          )
+          yield {
+            type: "context_ready",
+            content: "context_ready"
           }
         }
-        // Format files as XML tags for universal use in patching and replacement prompts
-        replacements.existing_files = formatFilesAsXml(filteredFiles);
-        console.log(
-          `📋 Context includes ${
-            Object.keys(filteredFiles).length
-          } existing files (excluding icons): ${Object.keys(filteredFiles).join(", ")}`
-        );
-        yield {
-          type: "context_ready",
-          content: "context_ready"
-        };
       }
     } else {
       // For new extensions: use planning outputs
@@ -360,6 +381,9 @@ export async function* generateChromeExtensionStream({
       content: "Generating extension files and applying project updates.",
     };
 
+    // Prepare existing files for patching if in patch mode
+    const patchableFiles = usePatchingMode ? prepareFilesForPatching(existingFiles) : {}
+
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(
         selectedCodingPrompt,
@@ -372,6 +396,9 @@ export async function* generateChromeExtensionStream({
           frontendType: requirementsAnalysis.frontend_type,
           requestType: requestType,
           originalUserRequest: featureRequest, // For clean history storage
+          usePatchingMode,
+          existingFilesForPatch: patchableFiles,
+          userRequest: featureRequest
         }
       )) {
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'

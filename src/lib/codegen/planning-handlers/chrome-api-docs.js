@@ -1,4 +1,4 @@
-import chromeApisData from '../data/chrome_extension_apis.json' with { type: 'json' };
+import chromeApisData from '@/lib/data/chrome_extension_apis.json' with { type: 'json' };
 /**
  * Search for Chrome Extension API documentation
  * @param {string} apiName - The name of the Chrome API to search for

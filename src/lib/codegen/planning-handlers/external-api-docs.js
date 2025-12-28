@@ -1,4 +1,4 @@
-import externalApisData from '../data/external_apis.json' with { type: 'json' };
+import externalApisData from '@/lib/data/external_apis.json' with { type: 'json' };
 
 const SCRAPER_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/extract-api-docs'
 

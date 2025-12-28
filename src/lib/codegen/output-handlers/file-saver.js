@@ -3,10 +3,10 @@
  * Handles saving generated files to the database
  */
 
-import { createClient } from "../supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import { randomUUID } from "crypto"
-import { formatManifestJson } from "../utils/json-formatter"
-import { normalizeGeneratedFileContent } from "./json-extractor"
+import { formatManifestJson } from "@/lib/utils/json-formatter"
+import { normalizeGeneratedFileContent } from "@/lib/codegen/output-handlers/json-extractor"
 
 /**
  * Saves generated files to the database
