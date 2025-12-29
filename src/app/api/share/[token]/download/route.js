@@ -189,22 +189,29 @@ export async function GET(request, { params }) {
 
     if (assetsError) {
       console.error('[shared download] Error fetching project assets:', assetsError)
-      // Continue without custom assets - not fatal
+      console.error('[shared download] Assets error details:', JSON.stringify(assetsError))
+      // Continue without custom assets - log warning but don't fail
+    } else {
+      console.log(`[shared download] Successfully fetched ${projectAssets?.length || 0} project assets`)
     }
 
     // Add all project assets to zip (including custom icons and other files)
     const customAssetPaths = new Set()
     if (projectAssets && projectAssets.length > 0) {
+      console.log(`[shared download] Processing ${projectAssets.length} custom assets...`)
       for (const asset of projectAssets) {
         try {
           const binary = Buffer.from(asset.content_base64, 'base64')
           zip.file(asset.file_path, binary)
           customAssetPaths.add(asset.file_path)
-          console.log(`[shared download] Added custom asset: ${asset.file_path}`)
+          console.log(`[shared download] ✅ Added custom asset: ${asset.file_path}`)
         } catch (e) {
-          console.error(`[shared download] Failed to decode asset ${asset.file_path}:`, e.message)
+          console.error(`[shared download] ❌ Failed to decode asset ${asset.file_path}:`, e.message)
         }
       }
+      console.log(`[shared download] Custom asset paths in set:`, Array.from(customAssetPaths))
+    } else {
+      console.log('[shared download] No custom assets found for this project')
     }
 
     // Parse manifest for required icon paths
@@ -272,9 +279,11 @@ export async function GET(request, { params }) {
     // Filter icon paths to only fetch from shared_icons those not already in custom assets
     const iconsToFetchFromShared = iconPaths.filter(p => !customAssetPaths.has(p))
     
-    console.log('[shared download] required icon paths', iconPaths)
-    console.log('[shared download] custom icons already included:', Array.from(customAssetPaths))
-    console.log('[shared download] icons to fetch from shared_icons:', iconsToFetchFromShared)
+    console.log('[shared download] 📋 ICON RESOLUTION SUMMARY:')
+    console.log('[shared download] Total required icons:', iconPaths)
+    console.log('[shared download] Custom icons already included:', Array.from(customAssetPaths))
+    console.log('[shared download] Icons to fetch from shared_icons:', iconsToFetchFromShared)
+    console.log('[shared download] ----------------------------------------')
 
     // Fetch remaining icons from shared_icons
     if (iconsToFetchFromShared.length > 0) {
@@ -293,9 +302,17 @@ export async function GET(request, { params }) {
       const missing = iconsToFetchFromShared.filter(p => !iconMap.has(p))
 
       if (missing.length > 0) {
-        console.error('[shared download] Missing required icons:', missing)
+        console.error('[shared download] ❌ Missing required icons:', missing)
+        console.error('[shared download] Icons were expected but not found in:')
+        console.error('[shared download]   - project_assets (custom icons)')
+        console.error('[shared download]   - shared_icons (base icons)')
+        console.error('[shared download] Custom assets found:', Array.from(customAssetPaths))
+        console.error('[shared download] These icons need to be uploaded to the project or added to shared_icons')
+        
         return NextResponse.json({ 
-          error: `Missing required icons: ${missing.join(', ')}. Please contact support.` 
+          error: `Missing required icons: ${missing.join(', ')}. These icons are referenced in manifest.json but not found. Please upload them using the file upload feature.`,
+          missing_icons: missing,
+          suggestion: 'Upload custom icons using the Upload button in the project files panel'
         }, { status: 400 })
       }
 
