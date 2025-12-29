@@ -335,13 +335,40 @@ export class HyperbrowserService {
     
     const zip = new JSZip()
 
-    // Add all non-icon files directly
+    // Separate custom icons/assets from regular code files
+    const customAssets = new Set()
+
+    // Add all files to zip
     for (const file of validatedFiles) {
       const filePath = file.file_path || file.path || file.name
       if (!filePath) continue
-      if (filePath.startsWith('icons/')) continue
+      
       const content = file.content ?? ""
-      zip.file(filePath, content)
+      
+      // Check if this is a custom asset (base64 encoded)
+      // Custom assets from project_assets table will have base64 content
+      if (filePath.startsWith('icons/') || filePath.includes('/assets/')) {
+        // Try to detect if content is base64
+        const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(content) && content.length > 0 && content.length % 4 === 0
+        
+        if (isBase64) {
+          // This is a custom asset with base64 content
+          try {
+            const binary = Buffer.from(content, 'base64')
+            zip.file(filePath, binary)
+            customAssets.add(filePath)
+            console.log(`[hyperbrowser] Added custom asset: ${filePath}`)
+          } catch (e) {
+            console.error(`[hyperbrowser] Failed to decode custom asset ${filePath}:`, e.message)
+          }
+        } else {
+          // Regular text content
+          zip.file(filePath, content)
+        }
+      } else {
+        // Regular code file
+        zip.file(filePath, content)
+      }
     }
 
     // Parse manifest for required icon paths
@@ -381,8 +408,15 @@ export class HyperbrowserService {
       }
     }
 
+    // Only fetch icons from shared_icons if they weren't provided as custom assets
     const iconPaths = Array.from(requiredIconPaths)
-    if (iconPaths.length > 0) {
+    const iconsToFetchFromShared = iconPaths.filter(p => !customAssets.has(p))
+    
+    console.log('[hyperbrowser] Required icons:', iconPaths)
+    console.log('[hyperbrowser] Custom icons already included:', Array.from(customAssets))
+    console.log('[hyperbrowser] Icons to fetch from shared_icons:', iconsToFetchFromShared)
+    
+    if (iconsToFetchFromShared.length > 0) {
       const SUPABASE_URL = process.env.SUPABASE_URL
       const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
       if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -392,14 +426,14 @@ export class HyperbrowserService {
       const { data: rows, error } = await supabase
         .from('shared_icons')
         .select('path_hint, visibility, content_base64')
-        .in('path_hint', iconPaths)
+        .in('path_hint', iconsToFetchFromShared)
         .eq('visibility', 'global')
       if (error) {
         throw new Error(`Failed to fetch shared icons: ${error.message}`)
       }
       const byPath = new Map((rows || []).map(r => [r.path_hint, r]))
       const missing = []
-      for (const iconPath of iconPaths) {
+      for (const iconPath of iconsToFetchFromShared) {
         const row = byPath.get(iconPath)
         if (!row) {
           console.error(`[hyperbrowser] Missing required icon in shared_icons: ${iconPath}`)
@@ -419,7 +453,7 @@ export class HyperbrowserService {
         throw new Error(`Missing required icons: ${missing.join(', ')}. Seed them into shared_icons or add a global fallback.`)
       }
     } else {
-      console.log('[hyperbrowser] No icon paths referenced in manifest')
+      console.log('[hyperbrowser] All required icons provided as custom assets or none needed')
     }
 
     console.log("[HYPERBROWSER-SERVICE] 🗜️  Generating zip buffer...")

@@ -118,8 +118,38 @@ export async function GET(request, { params }) {
     const iconPaths = Array.from(requiredIconPaths)
     console.log('[download] required icon paths', iconPaths)
 
-    // Fetch icons from shared_icons
-    if (iconPaths.length > 0) {
+    // First, fetch custom assets from project_assets (including custom icons)
+    const { data: projectAssets, error: assetsError } = await supabase
+      .from("project_assets")
+      .select("file_path, content_base64")
+      .eq("project_id", projectId)
+
+    if (assetsError) {
+      console.error('[download] Failed to fetch project assets:', assetsError)
+      // Don't fail - continue without custom assets
+    }
+
+    // Add all project assets to zip (including custom icons and other files)
+    const customAssetPaths = new Set()
+    if (projectAssets && projectAssets.length > 0) {
+      for (const asset of projectAssets) {
+        try {
+          const binary = Buffer.from(asset.content_base64, 'base64')
+          zip.file(asset.file_path, binary)
+          customAssetPaths.add(asset.file_path)
+          console.log(`[download] Added custom asset: ${asset.file_path}`)
+        } catch (e) {
+          console.error(`[download] Failed to decode asset ${asset.file_path}:`, e.message)
+        }
+      }
+    }
+
+    // Filter icon paths to only fetch from shared_icons those not already in custom assets
+    const iconsToFetchFromShared = iconPaths.filter(p => !customAssetPaths.has(p))
+    console.log('[download] icons to fetch from shared_icons', iconsToFetchFromShared)
+
+    // Fetch remaining icons from shared_icons
+    if (iconsToFetchFromShared.length > 0) {
       const SUPABASE_URL = process.env.SUPABASE_URL
       const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
       
@@ -134,7 +164,7 @@ export async function GET(request, { params }) {
       const { data: iconRows, error: iconError } = await serviceSupabase
         .from('shared_icons')
         .select('path_hint, content_base64')
-        .in('path_hint', iconPaths)
+        .in('path_hint', iconsToFetchFromShared)
         .eq('visibility', 'global')
 
       if (iconError) {
@@ -143,7 +173,7 @@ export async function GET(request, { params }) {
       }
 
       const iconMap = new Map((iconRows || []).map(r => [r.path_hint, r]))
-      const missing = iconPaths.filter(p => !iconMap.has(p))
+      const missing = iconsToFetchFromShared.filter(p => !iconMap.has(p))
 
       if (missing.length > 0) {
         console.error('[download] Missing required icons:', missing)
@@ -152,16 +182,18 @@ export async function GET(request, { params }) {
         }, { status: 400 })
       }
 
-      // Add icons to zip
-      for (const iconPath of iconPaths) {
+      // Add shared icons to zip
+      for (const iconPath of iconsToFetchFromShared) {
         const iconRow = iconMap.get(iconPath)
-        try {
-          const binary = Buffer.from(iconRow.content_base64, 'base64')
-          zip.file(iconPath, binary)
-          console.log(`[download] Added shared icon: ${iconPath}`)
-        } catch (e) {
-          console.error(`[download] Failed to decode icon ${iconPath}:`, e.message)
-          return NextResponse.json({ error: `Failed to process icon ${iconPath}` }, { status: 500 })
+        if (iconRow) {
+          try {
+            const binary = Buffer.from(iconRow.content_base64, 'base64')
+            zip.file(iconPath, binary)
+            console.log(`[download] Added shared icon: ${iconPath}`)
+          } catch (e) {
+            console.error(`[download] Failed to decode icon ${iconPath}:`, e.message)
+            return NextResponse.json({ error: `Failed to process icon ${iconPath}` }, { status: 500 })
+          }
         }
       }
     }

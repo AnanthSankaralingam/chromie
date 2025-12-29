@@ -54,6 +54,17 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
     }
 
+    // Get project assets (custom icons and other files)
+    const { data: assets, error: assetsError } = await supabase
+      .from("project_assets")
+      .select("file_path, content_base64")
+      .eq("project_id", projectId)
+
+    if (assetsError) {
+      console.error("Error fetching project assets:", assetsError)
+      // Continue without custom assets - not a fatal error
+    }
+
     // Extract user plan from limit check
     const userPlan = limitCheck.plan
 
@@ -61,6 +72,11 @@ export async function POST(request, { params }) {
     const extensionFiles = {}
     files?.forEach(file => {
       extensionFiles[file.file_path] = file.content
+    })
+
+    // Add project assets (convert base64 back to binary for consistency, but the service will handle it)
+    assets?.forEach(asset => {
+      extensionFiles[asset.file_path] = asset.content_base64
     })
 
     // Calculate session expiry - enforce 1 minute maximum for all sessions

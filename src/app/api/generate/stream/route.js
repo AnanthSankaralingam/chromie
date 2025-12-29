@@ -177,6 +177,20 @@ export async function POST(request) {
       } else {
         console.log("⚠️ No existing files found for add-to-existing request")
       }
+
+      // Also fetch project assets (custom icons, etc.) to inform the AI
+      const { data: assets } = await supabase
+        .from("project_assets")
+        .select("file_path, file_type, mime_type, file_size")
+        .eq("project_id", projectId)
+
+      if (assets && assets.length > 0) {
+        // Add asset metadata as special entries (not full content, just metadata)
+        assets.forEach(asset => {
+          existingFiles[asset.file_path] = `[Custom ${asset.file_type}: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB - Available for use]`
+        })
+        console.log(`🎨 Found ${assets.length} custom assets: ${assets.map(a => a.file_path).join(', ')}`)
+      }
     } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
       console.log("🆕 New extension request - no existing files needed")
     }
