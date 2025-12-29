@@ -195,6 +195,7 @@ export async function POST(request, { params }) {
         created_at: new Date().toISOString(),
         last_used_at: new Date().toISOString(),
         archived: false,
+        has_generated_code: true, // Forked projects have code from the original
       })
       .select()
       .single()
