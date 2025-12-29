@@ -1,5 +1,8 @@
-import { Search, Layers } from "lucide-react"
+import { Search, Layers, Upload } from "lucide-react"
 import FileTree from "./file-tree"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import AssetUploadModal from "./file-upload/asset-upload-modal"
 
 export default function ProjectFilesPanel({
   fileStructure,
@@ -7,8 +10,11 @@ export default function ProjectFilesPanel({
   onFileSelect,
   isLoadingFiles,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  projectId,
+  onAssetUploaded
 }) {
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   // Listen for global selection/focus events
   if (typeof window !== 'undefined') {
     // Auto-select a file being written/updated
@@ -58,12 +64,33 @@ export default function ProjectFilesPanel({
       window.__chromie_focusManifestBound = true
     }
   }
+  const handleAssetUpload = (asset) => {
+    console.log('Asset uploaded:', asset)
+    // Call the callback to refresh files
+    if (onAssetUploaded) {
+      onAssetUploaded()
+    }
+  }
+
   return (
     <div className="h-full bg-gradient-to-b from-slate-800/30 to-slate-900/30 animate-fade-in-up flex flex-col">
       <div className="p-3 sm:p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 flex-shrink-0">
-        <div className="flex items-center space-x-2 mb-2 sm:mb-3">
-          <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-          <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">project files</h3>
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <div className="flex items-center space-x-2">
+            <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+            <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">project files</h3>
+          </div>
+          {projectId && (
+            <Button
+              onClick={() => setIsUploadModalOpen(true)}
+              size="sm"
+              variant="outline"
+              className="bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white"
+            >
+              <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden sm:inline">Upload</span>
+            </Button>
+          )}
         </div>
         <p className="text-xs sm:text-sm text-slate-400 mb-2 sm:mb-3">chrome extension structure</p>
         
@@ -91,6 +118,16 @@ export default function ProjectFilesPanel({
           />
         </div>
       </div>
+
+      {/* Asset Upload Modal */}
+      {projectId && (
+        <AssetUploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onUpload={handleAssetUpload}
+          projectId={projectId}
+        />
+      )}
     </div>
   )
 } 
