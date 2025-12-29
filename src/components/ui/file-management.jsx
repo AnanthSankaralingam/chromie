@@ -102,20 +102,45 @@ export default function useFileManagement(currentProjectId, user) {
     isLoadingRef.current = true
     setIsLoadingFiles(true)
     try {
-      const response = await fetch(`/api/projects/${currentProjectId}/files`)
+      // Fetch code files
+      const filesResponse = await fetch(`/api/projects/${currentProjectId}/files`)
       
-      if (!response.ok) {
-        const errorData = await response.json()
+      if (!filesResponse.ok) {
+        const errorData = await filesResponse.json()
         console.error("Error loading project files:", errorData.error)
         return
       }
 
-      const data = await response.json()
-      const files = data.files || []
+      const filesData = await filesResponse.json()
+      const codeFiles = filesData.files || []
+
+      // Fetch project assets
+      let assetFiles = []
+      try {
+        const assetsResponse = await fetch(`/api/projects/${currentProjectId}/assets`)
+        if (assetsResponse.ok) {
+          const assetsData = await assetsResponse.json()
+          // Transform assets to match code_files format (with a marker for assets)
+          assetFiles = (assetsData.assets || []).map(asset => ({
+            file_path: asset.file_path,
+            content: `[Asset: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB]`,
+            isAsset: true,
+            assetId: asset.id,
+            mime_type: asset.mime_type,
+            file_size: asset.file_size,
+          }))
+        }
+      } catch (assetsError) {
+        console.warn("Error loading project assets:", assetsError)
+        // Continue without assets - not critical
+      }
+
+      // Combine code files and assets
+      const allFiles = [...codeFiles, ...assetFiles]
 
       // Store both flat files for actions and transformed tree for display
-      setFlatFiles(files)
-      const transformedFiles = transformFilesToTree(files)
+      setFlatFiles(allFiles)
+      const transformedFiles = transformFilesToTree(allFiles)
       setFileStructure(transformedFiles)
       setLoadedProjectId(currentProjectId) // Mark this project as loaded
       

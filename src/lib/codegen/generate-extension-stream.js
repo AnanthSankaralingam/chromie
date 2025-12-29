@@ -331,7 +331,12 @@ export async function* generateChromeExtensionStream({
           console.log("📁 Including existing files context for replacement mode")
           const filteredFiles = {}
           for (const [filename, content] of Object.entries(existingFiles)) {
-            if (!filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i) && !filename.startsWith("icons/")) {
+            // Include actual code files (not binary assets)
+            // BUT include custom asset metadata entries (they start with "[Custom")
+            const isAssetMetadata = typeof content === 'string' && content.startsWith('[Custom')
+            const isBinaryFile = !isAssetMetadata && filename.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i)
+            
+            if (!isBinaryFile) {
               filteredFiles[filename] = content
             }
           }
