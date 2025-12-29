@@ -586,6 +586,8 @@ function BuilderPageContent() {
                   handleFileSelect(file)
                   setActiveTab('editor') // Switch to editor when file is selected
                 }}
+                projectId={projectSetup.currentProjectId}
+                onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
                 isLoadingFiles={fileManagement.isLoadingFiles}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -757,6 +759,8 @@ function BuilderPageContent() {
                             onFileSelect={handleFileSelect}
                             isLoadingFiles={fileManagement.isLoadingFiles}
                             searchQuery={searchQuery}
+                            projectId={projectSetup.currentProjectId}
+                            onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
                             onSearchChange={setSearchQuery}
                           />
                         </div>

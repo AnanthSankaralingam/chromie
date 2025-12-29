@@ -168,7 +168,29 @@ Additional indexes and constraints:
 
 ---
 
-### 10. `api_docs_cache`
+### 10. `project_assets`
+Stores user-uploaded files and custom icons for Chrome extensions.
+
+| Column           | Type         | Details                                                     |
+|------------------|--------------|-------------------------------------------------------------|
+| `id`             | uuid         | PK, DEFAULT gen_random_uuid()                               |
+| `project_id`     | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
+| `file_path`      | text         | NOT NULL; file path within extension (e.g., 'icons/custom.png') |
+| `content_base64` | text         | NOT NULL; base64-encoded file contents                      |
+| `file_type`      | text         | NOT NULL; 'icon', 'asset', 'data', etc.                     |
+| `mime_type`      | text         | NOT NULL, DEFAULT 'image/png'                               |
+| `file_size`      | integer      | NOT NULL; size in bytes                                     |
+| `created_at`     | timestamptz  | DEFAULT now()                                               |
+| `updated_at`     | timestamptz  | DEFAULT now()                                               |
+
+Additional indexes and constraints:
+- Unique on `(project_id, file_path)` to prevent duplicate files per project
+- `idx_project_assets_project_id` on `project_id` for fast lookups
+- `idx_project_assets_file_type` on `(project_id, file_type)` for filtering by type
+
+---
+
+### 11. `api_docs_cache`
 
 | Column            | Type                       | Description                              |
 | ----------------- | -------------------------- | ---------------------------------------- |
@@ -252,6 +274,12 @@ create policy shared_icons_read_global
   on public.shared_icons for select
   using (visibility = 'global');
 ```
+
+### 10. `project_assets`
+
+- Users can SELECT, UPDATE, DELETE assets only for projects they own.
+- Users can INSERT assets only for their own projects (`project_id` belongs to user).
+- Unique constraint on `(project_id, file_path)` prevents duplicate uploads.
 
 ---
 
