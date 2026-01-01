@@ -69,11 +69,14 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
             const { width, height } = img
             setIconDimensions({ width, height })
 
-            // Check if square
+            // Check if square (non-square icons can't be properly resized)
             if (width !== height) {
               setError(`Icon must be square. Current size: ${width}x${height}px`)
-            } else if (!CHROME_ICON_SIZES.includes(width)) {
-              setError(`⚠️ Icon size ${width}x${height}px is not standard for Chrome extensions. Recommended: ${CHROME_ICON_SIZES.join(", ")}px`)
+            } else {
+              // Icon is square - it will be auto-resized to required sizes
+              if (!CHROME_ICON_SIZES.includes(width)) {
+                setError(`⚠️ Icon will be automatically resized to 16x16, 48x48, and 128x128 pixels`)
+              }
             }
           }
           img.src = e.target.result
@@ -129,11 +132,19 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
         }
 
         const data = await response.json()
-        console.log('✅ File uploaded successfully:', data.asset)
+        
+        // Handle both single asset and multiple assets response
+        const uploadedAssets = data.assets || (data.asset ? [data.asset] : [])
+        
+        if (uploadedAssets.length > 1) {
+          console.log('✅ Files uploaded successfully (auto-resized):', uploadedAssets.map(a => a.file_path).join(', '))
+        } else {
+          console.log('✅ File uploaded successfully:', uploadedAssets[0]?.file_path)
+        }
 
-        // Call onUpload callback with the uploaded asset
+        // Call onUpload callback with the uploaded assets
         if (onUpload) {
-          onUpload(data.asset)
+          uploadedAssets.forEach(asset => onUpload(asset))
         }
 
         // Reset form and close
@@ -213,7 +224,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
             </Select>
             {fileType === "icon" && (
               <p className="text-xs text-slate-400">
-                Recommended sizes: {CHROME_ICON_SIZES.join(", ")}px (square)
+                Icons will be automatically resized to 16x16, 48x48, and 128x128 for Chrome extension compatibility
               </p>
             )}
           </div>

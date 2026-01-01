@@ -12,7 +12,8 @@ export default function ProjectFilesPanel({
   searchQuery,
   onSearchChange,
   projectId,
-  onAssetUploaded
+  onAssetUploaded,
+  onAssetDeleted
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   // Listen for global selection/focus events
@@ -115,6 +116,7 @@ export default function ProjectFilesPanel({
             onFileSelect={onFileSelect}
             isLoadingFiles={isLoadingFiles}
             searchQuery={searchQuery}
+            onDeleteAsset={onAssetDeleted}
           />
         </div>
       </div>

@@ -179,10 +179,23 @@ export async function POST(request, { params }) {
       }
     }
 
-    // Insert or update asset
-    const { data: asset, error: upsertError } = await supabase
-      .from("project_assets")
-      .upsert({
+    // For icons, automatically create resized versions for Chrome extension requirements
+    const assetsToUpload = []
+    const uploadedAssets = []
+
+    if (file_type === 'icon' && mime_type.startsWith('image/') && mime_type !== 'image/svg+xml') {
+      // Required Chrome extension icon sizes
+      const requiredSizes = [16, 48, 128]
+      
+      // Extract the base name without extension and directory
+      const pathParts = file_path.split('/')
+      const fileName = pathParts[pathParts.length - 1]
+      const fileNameWithoutExt = fileName.replace(/\.(png|jpg|jpeg)$/i, '')
+      
+      console.log(`🔧 Auto-resizing icon to required sizes: ${requiredSizes.join(', ')}`)
+      
+      // ALSO keep the original file
+      assetsToUpload.push({
         project_id: id,
         file_path,
         content_base64,
@@ -190,18 +203,68 @@ export async function POST(request, { params }) {
         mime_type,
         file_size,
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'project_id,file_path' })
-      .select()
-      .single()
-
-    if (upsertError) {
-      console.error("Error upserting asset:", upsertError)
-      return NextResponse.json({ error: upsertError.message }, { status: 500 })
+      })
+      console.log(`✅ Keeping original: ${file_path}`)
+      
+      try {
+        // Create resized versions
+        for (const size of requiredSizes) {
+          const resizedBuffer = await sharp(fileBuffer)
+            .resize(size, size, {
+              fit: 'cover',
+              position: 'center'
+            })
+            .png() // Convert to PNG for best compatibility
+            .toBuffer()
+          
+          const resizedBase64 = resizedBuffer.toString('base64')
+          const resizedPath = `icons/${fileNameWithoutExt}-${size}.png`
+          
+          assetsToUpload.push({
+            project_id: id,
+            file_path: resizedPath,
+            content_base64: resizedBase64,
+            file_type: 'icon',
+            mime_type: 'image/png',
+            file_size: resizedBuffer.length,
+            updated_at: new Date().toISOString(),
+          })
+          
+          console.log(`✅ Created ${size}x${size} version: ${resizedPath}`)
+        }
+      } catch (resizeError) {
+        console.error("Error resizing icon:", resizeError)
+        return NextResponse.json({ 
+          error: `Failed to resize icon: ${resizeError.message}` 
+        }, { status: 500 })
+      }
+    } else {
+      // For non-icon files or SVG icons, just upload the original
+      assetsToUpload.push({
+        project_id: id,
+        file_path,
+        content_base64,
+        file_type,
+        mime_type,
+        file_size,
+        updated_at: new Date().toISOString(),
+      })
     }
 
-    console.log(`✅ Uploaded asset for project ${id}: ${file_path} (${file_size} bytes, ${mime_type})`)
-    return NextResponse.json({ 
-      asset: {
+    // Upload all assets (original + resized versions)
+    for (const assetData of assetsToUpload) {
+      const { data: asset, error: upsertError } = await supabase
+        .from("project_assets")
+        .upsert(assetData, { onConflict: 'project_id,file_path' })
+        .select()
+        .single()
+
+      if (upsertError) {
+        console.error("Error upserting asset:", upsertError)
+        return NextResponse.json({ error: upsertError.message }, { status: 500 })
+      }
+
+      uploadedAssets.push({
         id: asset.id,
         file_path: asset.file_path,
         file_type: asset.file_type,
@@ -209,7 +272,16 @@ export async function POST(request, { params }) {
         file_size: asset.file_size,
         created_at: asset.created_at,
         updated_at: asset.updated_at,
-      }
+      })
+
+      console.log(`✅ Uploaded asset for project ${id}: ${asset.file_path} (${asset.file_size} bytes, ${asset.mime_type})`)
+    }
+
+    return NextResponse.json({ 
+      assets: uploadedAssets,
+      message: file_type === 'icon' && uploadedAssets.length > 1
+        ? `Successfully uploaded original + ${uploadedAssets.length - 1} resized versions (16x16, 48x48, 128x128)` 
+        : 'Successfully uploaded asset'
     })
   } catch (error) {
     console.error("Error uploading asset:", error)
@@ -253,12 +325,13 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Missing or invalid file_path" }, { status: 400 })
     }
 
-    // Delete the asset
-    const { error: deleteError } = await supabase
+    // Delete the asset from Supabase
+    const { data: deletedData, error: deleteError } = await supabase
       .from("project_assets")
       .delete()
       .eq("project_id", id)
       .eq("file_path", file_path)
+      .select()
 
     if (deleteError) {
       console.error("Error deleting asset:", deleteError)
@@ -266,7 +339,12 @@ export async function DELETE(request, { params }) {
     }
 
     console.log(`🗑️ Deleted asset for project ${id}: ${file_path}`)
-    return NextResponse.json({ success: true, message: "Asset deleted successfully" })
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: "Asset deleted successfully",
+      deleted: deletedData 
+    })
   } catch (error) {
     console.error("Error deleting asset:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
