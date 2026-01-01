@@ -588,6 +588,7 @@ function BuilderPageContent() {
                 }}
                 projectId={projectSetup.currentProjectId}
                 onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
+                onAssetDeleted={fileManagement.handleAssetDelete}
                 isLoadingFiles={fileManagement.isLoadingFiles}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -761,6 +762,7 @@ function BuilderPageContent() {
                             searchQuery={searchQuery}
                             projectId={projectSetup.currentProjectId}
                             onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
+                            onAssetDeleted={fileManagement.handleAssetDelete}
                             onSearchChange={setSearchQuery}
                           />
                         </div>

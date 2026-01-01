@@ -342,6 +342,21 @@ export async function* generateChromeExtensionStream({
           }
           // Format files as XML tags for universal use in patching and replacement prompts
           replacements.existing_files = formatFilesAsXml(filteredFiles)
+          
+          // Extract custom icon information
+          const customIcons = Object.keys(filteredFiles).filter(path => 
+            path.startsWith('icons/') && typeof filteredFiles[path] === 'string' && filteredFiles[path].startsWith('[Custom')
+          );
+          if (customIcons.length > 0) {
+            replacements.existing_files += '\n\n<custom_icons>\nThe following custom icons are available:\n';
+            customIcons.forEach(iconPath => {
+              replacements.existing_files += `- ${iconPath}\n`;
+            });
+            replacements.existing_files += '\nUse these custom icon paths in manifest.json and code.\n';
+            replacements.existing_files += '</custom_icons>';
+            console.log('🎨 [generate-extension-stream] Found custom icons for modification:', customIcons.join(', '));
+          }
+          
           console.log(
             `📋 Context includes ${
               Object.keys(filteredFiles).length
@@ -367,10 +382,28 @@ export async function* generateChromeExtensionStream({
       
       console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data and user APIs:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
       
+      // Extract custom icon information from existing files (for new extensions with uploaded icons)
+      let customIconsInfo = '';
+      if (Object.keys(existingFiles).length > 0) {
+        const customIcons = Object.keys(existingFiles).filter(path => 
+          path.startsWith('icons/') && typeof existingFiles[path] === 'string' && existingFiles[path].startsWith('[Custom')
+        );
+        if (customIcons.length > 0) {
+          customIconsInfo = '\n\n<custom_icons>\nThe following custom icons have been uploaded and are available:\n';
+          customIcons.forEach(iconPath => {
+            customIconsInfo += `- ${iconPath}\n`;
+          });
+          customIconsInfo += '\nFor manifest.json, use the uploaded icon paths directly.\n';
+          customIconsInfo += 'Example: "icons": { "16": "icons/custom-icon-16.png", "48": "icons/custom-icon-48.png", "128": "icons/custom-icon-128.png" }\n';
+          customIconsInfo += '</custom_icons>';
+          console.log('🎨 [generate-extension-stream] Found custom icons:', customIcons.join(', '));
+        }
+      }
+      
       replacements = {
         USER_REQUEST: finalUserPrompt,
         USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
-        EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES
+        EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo
       };
     }
 

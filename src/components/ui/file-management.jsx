@@ -20,12 +20,17 @@ export default function useFileManagement(currentProjectId, user) {
       pathParts.forEach((part, index) => {
         if (!current[part]) {
           if (index === pathParts.length - 1) {
-            // This is a file
+            // This is a file - preserve all metadata including asset info
             current[part] = {
               name: part,
               type: "file",
               content: file.content,
-              fullPath: file.file_path
+              fullPath: file.file_path,
+              file_path: file.file_path,
+              isAsset: file.isAsset || false,
+              assetId: file.assetId,
+              mime_type: file.mime_type,
+              file_size: file.file_size
             }
           } else {
             // This is a folder
@@ -146,12 +151,12 @@ export default function useFileManagement(currentProjectId, user) {
       
       
       // Debug manifest.json specifically
-      const manifestFile = files.find(file => file.file_path === 'manifest.json')
+      const manifestFile = allFiles.find(file => file.file_path === 'manifest.json')
       if (manifestFile) {
       }
 
       // Extract and update project with extension info from manifest.json
-      const extensionInfo = extractExtensionInfo(files)
+      const extensionInfo = extractExtensionInfo(allFiles)
       if (extensionInfo) {
         // Check if we need to update (avoid unnecessary updates)
         const lastUpdateKey = `last_project_update_${currentProjectId}`
@@ -170,7 +175,7 @@ export default function useFileManagement(currentProjectId, user) {
       setIsLoadingFiles(false)
       isLoadingRef.current = false
     }
-  }, [currentProjectId, loadedProjectId, fileStructure.length])
+  }, [currentProjectId, loadedProjectId])
 
   const handleFileSave = async (selectedFile, content) => {
     if (!selectedFile || !currentProjectId) {
@@ -216,6 +221,46 @@ export default function useFileManagement(currentProjectId, user) {
     }
   }
 
+  // Function to delete an asset
+  const handleAssetDelete = async (file) => {
+    if (!file || !file.isAsset || !currentProjectId) {
+      console.error('Invalid file or no project ID available')
+      return
+    }
+
+    // Prevent concurrent delete operations
+    if (isLoadingRef.current) {
+      console.warn('Already loading, skipping delete')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}/assets`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: file.file_path
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to delete asset')
+      }
+
+      console.log(`Deleted asset: ${file.file_path}`)
+      
+      // Refresh the file list to reflect the deletion
+      await loadProjectFiles(true)
+      
+    } catch (error) {
+      console.error('Error deleting asset:', error)
+      throw error
+    }
+  }
+
   // Function to find and return the manifest.json file
   const findManifestFile = () => {
     
@@ -250,6 +295,7 @@ export default function useFileManagement(currentProjectId, user) {
     isLoadingFiles,
     loadProjectFiles,
     handleFileSave,
+    handleAssetDelete,
     extractExtensionInfo,
     updateProjectWithExtensionInfo,
     findManifestFile
