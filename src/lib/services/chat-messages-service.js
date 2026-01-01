@@ -19,6 +19,7 @@ export class ChatMessagesService {
    * @param {Object} message - Message object
    * @param {string} message.role - Message role (user, assistant, system)
    * @param {string} message.content - Message content
+   * @param {string} message.versionId - Optional version ID (for user messages with auto-snapshots)
    */
   async addMessage(sessionId, message) {
     if (!sessionId || !message) {
@@ -32,17 +33,48 @@ export class ChatMessagesService {
     }
 
     try {
-      // Use PostgreSQL function for atomic append with cleanup
-      const { data, error } = await this.supabase
-        .rpc('add_conversation_message', {
-          p_project_id: sessionId,
-          p_role: message.role,
-          p_content: message.content,
-          p_expiry_hours: this.conversationExpiryHours
+      // Build message object with optional fields
+      const messageObj = {
+        role: message.role,
+        content: message.content,
+        timestamp: new Date().toISOString()
+      }
+      
+      // Add version ID if provided (for user messages with version snapshots)
+      if (message.versionId) {
+        messageObj.versionId = message.versionId
+      }
+
+      // Directly append to the JSONB array (bypassing the function for now to support metadata)
+      const { data: conversation, error: fetchError } = await this.supabase
+        .from('conversations')
+        .select('history')
+        .eq('project_id', sessionId)
+        .single()
+
+      let newHistory = []
+      
+      if (!fetchError && conversation) {
+        // Append to existing history
+        newHistory = [...(conversation.history || []), messageObj]
+      } else {
+        // Create new history
+        newHistory = [messageObj]
+      }
+
+      // Upsert the conversation with new message
+      const { error: upsertError } = await this.supabase
+        .from('conversations')
+        .upsert({
+          project_id: sessionId,
+          history: newHistory,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id'
         })
 
-      if (error) {
-        console.error('[chat-messages-service] Error adding message:', error)
+      if (upsertError) {
+        console.error('[chat-messages-service] Error upserting message:', upsertError)
         return
       }
 
@@ -50,7 +82,8 @@ export class ChatMessagesService {
         sessionId,
         role: message.role,
         contentLength: message.content?.length || 0,
-        totalMessages: Array.isArray(data) ? data.length : 0
+        hasVersionId: Boolean(message.versionId),
+        totalMessages: newHistory.length
       })
     } catch (error) {
       console.error('[chat-messages-service] Exception adding message:', error)

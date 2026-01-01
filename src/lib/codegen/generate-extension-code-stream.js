@@ -23,9 +23,10 @@ function processResponseMetadata(response, conversationTokenTotal = 0) {
 }
 
 /**
- * Stores clean conversation history (user query + explanation only, no code)
+ * Stores clean conversation history (assistant explanation only, no code)
+ * Note: User message is stored earlier in the stream route with version ID
  * @param {string} sessionId - Session/project identifier
- * @param {string} originalUserRequest - Original natural language request
+ * @param {string} originalUserRequest - Original natural language request (for logging only)
  * @param {string} explanation - AI explanation text (no code)
  */
 async function storeConversationHistory(sessionId, originalUserRequest, explanation) {
@@ -34,9 +35,11 @@ async function storeConversationHistory(sessionId, originalUserRequest, explanat
     return
   }
 
-  await llmService.chatMessages.addMessage(sessionId, { role: 'user', content: originalUserRequest })
-  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: explanation })
-  console.log(`✅ [conversation-history] Stored user query and explanation (${explanation.length} chars)`)
+  // Only store assistant message - user message was already stored with version ID in stream route
+  // Add the "Here's what I've built for you" prefix to match the UI display
+  const formattedExplanation = `Here's what I've built for you:\n\n${explanation}`
+  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: formattedExplanation })
+  console.log(`✅ [conversation-history] Stored assistant explanation (${formattedExplanation.length} chars)`)
 }
 
 /**

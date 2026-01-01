@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from "react"
 
+const INITIAL_GREETING = {
+  role: "assistant",
+  content: "hi! i'm **chromie**, your chrome extension assistant. tell me what you'd like in your extension.",
+}
+
 export function useChatState(projectId, hasGeneratedCodeProp) {
   const [inputMessage, setInputMessage] = useState("")
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "hi! i'm **chromie**, your chrome extension assistant. tell me what you'd like in your extension.",
-    },
-  ])
+  const [messages, setMessages] = useState([INITIAL_GREETING])
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGeneratedCode, setHasGeneratedCode] = useState(false)
+  const [messagesLoaded, setMessagesLoaded] = useState(false)
 
   // Use prop if provided, otherwise use internal state
   const effectiveHasGeneratedCode = hasGeneratedCodeProp !== undefined ? hasGeneratedCodeProp : hasGeneratedCode
@@ -51,9 +52,44 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   // Track when actual code generation (not planning) starts
   const [isActuallyGeneratingCode, setIsActuallyGeneratingCode] = useState(false)
 
+  // Load messages from database on mount or project change
+  useEffect(() => {
+    async function loadMessages() {
+      if (!projectId || messagesLoaded) return
+
+      try {
+        console.log('[useChatState] Loading messages for project:', projectId)
+        const response = await fetch(`/api/conversations/${projectId}/messages`)
+        
+        if (!response.ok) {
+          console.log('[useChatState] No saved messages found, using initial greeting')
+          setMessagesLoaded(true)
+          return
+        }
+
+        const data = await response.json()
+        const savedMessages = data.messages || []
+        
+        if (savedMessages.length > 0) {
+          console.log('[useChatState] Loaded', savedMessages.length, 'messages from database')
+          // Include initial greeting, then saved messages
+          setMessages([INITIAL_GREETING, ...savedMessages])
+        }
+        
+        setMessagesLoaded(true)
+      } catch (error) {
+        console.error('[useChatState] Error loading messages:', error)
+        setMessagesLoaded(true)
+      }
+    }
+
+    loadMessages()
+  }, [projectId])
+
   // Reset conversation state on project change
   useEffect(() => {
     setConversationTokenTotal(0)
+    setMessagesLoaded(false) // Reset loaded flag when project changes
   }, [projectId])
 
   // Adaptive typing for model thinking panel

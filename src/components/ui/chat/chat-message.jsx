@@ -1,14 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import MarkdownMessage from "./markdown-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 import { UrlInputRequest, ApiInputRequest } from "./input-request-message"
+import { RotateCcw } from "lucide-react"
 
-export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, setMessages }) {
+export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, setMessages, projectId, onRevert }) {
+  const [isReverting, setIsReverting] = useState(false)
   // Check if this is a final explanation message (contains "Here's what I've built for you")
+  // Make the check case-insensitive and more flexible
   const isFinalExplanation = message.role === "assistant" &&
     message.content &&
-    message.content.includes("Here's what I've built for you")
+    (message.content.includes("Here's what I've built for you") ||
+     message.content.toLowerCase().includes("here's what i've built") ||
+     message.content.includes("Here's what I've built"))
 
   const variant = message.role === "user" ? "sent" : "received"
   const isUser = message.role === "user"
@@ -17,6 +23,49 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
   // Check if this is an input request message
   const isUrlInputRequest = message.type === "url_input_request"
   const isApiInputRequest = message.type === "api_input_request"
+
+  // Check if this user message has a version snapshot
+  const hasVersionSnapshot = isUser && message.versionId
+  
+  // Debug logging
+  if (isUser && process.env.NODE_ENV === 'development') {
+    console.log(`[ChatMessage] User message "${message.content.substring(0, 30)}..." has versionId:`, message.versionId || 'NONE')
+  }
+
+  const handleRevert = async () => {
+    if (!message.versionId || !projectId) return
+    
+    if (!confirm("Revert to this version? This will restore your project to the state before this message.")) {
+      return
+    }
+
+    setIsReverting(true)
+    try {
+      const response = await fetch(`/api/projects/${projectId}/versions/${message.versionId}/revert`, {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to revert")
+      }
+
+      const data = await response.json()
+      console.log("✅ Reverted to version:", data)
+      
+      // Notify parent component that revert was successful
+      if (onRevert) {
+        onRevert()
+      }
+
+      alert(`Reverted successfully! Files restored: ${data.stats.files_restored}`)
+    } catch (error) {
+      console.error("Error reverting:", error)
+      alert(`Failed to revert: ${error.message}`)
+    } finally {
+      setIsReverting(false)
+    }
+  }
 
   return (
     <ChatBubble variant={variant}>
@@ -28,6 +77,19 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
           className="h-8 w-8 shrink-0"
         />
       )}
+      
+      {/* Revert button for user messages - placed BEFORE message on left side */}
+      {hasVersionSnapshot && (
+        <button
+          onClick={handleRevert}
+          disabled={isReverting}
+          className="flex-shrink-0 p-1.5 rounded-md hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+          title="Revert to this version"
+        >
+          <RotateCcw className={`h-3.5 w-3.5 text-gray-400 group-hover:text-blue-400 ${isReverting ? 'animate-spin' : ''}`} />
+        </button>
+      )}
+      
       <ChatBubbleMessage
         variant={variant}
         className={

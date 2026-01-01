@@ -186,6 +186,13 @@ export default function StreamingChat({
                     onUrlCancel={handleUrlCancel}
                     onApiCancel={handleApiCancel}
                     setMessages={setMessages}
+                    projectId={projectId}
+                    onRevert={() => {
+                      // Reload the page to refresh the code canvas with reverted files
+                      if (typeof window !== 'undefined') {
+                        window.location.reload()
+                      }
+                    }}
                   />
                 )
               })}
