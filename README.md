@@ -7,10 +7,8 @@
 4. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers. If OmniSpeech finds solution use it or implement Promptly Firebase solution.
 5. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
 6. metrics SDK and MVP usage data dashboard in chromie
-7. Introduce "Ask" mode
-8. Version history of extensions. Can do fuzzy Google Docs type or just allow for reverting to a certain point in conversation.
-9. Security audit. Scan for risks before exporting (API keys, non-proxy or rate limited calls)
-10. Yield model thoughts (title, description hidden) how Gemini UI does it. 
+7. ~Version history of extensions. Can do fuzzy Google Docs type or just allow for reverting to a certain point in conversation.~
+8. Yield model thoughts (title, description hidden) how Gemini UI does it. 
 
 ---
 ### TODOs
@@ -34,6 +32,7 @@
 9. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest)
 10. prompt_tokens is always extracted from gemini object as 0.
 11. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
+12. Introduce "Ask" mode
 
 ---
 ### SECURITY
@@ -49,6 +48,7 @@
 3. templates can include small branding things like uninstallListeners
 4. CONNECTORS: reference Lovable, ChatGPT connectors. Probably MCP with auth but can save us a lot of templating solution time if we get it.
 5. tag certain files in the chat
+6. Security audit. Scan for risks before exporting (API keys, non-proxy or rate limited calls)
 
    
 
