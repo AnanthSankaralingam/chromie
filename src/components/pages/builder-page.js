@@ -34,6 +34,7 @@ import {
   ArtifactClose,
 } from "@/components/ui/artifact/artifact"
 import { TourProvider, useTour, TOUR_STEP_IDS } from "@/components/ui/tour"
+import VersionHistoryPanel from "@/components/ui/version-history-panel"
 
 function BuilderPageContent() {
   const { isLoading, session, user, supabase } = useSession()
@@ -57,6 +58,7 @@ function BuilderPageContent() {
   const [aiTestResult, setAiTestResult] = useState(null)
   const [isAITestResultModalOpen, setIsAITestResultModalOpen] = useState(false)
   const [hasSavedAITestResults, setHasSavedAITestResults] = useState(false)
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false)
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -426,6 +428,25 @@ function BuilderPageContent() {
     handleTestExtensionWithTour()
   }
 
+  const handleVersionHistoryClick = () => {
+    setIsVersionHistoryOpen(true)
+  }
+
+  const handleVersionRestored = async () => {
+    // Reload project files after version restore
+    console.log('🔄 Version restored, reloading project files...')
+    await fileManagement.loadProjectFiles(true)
+    
+    // Refresh project details
+    await projectSetup.refreshCurrentProjectDetails?.()
+    
+    // Auto-select manifest.json file
+    const manifestFile = fileManagement.findManifestFile()
+    if (manifestFile) {
+      setSelectedFile(manifestFile)
+    }
+  }
+
   // Show loading state
   if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
     return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
@@ -464,6 +485,7 @@ function BuilderPageContent() {
             shouldStartTestHighlight={shouldStartTestHighlight}
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
+            onVersionHistoryClick={handleVersionHistoryClick}
             tourTestButtonId="tour-test-button"
             tourTestWithAIButtonId="tour-test-with-ai-button"
             tourShareButtonId="tour-share-button"
@@ -846,6 +868,14 @@ function BuilderPageContent() {
         isOpen={isAITestResultModalOpen}
         onClose={() => setIsAITestResultModalOpen(false)}
         result={aiTestResult}
+      />
+
+      {/* Version History Panel */}
+      <VersionHistoryPanel
+        projectId={projectSetup.currentProjectId}
+        isOpen={isVersionHistoryOpen}
+        onClose={() => setIsVersionHistoryOpen(false)}
+        onVersionRestored={handleVersionRestored}
       />
     </>
   )

@@ -111,6 +111,35 @@ export async function saveFilesToDatabase(implementationResult, sessionId, repla
     console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
   }
 
+  // Create automatic version snapshot after successful file save
+  // Only attempt if table exists (gracefully handle migration not being run)
+  if (savedFiles.length > 0) {
+    try {
+      console.log('📸 Attempting to create automatic version snapshot...')
+      const { error: versionError } = await supabase
+        .rpc("create_project_version", {
+          p_project_id: sessionId,
+          p_version_name: "Auto-save",
+          p_description: `Automatic version created after code generation - ${savedFiles.length} files updated`,
+        })
+
+      if (versionError) {
+        // Check if it's because the migration hasn't been run
+        if (versionError.code === 'PGRST202' || versionError.code === '42P01') {
+          console.log('ℹ️ Version history feature not enabled (migration not run). Skipping auto-version.')
+        } else {
+          console.error('❌ Error creating automatic version:', versionError)
+        }
+        // Don't fail the file save if version creation fails
+      } else {
+        console.log('✅ Automatic version snapshot created')
+      }
+    } catch (versionErr) {
+      console.error('💥 Exception creating automatic version:', versionErr.message)
+      // Don't fail the file save if version creation fails
+    }
+  }
+
   return { savedFiles, errors }
 }
 
