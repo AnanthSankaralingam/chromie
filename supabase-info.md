@@ -190,7 +190,33 @@ Additional indexes and constraints:
 
 ---
 
-### 11. `api_docs_cache`
+### 11. `project_versions`
+Stores version history snapshots of projects including all files and assets.
+
+| Column           | Type         | Details                                                     |
+|------------------|--------------|-------------------------------------------------------------|
+| `id`             | uuid         | PK, DEFAULT gen_random_uuid()                               |
+| `project_id`     | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
+| `version_number` | integer      | NOT NULL; incremental version number per project            |
+| `version_name`   | text         | Optional name for the version                               |
+| `description`    | text         | Optional description of changes                             |
+| `snapshot_data`  | jsonb        | NOT NULL; complete project state (files, assets, metadata)  |
+| `created_at`     | timestamptz  | DEFAULT now()                                               |
+| `created_by`     | uuid         | FK → auth.users.id, ON DELETE SET NULL                     |
+
+Additional indexes and constraints:
+- Unique on `(project_id, version_number)` to prevent duplicate version numbers
+- `idx_project_versions_project_id` on `project_id` for fast lookups
+- `idx_project_versions_project_version` on `(project_id, version_number DESC)` for sorting
+- `idx_project_versions_created_at` on `(project_id, created_at DESC)` for time-based queries
+
+Helper functions:
+- `get_next_version_number(p_project_id)` - Returns the next version number for a project
+- `create_project_version(p_project_id, p_version_name, p_description)` - Creates a version snapshot
+
+---
+
+### 12. `api_docs_cache`
 
 | Column            | Type                       | Description                              |
 | ----------------- | -------------------------- | ---------------------------------------- |
@@ -280,6 +306,13 @@ create policy shared_icons_read_global
 - Users can SELECT, UPDATE, DELETE assets only for projects they own.
 - Users can INSERT assets only for their own projects (`project_id` belongs to user).
 - Unique constraint on `(project_id, file_path)` prevents duplicate uploads.
+
+### 11. `project_versions`
+
+- Users can SELECT versions only for projects they own.
+- Users can INSERT versions only for their own projects (`project_id` belongs to user).
+- Users can DELETE versions only for projects they own.
+- No UPDATE policy (versions are immutable snapshots).
 
 ---
 

@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -35,6 +35,7 @@ export default function AppBarBuilder({
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
+  onVersionHistoryClick,
   tourTestButtonId,
   tourTestWithAIButtonId,
   tourShareButtonId,
@@ -253,6 +254,16 @@ export default function AppBarBuilder({
               </button>
               <div className="hidden sm:flex items-center space-x-3">
                 <Button
+                  onClick={onVersionHistoryClick}
+                  disabled={isTestDisabled || isGenerating}
+                  variant="outline"
+                  className="relative bg-slate-900 text-amber-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 enabled:shadow-lg enabled:shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 enabled:scale-100 hover:scale-105"
+                  style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(251 191 36), rgb(245 158 11))', backgroundOrigin: 'border-box' }}
+                  title="Version History"
+                >
+                  <History className="h-4 w-4" />
+                </Button>
+                <Button
                   id={tourTestButtonId}
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
@@ -371,6 +382,16 @@ export default function AppBarBuilder({
       {isMobileMenuOpen && (
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
+            <Button
+              onClick={() => { onVersionHistoryClick?.(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              variant="outline"
+              className="w-full bg-slate-900 text-amber-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+              style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(251 191 36), rgb(245 158 11))', backgroundOrigin: 'border-box' }}
+            >
+              <History className="h-4 w-4 mr-2" />
+              Version History
+            </Button>
             <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
