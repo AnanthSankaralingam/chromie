@@ -10,11 +10,13 @@ P0:
 4. Clear conversation button
 
 P1:
-1. Add image input for just patches ("copy this UI use case")
-2. Develop moat for add to existing patches by creating streamlined planner w/ tool calls
-3. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
-4. ai within extension (nanobrowser as a use case template and also as a tool within reg exts)
-5. Fork your own project
+1.FOLLOW UP STUFF:
+   1.1. Add image input for just patches ("copy this UI use case")
+   1.2. Develop moat for add to existing patches by creating streamlined planner w/ tool calls
+   1.3. Todos for follow ups
+2. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
+3. ai within extension (nanobrowser as a use case template and also as a tool within reg exts)
+4. Fork your own project
 
 P5:
 1. Experiment with bundler
