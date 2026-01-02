@@ -1,5 +1,39 @@
 # chromie
 
+P-1:
+1. Outreach
+   
+P0:
+1. Prompt engineer that tailors user ideas to a predefined format to match planner expectations
+2. metrics platform (look at how orchids did it)
+3. templates for planner (convert new req to add to existing w/ patch)
+4. Clear conversation button
+
+P1:
+1. Add image input for just patches ("copy this UI use case")
+2. Develop moat for add to existing patches by creating streamlined planner w/ tool calls
+3. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
+4. ai within extension (nanobrowser as a use case template and also as a tool within reg exts)
+
+P5:
+1. UI overhaul
+2. Remove loading page's purple gradient
+3. no hybrid ui types, i.e. popup + content injection
+4. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
+5. Put easy samples on Chrome store w/ demo videos (put in "featured creations" page on website)
+
+
+Bugbash:
+1. “Ask” mode
+2.  Yield model thoughts (title, description hidden) like in Gemini UI
+3.  Take out purple gradient from coder prompt
+4.  Rest of "Bugs" section
+
+
+
+
+
+
 ### Next big features
 1. ~Follow-up Conversation tooling: patches (prompt and util), linter verification, file replacement fallback.~ schemas and prefill?
 2. ~Conversation History. Store most recent convo and expire within 2 hrs no usage; store user queries and model explanation response (no code). final query includes codebase current state.~ expire sooner than 2 hrs?
