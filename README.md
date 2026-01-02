@@ -17,11 +17,12 @@ P1:
 5. Fork your own project
 
 P5:
-1. UI overhaul
-2. Remove loading page's purple gradient
-3. no hybrid ui types, i.e. popup + content injection
-4. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
-5. Put easy samples on Chrome store w/ demo videos (put in "featured creations" page on website)
+1. Experiment with bundler
+2. UI overhaul
+3. Remove loading page's purple gradient
+4. no hybrid ui types, i.e. popup + content injection
+5. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
+6. Put easy samples on Chrome store w/ demo videos (put in "featured creations" page on website)
 
 
 Bugbash:
