@@ -14,6 +14,7 @@ P1:
 2. Develop moat for add to existing patches by creating streamlined planner w/ tool calls
 3. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
 4. ai within extension (nanobrowser as a use case template and also as a tool within reg exts)
+5. Fork your own project
 
 P5:
 1. UI overhaul
