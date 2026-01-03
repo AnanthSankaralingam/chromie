@@ -4,6 +4,7 @@ import { HyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
 
+// TODO depracate this route
 export async function POST(request, { params }) {
   const supabase = createClient()
   const { id: projectId } = params

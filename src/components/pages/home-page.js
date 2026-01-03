@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Send, LoaderIcon } from "lucide-react"
+import { Send, LoaderIcon, Sparkles } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -17,11 +17,13 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { extensionSuggestions } from "@/lib/data/extension-suggestions"
+import { useToast } from "@/lib/hooks/use-toast"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
   const [prompt, setPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isOptimizing, setIsOptimizing] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
@@ -32,6 +34,7 @@ export default function HomePage() {
   const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
   const textareaRef = useRef(null)
+  const { toast } = useToast()
 
   // Typing suggestions for placeholder - extracted from extension suggestions data
   // Descriptions already have no prefix, "An extension that " is added during typing
@@ -88,6 +91,59 @@ export default function HomePage() {
 
   const handleTextareaBlur = () => {
     setInputFocused(false)
+  }
+
+  const handleOptimizePrompt = async () => {
+    const promptText = prompt.trim()
+
+    // Validate prompt length
+    if (promptText.length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Prompt too short",
+        description: "Prompt must be at least 10 characters long.",
+      })
+      return
+    }
+
+    if (promptText.length > 1500) {
+      toast({
+        variant: "destructive",
+        title: "Prompt too long",
+        description: "Prompt must be less than 1500 characters.",
+      })
+      return
+    }
+
+    setIsOptimizing(true)
+
+    try {
+      const response = await fetch("/api/optimize-prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: promptText }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to optimize prompt")
+      }
+
+      const { optimizedPrompt } = await response.json()
+      setPrompt(optimizedPrompt)
+      adjustHeight()
+    } catch (error) {
+      console.error("Error optimizing prompt:", error)
+      toast({
+        variant: "destructive",
+        title: "Optimization failed",
+        description: error.message || "Failed to optimize prompt. Please try again.",
+      })
+    } finally {
+      setIsOptimizing(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -429,7 +485,7 @@ export default function HomePage() {
                       onFocus={handleTextareaFocus}
                       onBlur={handleTextareaBlur}
                       placeholder={placeholderText || "describe your extension..."}
-                      disabled={isGenerating}
+                      disabled={isGenerating || isOptimizing}
                       className={cn(
                         "w-full px-0 py-0",
                         "resize-none",
@@ -453,29 +509,53 @@ export default function HomePage() {
                       <span>to send</span>
                     </div>
 
-                    <Button
-                      type="submit"
-                      disabled={isGenerating || !prompt.trim()}
-                      size="lg"
-                      className={cn(
-                        "font-semibold transition-all duration-300 px-6 py-2.5",
-                        prompt.trim() && !isGenerating
-                          ? "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105"
-                          : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
-                      )}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <LoaderIcon className="w-4 h-4 animate-spin" />
-                          <span className="ml-2">generating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          <span className="ml-2">build</span>
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        onClick={handleOptimizePrompt}
+                        disabled={isOptimizing || isGenerating || !prompt.trim()}
+                        size="lg"
+                        title="optimize prompt"
+                        className={cn(
+                          "font-semibold transition-all duration-300 px-4 py-2.5",
+                          prompt.trim() && !isOptimizing && !isGenerating
+                            ? "bg-slate-700/60 hover:bg-slate-700/80 border border-slate-600/50 hover:border-slate-500/70 shadow-md hover:shadow-lg hover:scale-105"
+                            : "bg-slate-700/40 text-slate-500 cursor-not-allowed border border-slate-700/40"
+                        )}
+                      >
+                        {isOptimizing ? (
+                          <>
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                          </>
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                      </Button>
+
+                      <Button
+                        type="submit"
+                        disabled={isGenerating || isOptimizing || !prompt.trim()}
+                        size="lg"
+                        className={cn(
+                          "font-semibold transition-all duration-300 px-6 py-2.5",
+                          prompt.trim() && !isGenerating && !isOptimizing
+                            ? "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105"
+                            : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
+                        )}
+                      >
+                        {isGenerating ? (
+                          <>
+                            <LoaderIcon className="w-4 h-4 animate-spin" />
+                            <span className="ml-2">generating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span className="ml-2">build</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.form>

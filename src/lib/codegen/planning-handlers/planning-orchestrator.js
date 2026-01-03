@@ -453,6 +453,7 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
       }
     }
 
+    //TODO move this to the docs itself, don't edit context in this file.
     // CRITICAL: Enforce Offscreen Pattern for Audio/Video Recording
     if (apiList.includes('tabCapture') || apiList.includes('offscreen')) {
       output += `\n### ⚠️ CRITICAL IMPLEMENTATION RULE: Audio/Video Recording\n`
