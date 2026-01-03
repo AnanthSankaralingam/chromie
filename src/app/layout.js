@@ -5,6 +5,8 @@ import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
 import AuthHandler from "@/components/AuthHandler";
 import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
+import { ToastProvider, ToastViewport } from "@/components/ui/feedback/toast";
+import { Toaster } from "@/lib/hooks/use-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 const instrumentSerif = Instrument_Serif({ 
@@ -35,8 +37,12 @@ export default function RootLayout({ children }) {
       <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
         <SessionProviderClient>
           <AuthHandler />
-          {children}
-          <FloatingFeedbackButton />
+          <ToastProvider>
+            {children}
+            <FloatingFeedbackButton />
+            <Toaster />
+            <ToastViewport />
+          </ToastProvider>
         </SessionProviderClient>
       </body>
     </html>
