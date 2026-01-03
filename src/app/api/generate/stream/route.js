@@ -177,6 +177,20 @@ export async function POST(request) {
       } else {
         console.log("⚠️ No existing files found for add-to-existing request")
       }
+
+      // Also fetch project assets (custom icons, etc.) to inform the AI
+      const { data: assets } = await supabase
+        .from("project_assets")
+        .select("file_path, file_type, mime_type, file_size")
+        .eq("project_id", projectId)
+
+      if (assets && assets.length > 0) {
+        // Add asset metadata as special entries (not full content, just metadata)
+        assets.forEach(asset => {
+          existingFiles[asset.file_path] = `[Custom ${asset.file_type}: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB - Available for use]`
+        })
+        console.log(`🎨 Found ${assets.length} custom assets: ${assets.map(a => a.file_path).join(', ')}`)
+      }
     } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
       console.log("🆕 New extension request - no existing files needed")
     }
@@ -190,10 +204,48 @@ export async function POST(request) {
     let accumulatedTokens = 0
     let modelUsed = modelOverride || 'unknown'
     let requiresUrl = false
+    let createdVersionId = null
+    
+    // Auto-create version snapshot before processing user message
+    if (projectId) {
+      try {
+        console.log(`📸 Creating auto-version snapshot for project ${projectId}`)
+        const { data: versionId, error: versionError } = await supabase
+          .rpc("create_project_version", {
+            p_project_id: projectId,
+            p_version_name: `Before: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`,
+            p_description: `Auto-snapshot before user message: "${prompt}"`,
+          })
+        
+        if (versionError) {
+          console.error("⚠️ Failed to create auto-version snapshot:", versionError)
+        } else {
+          createdVersionId = versionId
+          console.log(`✅ Created auto-version snapshot: ${versionId}`)
+          
+          // Immediately store user message with version ID
+          const { llmService } = await import('@/lib/services/llm-service')
+          await llmService.chatMessages.addMessage(projectId, {
+            role: 'user',
+            content: prompt,
+            versionId: versionId
+          })
+          console.log(`💾 Stored user message with version ID: ${versionId}`)
+        }
+      } catch (versionErr) {
+        console.error("⚠️ Error creating auto-version snapshot:", versionErr)
+      }
+    }
     
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send version ID first if available
+          if (createdVersionId) {
+            const versionData = JSON.stringify({ type: "version_created", versionId: createdVersionId })
+            controller.enqueue(encoder.encode(`data: ${versionData}\n\n`))
+          }
+          
           // Send initial response
           const initialData = JSON.stringify({ type: "start", content: "Starting generation..." })
           controller.enqueue(encoder.encode(`data: ${initialData}\n\n`))

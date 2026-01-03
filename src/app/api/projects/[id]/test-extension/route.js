@@ -56,7 +56,24 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: filesError.message }, { status: 500 })
     }
 
-    const extensionFiles = (files || []).map((f) => ({ file_path: f.file_path, content: f.content }))
+    // Also fetch project assets (custom icons, etc.)
+    const { data: assets, error: assetsError } = await supabase
+      .from("project_assets")
+      .select("file_path, content_base64")
+      .eq("project_id", id)
+
+    if (assetsError) {
+      console.error("Error fetching project assets:", assetsError)
+      // Continue without custom assets - not a fatal error
+    }
+
+    // Combine code files and assets
+    const extensionFiles = [
+      ...(files || []).map((f) => ({ file_path: f.file_path, content: f.content })),
+      ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64 }))
+    ]
+    
+    console.log(`[test-extension] Loading extension with ${files?.length || 0} code files and ${assets?.length || 0} assets`)
 
     // Calculate session expiry - enforce 1 minute maximum for all sessions
     const now = new Date()

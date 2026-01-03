@@ -1,15 +1,20 @@
 import { useState } from "react"
-import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Copy, Check } from "lucide-react"
+import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Copy, Check, Trash2 } from "lucide-react"
+import DeleteAssetModal from "@/components/ui/modals/delete-asset-modal"
 
 export default function FileTree({ 
   fileStructure, 
   selectedFile, 
   onFileSelect, 
   isLoadingFiles,
-  searchQuery 
+  searchQuery,
+  onDeleteAsset
 }) {
   const [expandedFolders, setExpandedFolders] = useState({})
   const [copiedFile, setCopiedFile] = useState(null)
+  const [deletingAsset, setDeletingAsset] = useState(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [assetToDelete, setAssetToDelete] = useState(null)
 
   const toggleFolder = (folderPath) => {
     setExpandedFolders((prev) => ({
@@ -30,6 +35,46 @@ export default function FileTree({
       setTimeout(() => setCopiedFile(null), 2000)
     } catch (error) {
       console.error('Failed to copy file content:', error)
+    }
+  }
+
+  // Open delete confirmation modal
+  const handleDeleteClick = (file, e) => {
+    e.stopPropagation()
+    
+    if (!file.isAsset) return
+    
+    setAssetToDelete(file)
+    setDeleteModalOpen(true)
+  }
+
+  // Perform the actual deletion
+  const handleConfirmDelete = async () => {
+    if (!assetToDelete) return
+    
+    setDeletingAsset(assetToDelete.file_path)
+    
+    try {
+      if (onDeleteAsset) {
+        await onDeleteAsset(assetToDelete)
+      }
+      
+      // Close modal on success
+      setDeleteModalOpen(false)
+      setAssetToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete asset:', error)
+      alert(`Failed to delete asset: ${error.message || 'Unknown error'}`)
+    } finally {
+      setDeletingAsset(null)
+    }
+  }
+
+  // Close modal without deleting
+  const handleCancelDelete = () => {
+    if (!deletingAsset) {
+      setDeleteModalOpen(false)
+      setAssetToDelete(null)
     }
   }
 
@@ -164,6 +209,22 @@ export default function FileTree({
                   <Copy className="h-3 w-3 text-slate-400" />
                 )}
               </button>
+              
+              {/* Show delete button for assets only */}
+              {item.isAsset && (
+                <button
+                  onClick={(e) => handleDeleteClick(item, e)}
+                  className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                  title="Delete asset"
+                  disabled={deletingAsset === item.file_path}
+                >
+                  {deletingAsset === item.file_path ? (
+                    <div className="h-3 w-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 text-red-400 hover:text-red-300" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -194,9 +255,20 @@ export default function FileTree({
   }
 
   return (
-    <div className="space-y-1">
-      {renderFileTree(fileStructure)}
-    </div>
+    <>
+      <div className="space-y-1">
+        {renderFileTree(fileStructure)}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteAssetModal
+        isOpen={deleteModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        assetName={assetToDelete?.name || ""}
+        isDeleting={!!deletingAsset}
+      />
+    </>
   )
 }
 // Import missing icons

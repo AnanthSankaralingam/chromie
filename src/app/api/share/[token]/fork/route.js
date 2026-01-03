@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import {
   validateShareToken,
@@ -194,6 +195,7 @@ export async function POST(request, { params }) {
         created_at: new Date().toISOString(),
         last_used_at: new Date().toISOString(),
         archived: false,
+        has_generated_code: true, // Forked projects have code from the original
       })
       .select()
       .single()
@@ -247,6 +249,55 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Failed to copy project files" }, { status: 500 })
     }
 
+    // Copy project assets (custom icons and other files) using service role
+    let assetCount = 0
+    try {
+      const SUPABASE_URL = process.env.SUPABASE_URL
+      const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+      
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        const serviceSupabase = createServiceClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          auth: { persistSession: false }
+        })
+
+        const { data: originalAssets, error: assetsError } = await serviceSupabase
+          .from("project_assets")
+          .select("file_path, content_base64, file_type, mime_type, file_size")
+          .eq("project_id", sharedProject.project_id)
+
+        if (assetsError) {
+          console.error("Error fetching original assets:", assetsError)
+          // Don't fail the fork for missing assets - they're optional
+        } else if (originalAssets && originalAssets.length > 0) {
+          console.log(`Copying ${originalAssets.length} assets to forked project`)
+
+          const assetsToInsert = originalAssets.map(asset => ({
+            project_id: newProject.id,
+            file_path: asset.file_path,
+            content_base64: asset.content_base64,
+            file_type: asset.file_type,
+            mime_type: asset.mime_type,
+            file_size: asset.file_size,
+          }))
+
+          const { error: assetsInsertError } = await supabase
+            .from("project_assets")
+            .upsert(assetsToInsert, { onConflict: 'project_id,file_path' })
+
+          if (assetsInsertError) {
+            console.error("Error copying assets:", assetsInsertError)
+            // Don't fail the fork - assets are nice to have but not critical
+          } else {
+            assetCount = originalAssets.length
+            console.log(`✅ Copied ${assetCount} assets to forked project`)
+          }
+        }
+      }
+    } catch (assetsError) {
+      console.error("Error in asset copying:", assetsError)
+      // Continue - assets are optional
+    }
+
     const processingTime = Date.now() - startTime
 
     securityLog('info', 'Fork completed successfully', {
@@ -255,12 +306,13 @@ export async function POST(request, { params }) {
       originalProjectId: originalProject.id,
       newProjectId: newProject.id,
       fileCount: originalFiles.length,
+      assetCount,
       processingTime,
       userAgent,
       clientIP
     })
 
-    console.log(`✅ Forked project ${originalProject.id} to ${newProject.id} with ${originalFiles.length} files in ${processingTime}ms`)
+    console.log(`✅ Forked project ${originalProject.id} to ${newProject.id} with ${originalFiles.length} files and ${assetCount} assets in ${processingTime}ms`)
 
     // Return success with new project details
     return NextResponse.json({
@@ -269,7 +321,8 @@ export async function POST(request, { params }) {
         id: newProject.id,
         name: newProject.name,
         description: newProject.description,
-        fileCount: originalFiles.length
+        fileCount: originalFiles.length,
+        assetCount
       },
       message: "Project forked successfully"
     }, { status: 201 })

@@ -111,6 +111,10 @@ export async function saveFilesToDatabase(implementationResult, sessionId, repla
     console.error(`❌ ${errors.length} files had errors:`, errors.map(e => e.filePath))
   }
 
+  // Note: Version snapshots are now created BEFORE generation in the stream route
+  // This allows us to send the version ID to the frontend and attach it to user messages
+  // Removed duplicate version creation that was happening here
+
   return { savedFiles, errors }
 }
 
