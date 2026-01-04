@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
-import { Share, Download, Link, Upload, ChevronDown, Github } from "lucide-react"
+import { Share, Download, Link, Upload, ChevronDown, Github, GitFork } from "lucide-react"
 
 export default function ShareDropdown({
   projectId,
@@ -20,8 +20,10 @@ export default function ShareDropdown({
   onShareClick,
   onPublishClick,
   onExportToGithubClick,
+  onForkClick,
   isExportingToGithub = false,
-   hasGithubRepo = false,
+  isForkLoading = false,
+  hasGithubRepo = false,
   className = "",
   triggerId,
 }) {
@@ -45,6 +47,11 @@ export default function ShareDropdown({
   const handleExportToGithubClick = () => {
     setIsOpen(false)
     onExportToGithubClick?.()
+  }
+
+  const handleForkClick = () => {
+    setIsOpen(false)
+    onForkClick?.()
   }
 
   const isDisabled = !projectId || isGenerating || isTestDisabled
@@ -91,6 +98,17 @@ export default function ShareDropdown({
           <Link className="h-4 w-4 mr-3 text-green-400" />
           <span className="flex-1">
             {isSharing ? "Generating..." : "Get Shareable Link"}
+          </span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={handleForkClick}
+          disabled={isDisabled || isForkLoading}
+          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+        >
+          <GitFork className="h-4 w-4 mr-3 text-blue-400" />
+          <span className="flex-1">
+            {isForkLoading ? "Forking..." : "Fork Project"}
           </span>
         </DropdownMenuItem>
 
