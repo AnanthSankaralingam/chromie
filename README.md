@@ -13,7 +13,7 @@ P1:
 
 1. FOLLOW UP STUFF:
 
-Add image input for just patches ("copy this UI use case")
+~Add image input for just patches ("copy this UI use case")~
 
 Develop moat for add to existing patches by creating streamlined planner w/ tool calls
 
