@@ -72,6 +72,9 @@ export default function AppBarBuilder({
   const [githubModalMessage, setGithubModalMessage] = useState("")
   const [githubModalRepoUrl, setGithubModalRepoUrl] = useState("")
   const [githubModalRepoName, setGithubModalRepoName] = useState("")
+  
+  // Fork project state
+  const [isForkLoading, setIsForkLoading] = useState(false)
 
   // Handle highlight triggers
   useEffect(() => {
@@ -118,6 +121,67 @@ export default function AppBarBuilder({
   const handlePublishClick = () => {
     console.log('[publish] open modal')
     setIsPublishOpen(true)
+  }
+
+  const handleForkClick = async () => {
+    stopAllHighlights()
+
+    if (!projectId) {
+      console.error('[fork] No project ID available for forking')
+      return
+    }
+
+    try {
+      console.log('[fork] Starting fork for project', { projectId })
+      setIsForkLoading(true)
+
+      const response = await fetch(`/api/projects/${projectId}/fork`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const message = data.error || 'Failed to fork project'
+        console.error('[fork] Fork failed:', message)
+        
+        setGithubModalStatus("error")
+        setGithubModalMessage(message)
+        setGithubModalRepoUrl("")
+        setGithubModalRepoName("")
+        setGithubModalOpen(true)
+        return
+      }
+
+      console.log('[fork] Fork completed successfully', data)
+
+      // Show success modal
+      setGithubModalStatus("success")
+      setGithubModalMessage(`Project forked successfully as "${data.project.name}". Redirecting to the forked project...`)
+      setGithubModalRepoUrl("")
+      setGithubModalRepoName("")
+      setGithubModalOpen(true)
+
+      // Store project ID and navigate to builder after brief delay
+      setTimeout(() => {
+        sessionStorage.setItem('chromie_current_project_id', data.project.id)
+        window.location.href = `/builder?project=${data.project.id}`
+      }, 2000)
+
+    } catch (error) {
+      console.error('[fork] Error forking project:', error)
+      setGithubModalStatus("error")
+      setGithubModalMessage(error.message || "Failed to fork project.")
+      setGithubModalRepoUrl("")
+      setGithubModalRepoName("")
+      setGithubModalOpen(true)
+    } finally {
+      setIsForkLoading(false)
+    }
   }
 
   const handleExportToGithubClick = async () => {
@@ -348,7 +412,9 @@ export default function AppBarBuilder({
                   onShareClick={handleShareClick}
                   onPublishClick={handlePublishClick}
                   onExportToGithubClick={handleExportToGithubClick}
+                  onForkClick={handleForkClick}
                   isExportingToGithub={isExportingToGithub}
+                  isForkLoading={isForkLoading}
                   hasGithubRepo={hasGithubRepo}
                   triggerId={tourShareButtonId}
                 />
@@ -477,7 +543,9 @@ export default function AppBarBuilder({
                 onShareClick={() => { handleShareClick(); setIsMobileMenuOpen(false) }}
                 onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
                 onExportToGithubClick={() => { handleExportToGithubClick(); setIsMobileMenuOpen(false) }}
+                onForkClick={() => { handleForkClick(); setIsMobileMenuOpen(false) }}
                 isExportingToGithub={isExportingToGithub}
+                isForkLoading={isForkLoading}
                 hasGithubRepo={hasGithubRepo}
                 className="w-full"
                 triggerId={tourShareButtonId ? `${tourShareButtonId}-mobile` : undefined}
