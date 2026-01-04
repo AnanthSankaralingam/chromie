@@ -115,14 +115,15 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images } = await request.json()
 
     console.log('[api/generate/stream] received', {
       conversationTokenTotal_in: conversationTokenTotal ?? null,
       modelOverride: modelOverride || null,
       contextWindowMaxTokens: contextWindowMaxTokens || null,
       has_initialRequirementsAnalysis: Boolean(initialRequirementsAnalysis),
-      has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage)
+      has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage),
+      hasImages: Boolean(images && images.length > 0)
     })
 
     if (!prompt) {
@@ -223,13 +224,21 @@ export async function POST(request) {
           createdVersionId = versionId
           console.log(`✅ Created auto-version snapshot: ${versionId}`)
           
-          // Immediately store user message with version ID
+          // Immediately store user message with version ID and images if present
           const { llmService } = await import('@/lib/services/llm-service')
-          await llmService.chatMessages.addMessage(projectId, {
+          const userMessage = {
             role: 'user',
             content: prompt,
             versionId: versionId
-          })
+          }
+          
+          // Include images if provided
+          if (images && images.length > 0) {
+            userMessage.images = images
+            console.log(`📷 Including ${images.length} images in stored message`)
+          }
+          
+          await llmService.chatMessages.addMessage(projectId, userMessage)
           console.log(`💾 Stored user message with version ID: ${versionId}`)
         }
       } catch (versionErr) {
@@ -263,7 +272,8 @@ export async function POST(request) {
             modelOverride,
             contextWindowMaxTokens,
             initialRequirementsAnalysis: initialRequirementsAnalysis || null,
-            initialPlanningTokenUsage: initialPlanningTokenUsage || null
+            initialPlanningTokenUsage: initialPlanningTokenUsage || null,
+            images: images || null
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))

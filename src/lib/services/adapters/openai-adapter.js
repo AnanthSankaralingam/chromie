@@ -115,7 +115,7 @@ export class OpenAIAdapter {
 
   /**
    * Normalize input to OpenAI messages format
-   * @param {string|Array} input - Input text or messages
+   * @param {string|Array|Object} input - Input text, messages, or object with text and images
    * @param {Array} conversation_history - Previous conversation history
    * @returns {Array} Normalized messages
    */
@@ -130,6 +130,27 @@ export class OpenAIAdapter {
     } else if (Array.isArray(input)) {
       // If input is already in message format, add it
       messages.push(...input)
+    } else if (typeof input === 'object' && input.text) {
+      // Handle input with images (vision request)
+      const content = [{ type: 'text', text: input.text }]
+      
+      // Add images if present
+      if (input.images && Array.isArray(input.images)) {
+        console.log(`[openai-adapter] Adding ${input.images.length} images to request`)
+        for (const image of input.images) {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: image.data // Base64 data URL
+            }
+          })
+        }
+      }
+      
+      messages.push({
+        role: 'user',
+        content: content
+      })
     } else {
       messages.push({
         role: 'user',

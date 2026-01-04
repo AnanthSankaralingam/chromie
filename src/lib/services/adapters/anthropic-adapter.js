@@ -116,7 +116,7 @@ export class AnthropicAdapter {
 
   /**
    * Normalize input to Anthropic messages format
-   * @param {string|Array} input - Input text or messages
+   * @param {string|Array|Object} input - Input text, messages, or object with text and images
    * @param {Array} conversation_history - Previous conversation history
    * @returns {Array} Normalized messages
    */
@@ -131,6 +131,35 @@ export class AnthropicAdapter {
     } else if (Array.isArray(input)) {
       // If input is already in message format, add it
       messages.push(...input)
+    } else if (typeof input === 'object' && input.text) {
+      // Handle input with images (vision request)
+      const content = [{ type: 'text', text: input.text }]
+      
+      // Add images if present
+      if (input.images && Array.isArray(input.images)) {
+        console.log(`[anthropic-adapter] Adding ${input.images.length} images to request`)
+        for (const image of input.images) {
+          // Extract base64 data and mime type for Anthropic format
+          const base64Match = image.data.match(/^data:([^;]+);base64,(.+)$/)
+          if (base64Match) {
+            content.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: base64Match[1],
+                data: base64Match[2]
+              }
+            })
+          } else {
+            console.warn('[anthropic-adapter] Invalid image format, expected base64 data URL')
+          }
+        }
+      }
+      
+      messages.push({
+        role: 'user',
+        content: content
+      })
     } else {
       messages.push({
         role: 'user',

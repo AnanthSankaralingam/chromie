@@ -1,9 +1,9 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Send, ImagePlus, X } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { Textarea } from "@/components/ui/textarea";
 
@@ -16,12 +16,13 @@ interface AIInputWithSearchProps {
   placeholder?: string;
   minHeight?: number;
   maxHeight?: number;
-  onSubmit?: (value: string, withSearch: boolean) => void;
+  onSubmit?: (value: string, withSearch: boolean, images?: File[]) => void;
   onFileSelect?: (file: File) => void;
   className?: string;
   disabled?: boolean;
   value?: string;
   onChange?: (value: string) => void;
+  enableImageUpload?: boolean;
 }
 
 export function AIInputWithSearch({
@@ -35,8 +36,13 @@ export function AIInputWithSearch({
   disabled = false,
   value: controlledValue,
   onChange: controlledOnChange,
+  enableImageUpload = false,
 }: AIInputWithSearchProps) {
   const [internalValue, setInternalValue] = useState("");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const isControlled = controlledValue !== undefined;
   const value = isControlled ? controlledValue : internalValue;
   
@@ -52,12 +58,42 @@ export function AIInputWithSearch({
     controlledOnChange?.(newValue);
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      setSelectedImages(prev => [...prev, ...imageFiles]);
+      
+      // Create previews
+      imageFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = () => {
-    if (value.trim() && !disabled) {
-      onSubmit?.(value, false);
+    if ((value.trim() || selectedImages.length > 0) && !disabled) {
+      onSubmit?.(value, false, selectedImages.length > 0 ? selectedImages : undefined);
       if (!isControlled) {
         setInternalValue("");
       }
+      setSelectedImages([]);
+      setImagePreviews([]);
       adjustHeight(true);
     }
   };
@@ -75,6 +111,28 @@ export function AIInputWithSearch({
             "overflow-hidden"
           )}
         >
+          {/* Image Previews */}
+          {imagePreviews.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-4 pt-4">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border border-slate-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Scrollable Textarea Container */}
           <div
             className="overflow-y-auto custom-scrollbar"
@@ -109,15 +167,44 @@ export function AIInputWithSearch({
 
           {/* Button Container */}
           <div className="flex items-center justify-end gap-2 px-4 pb-3">
+            {enableImageUpload && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <motion.button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={disabled}
+                  whileHover={!disabled ? { scale: 1.05 } : {}}
+                  whileTap={!disabled ? { scale: 0.95 } : {}}
+                  className={cn(
+                    "rounded-full p-3 transition-all duration-200",
+                    !disabled
+                      ? "bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white"
+                      : "bg-slate-700/50 text-slate-400 cursor-not-allowed",
+                    disabled && "opacity-50"
+                  )}
+                  title="Upload images"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                </motion.button>
+              </>
+            )}
             <motion.button
               type="button"
               onClick={handleSubmit}
-              disabled={!value.trim() || disabled}
-              whileHover={value.trim() && !disabled ? { scale: 1.05 } : {}}
-              whileTap={value.trim() && !disabled ? { scale: 0.95 } : {}}
+              disabled={(!value.trim() && selectedImages.length === 0) || disabled}
+              whileHover={(value.trim() || selectedImages.length > 0) && !disabled ? { scale: 1.05 } : {}}
+              whileTap={(value.trim() || selectedImages.length > 0) && !disabled ? { scale: 0.95 } : {}}
               className={cn(
                 "rounded-full p-3 transition-all duration-200",
-                value.trim() && !disabled
+                (value.trim() || selectedImages.length > 0) && !disabled
                   ? "bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/30"
                   : "bg-slate-700/50 text-slate-400 cursor-not-allowed",
                 disabled && "opacity-50"

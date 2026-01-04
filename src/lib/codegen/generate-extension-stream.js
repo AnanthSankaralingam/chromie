@@ -46,6 +46,7 @@ export async function* generateChromeExtensionStream({
   contextWindowMaxTokens,
   initialRequirementsAnalysis = null, // New parameter to preserve state
   initialPlanningTokenUsage = null, // New parameter to preserve state
+  images = null, // Image attachments for vision-enabled requests
 }) {
   try {
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
@@ -436,7 +437,8 @@ export async function* generateChromeExtensionStream({
           originalUserRequest: featureRequest, // For clean history storage
           usePatchingMode,
           existingFilesForPatch: patchableFiles,
-          userRequest: featureRequest
+          userRequest: featureRequest,
+          images: images // Pass images to code generation
         }
       )) {
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'

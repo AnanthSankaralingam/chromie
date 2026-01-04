@@ -97,17 +97,35 @@ export default function StreamingChat({
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
-  const handleSendMessage = async (value) => {
-    if (!value.trim() || isGenerating) return
+  const handleSendMessage = async (value, withSearch, images) => {
+    if ((!value.trim() && (!images || images.length === 0)) || isGenerating) return
+
+    // Convert File objects to data URLs for consistent storage
+    let imageDataUrls = []
+    if (images && images.length > 0) {
+      imageDataUrls = await Promise.all(
+        images.map(async (image) => {
+          if (image instanceof File) {
+            return new Promise((resolve) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result)
+              reader.readAsDataURL(image)
+            })
+          }
+          return image // Already a data URL
+        })
+      )
+    }
 
     const userMessage = {
       role: "user",
       content: value,
+      images: imageDataUrls.length > 0 ? imageDataUrls : undefined,
     }
 
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    await startGeneration(value, false)
+    await startGeneration(value, false, images)
   }
 
   const handleUrlSubmit = async (userUrl) => {
@@ -327,9 +345,10 @@ export default function StreamingChat({
             }
             value={inputMessage}
             onChange={(value) => setInputMessage(value)}
-            onSubmit={async (value) => await handleSendMessage(value)}
+            onSubmit={async (value, withSearch, images) => await handleSendMessage(value, withSearch, images)}
             disabled={isGenerating || !projectId}
             className="py-0"
+            enableImageUpload={effectiveHasGeneratedCode}
           />
         </div>
       </div>

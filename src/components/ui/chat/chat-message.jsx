@@ -117,7 +117,36 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
         ) : message.role === "assistant" ? (
           <MarkdownMessage content={message.content} typingCancelSignal={typingCancelSignal} />
         ) : (
-          <p className="text-base whitespace-pre-wrap break-words">{message.content}</p>
+          <div className="space-y-2">
+            {message.images && message.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {message.images.map((image, idx) => {
+                  // Handle different image formats:
+                  // - File objects from fresh uploads
+                  // - Data URL strings from database
+                  // - Objects with 'data' property from API
+                  let imageSrc
+                  if (typeof image === 'string') {
+                    imageSrc = image
+                  } else if (image instanceof File) {
+                    imageSrc = URL.createObjectURL(image)
+                  } else if (image.data) {
+                    imageSrc = image.data
+                  }
+                  
+                  return (
+                    <img
+                      key={idx}
+                      src={imageSrc}
+                      alt={`Uploaded ${idx + 1}`}
+                      className="max-w-xs max-h-48 rounded-lg border border-slate-600"
+                    />
+                  )
+                })}
+              </div>
+            )}
+            <p className="text-base whitespace-pre-wrap break-words">{message.content}</p>
+          </div>
         )}
       </ChatBubbleMessage>
     </ChatBubble>

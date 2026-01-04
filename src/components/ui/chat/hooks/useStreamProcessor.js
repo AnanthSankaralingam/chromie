@@ -53,6 +53,8 @@ export function useStreamProcessor({
         if (onGenerationEnd) onGenerationEnd()
       }
 
+      console.log("📤 [processStream] Sending payload with images:", !!payload.images)
+
       const response = await fetchWithErrorHandling(
         "/api/generate/stream",
         {
@@ -122,7 +124,7 @@ export function useStreamProcessor({
   )
 
   const startGeneration = useCallback(
-    async (prompt, isAutoGeneration = false) => {
+    async (prompt, isAutoGeneration = false, images = null) => {
       if (chatState.isGenerating) {
         console.log("⚠️ [StreamingChat] startGeneration called but already generating - ignoring")
         return
@@ -131,6 +133,7 @@ export function useStreamProcessor({
       console.log("🚀 [StreamingChat] Starting generation:", {
         prompt: prompt?.substring(0, 50),
         isAutoGeneration,
+        hasImages: images && images.length > 0,
       })
 
       lastUrlSelectionRef.current = null
@@ -161,6 +164,24 @@ export function useStreamProcessor({
           ? REQUEST_TYPES.ADD_TO_EXISTING
           : REQUEST_TYPES.NEW_EXTENSION
 
+        // Convert images to base64 if present
+        let imageData = null
+        if (images && images.length > 0) {
+          imageData = await Promise.all(
+            images.map(async (image) => {
+              const base64 = await new Promise((resolve) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result)
+                reader.readAsDataURL(image)
+              })
+              return {
+                data: base64,
+                mimeType: image.type,
+              }
+            })
+          )
+        }
+
         const payload = buildGeneratePayload({
           prompt,
           projectId,
@@ -168,6 +189,11 @@ export function useStreamProcessor({
           conversationTokenTotal,
           modelOverride,
         })
+
+        // Add images to payload if present
+        if (imageData) {
+          payload.images = imageData
+        }
 
         await processStream(payload)
 
