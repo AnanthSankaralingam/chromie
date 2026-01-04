@@ -100,10 +100,27 @@ export default function StreamingChat({
   const handleSendMessage = async (value, withSearch, images) => {
     if ((!value.trim() && (!images || images.length === 0)) || isGenerating) return
 
+    // Convert File objects to data URLs for consistent storage
+    let imageDataUrls = []
+    if (images && images.length > 0) {
+      imageDataUrls = await Promise.all(
+        images.map(async (image) => {
+          if (image instanceof File) {
+            return new Promise((resolve) => {
+              const reader = new FileReader()
+              reader.onloadend = () => resolve(reader.result)
+              reader.readAsDataURL(image)
+            })
+          }
+          return image // Already a data URL
+        })
+      )
+    }
+
     const userMessage = {
       role: "user",
       content: value,
-      images: images || [],
+      images: imageDataUrls.length > 0 ? imageDataUrls : undefined,
     }
 
     setMessages((prev) => [...prev, userMessage])

@@ -20,6 +20,7 @@ export class ChatMessagesService {
    * @param {string} message.role - Message role (user, assistant, system)
    * @param {string} message.content - Message content
    * @param {string} message.versionId - Optional version ID (for user messages with auto-snapshots)
+   * @param {Array} message.images - Optional array of image data URLs
    */
   async addMessage(sessionId, message) {
     if (!sessionId || !message) {
@@ -43,6 +44,12 @@ export class ChatMessagesService {
       // Add version ID if provided (for user messages with version snapshots)
       if (message.versionId) {
         messageObj.versionId = message.versionId
+      }
+      
+      // Add images if provided (for user messages with image attachments)
+      if (message.images && Array.isArray(message.images) && message.images.length > 0) {
+        messageObj.images = message.images
+        console.log(`[chat-messages-service] Storing ${message.images.length} images with message`)
       }
 
       // Directly append to the JSONB array (bypassing the function for now to support metadata)
@@ -83,6 +90,8 @@ export class ChatMessagesService {
         role: message.role,
         contentLength: message.content?.length || 0,
         hasVersionId: Boolean(message.versionId),
+        hasImages: Boolean(message.images && message.images.length > 0),
+        imageCount: message.images?.length || 0,
         totalMessages: newHistory.length
       })
     } catch (error) {

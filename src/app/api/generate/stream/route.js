@@ -224,13 +224,21 @@ export async function POST(request) {
           createdVersionId = versionId
           console.log(`✅ Created auto-version snapshot: ${versionId}`)
           
-          // Immediately store user message with version ID
+          // Immediately store user message with version ID and images if present
           const { llmService } = await import('@/lib/services/llm-service')
-          await llmService.chatMessages.addMessage(projectId, {
+          const userMessage = {
             role: 'user',
             content: prompt,
             versionId: versionId
-          })
+          }
+          
+          // Include images if provided
+          if (images && images.length > 0) {
+            userMessage.images = images
+            console.log(`📷 Including ${images.length} images in stored message`)
+          }
+          
+          await llmService.chatMessages.addMessage(projectId, userMessage)
           console.log(`💾 Stored user message with version ID: ${versionId}`)
         }
       } catch (versionErr) {
