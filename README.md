@@ -7,7 +7,7 @@ P0:
 1. Prompt engineer that tailors user ideas to a predefined format to match planner expectations
 2. metrics platform (look at how orchids did it)
 3. templates for planner (convert new req to add to existing w/ patch)
-4. Clear conversation button
+4. ~Clear conversation button~
 
 P1:
 
