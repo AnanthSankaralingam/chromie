@@ -156,6 +156,41 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     }
   }
 
+  const clearConversation = async () => {
+    if (!projectId) {
+      console.warn('[useChatState] No project ID for clearing conversation')
+      return false
+    }
+
+    if (!confirm("Clear conversation history? Your code files will be preserved, but all chat messages will be deleted.")) {
+      return false
+    }
+
+    try {
+      console.log('[useChatState] Clearing conversation for project:', projectId)
+      const response = await fetch(`/api/conversations/${projectId}/clear`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to clear conversation')
+      }
+
+      // Reset messages to initial greeting only
+      setMessages([INITIAL_GREETING])
+      setConversationTokenTotal(0)
+      resetStreamState(true)
+      
+      console.log('[useChatState] Conversation cleared successfully')
+      return true
+    } catch (error) {
+      console.error('[useChatState] Error clearing conversation:', error)
+      alert(`Failed to clear conversation: ${error.message}`)
+      return false
+    }
+  }
+
   return {
     // State
     inputMessage,
@@ -217,5 +252,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
 
     // Helpers
     resetStreamState,
+    clearConversation,
   }
 }
