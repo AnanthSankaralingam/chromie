@@ -21,7 +21,7 @@ Todos for follow ups
 
 2. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
 3. ai within extension (nanobrowser as a use case template and also as a tool within reg exts)
-4. Fork your own project
+4. ~Fork your own project~
 
 P5:
 1. Experiment with bundler
