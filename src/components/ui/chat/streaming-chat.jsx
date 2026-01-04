@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { FileCode, ChevronDown, ChevronRight } from "lucide-react"
+import { FileCode, ChevronDown, ChevronRight, Trash2 } from "lucide-react"
 import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import ChatMessage from "@/components/ui/chat/chat-message"
@@ -51,6 +51,7 @@ export default function StreamingChat({
     planningProgress,
     currentPlanningPhase,
     isActuallyGeneratingCode,
+    clearConversation,
   } = chatState
 
   const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis } =
@@ -155,11 +156,25 @@ export default function StreamingChat({
     currentRequestRef.current = null
   }
 
+  const handleClearConversation = async () => {
+    await clearConversation()
+  }
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
-      <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full">
+      <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
         <p className="text-sm text-gray-200 font-bold">{projectName || "describe what you want to add or modify"}</p>
+        {messages.length > 1 && !isGenerating && (
+          <button
+            onClick={handleClearConversation}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors"
+            title="Clear conversation (keeps code)"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>clear chat</span>
+          </button>
+        )}
       </div>
 
       {/* Messages */}
