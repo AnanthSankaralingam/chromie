@@ -15,8 +15,6 @@ import { navigateToBuilderWithProject, cn } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
-import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { motion } from "framer-motion"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -287,50 +285,15 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
-        {/* Animated Background */}
+        {/* Static Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <FlickeringGrid
-            className="absolute inset-0 z-0"
-            squareSize={4}
-            gridGap={6}
-            color="rgb(139, 92, 246)"
-            maxOpacity={0.15}
-            flickerChance={2.0}
-          />
-          <motion.div
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.15, 0.25, 0.15],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full filter blur-[100px]" />
+          <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/10 rounded-full filter blur-[100px]" />
         </div>
 
         <AppBar />
         <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
               <CardContent className="p-6">
                 <div className="text-center text-white space-y-4">
@@ -345,7 +308,7 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
 
         <AuthModal
@@ -359,51 +322,16 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
-      {/* Animated Background */}
+      {/* Static Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <FlickeringGrid
-          className="absolute inset-0 z-0"
-          squareSize={4}
-          gridGap={6}
-          color="rgb(139, 92, 246)"
-          maxOpacity={0.15}
-          flickerChance={2.0}
-        />
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full filter blur-[100px]" />
+        <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/10 rounded-full filter blur-[100px]" />
       </div>
 
       <AppBar />
       <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
         {/* User Profile Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
+        <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
             <CardHeader>
               <CardTitle className="text-white">
@@ -472,14 +400,10 @@ export default function ProfilePage() {
             </div>
           </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Billing Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
+        <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
             <CardHeader>
               <CardTitle className="text-white">
@@ -569,14 +493,10 @@ export default function ProfilePage() {
             )}
           </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Usage Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
+        <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
             <CardHeader>
               <CardTitle className="text-white">
@@ -590,14 +510,10 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Projects Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
+        <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
           <CardHeader>
             <CardTitle className="text-white">Your Projects</CardTitle>
@@ -709,14 +625,10 @@ export default function ProfilePage() {
             )}
           </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Shares Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
+        <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
@@ -801,7 +713,7 @@ export default function ProfilePage() {
             )}
           </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Sign Out Button */}
         <div className="flex justify-center pt-4">
