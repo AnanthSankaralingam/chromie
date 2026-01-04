@@ -29,9 +29,18 @@ Constraints and validation:
 - {validation/error handling requirements}
 </output_format>
 
+<supported_frontend_types>
+popup: Quick access via extension icon click. For settings, status, quick actions.
+sidepanel: Persistent sidebar. For continuous monitoring, complex workflows, reference material.
+overlay: On-page UI injection. For site-specific features, content modification, contextual tools.
+new_tab: Full page replacement. For dashboards, extensive content, standalone apps.
+content_script_ui: Injected UI elements. For inline annotations, highlights, floating buttons on pages.
+</supported_frontend_types>
+
 <rules>
 - Omit any section marked [ONLY IF APPLICABLE] if not relevant to the request
-- If no frontend type specified, suggest the most appropriate one based on the use case
+- If no frontend type specified, suggest the most appropriate one from the supported_frontend_types based on the use case
+- Only suggest frontend types from the supported_frontend_types list (popup, sidepanel, overlay, new_tab, content_script_ui)
 - If websites mentioned implicitly (e.g., "YouTube videos"), extract domain patterns
 - Preserve all technical details and API names mentioned by the user
 - Keep output concise by excluding unnecessary sections and limiting length of bulleted lists
