@@ -115,14 +115,15 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images } = await request.json()
 
     console.log('[api/generate/stream] received', {
       conversationTokenTotal_in: conversationTokenTotal ?? null,
       modelOverride: modelOverride || null,
       contextWindowMaxTokens: contextWindowMaxTokens || null,
       has_initialRequirementsAnalysis: Boolean(initialRequirementsAnalysis),
-      has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage)
+      has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage),
+      hasImages: Boolean(images && images.length > 0)
     })
 
     if (!prompt) {
@@ -263,7 +264,8 @@ export async function POST(request) {
             modelOverride,
             contextWindowMaxTokens,
             initialRequirementsAnalysis: initialRequirementsAnalysis || null,
-            initialPlanningTokenUsage: initialPlanningTokenUsage || null
+            initialPlanningTokenUsage: initialPlanningTokenUsage || null,
+            images: images || null
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))

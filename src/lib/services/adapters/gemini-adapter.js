@@ -222,7 +222,7 @@ export class GeminiAdapter {
 
   /**
    * Convert input and conversation history to Gemini format
-   * @param {string|Array} input - Input text or messages
+   * @param {string|Array|Object} input - Input text, messages, or object with text and images
    * @param {Array} conversation_history - Previous conversation history
    * @returns {Array} Gemini contents format
    */
@@ -265,6 +265,33 @@ export class GeminiAdapter {
           })
         }
       }
+    } else if (typeof input === 'object' && input.text) {
+      // Handle input with images (vision request)
+      const parts = [{ text: input.text }]
+      
+      // Add images if present
+      if (input.images && Array.isArray(input.images)) {
+        console.log(`[gemini-adapter] Adding ${input.images.length} images to request`)
+        for (const image of input.images) {
+          // Extract base64 data and mime type
+          const base64Match = image.data.match(/^data:([^;]+);base64,(.+)$/)
+          if (base64Match) {
+            parts.push({
+              inlineData: {
+                mimeType: base64Match[1],
+                data: base64Match[2]
+              }
+            })
+          } else {
+            console.warn('[gemini-adapter] Invalid image format, expected base64 data URL')
+          }
+        }
+      }
+      
+      contents.push({
+        role: 'user',
+        parts: parts
+      })
     } else {
       contents.push({
         role: 'user',

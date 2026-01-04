@@ -178,7 +178,8 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
     usePatchingMode = false,
     existingFilesForPatch = {},
     userRequest = '',
-    originalUserRequest = '' // Original natural language request for clean history storage
+    originalUserRequest = '', // Original natural language request for clean history storage
+    images = null // Image attachments for vision-enabled requests
   } = options
   
   console.log("Generating extension code with streaming...", usePatchingMode ? "(patching mode)" : "(replacement mode)")
@@ -194,7 +195,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || "gemini-2.5-flash"
+  const modelUsed = modelOverride || DEFAULT_MODEL
   const provider = getProviderFromModel(modelUsed)
   
   // Skip schema for patching mode
@@ -207,12 +208,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   try {
     // Handle new request with Gemini streaming
     if (provider === 'gemini') {
-      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest)
+      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
       return
     }
 
     // Handle new request with other providers
-    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest)
+    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
     
   } catch (err) {
     console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
@@ -231,16 +232,25 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 /**
  * Handles Gemini streaming flow
  */
-async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest) {
-  console.log("[generateExtensionCodeStream] Using Gemini streaming")
+async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+  console.log("[generateExtensionCodeStream] Using Gemini streaming", images ? `with ${images.length} images` : '')
   
   let combinedText = ''
   let exactTokenUsage = null
   
+  // Prepare input with images if provided
+  let input = finalPrompt
+  if (images && images.length > 0) {
+    input = {
+      text: finalPrompt,
+      images: images
+    }
+  }
+  
   for await (const s of llmService.streamResponse({
     provider,
     model: modelOverride || DEFAULT_MODEL,
-    input: finalPrompt,
+    input: input,
     temperature: 0.2,
     max_output_tokens: 32000,
     response_format: jsonSchema,
@@ -298,13 +308,22 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
 /**
  * Handles standard (non-streaming) response flow
  */
-async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest) {
-  console.log("[generateExtensionCodeStream] Using Responses API (new)")
+async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+  console.log("[generateExtensionCodeStream] Using Responses API (new)", images ? `with ${images.length} images` : '')
+  
+  // Prepare input with images if provided
+  let input = finalPrompt
+  if (images && images.length > 0) {
+    input = {
+      text: finalPrompt,
+      images: images
+    }
+  }
   
   const response = await llmService.createResponse({
     provider,
     model: modelOverride || DEFAULT_MODEL,
-    input: finalPrompt,
+    input: input,
     store: false, // Manual history storage handles clean content
     temperature: 0.2,
     max_output_tokens: 32000,

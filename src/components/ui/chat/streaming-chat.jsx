@@ -97,17 +97,18 @@ export default function StreamingChat({
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
-  const handleSendMessage = async (value) => {
-    if (!value.trim() || isGenerating) return
+  const handleSendMessage = async (value, withSearch, images) => {
+    if ((!value.trim() && (!images || images.length === 0)) || isGenerating) return
 
     const userMessage = {
       role: "user",
       content: value,
+      images: images || [],
     }
 
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    await startGeneration(value, false)
+    await startGeneration(value, false, images)
   }
 
   const handleUrlSubmit = async (userUrl) => {
@@ -327,9 +328,10 @@ export default function StreamingChat({
             }
             value={inputMessage}
             onChange={(value) => setInputMessage(value)}
-            onSubmit={async (value) => await handleSendMessage(value)}
+            onSubmit={async (value, withSearch, images) => await handleSendMessage(value, withSearch, images)}
             disabled={isGenerating || !projectId}
             className="py-0"
+            enableImageUpload={effectiveHasGeneratedCode}
           />
         </div>
       </div>
