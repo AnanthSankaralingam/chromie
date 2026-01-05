@@ -3,7 +3,7 @@
       "title": "DeepFake Detection",
       "category": "AI & Safety",
       "description": "Detects DeepFake or manipulated media on webpages using an external AI API. Shows authenticity scores via frontend.",
-      "supported_frontend_types": ["overlay", "popup", "side_panel"],
+      "supported_frontend_types": ["overlay", "popup", "sidepanel"],
       "key_features": [
         "media_analysis",
         "api_integration",

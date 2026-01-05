@@ -42,3 +42,7 @@ You are a Chrome extension template matcher. Your job is to analyze the user's r
 - Confidence should represent a semantic similarity score (not arbitrary).
 </special_instructions>
 `;
+
+export const TEMPLATE_MATCHER_PREFILL = `{
+  "matched_template": {
+    "name":`;
