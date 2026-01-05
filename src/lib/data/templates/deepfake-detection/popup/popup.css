@@ -1,0 +1,15 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  width: 350px;
+}
+
+button {
+  padding: 10px;
+  width: 100%;
+  margin: 10px 0;
+}
+
+audio {
+  width: 100%;
+}

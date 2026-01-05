@@ -1,0 +1,92 @@
+#audio-capture-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 350px;
+  background: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 999999;
+  font-family: sans-serif;
+  display: none;
+}
+
+#audio-capture-overlay.visible {
+  display: block;
+}
+
+.overlay-content {
+  padding: 20px;
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.overlay-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  color: #666;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
+#record-btn {
+  padding: 10px;
+  width: 100%;
+  margin: 10px 0;
+  cursor: pointer;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+#record-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+#record-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 10px 0;
+  padding: 8px;
+  border-radius: 4px;
+  background: #f0f0f0;
+}
+
+#player-section {
+  margin-top: 15px;
+}
+
+#player-section p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+#audio-player {
+  width: 100%;
+}
