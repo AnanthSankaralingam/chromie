@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "Audio Capture",
+    "version": "1.0.0",
+    "description": "Audio recording",
+    "permissions": [
+      "offscreen",
+      "tabCapture",
+      "tabs",
+      "activeTab",
+      "sidePanel"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    },
+    "action": {
+      "default_title": "Record Audio"
+    }
+  }

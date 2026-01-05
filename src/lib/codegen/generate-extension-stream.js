@@ -1,11 +1,12 @@
 import { REQUEST_TYPES } from "@/lib/prompts/request-types";
-import { NEW_EXT_OVERLAY_PROMPT } from "@/lib/prompts/new-extension/overlay";
-import { NEW_EXT_POPUP_PROMPT } from "@/lib/prompts/new-extension/popup";
-import { NEW_EXT_SIDEPANEL_PROMPT } from "@/lib/prompts/new-extension/sidepanel";
-import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/new-tab";
-import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/content-injection";
+import { NEW_EXT_OVERLAY_PROMPT } from "@/lib/prompts/new-extension/one-shot/overlay";
+import { NEW_EXT_POPUP_PROMPT } from "@/lib/prompts/new-extension/one-shot/popup";
+import { NEW_EXT_SIDEPANEL_PROMPT } from "@/lib/prompts/new-extension/one-shot/sidepanel";
+import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/one-shot/new-tab";
+import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/one-shot/content-injection";
 import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "@/lib/prompts/followup/follow-up-file-replacement";
 import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patching";
+import { TEMPLATE_PATCH_PROMPT } from "@/lib/prompts/new-extension/template/template-patch";
 import { batchScrapeWebpages } from "@/lib/webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
 import { generateExtensionCodeStream } from "@/lib/codegen/generate-extension-code-stream";
@@ -22,6 +23,7 @@ import {
   prepareFilesForPatching,
   buildPatchPromptReplacements
 } from "@/lib/codegen/patching-handlers/patch-mode-handler";
+import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/planning-handlers/template-loader";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -110,7 +112,8 @@ export async function* generateChromeExtensionStream({
         planningOutputs: formatPlanningOutputs(planningResult, null, null, null, featureRequest),
         workspaceAPIs: planningResult.workspaceAPIs || [],
         usesWorkspaceAPIs: planningResult.usesWorkspaceAPIs || false,
-        workspaceScopes: planningResult.workspaceScopes || []
+        workspaceScopes: planningResult.workspaceScopes || [],
+        matchedTemplate: planningResult.templateMatchResult?.matched_template || null
       }
 
       planningTokenUsage = planningResult.tokenUsage
@@ -278,9 +281,34 @@ export async function* generateChromeExtensionStream({
       scrapeStatusCode = 404; // Not found/not needed
     }
 
-    // Step 4: Select appropriate coding prompt based on request type and frontend type
-    // Determine if we should use patching mode for modifications
-    const usePatchingMode = shouldUsePatchingMode(requestType, existingFiles)
+    // Step 4: Check for template match and select appropriate coding prompt
+    // Determine if we should use patching mode for modifications or template matching
+    let usePatchingMode = shouldUsePatchingMode(requestType, existingFiles)
+    let templateFiles = {}
+    let usingTemplate = false
+    
+    // Check if template was matched with high confidence (>= 0.7)
+    if (requestType === REQUEST_TYPES.NEW_EXTENSION && 
+        requirementsAnalysis.matchedTemplate && 
+        requirementsAnalysis.matchedTemplate.name &&
+        requirementsAnalysis.matchedTemplate.confidence >= 0.7) {
+      console.log(`🎯 [generate-extension-stream] Template matched: ${requirementsAnalysis.matchedTemplate.name} (confidence: ${requirementsAnalysis.matchedTemplate.confidence})`)
+      
+      // Load template files
+      templateFiles = await loadTemplateFiles(
+        requirementsAnalysis.matchedTemplate.name,
+        requirementsAnalysis.frontend_type
+      )
+      
+      if (Object.keys(templateFiles).length > 0) {
+        usingTemplate = true
+        usePatchingMode = true // Use patching mode with template files
+        console.log(`✅ [generate-extension-stream] Loaded ${Object.keys(templateFiles).length} template files`)
+      } else {
+        console.warn(`⚠️ [generate-extension-stream] Template matched but files not found, falling back to NEW_EXT`)
+        usingTemplate = false
+      }
+    }
     
     const prompts = {
       UPDATE_EXT_PROMPT: usePatchingMode ? FOLLOW_UP_PATCH_PROMPT : FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
@@ -288,11 +316,18 @@ export async function* generateChromeExtensionStream({
       NEW_EXT_POPUP_PROMPT,
       NEW_EXT_OVERLAY_PROMPT,
       NEW_EXT_NEW_TAB_PROMPT,
-      NEW_EXT_CONTENT_SCRIPT_UI_PROMPT
+      NEW_EXT_CONTENT_SCRIPT_UI_PROMPT,
+      TEMPLATE_PATCH_PROMPT
     };
-    const selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
     
-    if (usePatchingMode) {
+    // Select prompt: use template patch prompt if using template, otherwise use standard selection
+    const selectedCodingPrompt = usingTemplate 
+      ? TEMPLATE_PATCH_PROMPT 
+      : selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+    
+    if (usingTemplate) {
+      console.log('🎨 [generate-extension-stream] Using TEMPLATE PATCH mode')
+    } else if (usePatchingMode) {
       console.log('🔧 [generate-extension-stream] Using PATCH mode for modifications')
     } else {
       console.log('🔄 [generate-extension-stream] Using REPLACEMENT mode')
@@ -401,11 +436,26 @@ export async function* generateChromeExtensionStream({
         }
       }
       
-      replacements = {
-        USER_REQUEST: finalUserPrompt,
-        USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
-        EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo
-      };
+      // Build replacements based on whether we're using a template
+      if (usingTemplate) {
+        // Format template files as XML for prompt
+        const templateFilesXml = formatTemplateFilesAsXml(templateFiles)
+        
+        replacements = {
+          USER_REQUEST: finalUserPrompt,
+          USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
+          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
+          TEMPLATE_FILES: templateFilesXml
+        };
+        
+        console.log(`📦 [generate-extension-stream] Using template files for patching (${Object.keys(templateFiles).length} files)`)
+      } else {
+        replacements = {
+          USER_REQUEST: finalUserPrompt,
+          USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
+          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo
+        };
+      }
     }
 
     console.log("🚀 Starting streaming code generation...");
@@ -421,7 +471,10 @@ export async function* generateChromeExtensionStream({
     };
 
     // Prepare existing files for patching if in patch mode
-    const patchableFiles = usePatchingMode ? prepareFilesForPatching(existingFiles) : {}
+    // If using template, use template files; otherwise use existing files
+    const patchableFiles = usePatchingMode 
+      ? (usingTemplate ? prepareFilesForPatching(templateFiles) : prepareFilesForPatching(existingFiles))
+      : {}
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(

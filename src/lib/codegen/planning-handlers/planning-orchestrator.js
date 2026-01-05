@@ -2,7 +2,9 @@ import { llmService } from '@/lib/services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '@/lib/prompts/new-extension/planning/use-case.js'
 import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '@/lib/prompts/new-extension/planning/external-resources.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '@/lib/prompts/new-extension/planning/frontend-selection.js'
+import { TEMPLATE_MATCHER_PROMPT, TEMPLATE_MATCHER_PREFILL } from '@/lib/prompts/new-extension/planning/template-selection.js'
 import useCasesData from '@/lib/data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
+import templatesData from '@/lib/data/templates/all_templates.json'
 import { extractJsonFieldsManually } from '@/lib/utils/planning-helpers.js'
 import { searchChromeExtensionAPI } from './chrome-api-docs.js'
 import { fetchExternalApiDocs } from './external-api-docs.js'
@@ -15,10 +17,10 @@ const PLANNING_PROVIDER = 'anthropic'
 
 /**
  * Orchestrates the planning phase for Chrome extension generation
- * Uses 3 LLM calls: use-case detection, external resources, and frontend selection
+ * Uses 4 LLM calls: use-case detection, external resources, frontend selection, and template matching
  *
  * @param {string} featureRequest - User's feature request description
- * @returns {Promise<Object>} Planning results with use case, external resources, frontend type, code snippets, and token usage
+ * @returns {Promise<Object>} Planning results with use case, external resources, frontend type, template match, code snippets, and token usage
  */
 export async function orchestratePlanning(featureRequest) {
   console.log('🎯 [Planning Orchestrator] Starting planning phase...')
@@ -46,17 +48,29 @@ export async function orchestratePlanning(featureRequest) {
 
     console.log('📊 Frontend Type:', frontendSelectionResponse.result.frontend_type)
 
-    // Step 3: Fetch code snippet from use_cases.json
+    // Step 3: Sequential call to template-matching prompt (after frontend selection)
+    console.log('🔄 [Planning Orchestrator] Calling template-matching prompt...')
+
+    const templateMatchingResponse = await callTemplateMatchingPrompt(
+      featureRequest,
+      frontendSelectionResponse.result.frontend_type
+    )
+
+    console.log('📊 Template Match Result:', JSON.stringify(templateMatchingResponse.result, null, 2))
+
+    // Step 4: Fetch code snippet from use_cases.json
     const codeSnippet = fetchCodeSnippet(useCaseResponse.result.matched_use_case?.name)
 
-    // Step 4: Aggregate token usage
+    // Step 5: Aggregate token usage
     const totalTokenUsage = {
       prompt_tokens: (useCaseResponse.tokenUsage.prompt_tokens || 0) +
                      (externalResourcesResponse.tokenUsage.prompt_tokens || 0) +
-                     (frontendSelectionResponse.tokenUsage.prompt_tokens || 0),
+                     (frontendSelectionResponse.tokenUsage.prompt_tokens || 0) +
+                     (templateMatchingResponse.tokenUsage.prompt_tokens || 0),
       completion_tokens: (useCaseResponse.tokenUsage.completion_tokens || 0) +
                         (externalResourcesResponse.tokenUsage.completion_tokens || 0) +
-                        (frontendSelectionResponse.tokenUsage.completion_tokens || 0),
+                        (frontendSelectionResponse.tokenUsage.completion_tokens || 0) +
+                        (templateMatchingResponse.tokenUsage.completion_tokens || 0),
       total_tokens: 0,
       model: PLANNING_MODEL
     }
@@ -64,7 +78,7 @@ export async function orchestratePlanning(featureRequest) {
 
     console.log('💰 [Planning Orchestrator] Total token usage:', totalTokenUsage)
 
-    // Step 5: Detect Google Workspace APIs
+    // Step 6: Detect Google Workspace APIs
     const workspaceApis = (externalResourcesResponse.result.external_apis || []).filter(api => 
       isWorkspaceAPI(api.name)
     );
@@ -77,11 +91,12 @@ export async function orchestratePlanning(featureRequest) {
       console.log('🔑 [Planning Orchestrator] Required OAuth scopes:', workspaceScopes);
     }
 
-    // Step 6: Log unified JSON output for readability
+    // Step 7: Log unified JSON output for readability
     const unifiedOutput = {
       use_case: useCaseResponse.result,
       external_resources: externalResourcesResponse.result,
       frontend_type: frontendSelectionResponse.result.frontend_type,
+      template_match: templateMatchingResponse.result,
       workspace_apis: workspaceApis.map(a => a.name),
       workspace_scopes: workspaceScopes,
       code_snippet_preview: codeSnippet ? codeSnippet.substring(0, 200) + '...' : null,
@@ -91,11 +106,12 @@ export async function orchestratePlanning(featureRequest) {
     console.log('📋 [Planning Orchestrator] Unified Planning Output:')
     console.log(JSON.stringify(unifiedOutput, null, 2))
 
-    // Step 7: Return aggregated planning data
+    // Step 8: Return aggregated planning data
     return {
       useCaseResult: useCaseResponse.result,
       externalResourcesResult: externalResourcesResponse.result,
       frontendType: frontendSelectionResponse.result.frontend_type,
+      templateMatchResult: templateMatchingResponse.result,
       codeSnippet: codeSnippet,
       tokenUsage: totalTokenUsage,
       workspaceAPIs: workspaceApis,
@@ -244,7 +260,7 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
   try {
     const response = await llmService.createResponse({
       provider: PLANNING_PROVIDER,
-      model: PLANNING_MODEL,
+      model: EXTERNAL_RESOURCES_MODEL,
       input: [
         { role: 'user', content: prompt },
         { role: 'assistant', content: FRONTEND_SELECTION_PREFILL }
@@ -275,6 +291,97 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
     // Return fallback result
     return {
       result: { frontend_type: 'popup' },
+      tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    }
+  }
+}
+
+/**
+ * Generate available templates list filtered by frontend type
+ * @param {string} frontendType - Frontend type to filter by
+ * @returns {string} Formatted list of templates with descriptions
+ */
+function generateAvailableTemplates(frontendType) {
+  const filteredTemplates = templatesData.filter(template => {
+    const supportedTypes = template.supported_frontend_types || []
+    return supportedTypes.includes(frontendType)
+  })
+
+  if (filteredTemplates.length === 0) {
+    return 'No templates available for this frontend type.'
+  }
+
+  return filteredTemplates.map(template => {
+    return `${template.title}: ${template.description} (Features: ${(template.key_features || []).join(', ')}) (Example Use Cases: ${(template.example_use_cases || []).join(', ')})`
+  }).join('\n')
+}
+
+/**
+ * Call the template matching prompt
+ * @param {string} featureRequest - User's feature request
+ * @param {string} frontendType - Frontend type from frontend selection
+ * @returns {Promise<Object>} Template matching result and token usage
+ */
+async function callTemplateMatchingPrompt(featureRequest, frontendType) {
+  const availableTemplates = generateAvailableTemplates(frontendType)
+  
+  // If no templates available for this frontend type, return null match
+  if (availableTemplates === 'No templates available for this frontend type.') {
+    console.log('ℹ️ [Planning Orchestrator] No templates available for frontend type:', frontendType)
+    return {
+      result: {
+        matched_template: {
+          name: null,
+          confidence: 0
+        }
+      },
+      tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    }
+  }
+
+  const prompt = TEMPLATE_MATCHER_PROMPT
+    .replace('{USER_REQUEST}', featureRequest)
+    .replace('{FRONTEND_TYPE}', frontendType)
+    .replace('{AVAILABLE_TEMPLATES}', availableTemplates)
+
+  try {
+    const response = await llmService.createResponse({
+      provider: PLANNING_PROVIDER,
+      model: PLANNING_MODEL,
+      input: [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: TEMPLATE_MATCHER_PREFILL }
+      ],
+      temperature: 0.2,
+      max_output_tokens: 128
+    })
+
+    const result = parseJsonResponse(response.output_text, TEMPLATE_MATCHER_PREFILL)
+
+    // Validate confidence threshold (0.7 as specified in prompt)
+    if (result.matched_template && result.matched_template.confidence < 0.7) {
+      console.log(`ℹ️ [Planning Orchestrator] Template match confidence ${result.matched_template.confidence} below threshold 0.7, treating as no match`)
+      result.matched_template = { name: null, confidence: 0 }
+    }
+
+    return {
+      result,
+      tokenUsage: {
+        prompt_tokens: response.usage?.prompt_tokens || 0,
+        completion_tokens: response.usage?.completion_tokens || 0,
+        total_tokens: response.usage?.total_tokens || 0
+      }
+    }
+  } catch (error) {
+    console.error('❌ [Planning Orchestrator] Error calling template-matching prompt:', error)
+    // Return fallback result (no match)
+    return {
+      result: {
+        matched_template: {
+          name: null,
+          confidence: 0
+        }
+      },
       tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     }
   }

@@ -14,9 +14,6 @@ Analyze the request and output a structured specification with natural language 
 Build an extension that {core behavior in 1-2 sentences}. It should use a {frontend_type} interface.
 
 [ONLY IF APPLICABLE]
-External resources needed: {APIs, services, technologies mentioned}.
-
-[ONLY IF APPLICABLE]
 Target websites: {domain patterns like "meet.google.com/*"}.
 
 Core Features:
@@ -42,8 +39,8 @@ content_script_ui: Injected UI elements. For inline annotations, highlights, flo
 - If no frontend type specified, suggest the most appropriate one from the supported_frontend_types based on the use case
 - Only suggest frontend types from the supported_frontend_types list (popup, sidepanel, overlay, new_tab, content_script_ui)
 - If websites mentioned implicitly (e.g., "YouTube videos"), extract domain patterns
-- Preserve all technical details and API names mentioned by the user
-- Keep output concise by excluding unnecessary sections and limiting length of bulleted lists
+- Preserve all technical details and API names mentioned by the user. Do not make up any API names.
+- Keep output concise by excluding unnecessary sections and limiting length of bulleted lists to 3-5 items.
 - Use natural language flow, not labeled sections with colons
 </rules>
 

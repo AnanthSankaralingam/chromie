@@ -1,0 +1,18 @@
+[
+    {
+      "title": "audio-capture",
+      "category": "Audio",
+      "description": "Captures audio from browser tabs for analysis, detection, or processing workflows. Provides tab audio capture infrastructure that can be extended with analysis, file upload, and results display functionality.",
+      "supported_frontend_types": ["overlay", "popup", "sidepanel"],
+      "key_features": [
+        "tab_audio_capture",
+        "audio_extraction",
+        "recording_infrastructure"
+      ],
+      "example_use_cases": [
+        "Detect AI generated deepfake audio content from tab audio capture",
+        "Record tab audio for analysis, verification, or processing workflows"
+      ]
+    }
+]
+  

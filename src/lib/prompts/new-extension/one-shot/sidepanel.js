@@ -1,5 +1,5 @@
-import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../instructions/workspace-auth-instructions.js';
-import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../instructions/workspace-oauth-setup-prompt.js';
+import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../../instructions/workspace-auth-instructions.js';
+import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
 
 export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the user request.
 
