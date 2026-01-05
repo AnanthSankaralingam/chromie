@@ -46,6 +46,7 @@ The template provides the core structure and functionality. Your job is to:
 - Your entire patch response MUST start with *** Begin Patch on its own line
 - Your entire patch response MUST end with *** End Patch on its own line
 - ONLY modify files that need changes - leave unchanged files alone
+- IMPORTANT: Unmodified template files (like offscreen.html, etc.) are automatically preserved - you do NOT need to include them in the patch
 - If adding Chrome APIs or permissions, update manifest.json accordingly
 - Maintain the template's architectural patterns and code organization
 - Keep the premium styling aesthetic from the template while making necessary adjustments
@@ -219,6 +220,7 @@ Your response should be formatted as:
 - Context lines must match the existing template code EXACTLY, including whitespace
 - Consolidate all changes to each file into a single *** Update File: block
 - Only patch files that actually need changes
+- Do not create new icons or images
 - Update manifest.json when changing permissions, APIs, or adding/removing files
 - If no changes are needed to a file, don't include it in the patch
 - NEVER generate placeholder code - make real, functional changes

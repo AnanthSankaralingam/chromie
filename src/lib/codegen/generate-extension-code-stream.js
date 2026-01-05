@@ -326,7 +326,7 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
     input: input,
     store: false, // Manual history storage handles clean content
     temperature: 0.2,
-    max_output_tokens: 32000,
+    max_output_tokens: 40000,
     response_format: jsonSchema,
     session_id: sessionId,
     thinkingConfig: { includeThoughts: true }

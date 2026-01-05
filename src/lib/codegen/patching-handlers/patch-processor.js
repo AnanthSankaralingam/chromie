@@ -200,9 +200,22 @@ export async function* processPatchModeOutput(outputText, existingFiles, userReq
   // Step 2: Validate patched files
   const validationResult = validatePatchedFiles(patchResult.updatedFiles)
   
-  let finalFiles = { ...validationResult.validFiles }
+  // Step 3: Handle deleted files
+  const deletedFiles = patchResult.deletedFiles || []
   
-  // Step 3: Handle failed files with per-file fallback
+  // Step 4: Maintain all original template files, excluding deleted ones
+  // This preserves unmodified files like offscreen.html
+  let finalFiles = {}
+  for (const [filePath, content] of Object.entries(existingFiles)) {
+    if (!deletedFiles.includes(filePath)) {
+      finalFiles[filePath] = content
+    }
+  }
+  
+  // Step 5: Overwrite with patched files (patched files take precedence)
+  finalFiles = { ...finalFiles, ...validationResult.validFiles }
+  
+  // Step 6: Handle failed files with per-file fallback
   if (!validationResult.allValid && validationResult.failedFiles.length > 0) {
     console.log(`⚠️ [patch-mode] ${validationResult.failedFiles.length} files need fallback regeneration`)
     yield { type: "phase", phase: "implementing", content: `Fixing ${validationResult.failedFiles.length} files with syntax errors...` }
@@ -226,9 +239,6 @@ export async function* processPatchModeOutput(outputText, existingFiles, userReq
       }
     }
   }
-  
-  // Step 4: Handle deleted files
-  const deletedFiles = patchResult.deletedFiles || []
   
   const finalResult = {
     success: true,

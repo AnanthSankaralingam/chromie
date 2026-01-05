@@ -16,7 +16,7 @@ export class GeminiAdapter {
       baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
     })
 
-    this.max_output_tokens = 6128 
+    this.max_output_tokens = 40000 
   }
 
   /**

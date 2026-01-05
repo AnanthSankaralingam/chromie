@@ -23,12 +23,12 @@ export class LLMService {
    * @returns {Promise<Object>} Response object
    */
   async createResponse({
-    provider = 'openai',
+    provider = 'gemini',
     model,
     input,
     response_format,
     temperature = 0.2,
-    max_output_tokens = 4096,
+    max_output_tokens = 40000,
     session_id,
     store = true,
     thinkingConfig = null
@@ -98,12 +98,12 @@ export class LLMService {
    * @returns {AsyncGenerator<Object>} Streaming response chunks
    */
   async* streamResponse({
-    provider = 'openai',
+    provider = 'gemini',
     model,
     input,
     response_format,
     temperature = 0.2,
-    max_output_tokens = 4096,
+    max_output_tokens = 40000,
     session_id,
     thinkingConfig = null
   } = {}) {

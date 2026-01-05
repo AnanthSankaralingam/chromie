@@ -2,7 +2,7 @@ import { llmService } from '@/lib/services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '@/lib/prompts/new-extension/planning/use-case.js'
 import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '@/lib/prompts/new-extension/planning/external-resources.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '@/lib/prompts/new-extension/planning/frontend-selection.js'
-import { TEMPLATE_MATCHER_PROMPT } from '@/lib/prompts/new-extension/planning/template-selection.js'
+import { TEMPLATE_MATCHER_PROMPT, TEMPLATE_MATCHER_PREFILL } from '@/lib/prompts/new-extension/planning/template-selection.js'
 import useCasesData from '@/lib/data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
 import templatesData from '@/lib/data/templates/all_templates.json'
 import { extractJsonFieldsManually } from '@/lib/utils/planning-helpers.js'
@@ -260,7 +260,7 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
   try {
     const response = await llmService.createResponse({
       provider: PLANNING_PROVIDER,
-      model: PLANNING_MODEL,
+      model: EXTERNAL_RESOURCES_MODEL,
       input: [
         { role: 'user', content: prompt },
         { role: 'assistant', content: FRONTEND_SELECTION_PREFILL }
@@ -302,12 +302,9 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
  * @returns {string} Formatted list of templates with descriptions
  */
 function generateAvailableTemplates(frontendType) {
-  // Normalize frontend type for matching (templates use "side_panel" but frontend selection uses "sidepanel")
-  const normalizedFrontendType = frontendType === 'sidepanel' ? 'side_panel' : frontendType
-  
   const filteredTemplates = templatesData.filter(template => {
     const supportedTypes = template.supported_frontend_types || []
-    return supportedTypes.includes(normalizedFrontendType)
+    return supportedTypes.includes(frontendType)
   })
 
   if (filteredTemplates.length === 0) {
@@ -315,7 +312,7 @@ function generateAvailableTemplates(frontendType) {
   }
 
   return filteredTemplates.map(template => {
-    return `${template.title}: ${template.description} (Features: ${(template.key_features || []).join(', ')})`
+    return `${template.title}: ${template.description} (Features: ${(template.key_features || []).join(', ')}) (Example Use Cases: ${(template.example_use_cases || []).join(', ')})`
   }).join('\n')
 }
 
@@ -346,9 +343,6 @@ async function callTemplateMatchingPrompt(featureRequest, frontendType) {
     .replace('{USER_REQUEST}', featureRequest)
     .replace('{FRONTEND_TYPE}', frontendType)
     .replace('{AVAILABLE_TEMPLATES}', availableTemplates)
-
-  // Create a prefill for JSON response (similar to other prompts)
-  const TEMPLATE_MATCHER_PREFILL = '{\n  "matched_template": {\n    "name": '
 
   try {
     const response = await llmService.createResponse({

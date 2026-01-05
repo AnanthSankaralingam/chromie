@@ -1,16 +1,17 @@
 [
     {
-      "title": "DeepFake Detection",
-      "category": "AI & Safety",
-      "description": "Detects DeepFake or manipulated media on webpages using an external AI API. Shows authenticity scores via frontend.",
+      "title": "audio-capture",
+      "category": "Audio",
+      "description": "Captures audio from browser tabs for analysis, detection, or processing workflows. Provides tab audio capture infrastructure that can be extended with analysis, file upload, and results display functionality.",
       "supported_frontend_types": ["overlay", "popup", "sidepanel"],
       "key_features": [
-        "media_analysis",
-        "api_integration",
-        "real_time_feedback"
+        "tab_audio_capture",
+        "audio_extraction",
+        "recording_infrastructure"
       ],
       "example_use_cases": [
-        "Detect deepfake audio content"
+        "Detect AI generated deepfake audio content from tab audio capture",
+        "Record tab audio for analysis, verification, or processing workflows"
       ]
     }
 ]

@@ -13,10 +13,6 @@ const __dirname = path.dirname(__filename)
  */
 export async function loadTemplateFiles(templateName, frontendType) {
   try {
-    // Normalize frontend type to match directory naming
-    // Templates use "side_panel" but frontend selection uses "sidepanel"
-    const normalizedFrontendType = frontendType === 'sidepanel' ? 'side_panel' : frontendType
-    
     // Construct path to template directory
     // From: src/lib/codegen/planning-handlers/template-loader.js
     // To: src/lib/data/templates/{templateName}/{frontendType}/
@@ -24,10 +20,10 @@ export async function loadTemplateFiles(templateName, frontendType) {
       __dirname,
       '../../data/templates',
       templateName,
-      normalizedFrontendType
+      frontendType
     ) //TODO move to supabase
 
-    console.log(`📂 [Template Loader] Loading template: ${templateName}/${normalizedFrontendType}`)
+    console.log(`📂 [Template Loader] Loading template: ${templateName}/${frontendType}`)
     console.log(`📂 [Template Loader] Path: ${templatesBasePath}`)
 
     // Check if directory exists

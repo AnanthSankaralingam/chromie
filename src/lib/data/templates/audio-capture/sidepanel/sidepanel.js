@@ -15,17 +15,13 @@ function startRecording() {
   hideStatus();
   playerSection.style.display = 'none';
   
-  chrome.runtime.sendMessage({ type: 'start-capture' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error('Message error:', chrome.runtime.lastError);
-    }
-  });
+  chrome.runtime.sendMessage({ type: 'start-capture' });
 }
 
 function showStatus(message, isError = false) {
   status.textContent = message;
   status.style.display = 'block';
-  status.style.color = isError ? 'red' : 'black';
+  status.style.color = isError ? '#f87171' : '#f1f5f9';
 }
 
 function hideStatus() {
