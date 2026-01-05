@@ -1,9 +1,9 @@
 import { REQUEST_TYPES } from "@/lib/prompts/request-types";
-import { NEW_EXT_OVERLAY_PROMPT } from "@/lib/prompts/new-extension/overlay";
-import { NEW_EXT_POPUP_PROMPT } from "@/lib/prompts/new-extension/popup";
-import { NEW_EXT_SIDEPANEL_PROMPT } from "@/lib/prompts/new-extension/sidepanel";
-import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/new-tab";
-import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/content-injection";
+import { NEW_EXT_OVERLAY_PROMPT } from "@/lib/prompts/new-extension/one-shot/overlay";
+import { NEW_EXT_POPUP_PROMPT } from "@/lib/prompts/new-extension/one-shot/popup";
+import { NEW_EXT_SIDEPANEL_PROMPT } from "@/lib/prompts/new-extension/one-shot/sidepanel";
+import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/one-shot/new-tab";
+import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/one-shot/content-injection";
 import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "@/lib/prompts/followup/follow-up-file-replacement";
 import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patching";
 import { batchScrapeWebpages } from "@/lib/webpage-scraper";

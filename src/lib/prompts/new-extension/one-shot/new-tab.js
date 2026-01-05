@@ -1,5 +1,5 @@
-import { WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB } from '../instructions/workspace-auth-instructions.js';
-import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../instructions/workspace-oauth-setup-prompt.js';
+import { WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB } from '../../instructions/workspace-auth-instructions.js';
+import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
 
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 // ${WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB}
