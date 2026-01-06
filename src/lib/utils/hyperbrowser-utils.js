@@ -83,25 +83,44 @@ export async function validateExtensionFiles(files) {
     }
     const iconPaths = Array.from(requiredIconPaths).filter(p => p.startsWith('icons/'))
     console.log('[validate] required icon paths', iconPaths)
+
     if (iconPaths.length > 0) {
-      const SUPABASE_URL = process.env.SUPABASE_URL
-      const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for icon validation')
+      // First check if icons are already provided in the files array (custom uploaded icons)
+      const customIconPaths = new Set()
+      for (const file of files) {
+        if (file.file_path && file.file_path.startsWith('icons/')) {
+          customIconPaths.add(file.file_path)
+        }
       }
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-      const { data: rows, error } = await supabase
-        .from('shared_icons')
-        .select('path_hint')
-        .in('path_hint', iconPaths)
-        .eq('visibility', 'global')
-      if (error) throw new Error(`Failed to validate shared icons: ${error.message}`)
-      const found = new Set((rows || []).map(r => r.path_hint))
-      const missing = iconPaths.filter(p => !found.has(p))
-      console.log('[validate] resolved icons', Array.from(found))
-      if (missing.length > 0) {
-        throw new Error(`Missing required icons in shared_icons: ${missing.join(', ')}. Seed them or adjust manifest.`)
+      console.log('[validate] custom icons in files', Array.from(customIconPaths))
+
+      // Only check shared_icons for icons NOT already provided as custom
+      const iconsToCheckInShared = iconPaths.filter(p => !customIconPaths.has(p))
+      console.log('[validate] icons to check in shared_icons', iconsToCheckInShared)
+
+      if (iconsToCheckInShared.length > 0) {
+        const SUPABASE_URL = process.env.SUPABASE_URL
+        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+          throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for icon validation')
+        }
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+        const { data: rows, error } = await supabase
+          .from('shared_icons')
+          .select('path_hint')
+          .in('path_hint', iconsToCheckInShared)
+          .eq('visibility', 'global')
+        if (error) throw new Error(`Failed to validate shared icons: ${error.message}`)
+        const foundInShared = new Set((rows || []).map(r => r.path_hint))
+        const missing = iconsToCheckInShared.filter(p => !foundInShared.has(p))
+        console.log('[validate] icons resolved from shared_icons', Array.from(foundInShared))
+
+        if (missing.length > 0) {
+          throw new Error(`Missing required icons: ${missing.join(', ')}. Upload them as custom assets or seed them in shared_icons.`)
+        }
       }
+
+      console.log('[validate] ✅ All required icons resolved (custom + shared)')
     }
 
     console.log("✅ Extension files validation passed")

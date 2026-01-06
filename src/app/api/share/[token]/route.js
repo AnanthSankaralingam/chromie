@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 import { 
   validateShareToken, 
@@ -302,6 +303,11 @@ export async function POST(request, { params }) {
     }
 
     // Get project files (using service role to bypass RLS)
+    const serviceSupabase = createServiceClient()
+    if (!serviceSupabase) {
+      return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
+    }
+    
     const { data: files, error: filesError } = await serviceSupabase
       .from("code_files")
       .select("file_path, content")

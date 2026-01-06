@@ -342,31 +342,27 @@ export class HyperbrowserService {
     for (const file of validatedFiles) {
       const filePath = file.file_path || file.path || file.name
       if (!filePath) continue
-      
+
       const content = file.content ?? ""
-      
-      // Check if this is a custom asset (base64 encoded)
-      // Custom assets from project_assets table will have base64 content
-      if (filePath.startsWith('icons/') || filePath.includes('/assets/')) {
-        // Try to detect if content is base64
-        const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(content) && content.length > 0 && content.length % 4 === 0
-        
-        if (isBase64) {
-          // This is a custom asset with base64 content
-          try {
-            const binary = Buffer.from(content, 'base64')
-            zip.file(filePath, binary)
-            customAssets.add(filePath)
-            console.log(`[hyperbrowser] Added custom asset: ${filePath}`)
-          } catch (e) {
-            console.error(`[hyperbrowser] Failed to decode custom asset ${filePath}:`, e.message)
-          }
-        } else {
-          // Regular text content
+
+      // Check if this file is marked as base64 (custom assets from project_assets)
+      // This is more reliable than trying to detect base64 heuristically
+      if (file.is_base64) {
+        // This is a custom asset with base64 content
+        try {
+          // Remove any whitespace that might have been added during storage
+          const cleanedContent = content.replace(/\s/g, '')
+          const binary = Buffer.from(cleanedContent, 'base64')
+          zip.file(filePath, binary)
+          customAssets.add(filePath)
+          console.log(`[hyperbrowser] Added custom base64 asset: ${filePath} (${binary.length} bytes)`)
+        } catch (e) {
+          console.error(`[hyperbrowser] Failed to decode base64 asset ${filePath}:`, e.message)
+          // Fall back to treating as text
           zip.file(filePath, content)
         }
       } else {
-        // Regular code file
+        // Regular code file (text content)
         zip.file(filePath, content)
       }
     }
