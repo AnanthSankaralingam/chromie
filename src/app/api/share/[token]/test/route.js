@@ -16,6 +16,7 @@ export async function POST(request, { params }) {
         project_id,
         created_at,
         download_count,
+        view_count,
         is_active,
         expires_at
       `)

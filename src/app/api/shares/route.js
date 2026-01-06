@@ -41,6 +41,8 @@ export async function GET(request) {
         share_token,
         created_at,
         download_count,
+        view_count,
+        last_accessed_at,
         is_active,
         expires_at,
         projects!inner(
@@ -65,7 +67,10 @@ export async function GET(request) {
       share_token: share.share_token,
       created_at: share.created_at,
       download_count: share.download_count,
+      view_count: share.view_count || 0,
+      last_accessed_at: share.last_accessed_at,
       is_active: share.is_active,
+      expires_at: share.expires_at,
       project: share.projects,
       share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
     }))

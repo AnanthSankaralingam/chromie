@@ -55,6 +55,7 @@ export async function GET(request, { params }) {
         project_id,
         created_at,
         download_count,
+        view_count,
         is_active,
         expires_at
       `)
@@ -147,12 +148,27 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
     }
 
+    // Update view count and last accessed timestamp
+    const { error: updateError } = await supabase
+      .from("shared_links")
+      .update({
+        view_count: sharedProject.view_count ? sharedProject.view_count + 1 : 1,
+        last_accessed_at: new Date().toISOString()
+      })
+      .eq("id", sharedProject.id)
+
+    if (updateError) {
+      console.error("Error updating share access stats:", updateError)
+      // Don't fail the request for this
+    }
+
     const processingTime = Date.now() - startTime
-    
+
     securityLog('info', 'Share token accessed successfully', {
       token: token?.substring(0, 8) + '...',
       projectId: sharedProject.project_id,
       fileCount: files?.length || 0,
+      viewCount: sharedProject.view_count + 1,
       processingTime,
       userAgent,
       clientIP
@@ -241,6 +257,7 @@ export async function POST(request, { params }) {
         project_id,
         created_at,
         download_count,
+        view_count,
         is_active,
         expires_at
       `)

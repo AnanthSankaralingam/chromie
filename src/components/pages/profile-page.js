@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
@@ -255,6 +255,23 @@ export default function ProfilePage() {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  // Calculate time remaining until expiry
+  const getTimeRemaining = (expiryDate) => {
+    const now = new Date()
+    const expiry = new Date(expiryDate)
+    const diff = expiry - now
+
+    if (diff <= 0) return 'Expired'
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+
+    if (days > 0) {
+      return `Expires in ${days}d ${hours}h`
+    }
+    return `Expires in ${hours}h`
   }
 
   // Get plan display info
@@ -631,9 +648,16 @@ export default function ProfilePage() {
         <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
             <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <Share className="h-5 w-5" />
-                <span>Shared Extensions</span>
+              <CardTitle className="text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Share className="h-5 w-5" />
+                  <span>Shared Extensions</span>
+                </div>
+                {shares.length > 0 && (
+                  <div className="text-sm font-normal text-slate-400">
+                    {shares.reduce((total, share) => total + (share.view_count || 0), 0)} total views
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
           <CardContent>
@@ -656,17 +680,37 @@ export default function ProfilePage() {
                           {share.project.description && (
                             <p className="text-slate-400 text-sm">{share.project.description}</p>
                           )}
-                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
-                            <span>Shared {formatDate(share.created_at)}</span>
+                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-2">
+                            <span className="flex items-center space-x-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Shared {formatDate(share.created_at)}</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <Eye className="h-3 w-3" />
+                              <span>{share.view_count || 0} views</span>
+                            </span>
                             <span className="flex items-center space-x-1">
                               <Download className="h-3 w-3" />
-                              <span>{share.download_count} downloads</span>
+                              <span>{share.download_count || 0} downloads</span>
                             </span>
                           </div>
+                          {share.last_accessed_at && (
+                            <div className="flex items-center space-x-1 text-xs text-slate-600 mt-1">
+                              <Clock className="h-3 w-3" />
+                              <span>Last accessed {formatDate(share.last_accessed_at)}</span>
+                            </div>
+                          )}
                         </div>
-                        <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                          Active
-                        </Badge>
+                        <div className="flex flex-col items-end space-y-2">
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
+                            Active
+                          </Badge>
+                          {share.expires_at && (
+                            <span className="text-xs text-slate-500">
+                              {getTimeRemaining(share.expires_at)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
