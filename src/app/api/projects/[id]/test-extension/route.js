@@ -68,9 +68,10 @@ export async function POST(request, { params }) {
     }
 
     // Combine code files and assets
+    // Mark assets with is_base64 flag so hyperbrowser-service knows to decode them
     const extensionFiles = [
       ...(files || []).map((f) => ({ file_path: f.file_path, content: f.content })),
-      ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64 }))
+      ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
     ]
     
     console.log(`[test-extension] Loading extension with ${files?.length || 0} code files and ${assets?.length || 0} assets`)

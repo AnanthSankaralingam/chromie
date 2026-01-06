@@ -17,9 +17,9 @@ export default function useProjectSetup(user, isLoading) {
   const projectDetailsCache = useRef(new Map())
 
   // Helper function to fetch project details with caching
-  const fetchProjectDetails = async (projectId) => {
-    // Return cached data if available
-    if (projectDetailsCache.current.has(projectId)) {
+  const fetchProjectDetails = async (projectId, skipCache = false) => {
+    // Return cached data if available and not skipping cache
+    if (!skipCache && projectDetailsCache.current.has(projectId)) {
       return projectDetailsCache.current.get(projectId)
     }
 
@@ -42,7 +42,8 @@ export default function useProjectSetup(user, isLoading) {
   const refreshCurrentProjectDetails = async () => {
     try {
       if (!currentProjectId) return
-      const project = await fetchProjectDetails(currentProjectId)
+      // Skip cache to force fresh fetch from API
+      const project = await fetchProjectDetails(currentProjectId, true)
       if (project) {
         setCurrentProjectName(project.name)
         setCurrentProjectHasGithubRepo(!!project.github_repo_full_name)
