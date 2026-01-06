@@ -82,4 +82,16 @@ export const SUBSCRIPTION_PLANS = ['free', 'legend']
 export const PLAN_RESET_TYPES = {
   MONTHLY: 'monthly',
   ONE_TIME: 'one_time'
+}
+
+// API Key configuration
+export const API_KEY_CONFIG = {
+  // Maximum API keys per user (across all projects)
+  MAX_KEYS_PER_USER: 1,
+  // Maximum API keys per project
+  MAX_KEYS_PER_PROJECT: 1,
+  // API key prefix format
+  KEY_PREFIX: 'chromie_live_',
+  // API key length (excluding prefix)
+  KEY_LENGTH: 32
 } 

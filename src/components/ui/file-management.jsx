@@ -128,7 +128,7 @@ export default function useFileManagement(currentProjectId, user) {
           // Transform assets to match code_files format (with a marker for assets)
           assetFiles = (assetsData.assets || []).map(asset => ({
             file_path: asset.file_path,
-            content: `[Asset: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB]`,
+            content: asset.content_base64 || '',
             isAsset: true,
             assetId: asset.id,
             mime_type: asset.mime_type,
