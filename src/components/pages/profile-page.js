@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from '@/components/SessionProviderClient'
+import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3 } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
@@ -18,6 +19,7 @@ import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
+  const router = useRouter()
   const [projects, setProjects] = useState([])
   const [billing, setBilling] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -532,8 +534,17 @@ export default function ProfilePage() {
         {/* Projects Section */}
         <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white">Your Projects</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/metrics')}
+              className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Metrics
+            </Button>
           </CardHeader>
           <CardContent>
             {loading ? (
