@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
     // Get all assets for this project
     const { data: assets, error: assetsError } = await supabase
       .from("project_assets")
-      .select("id, file_path, file_type, mime_type, file_size, created_at, updated_at")
+      .select("id, file_path, file_type, mime_type, file_size, content_base64, created_at, updated_at")
       .eq("project_id", id)
       .order("file_type, file_path")
 

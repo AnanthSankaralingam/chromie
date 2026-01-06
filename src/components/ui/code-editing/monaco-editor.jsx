@@ -2,17 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose } from 'lucide-react'
+import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ArtifactClose } from '@/components/ui/artifact/artifact'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
 import { loadIcons } from '@/lib/utils/icon-loader'
 
-export default function MonacoEditor({ 
-  code, 
-  fileName, 
-  className = "", 
+export default function MonacoEditor({
+  code,
+  fileName,
+  className = "",
   onSave,
   onClose,
   isFileTreeCollapsed,
@@ -30,6 +30,12 @@ export default function MonacoEditor({
   const [isPreviewInfoOpen, setIsPreviewInfoOpen] = useState(false)
   const [hideActionButtonsUntilSave, setHideActionButtonsUntilSave] = useState(false)
   const [localIcons, setLocalIcons] = useState(new Map()) // Map<path, dataUrl>
+
+  // Check if current file is an image asset
+  const isImageAsset = () => {
+    const currentFile = projectFiles.find(f => f.file_path === filePath)
+    return currentFile?.isAsset && currentFile?.mime_type?.startsWith('image/')
+  }
 
   // Update content when code prop changes
   useEffect(() => {
@@ -506,9 +512,16 @@ export default function MonacoEditor({
                 )}
               </Button>
             )}
-            <Edit3 className="h-4 w-4 text-purple-400" />
+            {isImageAsset() ? (
+              <Image className="h-4 w-4 text-blue-400" />
+            ) : (
+              <Edit3 className="h-4 w-4 text-purple-400" />
+            )}
             <span className="text-sm text-slate-300 font-medium">{fileName || 'Untitled'}</span>
-            {hasChanges && (
+            {isImageAsset() && (
+              <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">Preview</span>
+            )}
+            {hasChanges && !isImageAsset() && (
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
                 <span className="text-xs text-orange-300">Unsaved</span>
@@ -516,10 +529,12 @@ export default function MonacoEditor({
             )}
           </div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
-              {language}
-            </span>
-            {isJsonFile(fileName) && !hideActionButtonsUntilSave && (
+            {!isImageAsset() && (
+              <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
+                {language}
+              </span>
+            )}
+            {!isImageAsset() && isJsonFile(fileName) && !hideActionButtonsUntilSave && (
               <Button
                 onClick={handleFormat}
                 size="sm"
@@ -530,7 +545,7 @@ export default function MonacoEditor({
                 Format
               </Button>
             )}
-            {(fileName || '').toLowerCase() === 'manifest.json' && !hideActionButtonsUntilSave && (
+            {!isImageAsset() && (fileName || '').toLowerCase() === 'manifest.json' && !hideActionButtonsUntilSave && (
               <Button
                 onClick={handleBumpManifestVersion}
                 size="sm"
@@ -540,7 +555,7 @@ export default function MonacoEditor({
                 + Version
               </Button>
             )}
-            {language === 'html' && (
+            {!isImageAsset() && language === 'html' && (
               <Button
                 id="tour-see-html-button"
                 onClick={handleToggleHtmlPreview}
@@ -557,15 +572,17 @@ export default function MonacoEditor({
                 )}
               </Button>
             )}
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-xs px-3 py-1"
-            >
-              <Save className="h-3 w-3 mr-1" />
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
+            {!isImageAsset() && (
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-xs px-3 py-1"
+              >
+                <Save className="h-3 w-3 mr-1" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
             {onClose && (
               <ArtifactClose onClick={onClose} />
             )}
@@ -575,7 +592,24 @@ export default function MonacoEditor({
 
       {/* Monaco Editor */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-        {language === 'html' && isHtmlPreview ? (
+        {isImageAsset() ? (
+          <div className="h-full w-full bg-slate-900 flex items-center justify-center p-8">
+            <div className="flex flex-col items-center space-y-4 max-w-full max-h-full">
+              <img
+                src={`data:${projectFiles.find(f => f.file_path === filePath)?.mime_type};base64,${content}`}
+                alt={fileName}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                style={{ imageRendering: 'crisp-edges' }}
+              />
+              <div className="text-center space-y-1">
+                <p className="text-sm text-slate-400 font-medium">{fileName}</p>
+                <p className="text-xs text-slate-500">
+                  {projectFiles.find(f => f.file_path === filePath)?.mime_type} • {Math.round(projectFiles.find(f => f.file_path === filePath)?.file_size / 1024)}KB
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : language === 'html' && isHtmlPreview ? (
           <div className="h-full w-full bg-slate-900 flex items-center justify-center">
             <iframe
               title="HTML Preview"
