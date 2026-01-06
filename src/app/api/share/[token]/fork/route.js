@@ -70,6 +70,7 @@ export async function POST(request, { params }) {
         id,
         project_id,
         created_at,
+        view_count,
         is_active,
         expires_at
       `)

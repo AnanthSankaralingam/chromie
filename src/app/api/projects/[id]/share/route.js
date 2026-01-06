@@ -109,18 +109,21 @@ export async function POST(request, { params }) {
     // Check if share already exists and is not expired
     const { data: existingShare } = await supabase
       .from("shared_links")
-      .select("id, share_token, created_at, is_active, expires_at")
+      .select("id, share_token, created_at, view_count, download_count, is_active, expires_at")
       .eq("project_id", projectId)
       .eq("is_active", true)
       .gt("expires_at", new Date().toISOString())
       .single()
 
     if (existingShare) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         share: {
           id: existingShare.id,
           share_token: existingShare.share_token,
           created_at: existingShare.created_at,
+          view_count: existingShare.view_count || 0,
+          download_count: existingShare.download_count || 0,
+          expires_at: existingShare.expires_at,
           share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${existingShare.share_token}`
         }
       })
@@ -171,9 +174,10 @@ export async function POST(request, { params }) {
         user_id: user.id,
         share_token: shareToken,
         is_active: true,
-        download_count: 0
+        download_count: 0,
+        view_count: 0
       })
-      .select("id, share_token, created_at")
+      .select("id, share_token, created_at, view_count, download_count, expires_at")
       .single()
 
     if (shareError) {
@@ -193,11 +197,14 @@ export async function POST(request, { params }) {
       clientIP
     })
     
-    return NextResponse.json({ 
+    return NextResponse.json({
       share: {
         id: share.id,
         share_token: share.share_token,
         created_at: share.created_at,
+        view_count: share.view_count || 0,
+        download_count: share.download_count || 0,
+        expires_at: share.expires_at,
         share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
       }
     })
@@ -250,7 +257,7 @@ export async function GET(request, { params }) {
     // Get existing share (check if not expired)
     const { data: share, error: shareError } = await supabase
       .from("shared_links")
-      .select("id, share_token, created_at, download_count, is_active, expires_at")
+      .select("id, share_token, created_at, download_count, view_count, last_accessed_at, is_active, expires_at")
       .eq("project_id", projectId)
       .eq("is_active", true)
       .gt("expires_at", new Date().toISOString())
@@ -260,13 +267,16 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "No active share found" }, { status: 404 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       share: {
         id: share.id,
         share_token: share.share_token,
         created_at: share.created_at,
         download_count: share.download_count,
+        view_count: share.view_count || 0,
+        last_accessed_at: share.last_accessed_at,
         is_active: share.is_active,
+        expires_at: share.expires_at,
         share_url: `${process.env.NEXT_PUBLIC_APP_URL}/share/${share.share_token}`
       }
     })

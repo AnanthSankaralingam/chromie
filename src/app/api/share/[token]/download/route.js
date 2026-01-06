@@ -100,6 +100,7 @@ export async function GET(request, { params }) {
         project_id,
         created_at,
         download_count,
+        view_count,
         is_active,
         expires_at
       `)

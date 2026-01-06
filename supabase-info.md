@@ -138,8 +138,9 @@ Stores shareable links for projects with expiration and access tracking.
 | `project_id`       | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
 | `user_id`          | uuid         | FK → `profiles.id`, ON DELETE CASCADE                      |
 | `share_token`      | text         | NOT NULL, UNIQUE, secure random token for sharing           |
-| `expires_at`       | timestamptz  | NOT NULL, DEFAULT (now() + '24:00:00'::interval)           |
+| `expires_at`       | timestamptz  | NOT NULL, DEFAULT (now() + '7 days'::interval)             |
 | `download_count`   | integer      | DEFAULT 0, tracks number of downloads                      |
+| `view_count`       | integer      | DEFAULT 0, tracks number of page views                     |
 | `is_active`        | boolean      | DEFAULT true, for soft deletion                             |
 | `created_at`       | timestamptz  | DEFAULT now()                                               |
 | `last_accessed_at` | timestamptz  | Tracks when link was last accessed                          |
