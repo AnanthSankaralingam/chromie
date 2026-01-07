@@ -49,6 +49,7 @@ export async function* generateChromeExtensionStream({
   initialRequirementsAnalysis = null, // New parameter to preserve state
   initialPlanningTokenUsage = null, // New parameter to preserve state
   images = null, // Image attachments for vision-enabled requests
+  supabase = null, // Supabase client for authenticated database access
 }) {
   try {
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
@@ -297,7 +298,8 @@ export async function* generateChromeExtensionStream({
       // Load template files
       templateFiles = await loadTemplateFiles(
         requirementsAnalysis.matchedTemplate.name,
-        requirementsAnalysis.frontend_type
+        requirementsAnalysis.frontend_type,
+        supabase
       )
       
       if (Object.keys(templateFiles).length > 0) {
