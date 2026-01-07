@@ -273,7 +273,8 @@ export async function POST(request) {
             contextWindowMaxTokens,
             initialRequirementsAnalysis: initialRequirementsAnalysis || null,
             initialPlanningTokenUsage: initialPlanningTokenUsage || null,
-            images: images || null
+            images: images || null,
+            supabase: supabase // Pass authenticated supabase client
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))

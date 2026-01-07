@@ -1,64 +1,50 @@
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { createServiceClient } from '@/lib/supabase/service'
 
 /**
- * Load template files from the template directory structure
+ * Load template files from Supabase database
  * @param {string} templateName - Name of the template (must match title in all_templates.json)
  * @param {string} frontendType - Frontend type (popup, sidepanel, overlay, new_tab, content_script_ui)
+ * @param {Object} supabase - Supabase client (authenticated client from API route, preferred)
  * @returns {Promise<Object>} Map of file paths to content, or empty object if template not found
  */
-export async function loadTemplateFiles(templateName, frontendType) {
+export async function loadTemplateFiles(templateName, frontendType, supabase = null) {
   try {
-    // Construct path to template directory
-    // From: src/lib/codegen/planning-handlers/template-loader.js
-    // To: src/lib/data/templates/{templateName}/{frontendType}/
-    const templatesBasePath = path.join(
-      __dirname,
-      '../../data/templates',
-      templateName,
-      frontendType
-    ) //TODO move to supabase
-
     console.log(`📂 [Template Loader] Loading template: ${templateName}/${frontendType}`)
-    console.log(`📂 [Template Loader] Path: ${templatesBasePath}`)
 
-    // Check if directory exists
-    if (!fs.existsSync(templatesBasePath)) {
-      console.warn(`⚠️ [Template Loader] Template directory not found: ${templatesBasePath}`)
+    // Use provided authenticated client (preferred) or fallback to service client
+    // Service client bypasses RLS, so authenticated client is preferred for security
+    if (!supabase) {
+      supabase = createServiceClient()
+      if (!supabase) {
+        console.error(`❌ [Template Loader] Supabase client not available - check environment variables`)
+        return {}
+      }
+      console.warn(`⚠️ [Template Loader] Using service client (fallback) - authenticated client preferred`)
+    }
+
+    // Query all files for this template and frontend type
+    const { data, error } = await supabase
+      .from('extension_templates')
+      .select('file_path, content')
+      .eq('template_name', templateName)
+      .eq('frontend_type', frontendType)
+
+    if (error) {
+      console.error(`❌ [Template Loader] Error querying template files:`, error.message)
       return {}
     }
 
-    // Recursively read all files from the template directory
-    const templateFiles = {}
-    
-    function readDirectory(dirPath, relativePath = '') {
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true })
-      
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name)
-        const fileRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name
-        
-        if (entry.isDirectory()) {
-          // Recursively read subdirectories
-          readDirectory(fullPath, fileRelativePath)
-        } else if (entry.isFile()) {
-          // Read file content
-          try {
-            const content = fs.readFileSync(fullPath, 'utf-8')
-            templateFiles[fileRelativePath] = content
-            console.log(`✅ [Template Loader] Loaded: ${fileRelativePath}`)
-          } catch (error) {
-            console.error(`❌ [Template Loader] Error reading file ${fileRelativePath}:`, error.message)
-          }
-        }
-      }
+    if (!data || data.length === 0) {
+      console.warn(`⚠️ [Template Loader] Template not found: ${templateName}/${frontendType}`)
+      return {}
     }
 
-    readDirectory(templatesBasePath)
+    // Convert array of {file_path, content} to {file_path: content} map
+    const templateFiles = {}
+    for (const file of data) {
+      templateFiles[file.file_path] = file.content
+      console.log(`✅ [Template Loader] Loaded: ${file.file_path}`)
+    }
 
     console.log(`✅ [Template Loader] Loaded ${Object.keys(templateFiles).length} files from template`)
     return templateFiles
