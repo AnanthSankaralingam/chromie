@@ -319,7 +319,12 @@ ${interactiveElementsList || 'No interactive elements found'}
 6. Extract specific content, not entire body
 
 **RESPONSE FORMAT:**
-Return ONLY a valid JSON array. Each step must have this exact structure:
+Return ONLY a valid JSON array. DO NOT include any other text, explanations, or markdown.
+CRITICAL: Use ONLY double quotes ("), NOT single quotes (').
+CRITICAL: Do NOT use trailing commas.
+CRITICAL: All property names MUST be in double quotes.
+
+Each step must have this exact structure:
 [
   {
     "action": "navigate",
@@ -410,23 +415,83 @@ Generate the plan now:`;
     try {
       // Try to extract JSON from response
       const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      if (!jsonMatch) {
+        console.warn('[CHROMIE:background.js] No JSON array found in response');
+        throw new Error('No JSON array found');
       }
+      
+      let jsonString = jsonMatch[0];
+      
+      // Clean up common LLM JSON issues
+      jsonString = this.cleanJsonString(jsonString);
+      
+      // Log for debugging
+      console.log('[CHROMIE:background.js] Attempting to parse JSON:', jsonString.slice(0, 500));
+      
+      // Try to parse
+      const steps = JSON.parse(jsonString);
+      
+      // Validate that it's an array
+      if (!Array.isArray(steps)) {
+        throw new Error('Parsed result is not an array');
+      }
+      
+      // Validate each step has required fields
+      steps.forEach((step, idx) => {
+        if (!step.action) {
+          throw new Error(`Step ${idx} missing 'action' field`);
+        }
+        if (!step.description) {
+          throw new Error(`Step ${idx} missing 'description' field`);
+        }
+      });
+      
+      return steps;
+    } catch (error) {
+      console.error('[CHROMIE:background.js] Error parsing steps:', error);
+      console.error('[CHROMIE:background.js] Raw response:', response);
+      
       // Fallback
       return [{
         action: 'extract',
         description: 'Extract information',
-        target: 'body'
-      }];
-    } catch (error) {
-      console.error('[CHROMIE:background.js] Error parsing steps:', error);
-      return [{
-        action: 'extract',
-        description: 'Extract information',
-        target: 'body'
+        target: 'h1, h2, h3',
+        value: null
       }];
     }
+  }
+  
+  cleanJsonString(jsonString) {
+    // Remove any markdown code block markers
+    jsonString = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // Replace single quotes with double quotes (but not in actual text content)
+    // This is a simplified approach - only replaces quotes around keys and simple values
+    jsonString = jsonString.replace(/'\s*:\s*'/g, '":"');
+    jsonString = jsonString.replace(/{\s*'/g, '{"');
+    jsonString = jsonString.replace(/,\s*'/g, ',"');
+    jsonString = jsonString.replace(/'\s*:/g, '":');
+    jsonString = jsonString.replace(/:\s*'([^']*)'/g, ':"$1"');
+    
+    // Remove trailing commas before closing brackets/braces
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Remove comments (// style and /* */ style)
+    jsonString = jsonString.replace(/\/\/.*$/gm, '');
+    jsonString = jsonString.replace(/\/\*[\s\S]*?\*\//g, '');
+    
+    // Fix common issues with null values
+    jsonString = jsonString.replace(/:\s*None/g, ': null');
+    jsonString = jsonString.replace(/:\s*undefined/g, ': null');
+    
+    // Ensure property names are quoted
+    // Match unquoted keys like { action: "..." } and convert to { "action": "..." }
+    jsonString = jsonString.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+    
+    // Remove any leading/trailing whitespace
+    jsonString = jsonString.trim();
+    
+    return jsonString;
   }
 
   async executeStep(step) {
