@@ -13,6 +13,29 @@
         "Detect AI generated deepfake audio content from tab audio capture",
         "Record tab audio for analysis, verification, or processing workflows"
       ]
+    },
+    {
+      "title": "ai-browser-agent",
+      "category": "AI & Automation",
+      "description": "AI-powered browser automation assistant with multi-agent system. Inspired by Nanobrowser, it provides intelligent web navigation, task execution, and information extraction capabilities using LLM APIs (OpenAI, Anthropic). Features a chat interface for natural language commands and autonomous browsing.",
+      "supported_frontend_types": ["sidepanel"],
+      "key_features": [
+        "ai_agent_system",
+        "natural_language_commands",
+        "autonomous_web_navigation",
+        "dom_interaction",
+        "task_planning_execution",
+        "chat_interface",
+        "llm_integration",
+        "browser_automation"
+      ],
+      "example_use_cases": [
+        "Create an AI assistant that can navigate websites and extract information based on natural language queries",
+        "Build a browser automation agent that can perform multi-step web tasks like form filling, data scraping, and content analysis",
+        "Develop an intelligent research assistant that can browse multiple pages and summarize findings",
+        "Make an AI shopping assistant that can search products, compare prices, and extract specifications",
+        "Create a social media automation agent that can navigate platforms and gather insights"
+      ]
     }
 ]
   
