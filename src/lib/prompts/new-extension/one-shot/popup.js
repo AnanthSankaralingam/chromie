@@ -96,6 +96,42 @@ icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png,
 icons/world.png, icons/youtube.png
 </icon_configuration>
 
+<chrome_messaging_api_rules>
+CRITICAL Chrome Extension Messaging Best Practices:
+
+1. chrome.runtime.onConnect vs chrome.runtime.onMessage:
+   - onConnect listener callbacks receive: (port)
+   - port.onMessage listener callbacks receive: (message) ONLY
+   - The 'sender' parameter is NOT available in port.onMessage callbacks
+   
+2. INCORRECT Pattern (DO NOT USE):
+   chrome.runtime.onConnect.addListener(port => {
+     port.onMessage.addListener(async (message, sender) => {  // ❌ sender is not defined here
+       await handleTask(message, port, sender.tab?.id);
+     });
+   });
+
+3. CORRECT Pattern (ALWAYS USE):
+   chrome.runtime.onConnect.addListener(port => {
+     port.onMessage.addListener(async (message) => {  // ✅ Only message parameter
+       // Get tabId from the message payload itself, not from sender
+       const { task, tabId } = message;
+       await handleTask(message, port);
+     });
+   });
+
+4. When you need sender information with ports:
+   - Store sender info when connection is established
+   - Or pass required data in the message payload
+   - Or use chrome.runtime.onMessage instead of onConnect if you need sender
+
+5. sender parameter IS available in:
+   - chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {})
+   - chrome.tabs.onMessage.addListener((message, sender, sendResponse) => {})
+   
+NEVER reference 'sender' in port.onMessage.addListener callbacks - it does not exist there.
+</chrome_messaging_api_rules>
+
 <output_requirements>
 Return a JSON object with the following structure exactly as shown:
 {

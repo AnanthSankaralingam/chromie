@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Browser Agent - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>⚙️ AI Browser Agent Settings</h1>
+      <p class="subtitle">Configure your AI agent preferences and API keys</p>
+    </header>
+
+    <main class="main-content">
+      <!-- API Configuration Section -->
+      <section class="section">
+        <h2 class="section-title">🔑 API Configuration</h2>
+        <p class="section-description">
+          Configure your LLM provider and API key. Your key is stored locally and never shared.
+        </p>
+
+        <div class="form-group">
+          <label for="api-provider">API Provider</label>
+          <select id="api-provider" class="input">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="custom">Custom / Local (Ollama, etc.)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="model">Model</label>
+          <select id="model" class="input">
+            <!-- Options will be populated based on provider -->
+          </select>
+          <small class="hint">Different models have different costs and capabilities</small>
+        </div>
+
+        <div id="custom-endpoint-group" class="form-group" style="display: none;">
+          <label for="custom-endpoint">Custom Endpoint URL</label>
+          <input 
+            type="text" 
+            id="custom-endpoint" 
+            class="input" 
+            placeholder="http://localhost:11434/v1" 
+          />
+          <small class="hint">For Ollama, use: http://localhost:11434/v1 (OpenAI-compatible endpoint)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="api-key">API Key</label>
+          <div class="input-with-button">
+            <input 
+              type="password" 
+              id="api-key" 
+              class="input" 
+              placeholder="sk-..." 
+            />
+            <button id="toggle-key-visibility" class="btn-icon" title="Show/Hide API Key">
+              👁️
+            </button>
+          </div>
+          <small class="hint">Your API key is stored locally and encrypted</small>
+        </div>
+
+        <div class="api-links">
+          <p><strong>Get your API key:</strong></p>
+          <a href="https://platform.openai.com/api-keys" target="_blank" class="link">OpenAI API Keys</a>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" class="link">Anthropic API Keys</a>
+        </div>
+      </section>
+
+      <!-- Agent Configuration Section -->
+      <section class="section">
+        <h2 class="section-title">🤖 Agent Configuration</h2>
+        <p class="section-description">
+          Customize how the AI agent behaves and operates
+        </p>
+
+        <div class="form-group">
+          <label for="max-steps">Maximum Steps per Task</label>
+          <input 
+            type="number" 
+            id="max-steps" 
+            class="input" 
+            min="1" 
+            max="20" 
+            value="10"
+          />
+          <small class="hint">Limits the number of actions the agent can take (1-20)</small>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="auto-scroll" checked />
+            <span>Auto-scroll during navigation</span>
+          </label>
+          <small class="hint">Automatically scroll to elements before interacting</small>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="verbose-logging" />
+            <span>Verbose logging</span>
+          </label>
+          <small class="hint">Show detailed logs in browser console</small>
+        </div>
+      </section>
+
+      <!-- Advanced Settings Section -->
+      <section class="section">
+        <h2 class="section-title">⚡ Advanced Settings</h2>
+        
+        <div class="form-group">
+          <label for="timeout">Action Timeout (seconds)</label>
+          <input 
+            type="number" 
+            id="timeout" 
+            class="input" 
+            min="5" 
+            max="60" 
+            value="30"
+          />
+          <small class="hint">How long to wait for each action to complete (5-60 seconds)</small>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="save-history" checked />
+            <span>Save chat history</span>
+          </label>
+          <small class="hint">Store conversation history locally</small>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="section about-section">
+        <h2 class="section-title">ℹ️ About</h2>
+        <p>
+          <strong>AI Browser Agent</strong> - An AI-powered browser automation assistant
+          inspired by <a href="https://github.com/nanobrowser/nanobrowser" target="_blank">Nanobrowser</a>.
+        </p>
+        <p class="version">Version 1.0.0</p>
+      </section>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button id="save-btn" class="btn-primary">💾 Save Settings</button>
+        <button id="reset-btn" class="btn-secondary">🔄 Reset to Defaults</button>
+      </div>
+
+      <!-- Status Message -->
+      <div id="status-message" class="status-message" style="display: none;"></div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
+
