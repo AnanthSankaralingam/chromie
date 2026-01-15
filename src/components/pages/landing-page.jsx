@@ -15,9 +15,9 @@ export default function LandingPage() {
 
   // YouTube video URLs for the gallery
   const demoVideos = [
-    "https://www.youtube.com/watch?v=zgUaJT1w8uA", // Replace with your actual video URLs
-    "https://www.youtube.com/watch?v=inC7M0n4Xt4", // Replace with your actual video URLs
-    "https://youtu.be/-lGtGrBPsp0", // Replace with your actual video URLs
+    "https://www.youtube.com/watch?v=zgUaJT1w8uA",
+    "https://youtu.be/-lGtGrBPsp0",
+    "https://www.youtube.com/watch?v=inC7M0n4Xt4",
     "https://youtu.be/22fHmrF3k3g",
     "https://www.youtube.com/watch?v=d6Bnwys49kY",
     "https://www.youtube.com/watch?v=EkAibSxZ2TU"
