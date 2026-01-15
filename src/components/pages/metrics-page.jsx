@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AppBar from "@/components/ui/app-bars/app-bar"
@@ -21,6 +21,18 @@ export default function MetricsPage() {
   const [selectedProjectId, setSelectedProjectId] = useState(null)
   const [projects, setProjects] = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
+
+  // Metrics data state
+  const [metricsData, setMetricsData] = useState(null)
+  const [metricsLoading, setMetricsLoading] = useState(false)
+  const [timeRange, setTimeRange] = useState({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    to: new Date().toISOString(),
+    bucket: 'day'
+  })
+
+  // Track if initial metrics fetch has been done (only fetch once per page load)
+  const initialFetchDone = useRef(false)
 
   // Load persisted state from sessionStorage
   useEffect(() => {
@@ -92,6 +104,45 @@ export default function MetricsPage() {
     fetchProjects()
   }, [user])
 
+  // Fetch metrics data (only called once on initial page load)
+  const fetchMetrics = useCallback(async (projectId) => {
+    if (!projectId) return
+
+    try {
+      setMetricsLoading(true)
+      const params = new URLSearchParams({
+        projectId: projectId,
+        from: timeRange.from,
+        to: timeRange.to,
+        bucket: timeRange.bucket
+      })
+
+      const response = await fetch(`/api/metrics/dashboard?${params}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setMetricsData(data.metrics)
+        console.log('Fetched metrics data:', data.metrics)
+      } else {
+        console.error('Failed to fetch metrics')
+        setMetricsData(null)
+      }
+    } catch (error) {
+      console.error('Error fetching metrics:', error)
+      setMetricsData(null)
+    } finally {
+      setMetricsLoading(false)
+    }
+  }, [timeRange])
+
+  // Fetch metrics once when selectedProjectId is first available
+  useEffect(() => {
+    if (selectedProjectId && !initialFetchDone.current) {
+      initialFetchDone.current = true
+      fetchMetrics(selectedProjectId)
+    }
+  }, [selectedProjectId, fetchMetrics])
+
   // Handle tab changes
   const handleTabChange = (newTab) => {
     setActiveTab(newTab)
@@ -143,8 +194,15 @@ export default function MetricsPage() {
                 Monitor your extension's performance and usage metrics
               </p>
             </div>
-            <OverviewStats />
-            <ChartsSection />
+            <OverviewStats
+              metricsData={metricsData}
+              loading={metricsLoading}
+            />
+            <ChartsSection
+              metricsData={metricsData}
+              loading={metricsLoading}
+              timeRange={timeRange}
+            />
           </div>
         )
       case 'analytics':
