@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -8,9 +8,12 @@ import { cn } from "@/lib/utils"
 export default function VideoGallery({ videos = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
+  const [isApiReady, setIsApiReady] = useState(false)
+  const playerRef = useRef(null)
+  const iframeRef = useRef(null)
 
   // Extract YouTube video ID from URL
-  const getYouTubeEmbedUrl = (url) => {
+  const getYouTubeVideoId = (url) => {
     try {
       const urlObj = new URL(url)
       let videoId = ''
@@ -21,10 +24,10 @@ export default function VideoGallery({ videos = [] }) {
         videoId = urlObj.pathname.slice(1)
       }
       
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1`
+      return videoId
     } catch (error) {
       console.error('Invalid YouTube URL:', url)
-      return url
+      return null
     }
   }
 
@@ -41,16 +44,75 @@ export default function VideoGallery({ videos = [] }) {
     setIsAutoPlaying(false) // Stop autoplay when manually selecting
   }
 
-  // Auto-advance carousel
+  // Load YouTube IFrame API
   useEffect(() => {
-    if (!isAutoPlaying || videos.length <= 1) return
+    if (typeof window === 'undefined') return
 
-    const interval = setInterval(() => {
-      goToNext()
-    }, 10000) // Change video every 10 seconds
+    // Check if API is already loaded
+    if (window.YT && window.YT.Player) {
+      setIsApiReady(true)
+      return
+    }
 
-    return () => clearInterval(interval)
-  }, [isAutoPlaying, videos.length, goToNext])
+    // Load the API
+    const tag = document.createElement('script')
+    tag.src = 'https://www.youtube.com/iframe_api'
+    const firstScriptTag = document.getElementsByTagName('script')[0]
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+
+    // API ready callback
+    window.onYouTubeIframeAPIReady = () => {
+      setIsApiReady(true)
+    }
+
+    return () => {
+      window.onYouTubeIframeAPIReady = null
+    }
+  }, [])
+
+  // Initialize YouTube player when API is ready and currentIndex changes
+  useEffect(() => {
+    if (!isApiReady || !iframeRef.current || videos.length === 0) return
+
+    const videoId = getYouTubeVideoId(videos[currentIndex])
+    if (!videoId) return
+
+    // Destroy existing player
+    if (playerRef.current) {
+      playerRef.current.destroy()
+    }
+
+    // Create new player
+    playerRef.current = new window.YT.Player(iframeRef.current, {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0
+      },
+      events: {
+        onStateChange: (event) => {
+          // YT.PlayerState.ENDED = 0
+          if (event.data === 0 && isAutoPlaying && videos.length > 1) {
+            console.log('Video ended, moving to next...')
+            goToNext()
+          }
+        },
+        onError: (event) => {
+          console.error('YouTube player error:', event.data)
+        }
+      }
+    })
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy()
+        playerRef.current = null
+      }
+    }
+  }, [isApiReady, currentIndex, videos, isAutoPlaying, goToNext])
 
   if (!videos || videos.length === 0) {
     return null
@@ -70,12 +132,9 @@ export default function VideoGallery({ videos = [] }) {
               transition={{ duration: 0.5 }}
               className="absolute inset-0"
             >
-              <iframe
-                src={getYouTubeEmbedUrl(videos[currentIndex])}
-                title={`Video ${currentIndex + 1}`}
+              <div
+                ref={iframeRef}
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
               />
             </motion.div>
           </AnimatePresence>
