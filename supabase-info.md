@@ -267,6 +267,13 @@ Additional indexes:
 - `idx_metrics_events_user_uuid` on `user_uuid` for user tracking
 - `idx_metrics_events_project_type_time` on `(project_id, event_type, event_time DESC)` for analytics queries
 
+Helper functions:
+- `metrics_dashboard(p_project_id uuid, p_from timestamptz, p_to timestamptz, p_bucket text default 'day')`  
+  Returns aggregated metrics for a project over a time range as JSONB:
+  - `summary`: total events, unique users
+  - `by_type`: event_type → count
+  - `series`: time buckets with counts and unique users (bucket = date_trunc of `p_bucket`)
+
 ---
 
 ---
