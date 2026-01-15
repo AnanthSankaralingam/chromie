@@ -189,21 +189,18 @@ export default function LandingPage() {
             className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12"
           >
             <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
-              <div className="text-3xl mb-2">⚡</div>
-              <h3 className="text-base font-semibold mb-1.5 text-white">Lightning Fast</h3>
-              <p className="text-xs text-slate-400">Generate fully functional extensions in seconds, not weeks</p>
+              <h3 className="text-base font-semibold mb-1.5 text-white">lightning fast</h3>
+              <p className="text-xs text-slate-400">generate fully functional extensions in seconds, not weeks</p>
             </div>
 
             <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
-              <div className="text-3xl mb-2">🎨</div>
-              <h3 className="text-base font-semibold mb-1.5 text-white">No Code Required</h3>
-              <p className="text-xs text-slate-400">Just describe what you want, we handle the rest</p>
+              <h3 className="text-base font-semibold mb-1.5 text-white">no code required</h3>
+              <p className="text-xs text-slate-400">just describe what you want, we handle the rest</p>
             </div>
 
             <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
-              <div className="text-3xl mb-2">🚀</div>
-              <h3 className="text-base font-semibold mb-1.5 text-white">Deploy Instantly</h3>
-              <p className="text-xs text-slate-400">Download and publish to Chrome Web Store immediately</p>
+              <h3 className="text-base font-semibold mb-1.5 text-white">deploy instantly</h3>
+              <p className="text-xs text-slate-400">download and publish to chrome web store immediately</p>
             </div>
           </motion.div>
         </div>
@@ -212,22 +209,6 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="relative z-20 px-6 py-5 border-t border-slate-800/50 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <button
-              onClick={() => router.push('/privacy')}
-              className="hover:text-white transition-colors"
-            >
-              Privacy
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => router.push('/about')}
-              className="hover:text-white transition-colors"
-            >
-              Terms
-            </button>
-          </div>
-          
           <div className="text-xs text-slate-500">
             © 2026 chromie.dev
           </div>
