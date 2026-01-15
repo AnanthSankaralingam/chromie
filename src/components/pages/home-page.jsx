@@ -327,7 +327,7 @@ export default function HomePage() {
 
     restorePrompt()
 
-    // Handle hash navigation (e.g., from /#how-it-works, /#pricing, or /#contact)
+    // Handle hash navigation (e.g., from /home#how-it-works, /home#pricing, or /home#contact)
     const handleHashScroll = () => {
       const hash = window.location.hash
       if (hash === '#how-it-works' || hash === '#pricing' || hash === '#contact') {
@@ -341,6 +341,10 @@ export default function HomePage() {
     }
 
     handleHashScroll()
+    
+    // Also listen for hash changes
+    window.addEventListener('hashchange', handleHashScroll)
+    return () => window.removeEventListener('hashchange', handleHashScroll)
   }, [])
 
   useEffect(() => {
