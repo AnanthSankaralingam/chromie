@@ -6,7 +6,7 @@ import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { Chrome, Zap, Sparkles } from "lucide-react"
+import { Chrome } from "lucide-react"
 import VideoGallery from "@/components/ui/video-gallery"
 
 export default function LandingPage() {
@@ -31,12 +31,8 @@ export default function LandingPage() {
   }, [user, isLoading, router])
 
   const handleGetStarted = () => {
-    if (user) {
-      router.push('/home')
-    } else {
-      // Redirect to home where they'll see auth modal
-      router.push('/home')
-    }
+    // Redirect to waitlist page
+    router.push('/waitlist')
   }
 
   const handleBookDemo = () => {
@@ -143,26 +139,35 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.7 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3"
+              className="flex flex-col sm:flex-row items-center justify-center gap-6"
             >
-              <Button
-                onClick={handleGetStarted}
-                size="lg"
-                className="text-sm px-6 py-5 bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105 transition-all duration-300 font-semibold"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Get Started
-              </Button>
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500 hover:from-purple-500 hover:via-purple-400 hover:to-blue-400 transition-all duration-300">
+                  <Button
+                    onClick={handleGetStarted}
+                    size="lg"
+                    variant="ghost"
+                    className="relative text-sm px-6 py-5 bg-[#0F111A] hover:bg-slate-900 text-white rounded-full font-semibold transition-all duration-300"
+                  >
+                    join the waitlist
+                  </Button>
+                </div>
+                <span className="text-sm text-slate-400 font-medium">for individuals</span>
+              </div>
 
-              <Button
-                onClick={handleBookDemo}
-                size="lg"
-                variant="outline"
-                className="text-sm px-6 py-5 bg-transparent border-2 border-slate-600 hover:border-purple-500/50 hover:bg-slate-800/50 text-white shadow-lg hover:scale-105 transition-all duration-300 font-semibold"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Book a Demo
-              </Button>
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-400 transition-all duration-300">
+                  <Button
+                    onClick={handleBookDemo}
+                    size="lg"
+                    variant="ghost"
+                    className="relative text-sm px-6 py-5 bg-[#0F111A] hover:bg-slate-900 text-white rounded-full font-semibold transition-all duration-300"
+                  >
+                    book a demo
+                  </Button>
+                </div>
+                <span className="text-sm text-slate-400 font-medium">for teams</span>
+              </div>
             </motion.div>
           </div>
 
