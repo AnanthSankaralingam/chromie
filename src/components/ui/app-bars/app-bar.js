@@ -33,7 +33,7 @@ export default function AppBar() {
   // Handle "How It Works" click - scroll if on home page, navigate otherwise
   const handleHowItWorksClick = (e) => {
     e.preventDefault()
-    if (pathname === '/') {
+    if (pathname === '/home') {
       // On home page - scroll to section
       const section = document.getElementById('how-it-works')
       if (section) {
@@ -41,14 +41,14 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/#how-it-works')
+      router.push('/home#how-it-works')
     }
   }
 
   // Handle "Pricing" click - scroll if on home page, navigate otherwise
   const handlePricingClick = (e) => {
     e.preventDefault()
-    if (pathname === '/') {
+    if (pathname === '/home') {
       // On home page - scroll to section
       const section = document.getElementById('pricing')
       if (section) {
@@ -56,14 +56,14 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/#pricing')
+      router.push('/home#pricing')
     }
   }
 
   // Handle "Contact" click - scroll if on home page, navigate otherwise
   const handleContactClick = (e) => {
     e.preventDefault()
-    if (pathname === '/') {
+    if (pathname === '/home') {
       // On home page - scroll to section
       const section = document.getElementById('contact')
       if (section) {
@@ -71,7 +71,7 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/#contact')
+      router.push('/home#contact')
     }
   }
 
@@ -82,7 +82,7 @@ export default function AppBar() {
           <div className="flex items-center space-x-3">
             <div className="relative">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Link href="/" className="text-slate-300 hover:text-white transition-colors">
+                <Link href={user ? "/home" : "/"} className="text-slate-300 hover:text-white transition-colors">
                   <Image
                     src="/chromie-logo-1.png"
                     alt="chromie Logo"
@@ -94,7 +94,7 @@ export default function AppBar() {
               </div>
             </div>
             <div className="flex flex-col">
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>
+              <Link href={user ? "/home" : "/"} className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>
                 chromie
               </Link>
               {/* <span className="text-xs text-slate-400 font-medium tracking-wide">//TODO add tagline</span> */}
