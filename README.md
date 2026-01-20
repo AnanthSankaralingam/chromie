@@ -1,29 +1,32 @@
-# chromie
+# chromie todo
 
-P-1:
-1. Outreach
-   
+Focus on actual platform usage, scalability and consumer features. We'll handle enterprise requests as they come.
+Less focus on token costs and more on actual performance. 
+
 P0:
-1. ~Prompt engineer that tailors user ideas to a predefined format to match planner expectations~
-2. ~metrics platform (look at how orchids did it)~
-3. ~templates for planner (convert new req to add to existing w/ patch)~
-4. ~Clear conversation button~
+1. scalable Metrics SDK: for chromie premium users
+2. 10-15 templates for niche extenisons. The more we can match, the more robust/cheap our system gets.
+3. Deploy 5 public template extensions where users bring their API keys: ChatGPT/Claude in sidepanel, Speech to Text with Fireworks, etc. This is our main GTM
 
 P1:
 
-1. FOLLOW UP STUFF:
+1. Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search.
+2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
+3. Blog/Case Studies. Minimal but effective for enterprise CTA
+4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
+5. Gallery of chromie-built extensions: 
 
-~Add image input for just patches ("copy this UI use case")~
+P2:
+1. Detect build errors in extensions, similar to Vercel article.
+2. Fix logging in tester and allow users to append them as context to next request.
+3. Fix AI testing. Don't need anything complicated yet.
 
-Develop moat for add to existing patches by creating streamlined planner w/ tool calls
+P3 Scalablility: 
+1. Fix CDN issues with Vercel
+2. Enable concurrency on backend
+3. Explore offline extenison testing like Plasmo
 
-Todos for follow ups
-
-2. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
-3. ~ai within extension (nanobrowser as a use case template and also as a tool within reg exts)~
-4. ~Fork your own project~
-
-P5:
+P3:
 1. Experiment with bundler
 2. UI overhaul
 3. Remove loading page's purple gradient
