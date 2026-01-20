@@ -10,7 +10,7 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
-import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
+// import HowItWorksSection from "@/components/ui/sections/how-it-works-section" // COMMENTED OUT: Videos taking up too many resources on Vercel
 import PricingSection from "@/components/ui/sections/pricing-section"
 import ContactSection from "@/components/ui/sections/contact-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
@@ -567,8 +567,9 @@ export default function HomePage() {
           </div>
         </main>
 
-        {/* How It Works Section */}
+        {/* COMMENTED OUT: How It Works Section - Videos taking up too many resources on Vercel
         <HowItWorksSection />
+        */}
 
         {/* Pricing Section */}
         <PricingSection />

@@ -7,13 +7,12 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { Chrome } from "lucide-react"
-// import VideoGallery from "@/components/ui/video-gallery" // COMMENTED OUT: Videos taking up too many resources on Vercel
+import VideoGallery from "@/components/ui/video-gallery"
 
 export default function LandingPage() {
   const { user, isLoading } = useSession()
   const router = useRouter()
 
-  /* COMMENTED OUT: Videos taking up too many resources on Vercel
   // YouTube video URLs for the gallery
   const demoVideos = [
     "https://www.youtube.com/watch?v=zgUaJT1w8uA",
@@ -23,7 +22,6 @@ export default function LandingPage() {
     "https://www.youtube.com/watch?v=d6Bnwys49kY",
     "https://www.youtube.com/watch?v=EkAibSxZ2TU"
   ]
-  */
 
   useEffect(() => {
     // If user is already authenticated, redirect to home
@@ -173,7 +171,7 @@ export default function LandingPage() {
             </motion.div>
           </div>
 
-          {/* COMMENTED OUT: Video Gallery - Videos taking up too many resources on Vercel
+          {/* Video Gallery */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -182,7 +180,6 @@ export default function LandingPage() {
           >
             <VideoGallery videos={demoVideos} />
           </motion.div>
-          */}
 
           {/* Feature Highlights */}
           <motion.div
