@@ -87,7 +87,7 @@ export async function POST(request, { params }) {
       .from("code_files")
       .select("content")
       .eq("project_id", projectId)
-      .eq("file_path", "hyperagent_test_script.js")
+      .eq("file_path", "tests/hyperagent_test_script.js")
       .single()
 
     if (fileError || !hyperAgentFile) {
@@ -101,7 +101,7 @@ export async function POST(request, { params }) {
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", projectId)
-      .neq("file_path", "hyperagent_test_script.js") // Exclude the test script itself
+      .not("file_path", "like", "tests/%") // Exclude tests folder
 
     if (filesError || !extensionFiles || extensionFiles.length === 0) {
       return NextResponse.json({ 

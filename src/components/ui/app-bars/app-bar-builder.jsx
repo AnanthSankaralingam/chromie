@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History, FileCode } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -23,8 +23,10 @@ import {
 export default function AppBarBuilder({
   onTestExtension,
   onTestWithAI,
+  onExecuteTestingAgent,
   onDownloadZip,
   onSignOut,
+  onGeneratePuppeteerTests,
   projectId,
   isTestDisabled = false,
   isDownloadDisabled = false,
@@ -98,7 +100,11 @@ export default function AppBarBuilder({
 
   const handleTestWithAIClick = () => {
     stopAllHighlights()
-    onTestWithAI?.()
+    if (onExecuteTestingAgent) {
+      onExecuteTestingAgent()
+    } else {
+      onTestWithAI?.()
+    }
   }
 
   const handleDownloadClick = () => {
@@ -269,6 +275,11 @@ export default function AppBarBuilder({
     handleTestWithAIClick() // Run new test
   }
 
+  const handleGeneratePuppeteerTestsClick = () => {
+    setIsAITestDropdownOpen(false)
+    onGeneratePuppeteerTests?.()
+  }
+
   // Helper function to get user initials
   const getUserInitials = (user) => {
     if (user?.user_metadata?.name) {
@@ -369,6 +380,17 @@ export default function AppBarBuilder({
                     align="end" 
                     className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
                   >
+                    <DropdownMenuItem
+                      onClick={handleGeneratePuppeteerTestsClick}
+                      disabled={isTestDisabled || isGenerating}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
+                      <span className="flex-1">
+                        <span className="block">Generate Puppeteer Tests</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
+                      </span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={handleCreateTestingAgentClick}
                       disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
@@ -376,7 +398,8 @@ export default function AppBarBuilder({
                     >
                       <Bot className="h-4 w-4 mr-3 text-blue-400" />
                       <span className="flex-1">
-                        {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
+                        <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
                       </span>
                     </DropdownMenuItem>
                     
@@ -397,7 +420,8 @@ export default function AppBarBuilder({
                     >
                       <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
                       <span className="flex-1">
-                        {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                        <span className="block">{isTestingWithAI ? "Executing..." : "Execute Testing Agent"}</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -488,6 +512,17 @@ export default function AppBarBuilder({
                 align="end" 
                 className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
               >
+                <DropdownMenuItem
+                  onClick={() => { handleGeneratePuppeteerTestsClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
+                  <span className="flex-1">
+                    <span className="block">Generate Puppeteer Tests</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
+                  </span>
+                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
@@ -495,7 +530,8 @@ export default function AppBarBuilder({
                 >
                   <Bot className="h-4 w-4 mr-3 text-blue-400" />
                   <span className="flex-1">
-                    {isGeneratingTestAgent ? "Creating..." : "Create Testing Agent"}
+                    <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
                   </span>
                 </DropdownMenuItem>
                 
@@ -516,7 +552,8 @@ export default function AppBarBuilder({
                 >
                   <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
                   <span className="flex-1">
-                    {isTestingWithAI ? "Running..." : "Kickoff AI Analysis"}
+                    <span className="block">{isTestingWithAI ? "Executing..." : "Execute Testing Agent"}</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

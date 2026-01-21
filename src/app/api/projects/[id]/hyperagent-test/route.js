@@ -25,7 +25,7 @@ export async function POST(request, { params }) {
     // Verify project ownership
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id")
+      .select("id, name")
       .eq("id", projectId)
       .eq("user_id", user.id)
       .single()
@@ -39,7 +39,7 @@ export async function POST(request, { params }) {
       .from("code_files")
       .select("content")
       .eq("project_id", projectId)
-      .eq("file_path", "hyperagent_test_script.js")
+      .eq("file_path", "tests/hyperagent_test_script.js")
       .single()
 
     if (fileError || !hyperAgentFile) {
