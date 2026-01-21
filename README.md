@@ -14,12 +14,13 @@ P1:
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. Blog/Case Studies. Minimal but effective for enterprise CTA
 4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
-5. Gallery of chromie-built extensions: 
+5. Gallery of chromie-built extensions:
+6. Quick, basic, effective Puppeteer unit tests
 
 P2:
 1. Detect build errors in extensions, similar to Vercel article.
 2. Fix logging in tester and allow users to append them as context to next request.
-3. Fix AI testing. Don't need anything complicated yet.
+3. ~Fix AI testing. Don't need anything complicated yet.~
 
 P3 Scalablility: 
 1. ~Fix CDN issues with Vercel~
