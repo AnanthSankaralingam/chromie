@@ -22,7 +22,7 @@ P2:
 3. Fix AI testing. Don't need anything complicated yet.
 
 P3 Scalablility: 
-1. Fix CDN issues with Vercel
+1. ~Fix CDN issues with Vercel~
 2. Enable concurrency on backend
 3. Explore offline extenison testing like Plasmo
 
