@@ -211,7 +211,8 @@ export class HyperbrowserService {
         blockAds: false,
         timeoutMinutes: 3,
         enableWindowManager: true,
-        enableWindowManagerTaskbar: true
+        enableWindowManagerTaskbar: true,
+        enableLogCapture: false // Disable logger extension
       }
 
       // Add extension if available
