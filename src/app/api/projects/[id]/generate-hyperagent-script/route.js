@@ -49,7 +49,7 @@ export async function POST(request, { params }) {
     }
 
     // Generate the HyperAgent test script using a separate LLM call
-    // Use project description as fallback if initial_prompt is not available
+    // Note: Extension ID will be injected at runtime when the test is executed
     const testScript = await generateHyperAgentTestScript({
       projectId,
       projectName: project.name,

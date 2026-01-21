@@ -51,6 +51,68 @@ export async function POST(request, { params }) {
     console.log("🤖 Executing BrowserUse test for project:", projectId)
     console.log("📋 Session ID:", sessionId)
 
+    // Try to read the stored Chrome extension ID from the last test session
+    let chromeExtensionId = null
+    const { data: extensionIdFile } = await supabase
+      .from("code_files")
+      .select("content")
+      .eq("project_id", projectId)
+      .eq("file_path", ".chromie/extension-id.json")
+      .single()
+
+    if (extensionIdFile?.content) {
+      try {
+        const idData = JSON.parse(extensionIdFile.content)
+        chromeExtensionId = idData.chromeExtensionId || null
+        console.log("✅ Found stored Chrome extension ID:", chromeExtensionId)
+      } catch (e) {
+        console.warn("⚠️  Could not parse stored extension ID:", e.message)
+      }
+    } else {
+      console.log("ℹ️  No stored Chrome extension ID found - tests will use extension icon clicks")
+    }
+
+    // Read manifest to get extension page paths
+    const { data: manifestFile } = await supabase
+      .from("code_files")
+      .select("content")
+      .eq("project_id", projectId)
+      .eq("file_path", "manifest.json")
+      .single()
+
+    let popupFile = null
+    let optionsPage = null
+    let sidePanelPath = null
+
+    if (manifestFile?.content) {
+      try {
+        const manifest = JSON.parse(manifestFile.content)
+        popupFile = manifest?.action?.default_popup || manifest?.browser_action?.default_popup || null
+        optionsPage = manifest?.options_page || manifest?.options_ui?.page || null
+        sidePanelPath = manifest?.side_panel?.default_path || null
+      } catch (e) {
+        console.warn("⚠️  Could not parse manifest.json:", e.message)
+      }
+    }
+
+    // Construct extension URLs if extension ID is available
+    const popupUrl = chromeExtensionId && popupFile 
+      ? `chrome-extension://${chromeExtensionId}/${popupFile}` 
+      : null
+    const optionsUrl = chromeExtensionId && optionsPage 
+      ? `chrome-extension://${chromeExtensionId}/${optionsPage}` 
+      : null
+    const sidePanelUrl = chromeExtensionId && sidePanelPath 
+      ? `chrome-extension://${chromeExtensionId}/${sidePanelPath}` 
+      : null
+
+    if (chromeExtensionId) {
+      console.log("🔗 Extension URLs available:")
+      if (popupUrl) console.log("  - Popup:", popupUrl)
+      if (optionsUrl) console.log("  - Options:", optionsUrl)
+      if (sidePanelUrl) console.log("  - Side Panel:", sidePanelUrl)
+    }
+
     // Initialize HyperBrowser client
     const hbClient = new Hyperbrowser({
       apiKey: process.env.HYPERBROWSER_API_KEY,
@@ -62,8 +124,24 @@ export async function POST(request, { params }) {
       }, { status: 500 })
     }
 
-    // Extract test tasks from the HyperAgent script
-    const testScript = hyperAgentFile.content
+    // Inject extension URLs into the test script
+    let testScript = hyperAgentFile.content
+    
+    // Replace placeholders with actual URLs or fallback instructions
+    testScript = testScript.replace(
+      /\{\{POPUP_URL\}\}/g, 
+      popupUrl || "the extension popup (click the extension icon)"
+    )
+    testScript = testScript.replace(
+      /\{\{OPTIONS_URL\}\}/g, 
+      optionsUrl || "the extension options page (right-click extension icon and select Options)"
+    )
+    testScript = testScript.replace(
+      /\{\{SIDEPANEL_URL\}\}/g, 
+      sidePanelUrl || "the extension side panel (click the extension icon)"
+    )
+
+    console.log("📝 Injected extension URLs into test script")
     
     console.log("📄 Parsing HyperAgent test script...")
     
