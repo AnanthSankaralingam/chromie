@@ -64,7 +64,7 @@ export async function POST(request, { params }) {
       .from("code_files")
       .upsert({
         project_id: projectId,
-        file_path: "hyperagent_test_script.js",
+        file_path: "tests/hyperagent_test_script.js",
         content: testScript,
         last_used_at: new Date().toISOString(),
       }, {

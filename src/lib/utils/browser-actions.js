@@ -35,7 +35,11 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     throw sessionError
   }
   
-  const wsEndpoint = sessionInfo.wsEndpoint || sessionInfo.connectUrl
+  // Hyperbrowser sometimes returns multiple endpoints:
+  // - connectUrl: intended for automation (CDP)
+  // - wsEndpoint: can be used for CDP, but in some setups it appears coupled to the live viewer
+  // Prefer connectUrl to avoid disrupting the embedded live view after the Puppeteer client disconnects.
+  const wsEndpoint = sessionInfo.connectUrl || sessionInfo.wsEndpoint
   
   console.log("[BROWSER-ACTIONS] 📡 WebSocket endpoint extraction:")
   console.log("[BROWSER-ACTIONS]   - wsEndpoint field:", sessionInfo.wsEndpoint || "not present")
@@ -125,6 +129,68 @@ export async function primeExtensionContext(sessionId, apiKey) {
   } catch (err) {
     console.warn("[BROWSER-ACTIONS] ⚠️ Tab priming failed:", err.message)
     return false
+  }
+}
+
+/**
+ * Capture the Chrome extension ID from a Hyperbrowser session
+ * @param {string} sessionId - Hyperbrowser session ID
+ * @param {string} apiKey - Hyperbrowser API key
+ * @param {Array<string>} knownUtilityExtensions - List of known utility extension IDs to exclude
+ * @returns {Promise<string|null>} Chrome extension ID or null if not found
+ */
+export async function captureExtensionId(sessionId, apiKey, knownUtilityExtensions = ['bghcomfpdkdffljkhcfeedpbilbkicdj']) {
+  try {
+    console.log("[BROWSER-ACTIONS] 🔍 Capturing Chrome extension ID...")
+    
+    const { browser } = await getPuppeteerSessionContext(sessionId, apiKey)
+    
+    function extractExtensionIdFromUrl(url) {
+      if (!url || typeof url !== "string") return null
+      const match = url.match(/^chrome-extension:\/\/([a-p]{32})\//i)
+      return match ? match[1] : null
+    }
+    
+    function isUtilityExtension(extId) {
+      return knownUtilityExtensions.includes(extId)
+    }
+    
+    // Get all extension targets
+    const allExtensionTargets = browser.targets().filter(t => {
+      const url = t.url ? t.url() : ""
+      return String(url).startsWith("chrome-extension://")
+    })
+    
+    console.log(`[BROWSER-ACTIONS] Found ${allExtensionTargets.length} extension targets`)
+    
+    // Filter out utility extensions
+    const candidateTargets = allExtensionTargets.filter(t => {
+      const extId = extractExtensionIdFromUrl(t.url())
+      const isUtility = extId && isUtilityExtension(extId)
+      console.log(`[BROWSER-ACTIONS]   - ${t.type()}: ${extId}${isUtility ? ' (utility, excluded)' : ''}`)
+      return extId && !isUtility
+    })
+    
+    if (candidateTargets.length === 0) {
+      console.warn("[BROWSER-ACTIONS] ⚠️  No non-utility extension found")
+      return null
+    }
+    
+    // Prefer service worker/background page
+    const bgTarget = candidateTargets.find(t => {
+      const type = t.type()
+      return type === "service_worker" || type === "background_page"
+    })
+    
+    const selectedTarget = bgTarget || candidateTargets[0]
+    const extensionId = extractExtensionIdFromUrl(selectedTarget.url())
+    
+    console.log(`[BROWSER-ACTIONS] ✅ Captured Chrome extension ID: ${extensionId}`)
+    return extensionId
+    
+  } catch (error) {
+    console.error("[BROWSER-ACTIONS] ❌ Failed to capture extension ID:", error.message)
+    return null
   }
 }
 

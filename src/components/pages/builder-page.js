@@ -120,8 +120,8 @@ function BuilderPageContent() {
         title: "Test with AI (Beta)",
         content: (
           <div className="space-y-1">
-            <p>Use AI-powered testing to automatically identify vulnerabilities and validate your extension end-to-end.</p>
-            <p className="text-xs text-slate-400">Create a testing agent first, then kickoff AI analysis.</p>
+            <p>Run AI agent testing to simulate real user behavior end-to-end.</p>
+            <p className="text-xs text-slate-400">Puppeteer = basic validation. AI agent = end‑to‑end simulation.</p>
           </div>
         ),
       },
@@ -282,7 +282,7 @@ function BuilderPageContent() {
       await fileManagement.loadProjectFiles(true)
 
       // Show success message
-      alert('AI testing agent created successfully! Check your files for hyperagent_test_script.js')
+      alert('AI testing agent created successfully! Check your files for tests/hyperagent_test_script.js')
 
     } catch (error) {
       console.error('❌ Error generating AI test agent:', error)
@@ -362,36 +362,103 @@ function BuilderPageContent() {
       return
     }
 
-    // Run new test
+    // Kickoff AI analysis in the headful "Try it out" browser, then auto-run HyperAgent tests after pinning finishes.
     setIsTestingWithAI(true)
-    setAiTestResult(null)
-    setIsAITestResultModalOpen(false)
-    console.log('🤖 Starting AI test with headless browser...')
+    console.log('🤖 Starting AI analysis in headful Try It Out browser...')
 
     try {
-      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/test-with-ai`, {
+      await testExtension.handleTestExtension({
+        awaitPinExtension: true,
+        autoRunHyperAgent: true,
+      })
+    } catch (error) {
+      console.error('❌ Error starting AI analysis flow:', error)
+      alert(`Failed to start AI analysis: ${error.message}`)
+    } finally {
+      setIsTestingWithAI(false)
+    }
+  }
+
+  const handleExecuteTestingAgent = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error("No project ID available")
+      return
+    }
+
+    // Open headful "Try it out" browser and run Puppeteer -> AI agent in sequence.
+    setIsTestingWithAI(true)
+    console.log("🧪🤖 Starting Execute Testing Agent flow (puppeteer → ai agent)...")
+
+    try {
+      const sequenceId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+      await testExtension.handleTestExtension({
+        awaitPinExtension: true,
+        autoRunPuppeteerTests: true,
+        autoRunHyperAgent: true,
+        runTestSequence: true,
+        sequenceId,
+      })
+    } catch (error) {
+      console.error("❌ Error starting Execute Testing Agent flow:", error)
+      alert(`Failed to start testing agent: ${error.message}`)
+    } finally {
+      setIsTestingWithAI(false)
+    }
+  }
+
+  // Handler for generating Puppeteer tests from within the test modal
+  const handleGeneratePuppeteerTestsFromModal = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error("[puppeteer-tests] No project ID available")
+      return
+    }
+
+    // Close the testing modal first
+    console.log("[puppeteer-tests] 🔄 Closing test modal to generate tests")
+    testExtension.handleCloseTestModal()
+
+    // Then trigger generation
+    try {
+      console.log("🧪 Generating Puppeteer tests...")
+      const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       })
-
       const data = await response.json()
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to run AI test')
+        console.error("[puppeteer-tests] Generate failed:", data?.error)
+        alert(`Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}`)
+        return
       }
 
-      console.log('✅ AI test completed:', data)
-      setAiTestResult(data)
-      setIsAITestResultModalOpen(true)
-      setHasSavedAITestResults(true) // Mark that we now have saved results
+      console.log("[puppeteer-tests] ✅ Tests generated successfully")
+      
+      // Refresh file tree to show new test file
+      await fileManagement.loadProjectFiles(true)
+      
+      alert('Puppeteer tests generated successfully! Check tests/puppeteer/index.test.js')
     } catch (error) {
-      console.error('❌ Error running AI test:', error)
-      alert(`Failed to run AI test: ${error.message}`)
-    } finally {
-      setIsTestingWithAI(false)
+      console.error("[puppeteer-tests] ❌ Error generating tests:", error)
+      alert(`Failed to generate Puppeteer tests: ${error.message}`)
     }
+  }
+
+  // Handler for generating AI agent tests from within the test modal
+  const handleGenerateAiAgentTestsFromModal = async () => {
+    if (!projectSetup.currentProjectId) {
+      console.error("[ai-tests] No project ID available")
+      return
+    }
+
+    // Close the testing modal first
+    console.log("[ai-tests] 🔄 Closing test modal to generate tests")
+    testExtension.handleCloseTestModal()
+
+    // Then trigger generation using the existing function
+    await handleCreateAITestAgent()
   }
 
   const handleOpenCanvas = () => {
@@ -473,6 +540,42 @@ function BuilderPageContent() {
           <AppBarBuilder
             onTestExtension={handleTestExtensionWithTour}
             onTestWithAI={handleTestWithAI}
+            onExecuteTestingAgent={handleExecuteTestingAgent}
+            onGeneratePuppeteerTests={async () => {
+              if (!projectSetup.currentProjectId) {
+                console.error("[puppeteer-tests] No project ID available")
+                return
+              }
+              try {
+                console.log("🧪 Generating Puppeteer tests...")
+                const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-tests`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                })
+                const data = await response.json()
+                if (!response.ok) {
+                  console.error("[puppeteer-tests] Generate failed details:", {
+                    error: data?.error,
+                    details: data?.details,
+                    preview: data?.preview,
+                  })
+                  const msg = [
+                    data?.error || 'Failed to generate Puppeteer tests',
+                    data?.details ? `\n\nDetails: ${data.details}` : '',
+                    data?.preview ? `\n\nPreview:\n${data.preview}` : '',
+                  ].join('')
+                  throw new Error(msg)
+                }
+                console.log("✅ Puppeteer tests generated:", data)
+                await fileManagement.loadProjectFiles(true)
+                alert('Puppeteer test file generated! Check your files for tests/puppeteer/index.test.js')
+              } catch (e) {
+                console.error("❌ Failed to generate Puppeteer tests:", e)
+                alert(`Failed to generate Puppeteer tests: ${e.message}`)
+              }
+            }}
             onDownloadZip={downloadExtension.handleDownloadZip}
             onSignOut={handleSignOut}
             projectId={projectSetup.currentProjectId}
@@ -829,6 +932,8 @@ function BuilderPageContent() {
         loadingProgress={testExtension.loadingProgress}
         projectId={projectSetup.currentProjectId}
         extensionFiles={fileManagement.flatFiles}
+        onGeneratePuppeteerTests={handleGeneratePuppeteerTestsFromModal}
+        onGenerateAiAgentTests={handleGenerateAiAgentTestsFromModal}
       />
 
       {/* Project Limit Modal */}

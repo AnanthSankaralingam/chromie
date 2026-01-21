@@ -18,6 +18,10 @@ export async function POST(request, { params }) {
   }
 
   try {
+    const body = await request.json().catch(() => ({}))
+    // Always await pinning to capture the Chrome extension ID
+    const awaitPinExtension = body?.awaitPinExtension !== false
+
     // Verify project ownership
     const { data: project, error: projectError } = await supabase
       .from("projects")
@@ -50,6 +54,7 @@ export async function POST(request, { params }) {
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", id)
+      .not("file_path", "like", "tests/%") // exclude generated test artifacts from extension bundle
       .order("file_path")
 
     if (filesError) {
@@ -82,7 +87,45 @@ export async function POST(request, { params }) {
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
-    const session = await hyperbrowserService.createTestSession(extensionFiles, id, user.id, supabase)
+    const session = await hyperbrowserService.createTestSession(
+      extensionFiles,
+      id,
+      user.id,
+      supabase,
+      { awaitPinExtension }
+    )
+
+    // Store the Chrome extension ID if we got it
+    if (session.chromeExtensionId) {
+      console.log("[test-extension] ✅ Got Chrome extension ID from session:", session.chromeExtensionId)
+      
+      try {
+        const { error: storeError } = await supabase
+          .from("code_files")
+          .upsert(
+            {
+              project_id: id,
+              file_path: ".chromie/extension-id.json",
+              content: JSON.stringify({ 
+                chromeExtensionId: session.chromeExtensionId,
+                hyperbrowserExtensionId: session.hyperbrowserExtensionId,
+                capturedAt: new Date().toISOString() 
+              }, null, 2)
+            },
+            { onConflict: "project_id,file_path" }
+          )
+        
+        if (storeError) {
+          console.error("[test-extension] ❌ Failed to store extension ID:", storeError.message)
+        } else {
+          console.log("[test-extension] ✅ Stored Chrome extension ID in database")
+        }
+      } catch (storeErr) {
+        console.error("[test-extension] ❌ Error storing extension ID:", storeErr.message)
+      }
+    } else {
+      console.warn("[test-extension] ⚠️  No Chrome extension ID in session response")
+    }
 
     // Start console log capture in background
     const apiKey = process.env.HYPERBROWSER_API_KEY

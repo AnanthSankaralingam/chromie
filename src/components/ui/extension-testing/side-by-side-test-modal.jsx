@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Monitor, Play, Navigation, Info, MousePointer, Keyboard, Eye } from "lucide-react"
+import React, { useState, useEffect, useRef } from "react"
+import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, Navigation, Info, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
 import ProgressSpinner from "@/components/ui/loading/progress-spinner"
-import ConsoleLogViewer from "./console-log-viewer"
+import TestingSidepanel from "@/components/ui/extension-testing/testing-sidepanel"
 
 export default function SideBySideTestModal({
   isOpen,
@@ -17,26 +17,114 @@ export default function SideBySideTestModal({
   isLoading = false,
   loadingProgress = 0,
   projectId,
-  extensionFiles = []
+  extensionFiles = [],
+  onGeneratePuppeteerTests,
+  onGenerateAiAgentTests,
 }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [isRunningHyperAgent, setIsRunningHyperAgent] = useState(false)
   const [hyperAgentResult, setHyperAgentResult] = useState(null)
   const [sessionExpired, setSessionExpired] = useState(false)
-  const [urlInput, setUrlInput] = useState("")
-  const [isNavigating, setIsNavigating] = useState(false)
-  const [navigationError, setNavigationError] = useState(null)
   const [loadingStage, setLoadingStage] = useState(0)
+  const [isRunningPuppeteerTests, setIsRunningPuppeteerTests] = useState(false)
+  const [puppeteerTestResult, setPuppeteerTestResult] = useState(null)
+  const [iframeReconnectNonce, setIframeReconnectNonce] = useState(0)
+  const hasAutoKickedRef = useRef(false)
+  const hasAutoRunPuppeteerRef = useRef(false)
+  const autoRefreshAttemptedRef = useRef(false)
+  const lastSequenceIdRef = useRef(null)
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
     if (isOpen && sessionData?.sessionId) {
       setSessionExpired(false)
-      setNavigationError(null)
-      setUrlInput("")
+      autoRefreshAttemptedRef.current = false
+
+      const seqId = sessionData?.sequenceId || null
+      const isNewSequence = seqId && seqId !== lastSequenceIdRef.current
+      const hasSequence = !!seqId
+
+      // For normal sessions (no sequenceId), always reset results/flags.
+      // For Execute Testing Agent, only reset when the sequenceId changes.
+      if (!hasSequence || isNewSequence) {
+        setPuppeteerTestResult(null)
+        setHyperAgentResult(null)
+        hasAutoKickedRef.current = false
+        hasAutoRunPuppeteerRef.current = false
+      } else {
+        // Same sequence across a refresh: preserve results and prevent re-running Puppeteer.
+        if (puppeteerTestResult) {
+          hasAutoRunPuppeteerRef.current = true
+        }
+      }
+
+      lastSequenceIdRef.current = seqId
       console.log("🔄 New test session detected, resetting expired state")
     }
-  }, [isOpen, sessionData?.sessionId])
+  }, [isOpen, sessionData?.sessionId, sessionData?.sequenceId])
+
+  const ACTIVE_SESSION_STATUSES = new Set(["active", "running", "ready"])
+  const DEAD_SESSION_STATUSES = new Set(["stopped", "ended", "closed", "inactive", "failed"])
+
+  const getSessionStatus = async () => {
+    if (!projectId || !sessionData?.sessionId) return null
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/test-extension/status?sessionId=${encodeURIComponent(sessionData.sessionId)}`
+      )
+      const data = await res.json()
+      if (!res.ok) {
+        return { success: false, status: "unknown", error: data?.error || "Failed to get status" }
+      }
+      return data
+    } catch (e) {
+      return { success: false, status: "unknown", error: e?.message || String(e) }
+    }
+  }
+
+  const waitForSessionActive = async ({ label, timeoutMs = 60000 } = {}) => {
+    const startedAt = Date.now()
+    let lastStatus = "unknown"
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const statusResp = await getSessionStatus()
+      const status = (statusResp?.status || "unknown").toString().toLowerCase()
+      lastStatus = status
+
+      if (ACTIVE_SESSION_STATUSES.has(status)) {
+        console.log(`[session-wait] ✅ Session active for ${label || "action"}`, {
+          sessionId: sessionData?.sessionId,
+          status,
+        })
+        return { ok: true, status }
+      }
+
+      // If the session looks dead, try a single auto-refresh (keeps the same options via useTestExtension).
+      if (
+        DEAD_SESSION_STATUSES.has(status) &&
+        !autoRefreshAttemptedRef.current &&
+        typeof onRefresh === "function"
+      ) {
+        autoRefreshAttemptedRef.current = true
+        console.warn("[session-wait] ⚠️ Session appears inactive, refreshing...", {
+          sessionId: sessionData?.sessionId,
+          status,
+          label,
+        })
+        onRefresh()
+        return { ok: false, refreshed: true, status }
+      }
+
+      await new Promise((r) => setTimeout(r, 1500))
+    }
+
+    console.warn(`[session-wait] ⏳ Timed out waiting for active session for ${label || "action"}`, {
+      sessionId: sessionData?.sessionId,
+      lastStatus,
+      timeoutMs,
+    })
+    return { ok: false, status: lastStatus, timedOut: true }
+  }
 
   // Ensure loading transitions restart on each new load or session
   useEffect(() => {
@@ -123,70 +211,6 @@ export default function SideBySideTestModal({
     return () => clearInterval(interval)
   }, [isLoading, loadingStages.length])
 
-  if (!isOpen) return null
-
-  const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
-  const error = sessionData?.error
-
-
-
-  // Handle session expiry - just show warning, don't auto-close
-  const handleSessionExpire = () => {
-    setSessionExpired(true)
-    // Don't auto-close modal - let user manually close when ready
-  }
-
-  // Handle cleanup when modal is closed
-  const handleClose = () => {
-    onClose()
-  }
-
-  // Handle URL navigation
-  const handleNavigate = async () => {
-    if (!urlInput.trim() || !sessionData?.sessionId || !projectId) {
-      setNavigationError("Missing URL, session, or project ID")
-      return
-    }
-
-
-
-    setIsNavigating(true)
-    setNavigationError(null)
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/test-extension/navigate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: sessionData.sessionId,
-          url: urlInput.trim()
-        })
-      })
-
-      const result = await response.json()
-
-
-      if (result.success) {
-        setUrlInput("") // Clear input on success
-      } else {
-        setNavigationError(result.error || "Navigation failed")
-      }
-    } catch (error) {
-      setNavigationError("Failed to navigate to URL")
-    } finally {
-      setIsNavigating(false)
-    }
-  }
-
-  // Handle Enter key in URL input
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !isNavigating) {
-      handleNavigate()
-    }
-  }
-
   // Handle HyperAgent test execution
   const handleRunHyperAgentTest = async () => {
     if (!sessionData?.sessionId || !projectId) {
@@ -198,6 +222,14 @@ export default function SideBySideTestModal({
     setHyperAgentResult(null)
 
     try {
+      const waited = await waitForSessionActive({ label: "ai-agent" })
+      if (!waited.ok) {
+        // If we triggered a refresh, don't record this as a test failure.
+        // The sequence will resume on the new session.
+        if (waited.refreshed) return
+        throw new Error("Session not active yet. Please wait a moment and try again.")
+      }
+
       const response = await fetch(`/api/projects/${projectId}/hyperagent-test`, {
         method: "POST",
         headers: {
@@ -222,6 +254,191 @@ export default function SideBySideTestModal({
       })
     } finally {
       setIsRunningHyperAgent(false)
+    }
+  }
+
+  // Auto-kickoff HyperAgent test after extension pinning completes (Kickoff AI analysis flow)
+  // IMPORTANT: Must be declared before any early returns to keep hook order stable.
+  useEffect(() => {
+    if (!isOpen) return
+    if (hasAutoKickedRef.current) return
+    if (!sessionData?.autoRunHyperAgent) return
+    if (!sessionData?.sessionId || !projectId) return
+    if (isLoading || sessionExpired) return
+    if (isRunningHyperAgent) return
+
+    // If this session was started via "Execute Testing Agent", run AI after Puppeteer completes.
+    if (sessionData?.runTestSequence === true) {
+      if (!hasAutoRunPuppeteerRef.current) return
+      if (isRunningPuppeteerTests) return
+      if (!puppeteerTestResult) return
+    }
+
+    // If we requested awaitPinExtension, the server should return a pinExtension object.
+    // Only auto-run once pin was confirmed (or at least reported as successful).
+    const pin = sessionData?.pinExtension
+    const pinConfirmed = pin?.success === true && (pin?.pinned || pin?.alreadyPinned || pin?.success)
+    if (!pinConfirmed) return
+
+    hasAutoKickedRef.current = true
+    console.log("[ai-analysis] ✅ Pinning complete, auto-starting hyperagent_test_script...", {
+      sessionId: sessionData.sessionId,
+      pinned: pin?.pinned,
+      alreadyPinned: pin?.alreadyPinned,
+      sequence: sessionData?.runTestSequence === true,
+    })
+    // Small delay to allow the live view to settle before agent starts interacting.
+    setTimeout(() => {
+      ;(async () => {
+        const waited = await waitForSessionActive({ label: "ai-agent-auto" })
+        if (!waited.ok) return
+        handleRunHyperAgentTest()
+      })()
+    }, 750)
+  }, [
+    isOpen,
+    isLoading,
+    sessionExpired,
+    sessionData?.autoRunHyperAgent,
+    sessionData?.runTestSequence,
+    sessionData?.pinExtension,
+    sessionData?.sessionId,
+    projectId,
+    isRunningHyperAgent,
+    isRunningPuppeteerTests,
+    puppeteerTestResult,
+  ])
+
+  // Auto-run Puppeteer tests for the "Execute Testing Agent" flow.
+  // IMPORTANT: Must be declared before any early returns to keep hook order stable.
+  useEffect(() => {
+    if (!isOpen) return
+    if (hasAutoRunPuppeteerRef.current) return
+    if (!sessionData?.autoRunPuppeteerTests) return
+    if (!sessionData?.sessionId || !projectId) return
+    if (isLoading || sessionExpired) return
+    if (isRunningPuppeteerTests) return
+    // If we're in a sequence and Puppeteer already ran (pass or fail), do not re-run it on refresh.
+    if (sessionData?.runTestSequence === true && puppeteerTestResult) {
+      hasAutoRunPuppeteerRef.current = true
+      return
+    }
+
+    // If pin info exists, wait until pin was confirmed for stability (extension icon interactions).
+    const pin = sessionData?.pinExtension
+    const hasPinInfo = pin != null
+    const pinConfirmed =
+      !hasPinInfo || (pin?.success === true && (pin?.pinned || pin?.alreadyPinned || pin?.success))
+    if (!pinConfirmed) return
+
+    hasAutoRunPuppeteerRef.current = true
+    console.log("[execute-testing-agent] ▶️ Auto-starting puppeteer tests...", {
+      projectId,
+      sessionId: sessionData.sessionId,
+    })
+    setTimeout(() => {
+      ;(async () => {
+        const waited = await waitForSessionActive({ label: "puppeteer-auto" })
+        if (!waited.ok) return
+        handleRunPuppeteerTests()
+      })()
+    }, 500)
+  }, [
+    isOpen,
+    isLoading,
+    sessionExpired,
+    sessionData?.autoRunPuppeteerTests,
+    sessionData?.runTestSequence,
+    sessionData?.pinExtension,
+    sessionData?.sessionId,
+    projectId,
+    isRunningPuppeteerTests,
+    puppeteerTestResult,
+  ])
+
+  if (!isOpen) return null
+
+  const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
+  const error = sessionData?.error
+
+  const buildIframeSrc = (rawUrl) => {
+    if (!rawUrl) return rawUrl
+    try {
+      const u = new URL(rawUrl)
+      // Bump this param to force the embedded viewer to reconnect after Puppeteer finishes.
+      u.searchParams.set("chromieReconnect", String(iframeReconnectNonce))
+      return u.toString()
+    } catch (_) {
+      // If the URL isn't parseable (shouldn't happen), fall back to adding a basic query param.
+      const joiner = rawUrl.includes("?") ? "&" : "?"
+      return `${rawUrl}${joiner}chromieReconnect=${encodeURIComponent(String(iframeReconnectNonce))}`
+    }
+  }
+
+  const iframeSrc = buildIframeSrc(sessionData?.iframeUrl)
+
+
+
+  // Handle session expiry - just show warning, don't auto-close
+  const handleSessionExpire = () => {
+    setSessionExpired(true)
+    // Don't auto-close modal - let user manually close when ready
+  }
+
+  // Handle cleanup when modal is closed
+  const handleClose = () => {
+    onClose()
+  }
+
+  const handleRunPuppeteerTests = async () => {
+    if (!sessionData?.sessionId || !projectId) {
+      console.error("[puppeteer-tests] Missing session ID or project ID")
+      return
+    }
+
+    setIsRunningPuppeteerTests(true)
+    setPuppeteerTestResult(null)
+
+    try {
+      const waited = await waitForSessionActive({ label: "puppeteer" })
+      if (!waited.ok) {
+        // If we triggered a refresh, don't record this as a test failure.
+        // The sequence will resume on the new session.
+        if (waited.refreshed) return
+        throw new Error("Session not active yet. Please wait a moment and try again.")
+      }
+
+      console.log("[puppeteer-tests] Starting run", { projectId, sessionId: sessionData.sessionId })
+      const response = await fetch(`/api/projects/${projectId}/puppeteer-tests/run`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Puppeteer tests failed")
+      }
+
+      setPuppeteerTestResult(result)
+    } catch (error) {
+      setPuppeteerTestResult({
+        success: false,
+        error: error.message,
+      })
+    } finally {
+      setIsRunningPuppeteerTests(false)
+      // Hyperbrowser live view can occasionally go white after CDP automation disconnects.
+      // Force the iframe to remount/reconnect once at the end of a Puppeteer run.
+      setIframeReconnectNonce((n) => n + 1)
+      console.log("[puppeteer-tests] 🔄 Forcing live view iframe reconnect", {
+        sessionId: sessionData?.sessionId,
+      })
     }
   }
 
@@ -299,226 +516,149 @@ export default function SideBySideTestModal({
           </div>
         </div>
 
-        {/* URL Navigation Section */}
-        {sessionData && sessionData.sessionId && !sessionExpired && (
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Paste any URL, search term, or content to open in new tab..."
-                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={isNavigating}
-
-                />
-                {navigationError && (
-                  <p className="text-red-500 text-xs mt-1">{navigationError}</p>
-                )}
+        {/* Main Content - Browser (left) + Testing Sidepanel (right) */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Column */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Browser Panel */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center space-x-2 flex-shrink-0">
+                <Monitor className="h-4 w-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Live Browser Session</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                    Paste any URL, search term, or content here. It will open in a new tab automatically.
-                  </div>
-                </div>
-                <Button
-                  onClick={handleNavigate}
-                  disabled={!urlInput.trim() || isNavigating}
-                  size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isNavigating ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Navigation className="h-4 w-4" />
-                  )}
-                  {isNavigating ? "Opening..." : "Open in New Tab"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Main Content - Single Browser Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center space-x-2 flex-shrink-0">
-            <Monitor className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Live Browser Session</span>
-          </div>
-
-          <div className="flex-1 relative overflow-hidden">
-            {sessionExpired ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
-                <div className="text-center max-w-md">
-                  <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Session Time Limit Reached</h3>
-                  <p className="text-gray-600 mb-4">This session has reached its time limit, but you can continue using it. Close the modal when you're done testing.</p>
-                  <Button
-                    onClick={handleClose}
-                    className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
-                  >
-                    Close Session
-                  </Button>
-                </div>
-              </div>
-            ) : isLoading ? (
-              <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
-                <div className="text-center max-w-4xl w-full">
-                  {/* Progress Bar */}
-                  <div className="mb-6">
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
-                      />
+              <div className="flex-1 relative overflow-hidden">
+                {sessionExpired ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
+                    <div className="text-center max-w-md">
+                      <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Session Time Limit Reached</h3>
+                      <p className="text-gray-600 mb-4">
+                        This session has reached its time limit, but you can continue using it. Close the modal when you're done testing.
+                      </p>
+                      <Button
+                        onClick={handleClose}
+                        className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
+                      >
+                        Close Session
+                      </Button>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {loadingStage + 1} of {loadingStages.length} steps
-                    </p>
                   </div>
-
-                  {/* Current Stage */}
-                  <div className="mb-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {loadingStages[loadingStage]?.title || "Initializing..."}
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      {loadingStages[loadingStage]?.description || "Please wait while we prepare your testing environment"}
-                    </p>
-                  </div>
-
-                  {/* Dynamic Instructions - Show one box per stage */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
-                    <div className="flex justify-center">
-                      {instructionBoxes[loadingStage] && (
-                        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
-                          <div className="flex items-center mb-4">
-                            <div className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}>
-                              {React.createElement(instructionBoxes[loadingStage].icon, {
-                                className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`
-                              })}
-                            </div>
-                            <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
-                          </div>
-                          <ul className="text-base text-gray-600 space-y-2 text-left">
-                            {instructionBoxes[loadingStage].items.map((item, index) => (
-                              <li key={index}>{item}</li>
-                            ))}
-                          </ul>
+                ) : isLoading ? (
+                  <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
+                    <div className="text-center max-w-4xl w-full">
+                      {/* Progress Bar */}
+                      <div className="mb-6">
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
+                          />
                         </div>
-                      )}
+                        <p className="text-sm text-gray-600">
+                          {loadingStage + 1} of {loadingStages.length} steps
+                        </p>
+                      </div>
+
+                      {/* Current Stage */}
+                      <div className="mb-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          {loadingStages[loadingStage]?.title || "Initializing..."}
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          {loadingStages[loadingStage]?.description ||
+                            "Please wait while we prepare your testing environment"}
+                        </p>
+                      </div>
+
+                      {/* Dynamic Instructions - Show one box per stage */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
+                        <div className="flex justify-center">
+                          {instructionBoxes[loadingStage] && (
+                            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
+                              <div className="flex items-center mb-4">
+                                <div
+                                  className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}
+                                >
+                                  {React.createElement(instructionBoxes[loadingStage].icon, {
+                                    className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`,
+                                  })}
+                                </div>
+                                <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
+                              </div>
+                              <ul className="text-base text-gray-600 space-y-2 text-left">
+                                {instructionBoxes[loadingStage].items.map((item, index) => (
+                                  <li key={index}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ) : error ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <div className="text-center max-w-md">
-                  <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load test environment</h3>
-                  <p className="text-gray-600 mb-4">
-                    There was an error setting up the browser testing environment. Please try again.
-                  </p>
-                  <Button onClick={onRefresh} disabled={isLoading}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : sessionData?.iframeUrl ? (
-              <iframe
-                src={sessionData.iframeUrl}
-                className="absolute inset-0 w-full h-full border-0"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
-                allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
-                loading="eager"
-                title="BrowserBase Session"
-                style={{
-                  transform: 'translateZ(0)',
-                  willChange: 'transform',
-                  backfaceVisibility: 'hidden'
-                }}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                  <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No test session available</h3>
-                  <p className="text-gray-600">Click the Test button to start a new testing session.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between gap-4">
-            {/* Console Log Viewer on the Left */}
-            <ConsoleLogViewer
-              sessionId={sessionData?.sessionId}
-              projectId={projectId}
-              isSessionActive={!sessionExpired && !isLoading && sessionData?.sessionId}
-            />
-
-            {/* Right Side - Status and Test Button */}
-            <div className="flex items-center space-x-4 flex-shrink-0">
-              {/* Extension Status */}
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Extension loaded</span>
-                </div>
-                {sessionData?.browserInfo && (
-                  <span>
-                    {sessionData.browserInfo.viewport.width + 'x' + sessionData.browserInfo.viewport.height}
-                  </span>
-                )}
-              </div>
-
-              {/* HyperAgent Test Results */}
-              {hyperAgentResult && (
-                <div className={cn(
-                  "flex items-center space-x-1 text-sm",
-                  hyperAgentResult.success ? "text-green-600" : "text-red-600"
-                )}>
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    hyperAgentResult.success ? "bg-green-500" : "bg-red-500"
-                  )} />
-                  <span>
-                    {hyperAgentResult.success ? "Test passed" : "Test failed"}
-                  </span>
-                </div>
-              )}
-
-              {/* HyperAgent Test Button */}
-              <Button
-                onClick={handleRunHyperAgentTest}
-                disabled={isRunningHyperAgent || !sessionData?.sessionId}
-                size="sm"
-                className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isRunningHyperAgent ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2" />
-                    Running...
-                  </>
+                ) : error ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                    <div className="text-center max-w-md">
+                      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load test environment</h3>
+                      <p className="text-gray-600 mb-4">
+                        There was an error setting up the browser testing environment. Please try again.
+                      </p>
+                      <Button onClick={onRefresh} disabled={isLoading}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
+                ) : sessionData?.iframeUrl ? (
+                  <iframe
+                    src={iframeSrc}
+                    className="absolute inset-0 w-full h-full border-0"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+                    allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
+                    loading="eager"
+                    title="BrowserBase Session"
+                    style={{
+                      transform: "translateZ(0)",
+                      willChange: "transform",
+                      backfaceVisibility: "hidden",
+                    }}
+                  />
                 ) : (
-                  <>
-                    <Play className="h-3 w-3 mr-2" />
-                    Test Extension
-                  </>
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                    <div className="text-center">
+                      <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No test session available</h3>
+                      <p className="text-gray-600">Click the Test button to start a new testing session.</p>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
+
+          {/* Right Column - Testing Sidepanel */}
+          <TestingSidepanel
+            projectId={projectId}
+            sessionId={sessionData?.sessionId}
+            isSessionActive={!sessionExpired && !isLoading && !!sessionData?.sessionId}
+            viewportLabel={
+              sessionData?.browserInfo?.viewport?.width && sessionData?.browserInfo?.viewport?.height
+                ? `${sessionData.browserInfo.viewport.width}x${sessionData.browserInfo.viewport.height}`
+                : null
+            }
+            onRunPuppeteerTests={handleRunPuppeteerTests}
+            isRunningPuppeteerTests={isRunningPuppeteerTests}
+            puppeteerTestResult={puppeteerTestResult}
+            onRunAiAgentTests={handleRunHyperAgentTest}
+            isRunningAiAgentTests={isRunningHyperAgent}
+            aiAgentTestResult={hyperAgentResult}
+            onGeneratePuppeteerTests={onGeneratePuppeteerTests}
+            onGenerateAiAgentTests={onGenerateAiAgentTests}
+          />
         </div>
       </div>
     </div>

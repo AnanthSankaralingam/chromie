@@ -21,6 +21,57 @@ export class HyperbrowserService {
     }
   }
 
+  async persistChromeExtensionId({ supabaseClient, projectId, chromeExtensionId, hyperbrowserExtensionId, source }) {
+    try {
+      if (!supabaseClient) {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  No supabase client provided; skipping extension ID persistence")
+        return false
+      }
+      if (!projectId) {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  No projectId provided; skipping extension ID persistence")
+        return false
+      }
+      if (!chromeExtensionId) {
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  No chromeExtensionId provided; skipping extension ID persistence")
+        return false
+      }
+
+      const { error: storeError } = await supabaseClient
+        .from("code_files")
+        .upsert(
+          {
+            project_id: projectId,
+            file_path: ".chromie/extension-id.json",
+            content: JSON.stringify(
+              {
+                chromeExtensionId,
+                hyperbrowserExtensionId: hyperbrowserExtensionId || null,
+                capturedAt: new Date().toISOString(),
+                source: source || "unknown",
+              },
+              null,
+              2
+            ),
+          },
+          { onConflict: "project_id,file_path" }
+        )
+
+      if (storeError) {
+        console.error("[HYPERBROWSER-SERVICE] ❌ Failed to persist Chrome extension ID:", storeError.message)
+        return false
+      }
+
+      console.log("[HYPERBROWSER-SERVICE] ✅ Persisted Chrome extension ID to .chromie/extension-id.json", {
+        projectId,
+        chromeExtensionId,
+      })
+      return true
+    } catch (storeErr) {
+      console.error("[HYPERBROWSER-SERVICE] ❌ Error persisting Chrome extension ID:", storeErr?.message || storeErr)
+      return false
+    }
+  }
+
 
   /**
    * Get or create a Hyperbrowser profile ID for a user
@@ -111,11 +162,15 @@ export class HyperbrowserService {
    * @param {string} projectId - Project identifier
    * @param {string} userId - Optional user identifier for profile lookup
    * @param {Object} supabaseClient - Optional Supabase client for profile lookup
+   * @param {Object} options
+   * @param {boolean} options.autoPinExtension - Whether to attempt to pin the extension automatically
+   * @param {boolean} options.awaitPinExtension - Whether to wait for pinning to finish before returning
    * @returns {Promise<Object>} Session details including iframe URL
    */
-  async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null) {
+  async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null, options = {}) {
     try {
       console.log("[HYPERBROWSER-SERVICE] 🚀 createTestSession called")
+      const { autoPinExtension = true, awaitPinExtension = false } = options || {}
       
       if (!this.apiKey || !this.client) {
         console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
@@ -206,6 +261,7 @@ export class HyperbrowserService {
       const result = {
         success: true,
         sessionId: session.id,
+        hyperbrowserExtensionId: extensionId, // Hyperbrowser's extension ID
         // Live View URL to embed in an iframe for interactive control
         liveViewUrl: liveViewUrl || null,
         // Back-compat fields expected by some UI paths
@@ -236,13 +292,33 @@ export class HyperbrowserService {
       await new Promise(resolve => setTimeout(resolve, 2000))
       console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
-      // Automatically pin the extension to toolbar
-      // Run in background without blocking the response
-      if (extensionId) {
-        console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...")
-        runPinExtension(session.id)
-          .then((pinResult) => {
-            if (pinResult.success) {
+      // Automatically pin the extension to toolbar and capture the Chrome extension ID
+      // Default behavior: fire-and-forget so the user can see the session quickly.
+      // For AI analysis flow: allow awaiting pinning so we can kick off tests immediately after pin completes.
+      if (autoPinExtension && extensionId) {
+        console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...", { awaitPinExtension })
+        if (awaitPinExtension) {
+          try {
+            const pinResult = await runPinExtension(session.id)
+            result.pinExtension = pinResult
+            
+            // Capture Chrome extension ID from pin result
+            if (pinResult?.chromeExtensionId) {
+              console.log("[HYPERBROWSER-SERVICE] ✅ Captured Chrome extension ID from pinning:", pinResult.chromeExtensionId)
+              result.chromeExtensionId = pinResult.chromeExtensionId
+
+              // Persist immediately so downstream flows (puppeteer-tests/run, generate-puppeteer-tests)
+              // always read the latest pinned Chrome extension id (and don't fall back to target scanning).
+              await this.persistChromeExtensionId({
+                supabaseClient,
+                projectId,
+                chromeExtensionId: pinResult.chromeExtensionId,
+                hyperbrowserExtensionId: result.hyperbrowserExtensionId,
+                source: "pin-extension",
+              })
+            }
+            
+            if (pinResult?.success) {
               if (pinResult.sessionClosed) {
                 console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
               } else if (pinResult.alreadyPinned) {
@@ -253,15 +329,50 @@ export class HyperbrowserService {
                 console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
               }
             } else {
-              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult.error)
+              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult?.error)
             }
-          })
-          .catch((pinErr) => {
-            console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr.message)
-            // Don't throw - this is a non-critical operation
-          })
+          } catch (pinErr) {
+            console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr?.message || pinErr)
+            result.pinExtension = { success: false, error: pinErr?.message || "Pin extension failed" }
+          }
+        } else {
+          result.pinExtension = { started: true }
+          runPinExtension(session.id)
+            .then((pinResult) => {
+              // Capture Chrome extension ID from pin result
+              if (pinResult?.chromeExtensionId) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Captured Chrome extension ID from pinning:", pinResult.chromeExtensionId)
+                // Persist even in fire-and-forget mode so puppeteer-tests/run reads the correct ID.
+                return this.persistChromeExtensionId({
+                  supabaseClient,
+                  projectId,
+                  chromeExtensionId: pinResult.chromeExtensionId,
+                  hyperbrowserExtensionId: extensionId,
+                  source: "pin-extension-fire-and-forget",
+                })
+              }
+              
+              if (pinResult.success) {
+                if (pinResult.sessionClosed) {
+                  console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
+                } else if (pinResult.alreadyPinned) {
+                  console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
+                } else if (pinResult.pinned) {
+                  console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: successfully pinned to toolbar")
+                } else {
+                  console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
+                }
+              } else {
+                console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult.error)
+              }
+            })
+            .catch((pinErr) => {
+              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr.message)
+              // Don't throw - this is a non-critical operation
+            })
+        }
       } else {
-        console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension (no extension loaded)")
+        console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension", { autoPinExtension, hasExtension: !!extensionId })
       }
 
       console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")

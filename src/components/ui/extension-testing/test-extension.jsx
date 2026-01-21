@@ -9,6 +9,7 @@ export default function useTestExtension(currentProjectId) {
   const pendingCreateRef = useRef(null)
   const cleanupAfterCreateRef = useRef(false)
   const isModalOpenRef = useRef(false)
+  const lastCreateOptionsRef = useRef({})
 
   // Session cleanup function
   const cleanupSession = async (sessionId, projectId, startedAt = null) => {
@@ -76,13 +77,15 @@ export default function useTestExtension(currentProjectId) {
     }
   }, [testSessionData?.sessionId, currentProjectId])
 
-  const handleTestExtension = async () => {
+  const handleTestExtension = async (options = {}) => {
     console.log("🚀 Test Extension clicked")
     
     if (!currentProjectId) {
       console.error("❌ No project ID available")
       return
     }
+
+    lastCreateOptionsRef.current = options || {}
 
     // Clean up any existing session before creating a new one
     if (testSessionData?.sessionId) {
@@ -114,6 +117,9 @@ export default function useTestExtension(currentProjectId) {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          awaitPinExtension: options?.awaitPinExtension === true,
+        }),
       })
       pendingCreateRef.current = createPromise
       const response = await createPromise
@@ -133,7 +139,13 @@ export default function useTestExtension(currentProjectId) {
       console.log("   Session ID:", data.session?.sessionId)
       console.log("   Live URL:", data.session?.liveViewUrl ? "✓" : "✗")
       
-      setTestSessionData(data.session)
+      setTestSessionData({
+        ...data.session,
+        autoRunHyperAgent: options?.autoRunHyperAgent === true,
+        autoRunPuppeteerTests: options?.autoRunPuppeteerTests === true,
+        runTestSequence: options?.runTestSequence === true,
+        sequenceId: options?.sequenceId || null,
+      })
       setLoadingProgress(100)
 
       // If user closed the modal before creation finished, immediately clean up
@@ -185,7 +197,7 @@ export default function useTestExtension(currentProjectId) {
 
   const handleRefreshTest = () => {
     if (testSessionData) {
-      handleTestExtension()
+      handleTestExtension(lastCreateOptionsRef.current || {})
     }
   }
 

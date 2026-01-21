@@ -15,6 +15,7 @@ const runPinExtension = async (sessionId) => {
 
   let browser = null;
   let page = null;
+  let capturedExtensionId = null; // Declare at function scope so it's available in catch block
 
   try {
     // Connect to the browser session
@@ -26,13 +27,30 @@ const runPinExtension = async (sessionId) => {
     console.log('[PIN-EXTENSION] Page available:', !!page);
 
     // Navigate to chrome://extensions if not already there
-    const currentUrl = page.url();
+    let currentUrl = page.url();
     console.log('[PIN-EXTENSION] 🌐 Current URL:', currentUrl);
+    
+    // Try to capture extension ID from URL if already on details page
+    const urlMatch = currentUrl.match(/[?&]id=([a-p]{32})/i);
+    if (urlMatch) {
+      capturedExtensionId = urlMatch[1];
+      console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from initial URL:', capturedExtensionId);
+    }
     
     if (!currentUrl.includes('chrome://extensions')) {
       console.log('[PIN-EXTENSION] 🚀 Navigating to chrome://extensions...');
       await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 30000 });
       console.log('[PIN-EXTENSION] ✅ Navigation complete');
+      
+      // Check URL again after navigation
+      currentUrl = page.url();
+      if (!capturedExtensionId) {
+        const urlMatch2 = currentUrl.match(/[?&]id=([a-p]{32})/i);
+        if (urlMatch2) {
+          capturedExtensionId = urlMatch2[1];
+          console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from URL after navigation:', capturedExtensionId);
+        }
+      }
     } else {
       console.log('[PIN-EXTENSION] ✅ Already on chrome://extensions page');
     }
@@ -55,18 +73,24 @@ const runPinExtension = async (sessionId) => {
     await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('[PIN-EXTENSION] ✅ Wait complete');
 
-    // Navigate through shadow DOM to find and click Details button
-    console.log('[PIN-EXTENSION] 🔍 Finding extension card and Details button in shadow DOM...');
+    // If we're already on a details page, we might not need to click Details
+    // Check if we're on a details view
+    const onDetailsPage = currentUrl.includes('?id=');
+    console.log('[PIN-EXTENSION] On details page:', onDetailsPage);
     
-    const detailsClicked = await page.evaluate(() => {
-      console.log('[PIN-EXTENSION-EVAL] Starting browser-side evaluation');
-      const manager = document.querySelector('extensions-manager');
-      console.log('[PIN-EXTENSION-EVAL] extensions-manager element:', !!manager);
-      console.log('[PIN-EXTENSION-EVAL] Has shadow root:', !!(manager && manager.shadowRoot));
+    if (!onDetailsPage) {
+      // Navigate through shadow DOM to find and click Details button, and capture the extension ID
+      console.log('[PIN-EXTENSION] 🔍 Finding extension card and Details button in shadow DOM...');
       
-      if (!manager || !manager.shadowRoot) {
-        throw new Error('extensions-manager shadow root not found');
-      }
+      const evalResult = await page.evaluate(() => {
+        console.log('[PIN-EXTENSION-EVAL] Starting browser-side evaluation');
+        const manager = document.querySelector('extensions-manager');
+        console.log('[PIN-EXTENSION-EVAL] extensions-manager element:', !!manager);
+        console.log('[PIN-EXTENSION-EVAL] Has shadow root:', !!(manager && manager.shadowRoot));
+        
+        if (!manager || !manager.shadowRoot) {
+          throw new Error('extensions-manager shadow root not found');
+        }
 
       // Find extension items in shadow DOM - try multiple selectors
       console.log('[PIN-EXTENSION-EVAL] Searching for extensions-item elements...');
@@ -192,12 +216,28 @@ const runPinExtension = async (sessionId) => {
         throw new Error(`No extension items found. Found ${allElements.length} total elements. Available element types: ${Object.keys(elementTypes).join(', ')}`);
       }
 
-      // Use the first extension item (most recently added should be first)
-      console.log('[PIN-EXTENSION-EVAL] 🎯 Selecting first extension item...');
-      const firstItem = items[0];
-      console.log(`[PIN-EXTENSION-EVAL] ✅ Using first extension item (${items.length} total found)`);
-      console.log(`[PIN-EXTENSION-EVAL] First item tag:`, firstItem.tagName);
-      console.log(`[PIN-EXTENSION-EVAL] Has shadow root:`, !!firstItem.shadowRoot);
+        // Use the first extension item (most recently added should be first)
+        console.log('[PIN-EXTENSION-EVAL] 🎯 Selecting first extension item...');
+        const firstItem = items[0];
+        console.log(`[PIN-EXTENSION-EVAL] ✅ Using first extension item (${items.length} total found)`);
+        console.log(`[PIN-EXTENSION-EVAL] First item tag:`, firstItem.tagName);
+        console.log(`[PIN-EXTENSION-EVAL] Has shadow root:`, !!firstItem.shadowRoot);
+        
+        // Capture the extension ID from the first item
+        let extensionId = null;
+        try {
+          extensionId = firstItem.getAttribute('id');
+          if (!extensionId && firstItem.shadowRoot) {
+            // Try to find extension ID in the shadow root
+            const idElement = firstItem.shadowRoot.querySelector('[data-extension-id]');
+            if (idElement) {
+              extensionId = idElement.getAttribute('data-extension-id');
+            }
+          }
+          console.log('[PIN-EXTENSION-EVAL] Captured extension ID:', extensionId);
+        } catch (e) {
+          console.log('[PIN-EXTENSION-EVAL] Could not capture extension ID from item:', e.message);
+        }
 
       // Find the Details button - try multiple methods
       console.log('[PIN-EXTENSION-EVAL] 🔍 Searching for Details button...');
@@ -292,20 +332,53 @@ const runPinExtension = async (sessionId) => {
         throw new Error('Details button not found in extension card');
       }
 
-      // Click the Details button
-      detailsButton.click();
-      return true;
-    });
+        // Click the Details button
+        detailsButton.click();
+        return { success: true, extensionId: extensionId };
+      });
 
-    if (!detailsClicked) {
-      throw new Error('Failed to click Details button');
+      if (!evalResult || !evalResult.success) {
+        throw new Error('Failed to click Details button');
+      }
+
+      if (evalResult.extensionId && !capturedExtensionId) {
+        capturedExtensionId = evalResult.extensionId;
+        console.log('✅ Captured Chrome extension ID from element:', capturedExtensionId);
+      }
+      
+      console.log('✅ Clicked Details button');
+      
+      // Wait for navigation to details page
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Try to capture extension ID from URL if not already captured
+      if (!capturedExtensionId) {
+        try {
+          currentUrl = page.url();
+          console.log('[PIN-EXTENSION] Current URL after clicking Details:', currentUrl);
+          // chrome://extensions/?id=<extension-id>
+          const urlMatch = currentUrl.match(/[?&]id=([a-p]{32})/i);
+          if (urlMatch) {
+            capturedExtensionId = urlMatch[1];
+            console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from URL:', capturedExtensionId);
+          } else {
+            console.log('[PIN-EXTENSION] ⚠️  Could not find extension ID in URL:', currentUrl);
+          }
+        } catch (urlErr) {
+          console.log('[PIN-EXTENSION] ⚠️  Error getting URL:', urlErr.message);
+        }
+      }
+    } else {
+      console.log('[PIN-EXTENSION] ✅ Already on details page, skipping Details button click');
     }
 
-    console.log('✅ Clicked Details button');
+    // Log final captured extension ID
+    if (capturedExtensionId) {
+      console.log('[PIN-EXTENSION] ✅ Extension ID confirmed:', capturedExtensionId);
+    } else {
+      console.log('[PIN-EXTENSION] ⚠️  No extension ID captured yet');
+    }
     
-    // Wait for navigation to details page
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
     // Look for "Pin to Toolbar" toggle in shadow DOM
     console.log('🔍 Looking for "Pin to Toolbar" toggle in shadow DOM...');
     
@@ -417,7 +490,7 @@ const runPinExtension = async (sessionId) => {
 
     if (pinResult.alreadyPinned) {
       console.log('[PIN-EXTENSION] ✅ Extension is already pinned to toolbar');
-      return { success: true, alreadyPinned: true };
+      return { success: true, alreadyPinned: true, chromeExtensionId: capturedExtensionId };
     }
 
     console.log('[PIN-EXTENSION] ✅ Toggle clicked, waiting for state to update...');
@@ -487,12 +560,12 @@ const runPinExtension = async (sessionId) => {
 
     if (isPinned) {
       console.log('[PIN-EXTENSION] ✅ Extension successfully pinned to toolbar');
-      return { success: true, pinned: true };
+      return { success: true, pinned: true, chromeExtensionId: capturedExtensionId };
     } else {
       console.log('[PIN-EXTENSION] ⚠️  Pin toggle clicked but state not verified as pinned');
       console.log('[PIN-EXTENSION] Verification result:', JSON.stringify(verifyResult, null, 2));
       // Still return success since we clicked it - the state might update later
-      return { success: true, pinned: false, warning: 'State verification failed', verifyResult };
+      return { success: true, pinned: false, warning: 'State verification failed', verifyResult, chromeExtensionId: capturedExtensionId };
     }
 
   } catch (err) {
@@ -521,7 +594,7 @@ const runPinExtension = async (sessionId) => {
       console.log('[PIN-EXTENSION] ℹ️  Session was closed during pinning operation');
       console.log('[PIN-EXTENSION] This is expected if the user stopped the session quickly');
       // Return success since this isn't a real failure - session was just closed
-      return { success: true, sessionClosed: true, message: 'Session closed during operation' };
+      return { success: true, sessionClosed: true, message: 'Session closed during operation', chromeExtensionId: capturedExtensionId };
     }
 
     // Real error - log it
@@ -529,7 +602,7 @@ const runPinExtension = async (sessionId) => {
     console.error('[PIN-EXTENSION] Error message:', err.message);
     console.error('[PIN-EXTENSION] Error stack:', err.stack);
     console.error('[PIN-EXTENSION] Error details:', err);
-    return { success: false, error: err.message, stack: err.stack };
+    return { success: false, error: err.message, stack: err.stack, chromeExtensionId: null };
   } finally {
     console.log('[PIN-EXTENSION] 🏁 Pin extension flow complete');
     // Don't close the browser - let the session continue
