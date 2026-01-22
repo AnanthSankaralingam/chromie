@@ -74,7 +74,7 @@ const pricingData = [
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="relative z-10 px-6 pb-20">
+    <section id="pricing" className="relative z-10 px-6 py-16">
       <div className="container mx-auto max-w-6xl">
         {/* Title */}
         <motion.div

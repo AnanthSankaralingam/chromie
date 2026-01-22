@@ -11,6 +11,7 @@ import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 // import HowItWorksSection from "@/components/ui/sections/how-it-works-section" // COMMENTED OUT: Videos taking up too many resources on Vercel
+import BlogSection from "@/components/ui/sections/blog-section"
 import PricingSection from "@/components/ui/sections/pricing-section"
 import ContactSection from "@/components/ui/sections/contact-section"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
@@ -327,10 +328,10 @@ export default function HomePage() {
 
     restorePrompt()
 
-    // Handle hash navigation (e.g., from /home#how-it-works, /home#pricing, or /home#contact)
+    // Handle hash navigation (e.g., from /home#blog, /home#pricing, or /home#contact)
     const handleHashScroll = () => {
       const hash = window.location.hash
-      if (hash === '#how-it-works' || hash === '#pricing' || hash === '#contact') {
+      if (hash === '#blog' || hash === '#pricing' || hash === '#contact') {
         setTimeout(() => {
           const section = document.getElementById(hash.substring(1))
           if (section) {
@@ -573,6 +574,9 @@ export default function HomePage() {
 
         {/* Pricing Section */}
         <PricingSection />
+
+        {/* Blog Section */}
+        <BlogSection />
 
         {/* Contact Section */}
         <ContactSection />
