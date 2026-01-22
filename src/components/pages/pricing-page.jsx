@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Edit3, Chrome, TestTube, Zap, Check, Star } from "lucide-react"
+import { Edit3, Chrome, TestTube, Zap, Check, Star, ChevronDown, ChevronUp } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ export default function PricingPage() {
   const router = useRouter()
   const [billingModalOpen, setBillingModalOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
+  const [faqOpen, setFaqOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -117,14 +118,6 @@ export default function PricingPage() {
                       <Check className="w-5 h-5 text-green-400" />
                       <span className="text-gray-300">2 chrome extensions</span>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">150K AI tokens</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">30 mins testing</span>
-                    </div>
                   </div>
                   <Button
                     onClick={() => window.open('https://buy.stripe.com/28EbJ0105e8o4xF6dM7kc02', '_blank')}
@@ -154,15 +147,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">10 chrome extensions</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">1M AI tokens</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">120 mins testing</span>
+                      <span className="text-gray-300">500 credits</span>
                     </div>
                   </div>
                   <Button
@@ -191,14 +176,6 @@ export default function PricingPage() {
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">5M tokens per month</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">240 mins testing per month</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
                       <span className="text-gray-300">cancel anytime</span>
                     </div>
                   </div>
@@ -210,6 +187,89 @@ export default function PricingPage() {
                   </Button>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* FAQ Section */}
+            <div className="mt-20 mb-16 max-w-3xl mx-auto relative z-10">
+              <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                faq
+              </h2>
+              
+              <div className="space-y-4">
+                {/* What is a credit? FAQ */}
+                <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
+                  <button
+                    onClick={() => setFaqOpen(!faqOpen)}
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+                  >
+                    <span className="text-xl font-semibold text-white">what is a credit?</span>
+                    {faqOpen ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  
+                  {faqOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-6 pb-6 text-gray-300 space-y-4"
+                    >
+                      <p>
+                        credits are used when sending messages in chromie. pricing varies by request type:
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <p className="font-semibold text-white">credit costs:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-4">
+                          <li>all initial code generation project requests require 3 credits</li>
+                          <li>all follow-up code generation requests require 1 credit</li>
+                        </ul>
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="font-semibold text-white mb-3">here are some example prompts and their cost:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse bg-slate-900/30 rounded-lg">
+                            <thead>
+                              <tr className="border-b border-slate-600">
+                                <th className="text-left py-3 px-4 text-white font-semibold">user prompt</th>
+                                <th className="text-left py-3 px-4 text-white font-semibold">work done</th>
+                                <th className="text-left py-3 px-4 text-white font-semibold">credits</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-sm">
+                              <tr className="border-b border-slate-700/50">
+                                <td className="py-3 px-4">create a new chrome extension</td>
+                                <td className="py-3 px-4">initial code generation with all files</td>
+                                <td className="py-3 px-4 font-semibold">3.00</td>
+                              </tr>
+                              <tr className="border-b border-slate-700/50">
+                                <td className="py-3 px-4">add a button to the popup</td>
+                                <td className="py-3 px-4">updates existing extension files</td>
+                                <td className="py-3 px-4 font-semibold">1.00</td>
+                              </tr>
+                              <tr className="border-b border-slate-700/50">
+                                <td className="py-3 px-4">change the background color</td>
+                                <td className="py-3 px-4">updates styles</td>
+                                <td className="py-3 px-4 font-semibold">1.00</td>
+                              </tr>
+                              <tr>
+                                <td className="py-3 px-4">add authentication with sign up and login</td>
+                                <td className="py-3 px-4">adds authentication pages and logic, updates routes</td>
+                                <td className="py-3 px-4 font-semibold">1.00</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -31,30 +31,30 @@ export async function GET() {
       usage: userLimits.usage,
       
       remaining: {
-        tokens: userLimits.limits.tokens - userLimits.usage.tokens,
+        credits: userLimits.limits.credits - userLimits.usage.credits,
         browserMinutes: userLimits.limits.browserMinutes - userLimits.usage.browserMinutes,
         projects: userLimits.limits.projects - userLimits.usage.projects
       },
       
       percentages: {
-        tokens: Math.round((userLimits.usage.tokens / userLimits.limits.tokens) * 100),
+        credits: Math.round((userLimits.usage.credits / userLimits.limits.credits) * 100),
         browserMinutes: Math.round((userLimits.usage.browserMinutes / userLimits.limits.browserMinutes) * 100),
         projects: Math.round((userLimits.usage.projects / userLimits.limits.projects) * 100)
       },
       
       exhausted: userLimits.exhausted || {
-        tokens: false,
+        credits: false,
         browserMinutes: false,
         projects: false
       },
       
-      // Legacy fields for backwards compatibility
-      totalTokensUsed: userLimits.usage.tokens,
-      planLimit: userLimits.limits.tokens === -1 ? 'unlimited' : userLimits.limits.tokens,
-      usagePercentage: Math.round((userLimits.usage.tokens / userLimits.limits.tokens) * 100),
-      monthlyUsage: userLimits.usage.tokens,
+      // Legacy fields for backwards compatibility (using credits now)
+      totalTokensUsed: userLimits.usage.credits,
+      planLimit: userLimits.limits.credits === -1 ? 'unlimited' : userLimits.limits.credits,
+      usagePercentage: Math.round((userLimits.usage.credits / userLimits.limits.credits) * 100),
+      monthlyUsage: userLimits.usage.credits,
       userPlan: userLimits.plan,
-      remainingTokens: userLimits.limits.tokens === -1 ? 'unlimited' : Math.max(0, userLimits.limits.tokens - userLimits.usage.tokens),
+      remainingTokens: userLimits.limits.credits === -1 ? 'unlimited' : Math.max(0, userLimits.limits.credits - userLimits.usage.credits),
       monthlyReset: userLimits.resetDate,
       resetDue: userLimits.resetType === 'monthly' && userLimits.resetDate ? new Date() >= new Date(userLimits.resetDate) : false,
       totalBrowserMinutesUsed: userLimits.usage.browserMinutes,
@@ -82,10 +82,15 @@ export async function POST(request) {
 
   try {
     const body = await request.json()
+    const creditsThisRequest = Number(body?.creditsThisRequest || 0)
     const tokensThisRequest = Number(body?.tokensThisRequest || 0)
     const browserMinutesThisRequest = Number(body?.browserMinutesThisRequest || 0)
     const modelUsed = typeof body?.model === 'string' ? body.model : 'unknown'
     const targetId = typeof body?.id === 'string' ? body.id : null
+
+    if (!Number.isFinite(creditsThisRequest) || creditsThisRequest < 0) {
+      return NextResponse.json({ error: "creditsThisRequest must be a non-negative number" }, { status: 400 })
+    }
 
     if (!Number.isFinite(tokensThisRequest) || tokensThisRequest < 0) {
       return NextResponse.json({ error: "tokensThisRequest must be a non-negative number" }, { status: 400 })
@@ -109,7 +114,7 @@ export async function POST(request) {
     if (targetId) {
       const { data } = await db
         .from('token_usage')
-        .select('id, total_tokens, monthly_reset, model, browser_minutes')
+        .select('id, total_credits, total_tokens, monthly_reset, model, browser_minutes')
         .eq('id', targetId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -117,7 +122,7 @@ export async function POST(request) {
     } else {
       const { data } = await db
         .from('token_usage')
-        .select('id, total_tokens, monthly_reset, model, browser_minutes')
+        .select('id, total_credits, total_tokens, monthly_reset, model, browser_minutes')
         .eq('user_id', user.id)
         .maybeSingle()
       existingUsage = data || null
@@ -141,34 +146,40 @@ export async function POST(request) {
     const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
 
     // Determine new totals and monthly_reset state
+    let newTotalCredits
     let newTotalTokens
     let newTotalBrowserMinutes
     let newMonthlyReset = existingUsage?.monthly_reset
 
     if (!existingUsage) {
       // First-ever usage record for this user
+      newTotalCredits = creditsThisRequest
       newTotalTokens = tokensThisRequest
       newTotalBrowserMinutes = browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else if (!existingUsage.monthly_reset) {
       // No monthly_reset set yet; set to beginning of current month and continue accumulating
+      newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
       newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else if (isResetDue) {
       // New monthly period started; reset total to current request
+      newTotalCredits = creditsThisRequest
       newTotalTokens = tokensThisRequest
       newTotalBrowserMinutes = browserMinutesThisRequest
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       newMonthlyReset = firstDayOfMonth.toISOString()
     } else {
       // Same monthly period; accumulate
+      newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
       newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
     }
 
+    console.log(`Updating credit usage via POST - user: ${user.id}, add: ${creditsThisRequest}, total -> ${newTotalCredits}`)
     console.log(`Updating token usage via POST - user: ${user.id}, add: ${tokensThisRequest}, total -> ${newTotalTokens}`)
     console.log(`Updating browser usage via POST - user: ${user.id}, add: ${browserMinutesThisRequest}, total -> ${newTotalBrowserMinutes}`)
 
@@ -176,6 +187,7 @@ export async function POST(request) {
       const { data: updatedRows, error: updateError } = await db
         .from('token_usage')
         .update({
+          total_credits: newTotalCredits,
           total_tokens: newTotalTokens,
           browser_minutes: newTotalBrowserMinutes,
           monthly_reset: newMonthlyReset,
@@ -183,16 +195,17 @@ export async function POST(request) {
         })
         .eq('id', existingUsage.id)
         .eq('user_id', user.id)
-        .select('id, total_tokens, browser_minutes, monthly_reset')
+        .select('id, total_credits, total_tokens, browser_minutes, monthly_reset')
 
       if (updateError) {
-        console.error('Error updating token usage via POST:', updateError)
-        return NextResponse.json({ error: "Failed to update token usage" }, { status: 500 })
+        console.error('Error updating usage via POST:', updateError)
+        return NextResponse.json({ error: "Failed to update usage" }, { status: 500 })
       }
 
       return NextResponse.json({
         success: true,
         id: updatedRows?.[0]?.id || existingUsage.id,
+        total_credits: updatedRows?.[0]?.total_credits ?? newTotalCredits,
         total_tokens: updatedRows?.[0]?.total_tokens ?? newTotalTokens,
         browser_minutes: updatedRows?.[0]?.browser_minutes ?? newTotalBrowserMinutes,
         monthly_reset: updatedRows?.[0]?.monthly_reset ?? newMonthlyReset,
@@ -206,6 +219,7 @@ export async function POST(request) {
       .insert({
         id: newId,
         user_id: user.id,
+        total_credits: newTotalCredits,
         total_tokens: newTotalTokens,
         browser_minutes: newTotalBrowserMinutes,
         model: modelUsed,
@@ -213,13 +227,14 @@ export async function POST(request) {
       })
 
     if (insertError) {
-      console.error('Error inserting token usage via POST:', insertError)
-      return NextResponse.json({ error: "Failed to insert token usage" }, { status: 500 })
+      console.error('Error inserting usage via POST:', insertError)
+      return NextResponse.json({ error: "Failed to insert usage" }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
       id: newId,
+      total_credits: newTotalCredits,
       total_tokens: newTotalTokens,
       browser_minutes: newTotalBrowserMinutes,
       monthly_reset: newMonthlyReset,

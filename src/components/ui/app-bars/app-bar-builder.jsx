@@ -4,11 +4,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History, FileCode } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History, FileCode, Lock } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
 import { useShareExtension } from '@/hooks/use-share-extension'
+import { usePaidPlan } from '@/hooks/use-paid-plan'
 import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
@@ -47,6 +48,7 @@ export default function AppBarBuilder({
   hasGithubRepo = false,
 }) {
   const { user } = useSession()
+  const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isPublishOpen, setIsPublishOpen] = useState(false)
   const {
@@ -99,12 +101,37 @@ export default function AppBarBuilder({
   }
 
   const handleTestWithAIClick = () => {
+    if (!isPaid && !isLoadingPaidPlan) {
+      // Redirect to pricing page for non-paid users
+      window.location.href = '/pricing'
+      return
+    }
     stopAllHighlights()
     if (onExecuteTestingAgent) {
       onExecuteTestingAgent()
     } else {
       onTestWithAI?.()
     }
+  }
+
+  const handleCreateTestingAgentClick = () => {
+    if (!isPaid && !isLoadingPaidPlan) {
+      // Redirect to pricing page for non-paid users
+      window.location.href = '/pricing'
+      return
+    }
+    setIsAITestDropdownOpen(false)
+    onCreateAITestAgent?.()
+  }
+
+  const handleViewAIAnalysisClick = () => {
+    if (!isPaid && !isLoadingPaidPlan) {
+      // Redirect to pricing page for non-paid users
+      window.location.href = '/pricing'
+      return
+    }
+    setIsAITestDropdownOpen(false)
+    onTestWithAI?.(true) // viewOnly = true
   }
 
   const handleDownloadClick = () => {
@@ -254,23 +281,14 @@ export default function AppBarBuilder({
     }
   }
 
-  const handleCreateAITestAgent = () => {
-    onCreateAITestAgent?.()
-  }
-
   const [isAITestDropdownOpen, setIsAITestDropdownOpen] = useState(false)
 
-  const handleCreateTestingAgentClick = () => {
-    setIsAITestDropdownOpen(false)
-    handleCreateAITestAgent()
-  }
-
-  const handleViewAIAnalysisClick = () => {
-    setIsAITestDropdownOpen(false)
-    onTestWithAI?.(true) // Pass viewOnly=true to view saved results
-  }
-
   const handleKickoffAIAnalysisClick = () => {
+    if (!isPaid && !isLoadingPaidPlan) {
+      // Redirect to pricing page for non-paid users
+      window.location.href = '/pricing'
+      return
+    }
     setIsAITestDropdownOpen(false)
     handleTestWithAIClick() // Run new test
   }
@@ -393,35 +411,60 @@ export default function AppBarBuilder({
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={handleCreateTestingAgentClick}
-                      disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      disabled={isTestDisabled || isGenerating || isGeneratingTestAgent || (!isPaid && !isLoadingPaidPlan)}
+                      className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                     >
-                      <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                      {!isPaid && !isLoadingPaidPlan ? (
+                        <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                      ) : (
+                        <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                      )}
                       <span className="flex-1">
-                        <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
+                        <span className="block flex items-center gap-1.5">
+                          {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                          {isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}
+                        </span>
+                        <span className="block text-[11px] leading-tight text-slate-400">
+                          {!isPaid && !isLoadingPaidPlan ? "Paid feature — upgrade to unlock" : "Setup for end‑to‑end AI testing"}
+                        </span>
                       </span>
                     </DropdownMenuItem>
                     
                     {hasSavedAITestResults && (
                       <DropdownMenuItem 
                         onClick={handleViewAIAnalysisClick}
-                        disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                        className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                        disabled={isTestDisabled || isGenerating || isTestingWithAI || (!isPaid && !isLoadingPaidPlan)}
+                        className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                       >
-                        <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                        <span className="flex-1">View Past AI Analysis</span>
+                        {!isPaid && !isLoadingPaidPlan ? (
+                          <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
+                        )}
+                        <span className="flex-1 flex items-center gap-1.5">
+                          {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                          View Past AI Analysis
+                        </span>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem 
-                      onClick={handleKickoffAIAnalysisClick}
-                      disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      onClick={handleTestWithAIClick}
+                      disabled={isTestDisabled || isGenerating || isTestingWithAI || (!isPaid && !isLoadingPaidPlan)}
+                      className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                     >
-                      <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                      {!isPaid && !isLoadingPaidPlan ? (
+                        <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                      )}
                       <span className="flex-1">
-                        <span className="block">{isTestingWithAI ? "Executing..." : "Execute Testing Agent"}</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
+                        <span className="block flex items-center gap-1.5">
+                          {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                          {isTestingWithAI ? "Executing..." : "Execute Testing Agent"}
+                        </span>
+                        <span className="block text-[11px] leading-tight text-slate-400">
+                          {!isPaid && !isLoadingPaidPlan ? "Paid feature — upgrade to unlock" : "Runs Puppeteer → AI agent"}
+                        </span>
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -486,10 +529,10 @@ export default function AppBarBuilder({
               <DropdownMenuTrigger asChild>
                 <Button
                   id={tourTestWithAIButtonId ? `${tourTestWithAIButtonId}-mobile` : undefined}
-                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                  disabled={isTestDisabled || isGenerating || isTestingWithAI || (!isPaid && !isLoadingPaidPlan)}
                   variant="outline"
-                  className="w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"
-                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
+                  className={!isPaid && !isLoadingPaidPlan ? "w-full text-xs bg-slate-900 text-slate-500 hover:text-slate-500 hover:bg-slate-800/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" : "w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"}
+                  style={!isPaid && !isLoadingPaidPlan ? {} : { backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
                 >
                   {isTestingWithAI ? (
                     <>
@@ -498,10 +541,18 @@ export default function AppBarBuilder({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4 mr-2" />
+                      {!isPaid && !isLoadingPaidPlan ? (
+                        <Lock className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
                       <span className="inline-flex items-center space-x-1.5">
                         <span>test with ai</span>
-                        <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                        {!isPaid && !isLoadingPaidPlan ? (
+                          <Lock className="h-3 w-3" />
+                        ) : (
+                          <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                        )}
                       </span>
                       <ChevronDown className="h-4 w-4 ml-1" />
                     </>
@@ -525,35 +576,60 @@ export default function AppBarBuilder({
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
-                  disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  disabled={isTestDisabled || isGenerating || isGeneratingTestAgent || (!isPaid && !isLoadingPaidPlan)}
+                  className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                 >
-                  <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                  {!isPaid && !isLoadingPaidPlan ? (
+                    <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                  ) : (
+                    <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                  )}
                   <span className="flex-1">
-                    <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
+                    <span className="block flex items-center gap-1.5">
+                      {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                      {isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}
+                    </span>
+                    <span className="block text-[11px] leading-tight text-slate-400">
+                      {!isPaid && !isLoadingPaidPlan ? "Paid feature — upgrade to unlock" : "Setup for end‑to‑end AI testing"}
+                    </span>
                   </span>
                 </DropdownMenuItem>
                 
                 {hasSavedAITestResults && (
                   <DropdownMenuItem 
                     onClick={() => { handleViewAIAnalysisClick(); setIsMobileMenuOpen(false) }}
-                    disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                    className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    disabled={isTestDisabled || isGenerating || isTestingWithAI || (!isPaid && !isLoadingPaidPlan)}
+                    className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                   >
-                    <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                    <span className="flex-1">View Past AI Analysis</span>
+                    {!isPaid && !isLoadingPaidPlan ? (
+                      <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
+                    )}
+                    <span className="flex-1 flex items-center gap-1.5">
+                      {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                      View Past AI Analysis
+                    </span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem 
                   onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
-                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  disabled={isTestDisabled || isGenerating || isTestingWithAI || (!isPaid && !isLoadingPaidPlan)}
+                  className={!isPaid && !isLoadingPaidPlan ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
                 >
-                  <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                  {!isPaid && !isLoadingPaidPlan ? (
+                    <Lock className="h-4 w-4 mr-3 text-slate-500" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                  )}
                   <span className="flex-1">
-                    <span className="block">{isTestingWithAI ? "Executing..." : "Execute Testing Agent"}</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
+                    <span className="block flex items-center gap-1.5">
+                      {!isPaid && !isLoadingPaidPlan && <Lock className="h-3 w-3" />}
+                      {isTestingWithAI ? "Executing..." : "Execute Testing Agent"}
+                    </span>
+                    <span className="block text-[11px] leading-tight text-slate-400">
+                      {!isPaid && !isLoadingPaidPlan ? "Paid feature — upgrade to unlock" : "Runs Puppeteer → AI agent"}
+                    </span>
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

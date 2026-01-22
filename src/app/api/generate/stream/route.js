@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension-stream"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
+import { CREDIT_COSTS } from "@/lib/constants"
 import { llmService } from "@/lib/services/llm-service"
 import { randomUUID } from "crypto"
 
@@ -30,11 +31,12 @@ function isContextLimitError(error, provider) {
 }
 
 /**
- * Upsert token usage for the authenticated user
+ * Upsert credit and token usage for the authenticated user
  */
-async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, supabase }) {
+async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThisRequest, modelUsed, supabase }) {
   try {
-    if (!Number.isFinite(tokensThisRequest) || tokensThisRequest <= 0) return
+    if (!Number.isFinite(creditsThisRequest) || creditsThisRequest < 0) return
+    if (!Number.isFinite(tokensThisRequest) || tokensThisRequest < 0) tokensThisRequest = 0
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -47,7 +49,7 @@ async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, 
     // Fetch existing usage row
     const { data: existingUsage } = await db
       .from('token_usage')
-      .select('id, total_tokens, monthly_reset, browser_minutes')
+      .select('id, total_credits, total_tokens, monthly_reset, browser_minutes')
       .eq('user_id', supabaseUserId)
       .maybeSingle()
 
@@ -64,11 +66,14 @@ async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, 
       isResetDue = now >= plusOne
     }
 
+    let newTotalCredits
     let newTotalTokens
     if (!existingUsage || isResetDue) {
+      newTotalCredits = creditsThisRequest
       newTotalTokens = tokensThisRequest
       newMonthlyResetISO = firstDayOfMonth.toISOString()
     } else {
+      newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
     }
 
@@ -76,13 +81,14 @@ async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, 
       const { error: updateError } = await db
         .from('token_usage')
         .update({
+          total_credits: newTotalCredits,
           total_tokens: newTotalTokens,
           monthly_reset: newMonthlyResetISO,
           model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
         })
         .eq('id', existingUsage.id)
         .eq('user_id', supabaseUserId)
-      if (updateError) console.error('[api/generate/stream] token_usage update failed:', updateError)
+      if (updateError) console.error('[api/generate/stream] usage update failed:', updateError)
     } else {
       const newId = randomUUID()
       const { error: insertError } = await db
@@ -90,15 +96,16 @@ async function upsertTokenUsage({ supabaseUserId, tokensThisRequest, modelUsed, 
         .insert({
           id: newId,
           user_id: supabaseUserId,
+          total_credits: newTotalCredits,
           total_tokens: newTotalTokens,
           monthly_reset: newMonthlyResetISO,
           model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
         })
-      if (insertError) console.error('[api/generate/stream] token_usage insert failed:', insertError)
+      if (insertError) console.error('[api/generate/stream] usage insert failed:', insertError)
     }
-    console.log(`[api/generate/stream] ✅ token_usage upserted (+${tokensThisRequest} tokens)`)
+    console.log(`[api/generate/stream] ✅ usage upserted (+${creditsThisRequest} credits, +${tokensThisRequest} tokens)`)
   } catch (e) {
-    console.error('[api/generate/stream] token_usage upsert error:', e)
+    console.error('[api/generate/stream] usage upsert error:', e)
   }
 }
 
@@ -149,16 +156,18 @@ export async function POST(request) {
     }
 
 
-    // Use a minimal estimate for limit checking - actual tokens will be tracked exactly
-    const estimatedTokens = Math.ceil(prompt.length / 2) // Conservative estimate for limit checking only
+    // Calculate credits based on request type
+    const creditsForRequest = requestType === REQUEST_TYPES.NEW_EXTENSION 
+      ? CREDIT_COSTS.INITIAL_GENERATION 
+      : CREDIT_COSTS.FOLLOW_UP_GENERATION
     
-    // Check token limit using new limit checker
-    const limitCheck = await checkLimit(user.id, 'tokens', estimatedTokens, supabase)
+    // Check credit limit using new limit checker
+    const limitCheck = await checkLimit(user.id, 'credits', creditsForRequest, supabase)
     
     if (!limitCheck.allowed) {
-      console.log(`[api/generate/stream] ❌ Token limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
+      console.log(`[api/generate/stream] ❌ Credit limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
       return NextResponse.json(
-        formatLimitError(limitCheck, 'tokens'),
+        formatLimitError(limitCheck, 'credits'),
         { status: 403 }
       )
     }
@@ -303,26 +312,25 @@ export async function POST(request) {
             }
           }
 
-          console.log('[api/generate/stream] Stream completed. requiresUrl:', requiresUrl, 'tokens:', accumulatedTokens)
+          console.log('[api/generate/stream] Stream completed. requiresUrl:', requiresUrl, 'credits:', creditsForRequest, 'tokens:', accumulatedTokens)
           
-          // Only send completion signal and upsert tokens if URL is not required
+          // Only send completion signal and upsert credits/tokens if URL is not required
           if (!requiresUrl) {
             console.log('[api/generate/stream] Sending done signal')
             const completionData = JSON.stringify({ type: "done", content: "Generation complete" })
             controller.enqueue(encoder.encode(`data: ${completionData}\n\n`))
             
-            // Upsert token usage server-side after successful generation
-            if (accumulatedTokens > 0) {
-              await upsertTokenUsage({
-                supabaseUserId: user.id,
-                tokensThisRequest: accumulatedTokens,
-                modelUsed,
-                supabase,
-              })
-            }
+            // Upsert credit and token usage server-side after successful generation
+            await upsertCreditUsage({
+              supabaseUserId: user.id,
+              creditsThisRequest: creditsForRequest,
+              tokensThisRequest: accumulatedTokens,
+              modelUsed,
+              supabase,
+            })
             
           } else {
-            console.log('[api/generate/stream] Skipping done signal and token upsert - URL required')
+            console.log('[api/generate/stream] Skipping done signal and usage upsert - URL required')
           }
           controller.close()
         } catch (error) {

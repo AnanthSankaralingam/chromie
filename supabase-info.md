@@ -109,7 +109,8 @@ Tracks all purchases (one-time and subscriptions) as a ledger.
 | `plan`                    | text         | 'starter', 'pro', 'legend'                   |
 | `purchase_type`           | text         | 'one_time' or 'subscription'                 |
 | `status`                  | text         | 'active', 'refunded', 'expired', 'canceled'  |
-| `tokens_purchased`        | bigint       | Tokens included in this purchase             |
+| `credits_purchased`        | bigint       | Credits included in this purchase             |
+| `tokens_purchased`         | bigint       | Tokens included in this purchase (for analytics) |
 | `browser_minutes_purchased`| integer     | Browser minutes included in this purchase    |
 | `projects_purchased`      | integer      | Projects included in this purchase           |
 | `purchased_at`            | timestamptz  | When purchase was made                       |
@@ -126,16 +127,17 @@ Additional indexes:
 ---
 
 ### 7. `token_usage`
-Tracks LLM token usage per user.
+Tracks both credit usage (for billing) and token usage (for analytics) per user.
 
 | Column            | Type         | Details                                           |
 |-------------------|--------------|---------------------------------------------------|
 | `id`              | uuid         | PK, DEFAULT gen_random_uuid()                    |
 | `user_id`         | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
-| `total_tokens`    | integer      | Total tokens = prompt + completion               |
+| `total_credits`   | integer      | Total credits used (for billing limits)          |
+| `total_tokens`    | integer      | Total tokens used (for analytics/cost tracking)   |
 | `model`           | text         | Model used (e.g. 'gpt-4o')                        |
-| `monthly_reset`      | timestamptz  | DEFAULT now()                                    |
-| `browser_minutes`      | integer  | Total browser minutes used                               |
+| `monthly_reset`   | timestamptz  | DEFAULT now()                                    |
+| `browser_minutes` | integer      | Total browser minutes used                        |
 
 ---
 
@@ -279,12 +281,17 @@ Helper functions:
 ---
 ## Project Limits by Plan
 
-| Plan    | Max Projects | Tokens | Browser Minutes | Reset Type | Description                    |
-|---------|--------------|--------|-----------------|------------|--------------------------------|
-| free    | 1            | 40K    | 15              | monthly    | Basic tier with limited projects |
-| starter | 2            | 150K   | 30              | one-time   | One-time purchase package       |
-| pro     | 10           | 1M     | 120             | one-time   | One-time purchase package       |
-| legend  | 300          | 5M     | 240             | monthly    | Monthly subscription            |
+| Plan    | Max Projects | Credits | Browser Minutes | Reset Type | Description                    |
+|---------|--------------|---------|-----------------|------------|--------------------------------|
+| free    | 1            | 5       | 15              | monthly    | Basic tier with limited projects |
+| starter | 2            | 20      | 30              | one-time   | One-time purchase package       |
+| pro     | 10           | 100     | 120             | one-time   | One-time purchase package       |
+| legend  | 300          | 1000    | 240             | monthly    | Monthly subscription            |
+
+## Credit Costs
+
+- **Initial code generation**: 3 credits (for new extension projects)
+- **Follow-up code generation**: 1 credit (for updates to existing extensions)
 
 ---
 
