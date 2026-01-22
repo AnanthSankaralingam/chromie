@@ -117,7 +117,7 @@ function BuilderPageContent() {
         id: TOUR_STEP_IDS.TEST_WITH_AI,
         selectorId: "tour-test-with-ai-button",
         position: "bottom",
-        title: "Test with AI (Beta)",
+        title: "Test with AI (New)",
         content: (
           <div className="space-y-1">
             <p>Run AI agent testing to simulate real user behavior end-to-end.</p>

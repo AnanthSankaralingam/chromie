@@ -405,7 +405,7 @@ export default function AppBarBuilder({
                           <Sparkles className="h-4 w-4 mr-2" />
                           <span className="inline-flex items-center space-x-1.5">
                             <span>test with ai</span>
-                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">new</span>
                           </span>
                           <ChevronDown className="h-4 w-4 ml-1" />
                         </>
@@ -578,7 +578,7 @@ export default function AppBarBuilder({
                         {!userIsPaid && !isStillLoading ? (
                           <Lock className="h-3 w-3" />
                         ) : (
-                          <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">beta</span>
+                          <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">new</span>
                         )}
                       </span>
                       <ChevronDown className="h-4 w-4 ml-1" />
