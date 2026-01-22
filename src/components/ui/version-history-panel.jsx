@@ -1,10 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { History, Clock, ChevronDown, ChevronUp, RotateCcw, Trash2, X, Save, AlertCircle } from "lucide-react"
+import { History, Clock, ChevronDown, ChevronUp, RotateCcw, Trash2, X, Save, AlertCircle, Lock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { usePaidPlan } from "@/hooks/use-paid-plan"
 
 export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVersionRestored }) {
+  const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
+  // Ensure boolean values to prevent runtime errors
+  const userIsPaid = Boolean(isPaid)
+  const isStillLoading = Boolean(isLoadingPaidPlan)
   const [versions, setVersions] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [expandedVersion, setExpandedVersion] = useState(null)
@@ -20,6 +25,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
     if (isOpen && projectId) {
       loadVersions()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, projectId])
 
   const loadVersions = async () => {
@@ -35,6 +41,10 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
       const data = await response.json()
       
       if (!response.ok) {
+        // Check if it's a paid feature error
+        if (response.status === 403 && data.error && data.error.includes('paid feature')) {
+          throw new Error("Version history is a paid feature. Please upgrade to access this feature.")
+        }
         // Check if it's a database table missing error
         if (data.error && (data.error.includes('does not exist') || data.error.includes('relation'))) {
           throw new Error("Version history feature not yet enabled. Please run the database migration first.")
@@ -75,6 +85,10 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
       const data = await response.json()
       
       if (!response.ok) {
+        // Check if it's a paid feature error
+        if (response.status === 403 && data.error && data.error.includes('paid feature')) {
+          throw new Error("Version history is a paid feature. Please upgrade to access this feature.")
+        }
         // Check if it's a database function missing error
         if (data.error && (data.error.includes('Could not find the function') || data.error.includes('schema cache'))) {
           throw new Error("Version history feature not yet enabled. Please run the database migration first.")
@@ -111,6 +125,10 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
 
       if (!response.ok) {
         const errorData = await response.json()
+        // Check if it's a paid feature error
+        if (response.status === 403 && errorData.error && errorData.error.includes('paid feature')) {
+          throw new Error("Version history is a paid feature. Please upgrade to access this feature.")
+        }
         throw new Error(errorData.error || "Failed to revert to version")
       }
 
@@ -235,11 +253,31 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
         <div className="px-6 py-4 border-b border-gray-700">
           {!showCreateForm ? (
             <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              onClick={() => {
+                if (!userIsPaid && !isStillLoading) {
+                  window.location.href = '/pricing'
+                  return
+                }
+                setShowCreateForm(true)
+              }}
+              disabled={!userIsPaid && !isStillLoading}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                !userIsPaid && !isStillLoading
+                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}
             >
-              <Save className="h-4 w-4" />
-              <span>Create Version Snapshot</span>
+              {!userIsPaid && !isStillLoading ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  <span>Create Version Snapshot (Paid)</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Create Version Snapshot</span>
+                </>
+              )}
             </button>
           ) : (
             <div className="space-y-3">

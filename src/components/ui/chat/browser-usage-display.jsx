@@ -55,6 +55,9 @@ export default function BrowserUsageDisplay() {
   const isOverLimit = !isUnlimited && browserUsagePercentage >= 100
 
   const formatMinutes = (minutes) => {
+    if (minutes == null) {
+      return "0"
+    }
     if (minutes >= 1000) {
       return `${Math.round(minutes / 1000)}k`
     }

@@ -55,9 +55,10 @@ const pricingData = [
       "1000 credits per month",
       "credit rollovers",
       "priority support",
-      "advanced testing features",
+      "advanced browser use agent testing features",
+      "metrics platform",
       "team collaboration",
-      "cancel anytime"
+      "cancel anytime",
     ],
     cta: "get started",
     href: "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05",

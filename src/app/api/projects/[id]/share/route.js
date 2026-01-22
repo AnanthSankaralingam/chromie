@@ -7,7 +7,8 @@ import {
   checkRateLimit, 
   securityLog, 
   isSuspiciousUserAgent,
-  generateSecureToken 
+  generateSecureToken,
+  checkPaidPlan,
 } from "@/lib/validation"
 
 // Generate a secure random token
@@ -67,6 +68,20 @@ export async function POST(request, { params }) {
       error: userError?.message
     })
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Check if user has paid plan
+  const { isPaid } = await checkPaidPlan(supabase, user.id)
+  if (!isPaid) {
+    securityLog('warn', 'Free user attempted share link creation', {
+      userId: user.id,
+      projectId,
+      userAgent,
+      clientIP,
+    })
+    return NextResponse.json({ 
+      error: "Extension share links are a paid feature. Please upgrade to access this feature." 
+    }, { status: 403 })
   }
 
   // Rate limiting

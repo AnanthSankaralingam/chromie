@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
-import { Share, Download, Link, Upload, ChevronDown, Github, GitFork } from "lucide-react"
+import { Share, Download, Link, Upload, ChevronDown, Github, GitFork, Lock } from "lucide-react"
 
 export default function ShareDropdown({
   projectId,
@@ -26,8 +26,14 @@ export default function ShareDropdown({
   hasGithubRepo = false,
   className = "",
   triggerId,
+  isPaid = false,
+  isLoadingPaidPlan = true,
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  
+  // Ensure boolean values
+  const userIsPaid = Boolean(isPaid)
+  const isStillLoading = Boolean(isLoadingPaidPlan)
 
   const handleDownloadClick = () => {
     setIsOpen(false)
@@ -89,17 +95,6 @@ export default function ShareDropdown({
             {isDownloading ? "Downloading..." : "Download Extension"}
           </span>
         </DropdownMenuItem>
-        
-        <DropdownMenuItem 
-          onClick={handleShareClick}
-          disabled={isSharing}
-          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
-        >
-          <Link className="h-4 w-4 mr-3 text-green-400" />
-          <span className="flex-1">
-            {isSharing ? "Generating..." : "Get Shareable Link"}
-          </span>
-        </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={handleForkClick}
@@ -113,23 +108,54 @@ export default function ShareDropdown({
         </DropdownMenuItem>
 
         <DropdownMenuItem 
-          onClick={handleExportToGithubClick}
-          disabled={isDisabled || isExportingToGithub}
-          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
-        >
-          <Github className="h-4 w-4 mr-3 text-slate-200" />
-          <span className="flex-1">
-            {githubLabel}
-          </span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem 
           onClick={handlePublishClick}
           disabled={isDisabled}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
           <Upload className="h-4 w-4 mr-3 text-purple-400" />
           <span className="flex-1">Publish to Chrome Web Store</span>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem 
+          onClick={() => {
+            if (!userIsPaid && !isStillLoading) {
+              window.location.href = '/pricing'
+              return
+            }
+            handleShareClick()
+          }}
+          disabled={isSharing || (!userIsPaid && !isStillLoading)}
+          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+        >
+          {!userIsPaid && !isStillLoading ? (
+            <Lock className="h-4 w-4 mr-3 text-slate-500" />
+          ) : (
+            <Link className="h-4 w-4 mr-3 text-green-400" />
+          )}
+          <span className="flex-1">
+            {isSharing ? "Generating..." : !userIsPaid && !isStillLoading ? "Get Shareable Link (Paid)" : "Get Shareable Link"}
+          </span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => {
+            if (!userIsPaid && !isStillLoading) {
+              window.location.href = '/pricing'
+              return
+            }
+            handleExportToGithubClick()
+          }}
+          disabled={isDisabled || isExportingToGithub || (!userIsPaid && !isStillLoading)}
+          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+        >
+          {!userIsPaid && !isStillLoading ? (
+            <Lock className="h-4 w-4 mr-3 text-slate-500" />
+          ) : (
+            <Github className="h-4 w-4 mr-3 text-slate-200" />
+          )}
+          <span className="flex-1">
+            {!userIsPaid && !isStillLoading ? `${githubLabel} (Paid)` : githubLabel}
+          </span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

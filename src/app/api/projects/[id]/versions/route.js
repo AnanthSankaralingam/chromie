@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { checkPaidPlan } from "@/lib/validation"
 
 // GET - List all versions for a project
 export async function GET(request, { params }) {
@@ -13,6 +14,14 @@ export async function GET(request, { params }) {
 
   if (userError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Check if user has paid plan
+  const { isPaid } = await checkPaidPlan(supabase, user.id)
+  if (!isPaid) {
+    return NextResponse.json({ 
+      error: "Version history is a paid feature. Please upgrade to access this feature." 
+    }, { status: 403 })
   }
 
   try {
@@ -63,6 +72,14 @@ export async function POST(request, { params }) {
 
   if (userError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Check if user has paid plan
+  const { isPaid } = await checkPaidPlan(supabase, user.id)
+  if (!isPaid) {
+    return NextResponse.json({ 
+      error: "Version history is a paid feature. Please upgrade to access this feature." 
+    }, { status: 403 })
   }
 
   try {
