@@ -433,10 +433,10 @@ export default function SideBySideTestModal({
       })
     } finally {
       setIsRunningPuppeteerTests(false)
-      // Hyperbrowser live view can occasionally go white after CDP automation disconnects.
-      // Force the iframe to remount/reconnect once at the end of a Puppeteer run.
-      setIframeReconnectNonce((n) => n + 1)
-      console.log("[puppeteer-tests] 🔄 Forcing live view iframe reconnect", {
+      // We previously forced an iframe reconnect here by incrementing iframeReconnectNonce,
+      // but this was causing "NOT FOUND" errors in the simulated browser.
+      // The backend now keeps the CDP connection alive to prevent session disruption.
+      console.log("[puppeteer-tests] ✅ Run complete", {
         sessionId: sessionData?.sessionId,
       })
     }

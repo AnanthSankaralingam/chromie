@@ -141,11 +141,16 @@ async function runChromieTestFile({ code, sessionId, apiKey }) {
   }
 
   // Final cleanup for the shared connection.
+  // We avoid calling browser.disconnect() here because it can disrupt the
+  // embedded live view in the "Try it out" simulated browser environment.
+  // The session will be cleaned up when the user closes the modal or it expires.
+  /*
   try {
     await cachedContext?.browser?.disconnect?.()
   } catch (_) {
     // ignore
   }
+  */
 
   const passed = results.every((r) => r.status === "passed")
   return { passed, results }
