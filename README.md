@@ -15,7 +15,7 @@ P1:
 3. Blog/Case Studies. Minimal but effective for enterprise CTA
 4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
 5. Gallery of chromie-built extensions:
-6. Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)
+6. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
 P2:
 1. Detect build errors in extensions, similar to Vercel article.
