@@ -24,7 +24,7 @@ export default function ContactSection() {
   }
 
   return (
-    <section id="contact" className="relative z-10 px-6 pb-12">
+    <section id="contact" className="relative z-10 px-6 py-16">
       <div className="container mx-auto max-w-2xl">
         {/* Title */}
         <motion.div

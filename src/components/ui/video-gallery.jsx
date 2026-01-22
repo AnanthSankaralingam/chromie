@@ -80,31 +80,31 @@ export default function VideoGallery({ videos = [] }) {
     if (!playerRef.current) {
       try {
         playerRef.current = new window.YT.Player('youtube-player', {
-          videoId: videoId,
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            controls: 1,
-            modestbranding: 1,
-            rel: 0
-          },
-          events: {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0
+      },
+      events: {
             onReady: () => {
               console.log('YouTube player is ready')
               setIsPlayerReady(true)
             },
-            onStateChange: (event) => {
-              // YT.PlayerState.ENDED = 0
-              if (event.data === 0 && isAutoPlaying && videos.length > 1) {
-                console.log('Video ended, moving to next...')
-                goToNext()
-              }
-            },
-            onError: (event) => {
-              console.error('YouTube player error:', event.data)
-            }
+        onStateChange: (event) => {
+          // YT.PlayerState.ENDED = 0
+          if (event.data === 0 && isAutoPlaying && videos.length > 1) {
+            console.log('Video ended, moving to next...')
+            goToNext()
           }
-        })
+        },
+        onError: (event) => {
+          console.error('YouTube player error:', event.data)
+        }
+      }
+    })
       } catch (error) {
         console.error('Error creating YouTube player:', error)
       }
@@ -113,7 +113,7 @@ export default function VideoGallery({ videos = [] }) {
     return () => {
       if (playerRef.current) {
         try {
-          playerRef.current.destroy()
+        playerRef.current.destroy()
         } catch (error) {
           console.error('Error destroying YouTube player:', error)
         }
@@ -153,8 +153,8 @@ export default function VideoGallery({ videos = [] }) {
         <div className="relative aspect-video w-full">
           <div
             id="youtube-player"
-            className="w-full h-full"
-          />
+                className="w-full h-full"
+              />
 
           {/* Navigation Arrows */}
           {videos.length > 1 && (

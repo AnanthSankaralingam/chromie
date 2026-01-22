@@ -30,21 +30,6 @@ export default function AppBar() {
     return 'U'
   }
 
-  // Handle "How It Works" click - scroll if on home page, navigate otherwise
-  const handleHowItWorksClick = (e) => {
-    e.preventDefault()
-    if (pathname === '/home') {
-      // On home page - scroll to section
-      const section = document.getElementById('how-it-works')
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' })
-      }
-    } else {
-      // On other page - navigate to home page with hash
-      router.push('/home#how-it-works')
-    }
-  }
-
   // Handle "Pricing" click - scroll if on home page, navigate otherwise
   const handlePricingClick = (e) => {
     e.preventDefault()
@@ -57,6 +42,21 @@ export default function AppBar() {
     } else {
       // On other page - navigate to home page with hash
       router.push('/home#pricing')
+    }
+  }
+
+  // Handle "Blog" click - scroll if on home page, navigate otherwise
+  const handleBlogClick = (e) => {
+    e.preventDefault()
+    if (pathname === '/home') {
+      // On home page - scroll to section
+      const section = document.getElementById('blog')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      // On other page - navigate to home page with hash
+      router.push('/home#blog')
     }
   }
 
@@ -104,18 +104,18 @@ export default function AppBar() {
           <div className="flex items-center gap-4">
             <nav className="hidden md:flex items-center space-x-6">
               <a
-                href="#how-it-works"
-                onClick={handleHowItWorksClick}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                how it works
-              </a>
-              <a
                 href="#pricing"
                 onClick={handlePricingClick}
                 className="text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 pricing
+              </a>
+              <a
+                href="#blog"
+                onClick={handleBlogClick}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                blog
               </a>
               <a
                 href="#contact"
@@ -171,16 +171,6 @@ export default function AppBar() {
           <div className="md:hidden border-t border-white/10 mt-3 pt-3 px-2">
             <div className="flex flex-col space-y-3">
               <a
-                href="#how-it-works"
-                onClick={(e) => {
-                  handleHowItWorksClick(e)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                how it works
-              </a>
-              <a
                 href="#pricing"
                 onClick={(e) => {
                   handlePricingClick(e)
@@ -189,6 +179,16 @@ export default function AppBar() {
                 className="text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 pricing
+              </a>
+              <a
+                href="#blog"
+                onClick={(e) => {
+                  handleBlogClick(e)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                blog
               </a>
               <a
                 href="#contact"

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "testing-features-launch",
+    "title": "Testing Features for Chrome Extensions",
+    "slug": "testing-features-launch",
+    "excerpt": "Manually testing Chrome extensions is tedious. Click through your extension, check if it works, make a change, repeat. We got tired of it, so we built something better: automated tests that actually understand what your extension does.",
+    "content": "Manually testing Chrome extensions is tedious. Click through your extension, check if it works, make a change, repeat. We got tired of it, so we built something better: automated tests that actually understand what your extension does.",
+    "date": "Jan 22",
+    "year": "2026",
+    "category": "Engineering",
+    "icon": "test-tube",
+    "authors": [
+      {
+        "name": "Chromie Team",
+        "avatar": "/chromie-logo-1.png"
+      }
+    ],
+    "tags": ["testing", "chrome extensions", "automation", "AI"]
+  }
+]
