@@ -80,14 +80,15 @@ The Chrome extension ID will be injected at runtime. Use these placeholder varia
 - {{SIDEPANEL_URL}} - will be replaced with chrome-extension://<id>/${sidePanelPath || "sidepanel.html"}
 
 CORRECT Examples:
-✅ "1. Navigate to {{POPUP_URL}} 2. Use type action to enter [text] into [element selector] 3. Use click action on [button selector]"
-✅ "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on [specific element from extension code] 3. Verify [expected result]"
-✅ "1. Navigate to {{OPTIONS_URL}} 2. Use click action on [specific element from extension code] 3. Verify [expected result]"
+✅ "1. Navigate to {{POPUP_URL}} 2. Use type action to enter [text] into the [type of input] field 3. Use click action on the [purpose/label] button"
+✅ "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on the [purpose/label] button 3. Verify [expected result]"
+✅ "1. Navigate to {{OPTIONS_URL}} 2. Use click action on the [purpose/label] control 3. Verify [expected result]"
 
 WRONG Examples (DO NOT DO THIS):
 ❌ "1. Navigate to chrome://newtab/ 2. Click the extension icon 3. Use type action..."
 ❌ "1. Open the popup 2. Use click action..."
 ❌ "1. Click extension icon to open side panel 2. Use type action..."
+❌ "1. Navigate to {{POPUP_URL}} 2. Use click action on button with ID 'submitBtn'"
 
 ALWAYS start your task with "Navigate to {{POPUP_URL}}" (or the appropriate placeholder for the extension type).
 If the extension ID is not available at runtime, the system will automatically convert this to fallback instructions.
@@ -159,10 +160,11 @@ Create specific task descriptions based on the extension type, following Browser
 
 2. NAME ACTIONS DIRECTLY:
    - Explicitly state which actions to use
-   - "Use click action on..."
-   - "Use type action to enter..."
+   - "Use click action on the [descriptive button/element name]"
+   - "Use type action to enter [text] into the [descriptive input name]"
    - "Use scroll action to..."
    - "Use extract action to get..."
+   - Describe elements by their purpose/label, not by technical selectors
 
 3. HANDLE INTERACTION PROBLEMS:
    - Include keyboard navigation fallbacks
@@ -178,11 +180,11 @@ Create specific task descriptions based on the extension type, following Browser
    - Example: "1. Navigate to {{POPUP_URL}} 2. Use click action on button 'Submit'"
 
 FOR SIDE PANEL EXTENSIONS:
-- CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on [specific controls] 3. Verify [expected behavior]"
+- CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on the [purpose-based button name] 3. Verify [expected behavior]"
 - WRONG: "1. Click extension icon to open side panel 2. Use click action..."
 
 FOR POPUP EXTENSIONS:
-- CORRECT: "1. Navigate to {{POPUP_URL}} 2. Use click action on [specific buttons] 3. Verify [expected behavior]"
+- CORRECT: "1. Navigate to {{POPUP_URL}} 2. Use click action on the [purpose-based button name] 3. Verify [expected behavior]"
 - WRONG: "1. Click extension icon to open popup 2. Use click action..."
 
 FOR OVERLAY/CONTENT SCRIPT EXTENSIONS:
@@ -195,20 +197,28 @@ FOR GENERIC EXTENSIONS:
 <customization_guidelines>
 Based on the extension files provided:
 1. Analyze the manifest.json to understand permissions and features
-2. Analyze HTML files to identify specific UI elements and IDs
+2. Analyze HTML files to understand what buttons, inputs, and controls exist
 3. Analyze JS files to understand the extension's functionality
 4. Create task descriptions that test the ACTUAL features implemented
-5. Use SPECIFIC element selectors from the HTML/JS files (not generic examples)
+5. Describe UI elements by their PURPOSE or VISIBLE LABEL, not by technical IDs or classes
 6. Test the EXACT functionality from the user's original request
 7. ALWAYS use URL placeholders ({{POPUP_URL}}, {{OPTIONS_URL}}, {{SIDEPANEL_URL}}) - NEVER "click extension icon"
 
+When describing elements in tasks:
+- Use descriptive names based on what the button/input DOES or what label/text it displays
+- NEVER use technical selectors like IDs, classes, or CSS selectors
+- Let BrowserUse's AI figure out the actual selectors
+- Focus on the user-visible purpose/label of the element
+
 For POPUP extensions:
-- CORRECT: "1. Navigate to {{POPUP_URL}} 2. Use click action on [actual button ID from HTML] 3. Use type action into [actual textarea ID from HTML] 4. Use click action on [actual save button from HTML] 5. Verify [expected result based on functionality]"
+- CORRECT: "1. Navigate to {{POPUP_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result based on functionality]"
 - WRONG: "1. Navigate to chrome://newtab/ 2. Click extension icon 3. Use click action..."
+- WRONG: "1. Navigate to {{POPUP_URL}} 2. Use click action on button with ID 'xyz123'"
 
 For SIDE PANEL extensions:
-- CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use type action into [actual element from HTML] 3. Use click action on [actual button from HTML] 4. Verify [expected result]"
+- CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result]"
 - WRONG: "1. Open side panel 2. Use type action..."
+- WRONG: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click on element with class 'xyz-class'"
 </customization_guidelines>
 
 Generate the complete executable script now.
