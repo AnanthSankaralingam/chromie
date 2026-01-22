@@ -300,7 +300,7 @@ function PricingCard({ plan, index }) {
         {/* Badge and Featured Label */}
         <div className="mb-4 sm:mb-6">
           <div className="flex flex-col items-start gap-2">
-            <h3 className="text-xl sm:text-2xl font-bold text-white capitalize break-words">{plan.title}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white break-words">{plan.title}</h3>
             {plan.featured && (
               <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30 px-2 sm:px-3 py-1 text-xs font-medium text-blue-300 whitespace-nowrap">
                 <Star className="w-3 h-3 flex-shrink-0" />
