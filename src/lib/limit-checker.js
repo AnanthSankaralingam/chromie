@@ -17,10 +17,10 @@ export async function getUserLimits(userId, supabase) {
     console.error('Error fetching purchases:', purchasesError)
   }
 
-  // Get current usage from token_usage table
+  // Get current usage from token_usage table (tracks both credits and tokens)
   const { data: usage, error: usageError } = await supabase
     .from('token_usage')
-    .select('total_tokens, browser_minutes, monthly_reset')
+    .select('total_credits, total_tokens, browser_minutes, monthly_reset')
     .eq('user_id', userId)
     .maybeSingle()
   
@@ -46,6 +46,7 @@ export async function getUserLimits(userId, supabase) {
   
   if (legendSub) {
     // Active Legend subscription - use Legend limits with monthly reset
+    // No limits on projects or browser minutes for paid plans (only credits)
     const monthlyResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
     let resetDatePlusOneMonth = null
     if (monthlyResetDate) {
@@ -58,12 +59,12 @@ export async function getUserLimits(userId, supabase) {
       plan: 'legend',
       purchaseType: 'subscription',
       limits: {
-        tokens: PLAN_LIMITS.legend.monthly_tokens,
-        browserMinutes: PLAN_LIMITS.legend.monthly_browser_minutes,
-        projects: PLAN_LIMITS.legend.max_projects
+        credits: PLAN_LIMITS.legend.monthly_credits,
+        browserMinutes: Infinity, // Unlimited for paid plans
+        projects: Infinity // Unlimited for paid plans
       },
       usage: {
-        tokens: isResetDue ? 0 : (usage?.total_tokens || 0),
+        credits: isResetDue ? 0 : (usage?.total_credits || 0),
         browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
         projects: profile?.project_count || 0
       },
@@ -77,10 +78,11 @@ export async function getUserLimits(userId, supabase) {
   const oneTimePurchases = purchases?.filter(p => p.purchase_type === 'one_time') || []
   
   if (oneTimePurchases.length > 0) {
+    // For paid plans (one-time purchases), only limit credits, not projects or browser minutes
     const totalLimits = {
-      tokens: oneTimePurchases.reduce((sum, p) => sum + p.tokens_purchased, 0),
-      browserMinutes: oneTimePurchases.reduce((sum, p) => sum + p.browser_minutes_purchased, 0),
-      projects: oneTimePurchases.reduce((sum, p) => sum + p.projects_purchased, 0)
+      credits: oneTimePurchases.reduce((sum, p) => sum + p.credits_purchased, 0),
+      browserMinutes: Infinity, // Unlimited for paid plans
+      projects: Infinity // Unlimited for paid plans
     }
     
     return {
@@ -90,7 +92,7 @@ export async function getUserLimits(userId, supabase) {
       purchaseCount: oneTimePurchases.length,
       limits: totalLimits,
       usage: {
-        tokens: usage?.total_tokens || 0,
+        credits: usage?.total_credits || 0,
         browserMinutes: usage?.browser_minutes || 0,
         projects: profile?.project_count || 0
       },
@@ -98,14 +100,14 @@ export async function getUserLimits(userId, supabase) {
       resetDate: null,
       resetType: 'never',
       exhausted: {
-        tokens: (usage?.total_tokens || 0) >= totalLimits.tokens,
-        browserMinutes: (usage?.browser_minutes || 0) >= totalLimits.browserMinutes,
-        projects: (profile?.project_count || 0) >= totalLimits.projects
+        credits: (usage?.total_credits || 0) >= totalLimits.credits,
+        browserMinutes: false, // Never exhausted for paid plans
+        projects: false // Never exhausted for paid plans
       }
     }
   }
   
-  // Free tier
+  // Free tier - only limit credits, not projects or browser minutes
   const monthlyResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
   let resetDatePlusOneMonth = null
   if (monthlyResetDate) {
@@ -118,12 +120,12 @@ export async function getUserLimits(userId, supabase) {
     plan: 'free',
     purchaseType: 'free',
     limits: {
-      tokens: PLAN_LIMITS.free.monthly_tokens,
-      browserMinutes: PLAN_LIMITS.free.monthly_browser_minutes,
-      projects: PLAN_LIMITS.free.max_projects
+      credits: PLAN_LIMITS.free.monthly_credits,
+      browserMinutes: Infinity, // Unlimited for all plans (only credits are limited)
+      projects: Infinity // Unlimited for all plans (only credits are limited)
     },
     usage: {
-      tokens: isResetDue ? 0 : (usage?.total_tokens || 0),
+      credits: isResetDue ? 0 : (usage?.total_credits || 0),
       browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
       projects: profile?.project_count || 0
     },
@@ -141,6 +143,25 @@ export async function checkLimit(userId, resourceType, amount, supabase) {
   
   const currentUsage = limits.usage[resourceType] || 0
   const limit = limits.limits[resourceType] || 0
+  
+  // Skip project and browser minute limits for all plans (only credits are limited)
+  const shouldSkipLimit = resourceType === 'projects' || resourceType === 'browserMinutes'
+  
+  if (shouldSkipLimit) {
+    return {
+      allowed: true, // Always allow - only credits are limited
+      currentUsage,
+      limit: Infinity,
+      available: Infinity,
+      needed: amount,
+      plan: limits.plan,
+      purchaseType: limits.purchaseType,
+      resetType: limits.resetType,
+      resetDate: limits.resetDate,
+      exhausted: false
+    }
+  }
+  
   const available = limit - currentUsage
   
   return {
@@ -162,7 +183,7 @@ export async function checkLimit(userId, resourceType, amount, supabase) {
  */
 export function formatLimitError(checkResult, resourceType) {
   const resourceNames = {
-    tokens: 'AI tokens',
+    credits: 'credits',
     browserMinutes: 'browser testing minutes',
     projects: 'projects'
   }

@@ -54,13 +54,10 @@ export default function TokenUsageDisplay() {
   const isNearLimit = !isUnlimited && usagePercentage > 80
   const isOverLimit = !isUnlimited && usagePercentage >= 100
 
-  const formatTokens = (tokens) => {
-    if (tokens >= 1000000) {
-      return `${Math.round(tokens / 1000000)}M`
-    } else if (tokens >= 1000) {
-      return `${Math.round(tokens / 1000)}k`
-    }
-    return tokens.toString()
+  // Credits are typically small numbers, so no need for formatting
+  const formatCredits = (credits) => {
+    if (credits === 'unlimited' || credits === -1) return '∞'
+    return credits.toString()
   }
 
   return (
@@ -68,19 +65,20 @@ export default function TokenUsageDisplay() {
       <Zap className="h-4 w-4 text-yellow-400" />
       <div className="flex items-center space-x-1">
         <span className="text-sm text-slate-300">
-          {formatTokens(totalTokensUsed)}
+          {formatCredits(totalTokensUsed)}
         </span>
         {!isUnlimited && (
           <>
             <span className="text-sm text-slate-500">/</span>
             <span className="text-sm text-slate-300">
-              {formatTokens(planLimit)}
+              {formatCredits(planLimit)}
             </span>
           </>
         )}
         {isUnlimited && (
           <span className="text-sm text-slate-500">/∞</span>
         )}
+        <span className="text-xs text-slate-500 ml-1">credits</span>
       </div>
       {isOverLimit && (
         <AlertTriangle className="h-4 w-4 text-red-400" />

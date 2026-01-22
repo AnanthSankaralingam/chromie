@@ -1,29 +1,36 @@
-// Plan limits for token usage and browser testing
+// Plan limits for credit usage and browser testing
 export const PLAN_LIMITS = {
   free: { 
-    monthly_tokens: 40000,
+    monthly_credits: 10,
     max_projects: 1,
     monthly_browser_minutes: 15,
     reset_type: 'monthly'
   },
   starter: { 
-    monthly_tokens: 150000,
+    monthly_credits: 20,
     max_projects: 2,
     monthly_browser_minutes: 30,
     reset_type: 'one_time'
   },
   pro: { 
-    monthly_tokens: 1000000,
+    monthly_credits: 500,
     max_projects: 10,
     monthly_browser_minutes: 120,
     reset_type: 'one_time'
   },
   legend: { 
-    monthly_tokens: 5000000,
+    monthly_credits: 1000,
     max_projects: 300,
     monthly_browser_minutes: 240,
     reset_type: 'monthly'
   }
+}
+
+// Credit costs for different request types
+export const CREDIT_COSTS = {
+  INITIAL_GENERATION: 3,  // Initial code generation project requests
+  FOLLOW_UP_GENERATION: 1,  // Follow-up code generation requests
+  BROWSER_TESTING: 1  // Browser testing session (per use)
 }
 
 // Default plan for users without billing info

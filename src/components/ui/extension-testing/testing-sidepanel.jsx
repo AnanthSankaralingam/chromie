@@ -1,10 +1,11 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import { Play, FileCode, Bot, CheckCircle, AlertCircle, Terminal, Sparkles } from "lucide-react"
+import { Play, FileCode, Bot, CheckCircle, AlertCircle, Terminal, Sparkles, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ConsoleLogViewer from "@/components/ui/extension-testing/console-log-viewer"
+import { usePaidPlan } from "@/hooks/use-paid-plan"
 
 function ResultStatusPill({ status }) {
   if (!status) return null
@@ -61,6 +62,7 @@ export default function TestingSidepanel({
   const [activeTab, setActiveTab] = useState("puppeteer")
   const [testsExist, setTestsExist] = useState({ puppeteer: true, aiAgent: true })
   const [isCheckingTests, setIsCheckingTests] = useState(true)
+  const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
 
   // Check which tests exist when component mounts or projectId changes
   useEffect(() => {
@@ -195,23 +197,39 @@ export default function TestingSidepanel({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+          <div className={cn(
+            "flex items-center justify-between gap-3 rounded-lg border px-3 py-2",
+            !isPaid && !isLoadingPaidPlan ? "border-gray-200 bg-gray-50" : "border-gray-200 bg-white"
+          )}>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <Bot className="h-4 w-4 text-gray-700" />
+                <Bot className={cn("h-4 w-4", !isPaid && !isLoadingPaidPlan ? "text-gray-400" : "text-gray-700")} />
                 <button
                   type="button"
                   className={cn(
-                    "text-sm font-medium text-gray-900 hover:underline",
+                    "text-sm font-medium hover:underline flex items-center gap-1.5",
+                    !isPaid && !isLoadingPaidPlan ? "text-gray-500 cursor-not-allowed" : "text-gray-900",
                     activeTab === "aiAgent" && "underline"
                   )}
-                  onClick={() => setActiveTab("aiAgent")}
+                  onClick={() => {
+                    if (isPaid || isLoadingPaidPlan) {
+                      setActiveTab("aiAgent")
+                    }
+                  }}
+                  disabled={!isPaid && !isLoadingPaidPlan}
                 >
                   AI agent tests
+                  {!isPaid && !isLoadingPaidPlan && (
+                    <Lock className="h-3.5 w-3.5 text-gray-400" />
+                  )}
                 </button>
               </div>
               <div className="mt-0.5 text-xs text-gray-500">
-                End‑to‑end user simulation (realistic interactions).
+                {!isPaid && !isLoadingPaidPlan ? (
+                  <span className="text-amber-600">Paid feature — upgrade to unlock</span>
+                ) : (
+                  "End‑to‑end user simulation (realistic interactions)."
+                )}
               </div>
             </div>
 
@@ -219,7 +237,11 @@ export default function TestingSidepanel({
               {aiAgentTestResult && (
                 <ResultStatusPill status={aiAgentStatus} />
               )}
-              {testsExist.aiAgent ? (
+              {!isPaid && !isLoadingPaidPlan ? (
+                <div className="p-1 text-gray-400 cursor-not-allowed" title="AI agent testing is a paid feature">
+                  <Lock className="h-4 w-4" />
+                </div>
+              ) : testsExist.aiAgent ? (
                 <button
                   onClick={() => {
                     console.log("[testing-sidepanel] ▶️ Run AI agent tests clicked", { projectId, sessionId })

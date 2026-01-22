@@ -124,6 +124,7 @@ async function handleOneTimePurchase(stripeCustomerId, plan, paymentIntentId) {
   const limits = PLAN_LIMITS[plan]
   
   // Create purchase record (ledger)
+  // For paid plans, projects and browser minutes are unlimited (set to 0 to indicate unlimited)
   const { error: purchaseError } = await supabase
     .from('purchases')
     .insert({
@@ -132,9 +133,9 @@ async function handleOneTimePurchase(stripeCustomerId, plan, paymentIntentId) {
       plan,
       purchase_type: 'one_time',
       status: 'active',
-      tokens_purchased: limits.monthly_tokens,
-      browser_minutes_purchased: limits.monthly_browser_minutes,
-      projects_purchased: limits.max_projects,
+      credits_purchased: limits.monthly_credits,
+      browser_minutes_purchased: 0, // Unlimited for paid plans (not enforced)
+      projects_purchased: 0, // Unlimited for paid plans (not enforced)
       expires_at: null // One-time purchases never expire
     })
   
@@ -179,6 +180,7 @@ async function handleSubscriptionCreated(subscription) {
   const limits = PLAN_LIMITS.legend
   
   // Create purchase record for subscription
+  // For paid plans, projects and browser minutes are unlimited (set to 0 to indicate unlimited)
   await supabase
     .from('purchases')
     .insert({
@@ -188,13 +190,13 @@ async function handleSubscriptionCreated(subscription) {
       plan: 'legend',
       purchase_type: 'subscription',
       status: 'active',
-      tokens_purchased: limits.monthly_tokens,
-      browser_minutes_purchased: limits.monthly_browser_minutes,
-      projects_purchased: limits.max_projects,
+      credits_purchased: limits.monthly_credits,
+      browser_minutes_purchased: 0, // Unlimited for paid plans (not enforced)
+      projects_purchased: 0, // Unlimited for paid plans (not enforced)
       expires_at: new Date(subscription.current_period_end * 1000).toISOString()
     })
   
-  // Reset token usage for new billing cycle
+  // Reset credit and token usage for new billing cycle
   const firstDayOfMonth = new Date()
   firstDayOfMonth.setDate(1)
   firstDayOfMonth.setHours(0, 0, 0, 0)
@@ -203,6 +205,7 @@ async function handleSubscriptionCreated(subscription) {
     .from('token_usage')
     .upsert({
       user_id: profile.id,
+      total_credits: 0,
       total_tokens: 0,
       browser_minutes: 0,
       monthly_reset: firstDayOfMonth.toISOString()
@@ -286,6 +289,7 @@ async function handlePaymentSucceeded(invoice) {
     await supabase
       .from('token_usage')
       .update({
+        total_credits: 0,
         total_tokens: 0,
         browser_minutes: 0,
         monthly_reset: firstDayOfMonth.toISOString()

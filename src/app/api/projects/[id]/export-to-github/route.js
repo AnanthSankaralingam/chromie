@@ -6,6 +6,7 @@ import {
   validateHeaders,
   securityLog,
   isSuspiciousUserAgent,
+  checkPaidPlan,
 } from "@/lib/validation"
 
 // Helper to base64-encode UTF-8 text
@@ -151,6 +152,20 @@ export async function POST(request, { params }) {
         error: userError?.message,
       })
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check if user has paid plan
+    const { isPaid } = await checkPaidPlan(supabase, user.id)
+    if (!isPaid) {
+      securityLog("warn", "Free user attempted GitHub export", {
+        userId: user.id,
+        projectId,
+        userAgent,
+        clientIP,
+      })
+      return NextResponse.json({ 
+        error: "GitHub export is a paid feature. Please upgrade to access this feature." 
+      }, { status: 403 })
     }
 
     // Load user's stored GitHub token

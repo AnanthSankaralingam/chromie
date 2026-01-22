@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { HyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
-import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
+import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 
 // TODO depracate this route
 export async function POST(request, { params }) {
@@ -31,15 +31,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
     }
 
-    // Check browser minute limit using new limit checker
-    const sessionMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
+    // Check credit limit for browser testing (1 credit per use)
+    const browserTestCredits = CREDIT_COSTS.BROWSER_TESTING
     
-    const limitCheck = await checkLimit(user.id, 'browserMinutes', sessionMinutes, supabase)
+    const limitCheck = await checkLimit(user.id, 'credits', browserTestCredits, supabase)
     
     if (!limitCheck.allowed) {
-      console.log(`[api/projects/test] ❌ Browser minute limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
+      console.log(`[api/projects/test] ❌ Credit limit exceeded: ${limitCheck.currentUsage}/${limitCheck.limit} on ${limitCheck.plan} plan`)
       return NextResponse.json(
-        formatLimitError(limitCheck, 'browserMinutes'),
+        formatLimitError(limitCheck, 'credits'),
         { status: 429 }
       )
     }
@@ -171,46 +171,96 @@ export async function DELETE(request, { params }) {
     const hyperbrowserService = new HyperbrowserService()
     const success = await hyperbrowserService.terminateSession(sessionId)
 
-    // Update browser usage with actual minutes used
-    if (actualMinutesUsed > 0) {
-      try {
-        // Get current browser usage
-        const { data: currentUsage, error: fetchError } = await supabase
-          .from('token_usage')
-          .select('browser_minutes')
-          .eq('user_id', user.id)
-          .maybeSingle()
+    // Charge 1 credit for browser testing (charged when session ends)
+    const browserTestCredits = CREDIT_COSTS.BROWSER_TESTING
+    
+    try {
+      // Use service-role client for RLS-safe updates
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      let db = supabase
+      if (supabaseUrl && serviceKey) {
+        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+        db = createServiceClient(supabaseUrl, serviceKey)
+      }
 
-        if (fetchError) {
-          console.error('Error fetching current browser usage:', fetchError)
+      // Check if user already has a token_usage record
+      const { data: existingUsage, error: fetchError } = await db
+        .from('token_usage')
+        .select('id, total_credits, total_tokens, monthly_reset, model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error fetching existing usage:', fetchError)
+      } else {
+        const now = new Date()
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        let newMonthlyResetISO = existingUsage?.monthly_reset || firstDayOfMonth.toISOString()
+
+        // Determine if reset is due
+        let isResetDue = false
+        if (existingUsage?.monthly_reset) {
+          const d = new Date(existingUsage.monthly_reset)
+          const plusOne = new Date(d)
+          plusOne.setMonth(plusOne.getMonth() + 1)
+          isResetDue = now >= plusOne
+        }
+
+        let newTotalCredits
+        if (!existingUsage || isResetDue) {
+          newTotalCredits = browserTestCredits
+          newMonthlyResetISO = firstDayOfMonth.toISOString()
         } else {
-          const currentMinutes = currentUsage?.browser_minutes || 0
-          const updatedMinutes = currentMinutes + actualMinutesUsed
+          newTotalCredits = (existingUsage.total_credits || 0) + browserTestCredits
+        }
 
-          // Update browser_minutes in token_usage table
-          const { error: updateError } = await supabase
+        if (existingUsage?.id) {
+          // Update existing record
+          const { error: updateError } = await db
             .from('token_usage')
-            .update({ browser_minutes: updatedMinutes })
+            .update({
+              total_credits: newTotalCredits,
+              monthly_reset: newMonthlyResetISO
+            })
+            .eq('id', existingUsage.id)
             .eq('user_id', user.id)
 
           if (updateError) {
-            console.error('Error updating browser usage:', updateError)
+            console.error('Error updating credit usage:', updateError)
           } else {
-            console.log(`Updated browser usage: ${currentMinutes} + ${actualMinutesUsed} = ${updatedMinutes} minutes for user ${user.id}`)
+            console.log(`Updated credit usage: +${browserTestCredits} credits for user ${user.id}`)
+          }
+        } else {
+          // Create new record
+          const { error: insertError } = await db
+            .from('token_usage')
+            .insert({
+              user_id: user.id,
+              total_credits: browserTestCredits,
+              total_tokens: 0,
+              model: 'browser-testing',
+              monthly_reset: newMonthlyResetISO
+            })
+
+          if (insertError) {
+            console.error('Error creating credit usage record:', insertError)
+          } else {
+            console.log(`Created credit usage: +${browserTestCredits} credits for user ${user.id}`)
           }
         }
-      } catch (updateError) {
-        console.error('Error updating browser usage:', updateError)
       }
+    } catch (updateError) {
+      console.error('Error updating credit usage:', updateError)
     }
 
     console.log("Test session terminated:", sessionId, success ? "successfully" : "with errors")
-    console.log(`Actual minutes used: ${actualMinutesUsed}`)
+    console.log(`Credits charged: ${browserTestCredits}`)
 
     return NextResponse.json({ 
       success,
       message: success ? "Session terminated successfully" : "Failed to terminate session",
-      actualMinutesUsed
+      creditsCharged: browserTestCredits
     })
 
   } catch (error) {
