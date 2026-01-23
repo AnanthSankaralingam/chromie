@@ -4,8 +4,8 @@ Focus on actual platform usage, scalability and consumer features. We'll handle 
 Less focus on token costs and more on actual performance. 
 
 P0:
-1. scalable Metrics SDK: for chromie premium users
-2. 10-15 templates for niche extenisons. The more we can match, the more robust/cheap our system gets.
+1. ~scalable Metrics SDK: for chromie premium users~
+2. ~10-15 templates for niche extenisons. The more we can match, the more robust/cheap our system gets.~
 3. Deploy 5 public template extensions where users bring their API keys: ChatGPT/Claude in sidepanel, Speech to Text with Fireworks, etc. This is our main GTM
 
 P1:
@@ -28,13 +28,12 @@ P3 Scalablility:
 2. Enable concurrency on backend
 3. Explore offline extenison testing like Plasmo
 
-P3:
+P4:
 1. Experiment with bundler
 2. UI overhaul
 3. Remove loading page's purple gradient
 4. no hybrid ui types, i.e. popup + content injection
 5. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
-6. Put easy samples on Chrome store w/ demo videos (put in "featured creations" page on website)
 
 
 Bugbash:
@@ -42,21 +41,6 @@ Bugbash:
 2.  Yield model thoughts (title, description hidden) like in Gemini UI
 3.  Take out purple gradient from coder prompt
 4.  Rest of "Bugs" section
-
-
-
-
-
-
-### Next big features
-1. ~Follow-up Conversation tooling: patches (prompt and util), linter verification, file replacement fallback.~ schemas and prefill?
-2. ~Conversation History. Store most recent convo and expire within 2 hrs no usage; store user queries and model explanation response (no code). final query includes codebase current state.~ expire sooner than 2 hrs?
-3. ~Branding: allow for user icon upload (verify size based on store requirements, allow only up to 5 and alias them icon-16, icon-48, etc. to fit with what we already have)~ Auto re-size icons if needed.
-4. Auth in extensions. Experiment with OAuth (store JWT) vs. External providers. If OmniSpeech finds solution use it or implement Promptly Firebase solution.
-5. Pricing in extensions. Explore ExtPay vs. Direct Stripe connection. Next feature after MVP would be to surface pricing metrics in dashboard.
-6. metrics SDK and MVP usage data dashboard in chromie
-7. ~Version history of extensions. Can do fuzzy Google Docs type or just allow for reverting to a certain point in conversation.~
-8. Yield model thoughts (title, description hidden) how Gemini UI does it. 
 
 ---
 ### TODOs
