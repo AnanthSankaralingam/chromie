@@ -503,15 +503,20 @@ function BuilderPageContent() {
     // Reload project files after version restore
     console.log('🔄 Version restored, reloading project files...')
     await fileManagement.loadProjectFiles(true)
-    
+
     // Refresh project details
     await projectSetup.refreshCurrentProjectDetails?.()
-    
+
     // Auto-select manifest.json file
     const manifestFile = fileManagement.findManifestFile()
     if (manifestFile) {
       setSelectedFile(manifestFile)
     }
+  }
+
+  const handleAddMetrics = () => {
+    console.log('📊 Add Metrics clicked')
+    // TODO: Implement metrics functionality
   }
 
   // Show loading state
@@ -541,6 +546,7 @@ function BuilderPageContent() {
             onTestExtension={handleTestExtensionWithTour}
             onTestWithAI={handleTestWithAI}
             onExecuteTestingAgent={handleExecuteTestingAgent}
+            onAddMetrics={handleAddMetrics}
             onGeneratePuppeteerTests={async () => {
               if (!projectSetup.currentProjectId) {
                 console.error("[puppeteer-tests] No project ID available")

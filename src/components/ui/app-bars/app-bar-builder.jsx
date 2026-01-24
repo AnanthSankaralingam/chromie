@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History, FileCode, Lock } from "lucide-react"
+import { Download, TestTube, LogOut, Sparkles, Menu, X, Bot, Play, ChevronDown, History, FileCode, Lock, BarChart3 } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState, useEffect } from 'react'
 import { useOnboarding } from '@/hooks/use-onboarding'
@@ -39,6 +39,7 @@ export default function AppBarBuilder({
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
   onVersionHistoryClick,
+  onAddMetrics,
   tourTestButtonId,
   tourTestWithAIButtonId,
   tourShareButtonId,
@@ -150,6 +151,11 @@ export default function AppBarBuilder({
     }
     openShareModal()
     onTourShareComplete?.()
+  }
+
+  const handleAddMetricsClick = () => {
+    stopAllHighlights()
+    onAddMetrics?.()
   }
 
   const handleShareConfirm = () => {
@@ -487,6 +493,17 @@ export default function AppBarBuilder({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button
+                  onClick={handleAddMetricsClick}
+                  disabled={isTestDisabled || isGenerating}
+                  variant="outline"
+                  className="relative bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium enabled:shadow-lg enabled:shadow-slate-500/10 hover:shadow-xl hover:shadow-slate-500/20 enabled:scale-100 hover:scale-105"
+                  style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(100 116 139), rgb(71 85 105))', backgroundOrigin: 'border-box' }}
+                  title="Add Metrics"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  add metrics
+                </Button>
                 <ShareDropdown
                   projectId={projectId}
                   isDownloading={isDownloading}
@@ -671,6 +688,16 @@ export default function AppBarBuilder({
             >
               <Play className="h-4 w-4 mr-2" />
               try it out
+            </Button>
+            <Button
+              onClick={() => { handleAddMetricsClick(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              variant="outline"
+              className="w-full bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-slate-500/10"
+              style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(100 116 139), rgb(71 85 105))', backgroundOrigin: 'border-box' }}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              add metrics
             </Button>
             <div className="w-full">
               <ShareDropdown

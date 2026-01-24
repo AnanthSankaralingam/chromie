@@ -31,9 +31,6 @@ export default function MetricsPage() {
     bucket: 'day'
   })
 
-  // Track if initial metrics fetch has been done (only fetch once per page load)
-  const initialFetchDone = useRef(false)
-
   // Load persisted state from sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -104,7 +101,8 @@ export default function MetricsPage() {
     fetchProjects()
   }, [user])
 
-  // Fetch metrics data (only called once on initial page load)
+  // Fetch metrics data whenever project changes
+  // Note: This fetches from the pre-aggregated metrics_aggregates table for performance
   const fetchMetrics = useCallback(async (projectId) => {
     if (!projectId) return
 
@@ -122,7 +120,7 @@ export default function MetricsPage() {
       if (response.ok) {
         const data = await response.json()
         setMetricsData(data.metrics)
-        console.log('Fetched metrics data:', data.metrics)
+        console.log('Fetched metrics data for project', projectId, ':', data.metrics)
       } else {
         console.error('Failed to fetch metrics')
         setMetricsData(null)
@@ -135,10 +133,9 @@ export default function MetricsPage() {
     }
   }, [timeRange])
 
-  // Fetch metrics once when selectedProjectId is first available
+  // Fetch metrics whenever selectedProjectId changes
   useEffect(() => {
-    if (selectedProjectId && !initialFetchDone.current) {
-      initialFetchDone.current = true
+    if (selectedProjectId) {
       fetchMetrics(selectedProjectId)
     }
   }, [selectedProjectId, fetchMetrics])
@@ -151,6 +148,8 @@ export default function MetricsPage() {
   // Handle project selection
   const handleProjectChange = (projectId) => {
     setSelectedProjectId(projectId)
+    // Clear current metrics to show loading state while fetching new project data
+    setMetricsData(null)
   }
 
   // Handle sidebar toggle
@@ -206,7 +205,7 @@ export default function MetricsPage() {
           </div>
         )
       case 'analytics':
-        return <AnalyticsTab />
+        return <AnalyticsTab selectedProjectId={selectedProjectId} timeRange={timeRange} />
       case 'settings':
         return <SettingsTab selectedProjectId={selectedProjectId} />
       default:

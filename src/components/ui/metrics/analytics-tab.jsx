@@ -1,75 +1,74 @@
 "use client"
 
-import { BarChart3, TrendingUp, FileDown, Activity } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import RetentionDashboard from "./retention-dashboard"
+import FeatureUsage from "./feature-usage"
+import HealthScore from "./health-score"
 
-const features = [
-  {
-    icon: TrendingUp,
-    title: 'Custom Date Ranges',
-    description: 'Analyze metrics across any time period'
-  },
-  {
-    icon: BarChart3,
-    title: 'Comparative Analysis',
-    description: 'Compare performance across different periods'
-  },
-  {
-    icon: FileDown,
-    title: 'Export Reports',
-    description: 'Download detailed analytics reports'
-  },
-  {
-    icon: Activity,
-    title: 'Real-time Monitoring',
-    description: 'Live updates as metrics change'
-  }
-]
+export default function AnalyticsTab({ selectedProjectId, timeRange }) {
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-export default function AnalyticsTab() {
+  // Fetch analytics data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!selectedProjectId) return
+
+      try {
+        setLoading(true)
+        const params = new URLSearchParams({
+          projectId: selectedProjectId,
+          from: timeRange?.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          to: timeRange?.to || new Date().toISOString()
+        })
+
+        const response = await fetch(`/api/metrics/analytics?${params}`)
+
+        if (response.ok) {
+          const data = await response.json()
+          setAnalyticsData(data)
+          console.log('Fetched analytics data for project', selectedProjectId, ':', data)
+        } else {
+          console.error('Failed to fetch analytics')
+          setAnalyticsData(null)
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error)
+        setAnalyticsData(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAnalytics()
+  }, [selectedProjectId, timeRange])
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <div className="text-center mb-8">
-        <div className="mb-6 flex justify-center">
-          <div className="p-6 rounded-full bg-slate-800/30 border border-slate-700/40">
-            <BarChart3 className="h-16 w-16 text-slate-600" />
-          </div>
-        </div>
-        <h2 className="text-3xl font-bold text-white mb-3">
-          Analytics Coming Soon
-        </h2>
-        <p className="text-slate-400 text-lg max-w-md mx-auto">
-          Advanced analytics and insights will be available here
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-white mb-2">Analytics</h1>
+        <p className="text-slate-400">
+          Deep dive into retention, feature usage, and overall health metrics
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
-        {features.map((feature) => {
-          const Icon = feature.icon
+      {/* Health Score */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-4">Overall Health</h2>
+        <HealthScore data={analyticsData?.healthScore} loading={loading} />
+      </div>
 
-          return (
-            <Card
-              key={feature.title}
-              className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-lg bg-purple-500/20">
-                    <Icon className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white mb-1">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-slate-400">
-                      {feature.description}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+      {/* Retention Dashboard */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-4">User Retention</h2>
+        <RetentionDashboard data={analyticsData?.retention} loading={loading} />
+      </div>
+
+      {/* Feature Usage */}
+      <div>
+        <h2 className="text-xl font-semibold text-white mb-4">Feature Usage</h2>
+        <FeatureUsage data={analyticsData?.featureUsage} loading={loading} />
       </div>
     </div>
   )
