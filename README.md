@@ -10,18 +10,19 @@ P0:
 
 P1:
 
-1. Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search.
+1. Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search. Either   
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
-5. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
-6. Gallery of chromie-built extensions:
-7. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
+4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
+5. Gallery of chromie-built extensions:
+6. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
 P2:
 1. Detect build errors in extensions, similar to Vercel article.
 2. Fix logging in tester and allow users to append them as context to next request.
-3. ~Fix AI testing. Don't need anything complicated yet.~
-4. Add more blog posts
+3. Migrate to Vercel AI-SDK and remove our custom hooks/components. replace ui and service classes
+4. ~Fix AI testing. Don't need anything complicated yet.~
+5. Add more blog posts
 
 P3 Scalablility: 
 1. ~Fix CDN issues with Vercel~
