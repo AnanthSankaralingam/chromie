@@ -63,6 +63,9 @@ function BuilderPageContent() {
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
 
+  // Reference to the AI chat input setter
+  const setInputMessageRef = useRef(null)
+
   // Custom hooks for URL and notification management
   const { autoGeneratePrompt, setAutoGeneratePrompt, handleAutoGenerateComplete } = useAutoGenerateParams(hasProcessedAutoGenerate.current)
   const { playNotificationSound, isPageVisible } = useNotificationSound()
@@ -516,7 +519,9 @@ function BuilderPageContent() {
 
   const handleAddMetrics = () => {
     console.log('📊 Add Metrics clicked')
-    // TODO: Implement metrics functionality
+    if (setInputMessageRef.current) {
+      setInputMessageRef.current("Integrate chromie metrics into my extension and track key events!")
+    }
   }
 
   // Show loading state
@@ -704,6 +709,7 @@ function BuilderPageContent() {
                 isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
                 onCodeGenerationStarting={handleCodeGenerationStarting}
+                onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
               />
             </div>
           )}
@@ -803,6 +809,7 @@ function BuilderPageContent() {
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
                   onCodeGenerationStarting={handleCodeGenerationStarting}
+                  onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
                 />
               </div>
             </div>
@@ -870,6 +877,7 @@ function BuilderPageContent() {
                   isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
                   onCodeGenerationStarting={handleCodeGenerationStarting}
+                  onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
                 />
               </div>
 

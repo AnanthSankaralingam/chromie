@@ -27,6 +27,7 @@ export default function StreamingChat({
   isOnboardingModalOpen,
   modelOverride,
   onCodeGenerationStarting,
+  onSetInputMessage,
 }) {
   const chatState = useChatState(projectId, hasGeneratedCodeProp)
   const {
@@ -94,6 +95,13 @@ export default function StreamingChat({
       onCodeGenerationStarting()
     }
   }, [isActuallyGeneratingCode, onCodeGenerationStarting])
+
+  // Expose setInputMessage to parent component
+  useEffect(() => {
+    if (onSetInputMessage) {
+      onSetInputMessage(setInputMessage)
+    }
+  }, [onSetInputMessage, setInputMessage])
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
