@@ -581,6 +581,32 @@ export default function HomePage() {
         {/* Contact Section */}
         <ContactSection />
 
+        {/* Footer */}
+        <footer className="relative z-20 px-6 py-5 border-t border-slate-800/50 mt-auto">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-slate-500">
+              © 2026 chromie.dev
+            </div>
+
+            <div className="flex items-center gap-3 text-xs">
+              <a
+                href="/privacy"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Privacy Policy
+              </a>
+              <a
+                href="https://linkedin.com/company/chromiedev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                LinkedIn
+              </a>
+            </div>
+          </div>
+        </footer>
+
       </div>
 
       {/* Auth Modal */}

@@ -214,17 +214,15 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <a 
-              href="https://twitter.com/chromiedev" 
-              target="_blank" 
-              rel="noopener noreferrer"
+            <a
+              href="/privacy"
               className="text-slate-400 hover:text-white transition-colors"
             >
-              Twitter
+              Privacy Policy
             </a>
-            <a 
-              href="https://linkedin.com/company/chromiedev" 
-              target="_blank" 
+            <a
+              href="https://linkedin.com/company/chromiedev"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-slate-400 hover:text-white transition-colors"
             >
