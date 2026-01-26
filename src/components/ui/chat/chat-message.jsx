@@ -26,11 +26,6 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
 
   // Check if this user message has a version snapshot
   const hasVersionSnapshot = isUser && message.versionId
-  
-  // Debug logging
-  if (isUser && process.env.NODE_ENV === 'development') {
-    console.log(`[ChatMessage] User message "${message.content.substring(0, 30)}..." has versionId:`, message.versionId || 'NONE')
-  }
 
   const handleRevert = async () => {
     if (!message.versionId || !projectId) return

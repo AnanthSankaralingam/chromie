@@ -126,15 +126,8 @@ export function useStreamProcessor({
   const startGeneration = useCallback(
     async (prompt, isAutoGeneration = false, images = null) => {
       if (chatState.isGenerating) {
-        console.log("⚠️ [StreamingChat] startGeneration called but already generating - ignoring")
         return
       }
-
-      console.log("🚀 [StreamingChat] Starting generation:", {
-        prompt: prompt?.substring(0, 50),
-        isAutoGeneration,
-        hasImages: images && images.length > 0,
-      })
 
       lastUrlSelectionRef.current = null
       setIsGenerating(true)

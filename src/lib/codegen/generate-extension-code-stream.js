@@ -140,6 +140,11 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
           explanation = event.content
         }
       }
+    } else {
+      // No JSON found - treat entire output as plain text explanation (e.g., answering a question)
+      console.log(`📝 No JSON found in ${context}, treating as plain text explanation`)
+      explanation = outputText.trim()
+      yield { type: "explanation", content: explanation }
     }
   } catch (error) {
     console.error(`❌ Error parsing from ${context}:`, error)
@@ -156,6 +161,10 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
 
     // Store clean conversation history after successful generation
+    await storeConversationHistory(sessionId, originalUserRequest, explanation)
+  } else if (explanation && explanation !== "Implementation complete.") {
+    // No files generated, but we have an explanation (question-answering case)
+    console.log(`💬 No files to save, storing plain text response (${explanation.length} chars)`)
     await storeConversationHistory(sessionId, originalUserRequest, explanation)
   }
 }
