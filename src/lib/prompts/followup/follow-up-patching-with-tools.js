@@ -1,9 +1,62 @@
-export const FOLLOW_UP_PATCH_PROMPT = `
-<system>
+export const CHROME_API_SEARCH_TOOL = `
+<chrome_api_search>
+Use this tool to search Chrome extension API documentation when you need to verify API methods, parameters, permissions, or best practices.
+
+To call this tool, output JSON:
+{
+  "tool": "chrome_api_search",
+  "query": "your search query here"
+}
+
+Tool results will be provided before you generate patches.
+</chrome_api_search>
+`;
+
+export const WEB_SCRAPING_TOOL = `
+<web_scraping>
+Use this tool (sparingly) to scrape and extract content from specific web pages when you need to analyze website structures for DOM manipulation or data extraction features.
+
+To call this tool, output JSON:
+{
+  "tool": "web_scraping",
+  "url": "https://example.com",
+  "intent": "what you want to extract or analyze"
+}
+
+Tool results will be provided before you generate patches.
+</web_scraping>
+`;
+
+/**
+ * Builds conditional tool descriptions based on enabled tools
+ * @param {string[]} enabledTools - Array of tool names to enable
+ * @returns {string} - XML-formatted tool descriptions or empty string
+ */
+export function buildToolDescriptions(enabledTools = []) {
+  if (!enabledTools || enabledTools.length === 0) {
+    return '';
+  }
+
+  const toolMap = {
+    'chrome_api_search': CHROME_API_SEARCH_TOOL,
+    'web_scraping': WEB_SCRAPING_TOOL
+  };
+
+  const sections = enabledTools
+    .filter(tool => toolMap[tool])
+    .map(tool => toolMap[tool]);
+
+  if (sections.length === 0) return '';
+
+  return `<available_tools>\n${sections.join('\n')}\n</available_tools>`;
+}
+
+export const FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS = `
+<s>
 You are an expert Chrome extension developer specializing in making targeted code improvements.
 Always use best practices when coding Chrome extensions.
 Respect and use my existing conventions, libraries, and Chrome APIs that are already present in the codebase.
-</system>
+</s>
 
 <user_request>
 {USER_REQUEST}
@@ -17,9 +70,9 @@ Respect and use my existing conventions, libraries, and Chrome APIs that are alr
 
 <instructions>
 <task>
-1. Analyze the user's request and the existing code
-2. If tools are available and you need external information (Chrome API docs, webpage structure), call them first
-3. Think step-by-step and explain the needed changes in a few short sentences, talking directly to the user
+1. Analyze the user's request and determine if you need to use any available tools (if provided)
+2. If tools are needed, call them first and wait for results
+3. Once you have all necessary information, think step-by-step and explain the needed changes in a few short sentences, talking directly to the user
 4. Describe the changes using the V4A diff format, enclosed within \`*** Begin Patch\` and \`*** End Patch\` markers
 </task>
 
@@ -119,6 +172,7 @@ To extract the DOM manipulation logic, we need to create a new file for DOM mani
 </example>
 
 <reminders>
+- Use available tools (if provided) when you need external information
 - Use the FULL file path as provided in the existing files context
 - Context lines must match the existing code EXACTLY, including whitespace
 - Only create patches for files that exist or explicitly create new files with \`*** Add File:\`

@@ -50,14 +50,57 @@ export function prepareFilesForPatching(existingFiles) {
  * Builds replacements object for patch prompt
  * @param {string} userRequest - Original user request
  * @param {Object} existingFiles - Existing extension files
+ * @param {Object} options - Additional options
+ * @param {string[]} options.enabledTools - Array of tool names to enable
  * @returns {Object} - Replacements for prompt placeholders
  */
-export function buildPatchPromptReplacements(userRequest, existingFiles) {
+export function buildPatchPromptReplacements(userRequest, existingFiles, options = {}) {
+  const { enabledTools = [] } = options
   const patchableFiles = prepareFilesForPatching(existingFiles)
-  
+
+  // Import buildToolDescriptions dynamically to avoid circular deps
+  let toolDescriptions = ''
+  if (enabledTools.length > 0) {
+    // Build tool descriptions inline to avoid import issues
+    const toolMap = {
+      'chrome_api_search': `<chrome_api_search>
+Use this tool to search Chrome extension API documentation when you need to verify API methods, parameters, permissions, or best practices.
+
+To call this tool, output JSON:
+{
+  "tool": "chrome_api_search",
+  "query": "your search query here"
+}
+
+Tool results will be provided before you generate patches.
+</chrome_api_search>`,
+      'web_scraping': `<web_scraping>
+Use this tool (sparingly) to scrape and extract content from specific web pages when you need to analyze website structures for DOM manipulation or data extraction features.
+
+To call this tool, output JSON:
+{
+  "tool": "web_scraping",
+  "url": "https://example.com",
+  "intent": "what you want to extract or analyze"
+}
+
+Tool results will be provided before you generate patches.
+</web_scraping>`
+    }
+
+    const sections = enabledTools
+      .filter(tool => toolMap[tool])
+      .map(tool => toolMap[tool])
+
+    if (sections.length > 0) {
+      toolDescriptions = `<available_tools>\n${sections.join('\n')}\n</available_tools>`
+    }
+  }
+
   return {
     USER_REQUEST: userRequest,
-    EXISTING_FILES: formatFilesAsXml(patchableFiles)
+    EXISTING_FILES: formatFilesAsXml(patchableFiles),
+    TOOL_DESCRIPTIONS: toolDescriptions
   }
 }
 

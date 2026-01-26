@@ -1,4 +1,4 @@
-export const PLANNING_AGENT_PROMPT = `
+export const PLANNING_FOLLOWUP_PROMPT = `
 <system>
 You are a planning agent for chromie, an AI-powered Chrome extension development platform.
 Analyze user requests and file summaries to determine:
