@@ -45,7 +45,7 @@ export default function ModalUrlPrompt({
           <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
 
           ${suggestedUrl ? `
-            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #7c3aed, #2563eb); color: white; border: 1px solid #6366f1; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
+            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #9ca3af, #6b7280); color: white; border: 1px solid #9ca3af; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
               <span style="opacity:.9;">Suggested:</span>
               <strong style="font-weight:600;">${new URL(suggestedUrl).hostname}</strong>
             </button>
@@ -56,7 +56,7 @@ export default function ModalUrlPrompt({
           </div>
 
           <div style="display:flex; gap:12px; align-items:center; justify-content: space-between;">
-            <button id="useCustomUrl" style="flex:1; background: linear-gradient(90deg,#7c3aed,#2563eb); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; font-weight: 500;">Continue</button>
+            <button id="useCustomUrl" style="flex:1; background: linear-gradient(90deg,#9ca3af,#6b7280); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; font-weight: 500;">Continue</button>
             <button id="noScraping" style="background: #475569; color: #f1f5f9; border: 1px solid #64748b; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; font-weight: 500;">Skip</button>
           </div>
         </div>

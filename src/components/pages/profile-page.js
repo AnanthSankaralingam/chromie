@@ -288,7 +288,7 @@ export default function ProfilePage() {
       pro: {
         name: 'Pro',
         price: '$25/month',
-        color: 'bg-blue-500',
+        color: 'bg-gray-500',
         icon: Crown
       },
       enterprise: {
@@ -306,8 +306,8 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
         {/* Static Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full filter blur-[100px]" />
-          <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/10 rounded-full filter blur-[100px]" />
+          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
+          <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
         </div>
 
         <AppBar />
@@ -320,7 +320,7 @@ export default function ProfilePage() {
                   <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
                   <Button
                     onClick={() => setAuthModalOpen(true)}
-                    className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
+                    className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
                   >
                     Sign In
                   </Button>
@@ -343,8 +343,8 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
       {/* Static Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full filter blur-[100px]" />
-        <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/10 rounded-full filter blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
+        <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
       </div>
 
       <AppBar />
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                   src={user?.user_metadata?.picture}
                   alt={user?.user_metadata?.name || user?.email}
                 />
-                <AvatarFallback className="bg-purple-600 text-white text-lg font-medium">
+                <AvatarFallback className="bg-gray-600 text-white text-lg font-medium">
                   {getUserInitials(user)}
                 </AvatarFallback>
               </Avatar>
@@ -465,7 +465,7 @@ export default function ProfilePage() {
                   <Button
                     onClick={() => handleBillingAction('manage')}
                     variant="outline"
-                    className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:border-blue-500"
+                    className="border-gray-500/50 text-gray-400 hover:bg-gray-500/10 hover:border-gray-500"
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Manage Billing
@@ -474,7 +474,7 @@ export default function ProfilePage() {
                   {billing.plan === 'starter' && (
                     <Button
                       onClick={() => handleBillingAction('upgrade', 'pro')}
-                      className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 text-white"
+                      className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300 text-white"
                     >
                       <ArrowUpRight className="h-4 w-4 mr-2" />
                       Upgrade to Pro
@@ -503,7 +503,7 @@ export default function ProfilePage() {
                 <div className="text-slate-300 mb-4">No active subscription found.</div>
                 <Button
                   onClick={() => setBillingDialogOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
+                  className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   Subscribe Now
@@ -576,7 +576,7 @@ export default function ProfilePage() {
                           <Button
                             size="sm"
                             onClick={() => handleRenameProject(project.id, newProjectName)}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-gray-600 hover:bg-gray-700"
                           >
                             Save
                           </Button>
@@ -603,7 +603,7 @@ export default function ProfilePage() {
                               Created {formatDate(project.created_at)}
                             </p>
                           </div>
-                          <Badge variant="secondary" className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                          <Badge variant="secondary" className="bg-gray-500/10 text-gray-400 border-gray-500/20">
                             {project.archived ? 'Archived' : 'Active'}
                           </Badge>
                         </div>
@@ -628,7 +628,7 @@ export default function ProfilePage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => navigateToBuilderWithProject(project.id)}
-                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
                           title="Edit project in builder"
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -729,7 +729,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyShareLink(share.share_url, share.id)}
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
                         title="Copy share link"
                       >
                         {copiedShareId === share.id ? (
@@ -742,7 +742,7 @@ export default function ProfilePage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => window.open(share.share_url, '_blank')}
-                        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
                         title="View share page"
                       >
                         <ExternalLink className="h-4 w-4" />

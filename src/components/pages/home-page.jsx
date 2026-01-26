@@ -385,13 +385,13 @@ export default function HomePage() {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />
           
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.15, 0.25, 0.15],
@@ -403,7 +403,7 @@ export default function HomePage() {
             }}
           />
           <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.1, 0.2, 0.1],
@@ -433,7 +433,7 @@ export default function HomePage() {
                   transition={{ delay: 0.1, duration: 0.6 }}
                   className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 pb-2 whitespace-nowrap overflow-x-auto"
                   style={{
-                    background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
+                    background: 'linear-gradient(135deg, #FFFFFF 0%, #D1D5DB 50%, #9CA3AF 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -469,7 +469,7 @@ export default function HomePage() {
                 <div className={cn(
                   "relative backdrop-blur-xl bg-slate-800/30 rounded-2xl border transition-all duration-300 shadow-2xl",
                   inputFocused 
-                    ? "border-purple-500/60 shadow-purple-500/20" 
+                    ? "border-gray-500/60 shadow-gray-500/20" 
                     : "border-slate-700/40 hover:border-slate-600/60"
                 )}>
                   {/* Tab Complete Suggestions */}
@@ -544,7 +544,7 @@ export default function HomePage() {
                         className={cn(
                           "font-semibold transition-all duration-300 px-6 py-2.5",
                           prompt.trim() && !isGenerating && !isOptimizing
-                            ? "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:scale-105"
+                            ? "bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 hover:scale-105"
                             : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
                         )}
                       >

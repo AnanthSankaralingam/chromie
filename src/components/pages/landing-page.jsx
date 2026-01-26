@@ -55,13 +55,13 @@ export default function LandingPage() {
           className="absolute inset-0 z-0"
           squareSize={4}
           gridGap={6}
-          color="rgb(139, 92, 246)"
+          color="rgb(156, 163, 175)"
           maxOpacity={0.15}
           flickerChance={2.0}
         />
         
         <motion.div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.15, 0.25, 0.15],
@@ -73,7 +73,7 @@ export default function LandingPage() {
           }}
         />
         <motion.div 
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.1, 0.2, 0.1],
@@ -95,8 +95,8 @@ export default function LandingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Chrome className="w-6 h-6 text-purple-500" />
-          <span className="text-lg font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          <Chrome className="w-6 h-6 text-gray-500" />
+          <span className="text-lg font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
             chromie
           </span>
         </motion.div>
@@ -114,7 +114,7 @@ export default function LandingPage() {
               transition={{ delay: 0.2, duration: 0.7 }}
               className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5"
               style={{
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #A78BFA 50%, #60A5FA 100%)',
+                background: 'linear-gradient(135deg, #FFFFFF 0%, #D1D5DB 50%, #9CA3AF 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -142,7 +142,7 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-6"
             >
               <div className="flex flex-col items-center gap-2">
-                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500 hover:from-purple-500 hover:via-purple-400 hover:to-blue-400 transition-all duration-300">
+                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 transition-all duration-300">
                   <Button
                     onClick={handleGetStarted}
                     size="lg"
@@ -156,7 +156,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-400 transition-all duration-300">
+                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-300 hover:to-gray-400 transition-all duration-300">
                   <Button
                     onClick={handleBookDemo}
                     size="lg"
@@ -188,17 +188,17 @@ export default function LandingPage() {
             transition={{ delay: 1.0, duration: 0.7 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12"
           >
-            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
+            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-gray-500/30 transition-all duration-300">
               <h3 className="text-base font-semibold mb-1.5 text-white">lightning fast</h3>
               <p className="text-xs text-slate-400">generate fully functional extensions in seconds, not weeks</p>
             </div>
 
-            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
+            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-gray-500/30 transition-all duration-300">
               <h3 className="text-base font-semibold mb-1.5 text-white">no code required</h3>
               <p className="text-xs text-slate-400">just describe what you want, we handle the rest</p>
             </div>
 
-            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-purple-500/30 transition-all duration-300">
+            <div className="p-5 rounded-xl bg-slate-800/20 border border-slate-700/30 backdrop-blur-sm hover:border-gray-500/30 transition-all duration-300">
               <h3 className="text-base font-semibold mb-1.5 text-white">deploy instantly</h3>
               <p className="text-xs text-slate-400">download and publish to chrome web store immediately</p>
             </div>

@@ -160,7 +160,7 @@ const AutocompleteSuggestions = ({
     >
       {isLoading ? (
         <div className="p-4 flex items-center justify-center text-slate-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-500 border-t-transparent mr-2" />
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-500 border-t-transparent mr-2" />
           Searching suggestions...
         </div>
       ) : suggestions.length > 0 ? (

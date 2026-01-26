@@ -143,7 +143,7 @@ export default function MetricsSidebar({
                   onClick={() => handleNavClick(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-purple-500/20 border-l-2 border-purple-400 text-purple-300'
+                      ? 'bg-gray-500/20 border-l-2 border-gray-400 text-gray-300'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                   aria-current={isActive ? 'page' : undefined}

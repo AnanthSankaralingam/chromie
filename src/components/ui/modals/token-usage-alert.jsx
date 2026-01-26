@@ -28,8 +28,8 @@ export default function TokenUsageAlert({ isOpen, onClose }) {
           <p className="text-sm text-slate-300">
             To continue generating extensions, please upgrade your plan or wait until your credit quota resets.
           </p>
-          <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-400/20">
-            <CreditCard className="h-5 w-5 text-purple-400" />
+          <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-500/10 to-gray-500/10 rounded-lg border border-gray-400/20">
+            <CreditCard className="h-5 w-5 text-gray-400" />
             <div className="flex-1">
               <p className="text-sm font-medium text-white">Upgrade your plan</p>
               <p className="text-xs text-slate-400">Get more credits and features</p>
@@ -38,7 +38,7 @@ export default function TokenUsageAlert({ isOpen, onClose }) {
               <Button 
                 variant="default" 
                 size="sm"
-                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="bg-gradient-to-r from-gray-500 to-gray-400 hover:from-gray-600 hover:to-gray-500 text-white"
               >
                 View pricing
               </Button>

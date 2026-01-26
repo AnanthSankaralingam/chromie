@@ -46,14 +46,14 @@ export default function FeatureUsage({ data, loading }) {
   }
 
   const COLORS = [
-    '#3b82f6', // blue
-    '#a855f7', // purple
+    '#9ca3af', // gray (was blue)
+    '#d1d5db', // gray (was purple)
     '#22c55e', // green
     '#eab308', // yellow
     '#f97316', // orange
     '#ef4444', // red
     '#06b6d4', // cyan
-    '#8b5cf6', // violet
+    '#cbd5e1', // gray (was violet)
     '#ec4899', // pink
     '#14b8a6', // teal
   ]
@@ -87,7 +87,7 @@ export default function FeatureUsage({ data, loading }) {
       <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
-            <MousePointerClick className="h-5 w-5 text-blue-400" />
+            <MousePointerClick className="h-5 w-5 text-gray-400" />
             Most Used Features
           </CardTitle>
           <p className="text-sm text-slate-400">
@@ -129,7 +129,7 @@ export default function FeatureUsage({ data, loading }) {
       <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
-            <Target className="h-5 w-5 text-purple-400" />
+            <Target className="h-5 w-5 text-gray-400" />
             Feature Adoption
           </CardTitle>
           <p className="text-sm text-slate-400">
@@ -163,7 +163,7 @@ export default function FeatureUsage({ data, loading }) {
                         return (
                           <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
                             <p className="text-slate-300 text-sm font-medium mb-2">{label}</p>
-                            <p className="text-sm text-purple-400">
+                            <p className="text-sm text-gray-400">
                               Adoption: {payload[0].value}%
                             </p>
                             <p className="text-sm text-slate-400">

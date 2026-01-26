@@ -237,7 +237,7 @@
   }
   
   .option-btn.primary:hover {
-    background: #2563eb !important;
+    background: #9ca3af !important;
   }
   
   .option-btn.secondary:hover {
@@ -328,26 +328,26 @@
   @keyframes onboarding-pulse-download {
     0%, 40% {
       box-shadow: 
-        0 0 0 0 rgba(59, 130, 246, 0.8),
-        0 0 0 0 rgba(59, 130, 246, 0.6),
-        0 0 20px rgba(59, 130, 246, 0.4),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+        0 0 0 0 rgba(156, 163, 175, 0.8),
+        0 0 0 0 rgba(156, 163, 175, 0.6),
+        0 0 20px rgba(156, 163, 175, 0.4),
+        inset 0 0 0 1px rgba(156, 163, 175, 0.3);
       transform: scale(1);
     }
     48%, 52% {
       box-shadow: 
-        0 0 0 8px rgba(59, 130, 246, 0.4),
-        0 0 0 16px rgba(59, 130, 246, 0.2),
-        0 0 30px rgba(59, 130, 246, 0.6),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.5);
+        0 0 0 8px rgba(156, 163, 175, 0.4),
+        0 0 0 16px rgba(156, 163, 175, 0.2),
+        0 0 30px rgba(156, 163, 175, 0.6),
+        inset 0 0 0 1px rgba(156, 163, 175, 0.5);
       transform: scale(1.02);
     }
     60%, 100% {
       box-shadow: 
-        0 0 0 0 rgba(59, 130, 246, 0.8),
-        0 0 0 0 rgba(59, 130, 246, 0.6),
-        0 0 20px rgba(59, 130, 246, 0.4),
-        inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+        0 0 0 0 rgba(156, 163, 175, 0.8),
+        0 0 0 0 rgba(156, 163, 175, 0.6),
+        0 0 20px rgba(156, 163, 175, 0.4),
+        inset 0 0 0 1px rgba(156, 163, 175, 0.3);
       transform: scale(1);
     }
   }

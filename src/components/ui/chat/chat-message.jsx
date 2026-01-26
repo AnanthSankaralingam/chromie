@@ -81,7 +81,7 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
           className="flex-shrink-0 p-1.5 rounded-md hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
           title="Revert to this version"
         >
-          <RotateCcw className={`h-3.5 w-3.5 text-gray-400 group-hover:text-blue-400 ${isReverting ? 'animate-spin' : ''}`} />
+          <RotateCcw className={`h-3.5 w-3.5 text-gray-400 group-hover:text-gray-300 ${isReverting ? 'animate-spin' : ''}`} />
         </button>
       )}
       

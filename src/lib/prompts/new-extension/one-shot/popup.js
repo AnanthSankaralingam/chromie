@@ -64,9 +64,9 @@ Core Principles:
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
+1. Vibrant: Gradient primary (#9ca3af→#d1d5db), BG #fafafa, Text #0f172a/#64748b
 2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+3. Sophisticated: Accent #9ca3af/#d1d5db, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
