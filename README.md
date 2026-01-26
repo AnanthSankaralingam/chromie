@@ -56,9 +56,7 @@ Bugbash:
 1. no hybrid ui types, i.e. popup + content injection
 2. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
 3. build reusable html components that coder can reference instead of re-building every time.
-4. put easy samples on chrome store (i.e. ChatGPT in side panel)
-5. Record videos from template extensions to reuse for future outreach.
-6. store initial prompts for all projects, only description from manifest is saved right now.
+4. store initial prompts for all projects, only description from manifest is saved right now.
 
 ---
 ### BUGS
