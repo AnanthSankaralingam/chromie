@@ -38,13 +38,11 @@ export function createStreamEventHandler(context) {
       case "version_created":
         // Store version ID with the most recent user message
         if (data.versionId) {
-          console.log(`[streamEventHandler] Received version_created event with ID: ${data.versionId}`)
           setMessages((prev) => {
             const newMessages = [...prev]
             // Find the most recent user message and add version ID to it
             for (let i = newMessages.length - 1; i >= 0; i--) {
               if (newMessages[i].role === "user") {
-                console.log(`[streamEventHandler] Attaching version ID ${data.versionId} to user message: "${newMessages[i].content.substring(0, 30)}..."`)
                 newMessages[i] = {
                   ...newMessages[i],
                   versionId: data.versionId,
@@ -54,9 +52,7 @@ export function createStreamEventHandler(context) {
             }
             return newMessages
           })
-        } else {
-          console.warn(`[streamEventHandler] Received version_created event but no versionId in data`)
-        }
+        } 
         break
 
       case "thinking_chunk":

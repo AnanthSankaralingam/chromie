@@ -6,6 +6,7 @@ import { NEW_EXT_NEW_TAB_PROMPT } from "@/lib/prompts/new-extension/one-shot/new
 import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/one-shot/content-injection";
 import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "@/lib/prompts/followup/follow-up-file-replacement";
 import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patching";
+import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from "@/lib/prompts/followup/follow-up-patching-with-tools";
 import { TEMPLATE_PATCH_PROMPT } from "@/lib/prompts/new-extension/template/template-patch";
 import { batchScrapeWebpages } from "@/lib/webpage-scraper";
 import { orchestratePlanning, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
@@ -24,7 +25,10 @@ import {
   buildPatchPromptReplacements
 } from "@/lib/codegen/patching-handlers/patch-mode-handler";
 import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/planning-handlers/template-loader";
-import { analyzeExtensionFiles } from "@/lib/codegen/file-analysis";
+import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
+import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
+import { llmService } from "@/lib/services/llm-service";
+import { PLANNING_MODELS } from "@/lib/constants";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -152,21 +156,65 @@ export async function* generateChromeExtensionStream({
       requirementsAnalysis = createExistingExtensionRequirements(existingFiles);
 
       // Analyze existing files for structured summary
-      const fileSummaries = analyzeExtensionFiles(existingFiles);
-      console.log("📊 [File Analysis]:", JSON.stringify(fileSummaries, null, 2));
+      const fileAnalysis = analyzeExtensionFiles(existingFiles);
+      const fileSummaries = formatFileSummariesForPlanning(fileAnalysis);
+      console.log("📊 [File Analysis]:", fileSummaries);
 
-      // No planning tokens for modifications
+      // Create callLLM wrapper for follow-up planning
+      const callLLM = async (prompt) => {
+        const response = await llmService.createResponse({
+          provider: 'anthropic',
+          model: PLANNING_MODELS.DEFAULT,
+          input: prompt,
+          temperature: 0.2,
+          max_output_tokens: 500,
+          store: false
+        });
+        return response?.output_text || '';
+      };
+
+      // Call follow-up planning agent to determine tools and files needed
+      console.log('📋 [generate-extension-stream] Calling follow-up planning agent...');
+      yield {
+        type: "planning_progress",
+        phase: "analyzing",
+        content: "Determining optimal approach for modifications..."
+      };
+
+      const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM);
+      console.log('📊 [generate-extension-stream] Planning result:', JSON.stringify(planningResult, null, 2));
+
+      // Select appropriate prompt based on planning result
+      const promptSelection = selectFollowUpPrompt(planningResult);
+      console.log(`🎯 [generate-extension-stream] Selected prompt: ${promptSelection.enabledTools.length > 0 ? 'with tools' : 'standard'}, useAllFiles: ${promptSelection.useAllFiles}`);
+
+      // Store results in requirements analysis
+      requirementsAnalysis.fileSummaries = fileAnalysis;
+      requirementsAnalysis.enabledTools = promptSelection.enabledTools;
+      requirementsAnalysis.relevantFiles = promptSelection.useAllFiles
+        ? existingFiles
+        : filterRelevantFiles(existingFiles, planningResult.files);
+      requirementsAnalysis.selectedPrompt = promptSelection.prompt;
+      requirementsAnalysis.planningJustification = planningResult.justification;
+
+      // Track planning tokens
       planningTokenUsage = {
-        prompt_tokens: 0,
+        prompt_tokens: 0, // TODO: Track actual tokens from planning call
         completion_tokens: 0,
         total_tokens: 0,
-        model: "none"
+        model: PLANNING_MODELS.DEFAULT
       };
+
       yield {
         type: "analysis_complete",
         content: requirementsAnalysis.ext_name
       };
-      const analyzingSummaryExisting = `Will modify "${requirementsAnalysis.ext_name}".`;
+
+      const toolsInfo = promptSelection.enabledTools.length > 0
+        ? ` with tools: [${promptSelection.enabledTools.join(', ')}]`
+        : '';
+      const filesInfo = Object.keys(requirementsAnalysis.relevantFiles).length;
+      const analyzingSummaryExisting = `Will modify "${requirementsAnalysis.ext_name}"${toolsInfo} (${filesInfo} files).`;
       yield {
         type: "phase",
         phase: "analyzing",
@@ -317,20 +365,30 @@ export async function* generateChromeExtensionStream({
       }
     }
     
-    const prompts = {
-      UPDATE_EXT_PROMPT: usePatchingMode ? FOLLOW_UP_PATCH_PROMPT : FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
-      NEW_EXT_SIDEPANEL_PROMPT,
-      NEW_EXT_POPUP_PROMPT,
-      NEW_EXT_OVERLAY_PROMPT,
-      NEW_EXT_NEW_TAB_PROMPT,
-      NEW_EXT_CONTENT_SCRIPT_UI_PROMPT,
-      TEMPLATE_PATCH_PROMPT
-    };
-    
-    // Select prompt: use template patch prompt if using template, otherwise use standard selection
-    const selectedCodingPrompt = usingTemplate 
-      ? TEMPLATE_PATCH_PROMPT 
-      : selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+    // For ADD_TO_EXISTING, use the prompt selected by the planning agent
+    // For new extensions, use standard prompt selection
+    let selectedCodingPrompt;
+
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && requirementsAnalysis.selectedPrompt) {
+      // Use the prompt determined by follow-up planning
+      selectedCodingPrompt = requirementsAnalysis.selectedPrompt;
+      console.log(`🔧 [generate-extension-stream] Using planning-selected prompt (tools: ${requirementsAnalysis.enabledTools?.length > 0 ? 'enabled' : 'none'})`);
+    } else if (usingTemplate) {
+      // Use template patch prompt
+      selectedCodingPrompt = TEMPLATE_PATCH_PROMPT;
+    } else {
+      // Standard prompt selection for new extensions
+      const prompts = {
+        UPDATE_EXT_PROMPT: usePatchingMode ? FOLLOW_UP_PATCH_PROMPT : FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
+        NEW_EXT_SIDEPANEL_PROMPT,
+        NEW_EXT_POPUP_PROMPT,
+        NEW_EXT_OVERLAY_PROMPT,
+        NEW_EXT_NEW_TAB_PROMPT,
+        NEW_EXT_CONTENT_SCRIPT_UI_PROMPT,
+        TEMPLATE_PATCH_PROMPT
+      };
+      selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+    }
     
     if (usingTemplate) {
       console.log('🎨 [generate-extension-stream] Using TEMPLATE PATCH mode')
@@ -360,8 +418,11 @@ export async function* generateChromeExtensionStream({
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
       if (usePatchingMode) {
         // For patching mode: use specialized patch prompt replacements
-        replacements = buildPatchPromptReplacements(finalUserPrompt, existingFiles)
-        console.log("🔧 Built patch mode replacements with existing files context")
+        // Pass enabled tools from requirements analysis (populated by planning agent when enabled)
+        const enabledTools = requirementsAnalysis.enabledTools || [];
+        const filesToUse = requirementsAnalysis.relevantFiles || existingFiles;
+        replacements = buildPatchPromptReplacements(finalUserPrompt, filesToUse, { enabledTools })
+        console.log(`🔧 Built patch mode replacements with ${Object.keys(filesToUse).length} files, tools: [${enabledTools.join(', ') || 'none'}]`)
       } else {
         // For replacement mode: use ext_name and existing_files
         replacements = {
