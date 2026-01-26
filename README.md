@@ -6,10 +6,9 @@ Less focus on token costs and more on actual performance.
 P0:
 1. ~scalable Metrics SDK: for chromie premium users~
 2. ~10-15 templates for niche extenisons. The more we can match, the more robust/cheap our system gets.~
-3. Deploy 5 public template extensions where users bring their API keys: ChatGPT/Claude in sidepanel, Speech to Text with Fireworks, etc. This is our main GTM
+3. Deploy 5 public template extensions where users bring their API keys: ChatGPT/Claude/etc. in sidepanel, Speech to Text with Fireworks, etc. This is our main GTM
 
 P1:
-
 1. ~Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search.~ Add read file tool to coder, stress test scraping.   
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
@@ -30,20 +29,27 @@ P3 Scalablility:
 1. ~Fix CDN issues with Vercel~
 2. Enable concurrency on backend
 3. Explore offline extenison testing like Plasmo
+4. after chat size reaches five messages, recommend the user to clear chat 
 
 P4:
 1. Experiment with bundler
 2. UI overhaul
 3. Remove loading page's purple gradient
 4. no hybrid ui types, i.e. popup + content injection
-5. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
+5. can't easily open logs? We should fade the Chromie prefix pattern and automatically keep logs open and ***easily appendable*** to the chat 
+6. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
+7. user can't open code while code is generating
+8. Unclear: what's the difference between icon upload and image upload to AI
+9. Patch applying for hunks sometimes fails, but still mostly working 
 
 
 Bugbash:
 1. “Ask” mode
 2.  Yield model thoughts (title, description hidden) like in Gemini UI
 3.  Take out purple gradient from coder prompt
-4.  Rest of "Bugs" section
+4.  when users have multiple extensions built and a consistent profile, the Hyperbrowser instance loads multiple extensions, I think. When I have a new tab extension in another project, it sometimes interferes with my current testing. local storage is also persisted
+5.  Coder hallucinates icons, and we don't validate existence. We should have an auto fixer for this situation by matching the most similar icon 
+6.  Rest of "Bugs" section
 
 ---
 ### TODOs
@@ -84,7 +90,7 @@ Bugbash:
 4. CONNECTORS: reference Lovable, ChatGPT connectors. Probably MCP with auth but can save us a lot of templating solution time if we get it.
 5. tag certain files in the chat
 6. Security audit. Scan for risks before exporting (API keys, non-proxy or rate limited calls)
-
+7. I used the conditional context upload for the followups, and one of the files didn't exist in the recommended context. It wasn't passed in as a file to the coder, but the coder still managed to edit that file as needed. Is there persistent memory going on between API calls that we don't know about?
    
 
 
