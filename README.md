@@ -10,7 +10,7 @@ P0:
 
 P1:
 
-1. Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search. Either   
+1. ~Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search.~ Add read file tool to coder, stress test scraping.   
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
 4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
