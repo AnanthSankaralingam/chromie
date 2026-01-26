@@ -24,6 +24,7 @@ import {
   buildPatchPromptReplacements
 } from "@/lib/codegen/patching-handlers/patch-mode-handler";
 import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/planning-handlers/template-loader";
+import { analyzeExtensionFiles } from "@/lib/codegen/file-analysis";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -149,6 +150,10 @@ export async function* generateChromeExtensionStream({
 
       // For existing extensions, create a simplified requirements analysis
       requirementsAnalysis = createExistingExtensionRequirements(existingFiles);
+
+      // Analyze existing files for structured summary
+      const fileSummaries = analyzeExtensionFiles(existingFiles);
+      console.log("📊 [File Analysis]:", JSON.stringify(fileSummaries, null, 2));
 
       // No planning tokens for modifications
       planningTokenUsage = {
