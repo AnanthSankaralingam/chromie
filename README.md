@@ -12,8 +12,8 @@ P1:
 1. ~Follow up MOAT: Planning LLM call (similar to new ext), some basic context thinning too with selected files and method search.~ Add read file tool to coder, stress test scraping.   
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
-4. Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)
-5. Gallery of chromie-built extensions:
+4. ~Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)~
+5. Gallery of chromie-built extensions? like blink.new
 6. integrate options.html pattern
 7. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
