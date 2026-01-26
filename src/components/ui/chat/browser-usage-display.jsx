@@ -66,7 +66,7 @@ export default function BrowserUsageDisplay() {
 
   return (
     <div className="flex items-center space-x-2">
-      <Monitor className="h-4 w-4 text-blue-400" />
+      <Monitor className="h-4 w-4 text-gray-400" />
       <div className="flex items-center space-x-1">
         <span className="text-sm text-slate-300">
           {formatMinutes(totalBrowserMinutesUsed)}

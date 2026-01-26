@@ -73,8 +73,8 @@ export default function ShareDropdown({
           id={triggerId}
           disabled={isDisabled}
           variant="outline"
-          className={`relative bg-slate-900 text-purple-300 hover:text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
-          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(168 85 247), rgb(147 51 234))', backgroundOrigin: 'border-box'}}
+          className={`relative bg-slate-900 text-gray-300 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
+          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(156 163 175), rgb(209 213 219))', backgroundOrigin: 'border-box'}}
         >
           <Share className="h-4 w-4 mr-2" />
           share
@@ -101,7 +101,7 @@ export default function ShareDropdown({
           disabled={isDisabled || isForkLoading}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          <GitFork className="h-4 w-4 mr-3 text-blue-400" />
+          <GitFork className="h-4 w-4 mr-3 text-gray-400" />
           <span className="flex-1">
             {isForkLoading ? "Forking..." : "Fork Project"}
           </span>
@@ -112,7 +112,7 @@ export default function ShareDropdown({
           disabled={isDisabled}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          <Upload className="h-4 w-4 mr-3 text-purple-400" />
+          <Upload className="h-4 w-4 mr-3 text-gray-400" />
           <span className="flex-1">Publish to Chrome Web Store</span>
         </DropdownMenuItem>
         

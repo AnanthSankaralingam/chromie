@@ -170,7 +170,7 @@ export default function ApiKeySection({ selectedProjectId }) {
           </div>
           <Button
             onClick={handleOpenModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-gray-600 hover:bg-gray-700 text-white"
           >
             Generate New Key
           </Button>

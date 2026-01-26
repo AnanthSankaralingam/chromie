@@ -56,13 +56,13 @@ export default function PricingPage() {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />
 
           <motion.div
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.15, 0.25, 0.15],
@@ -74,7 +74,7 @@ export default function PricingPage() {
             }}
           />
           <motion.div
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.1, 0.2, 0.1],
@@ -93,7 +93,7 @@ export default function PricingPage() {
           <div className="max-w-6xl mx-auto">
             {/* Title */}
             <div className="text-center mb-16 overflow-visible">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
                 pricing
               </h1>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
@@ -104,9 +104,9 @@ export default function PricingPage() {
             {/* Pricing Cards */}
             <div className="grid md:grid-cols-3 gap-8">
               {/* Starter Plan */}
-              <Card className="bg-purple-800/30 backdrop-blur-sm border-purple-500/30 hover:border-purple-400/50 transition-all">
+              <Card className="bg-gray-800/30 backdrop-blur-sm border-gray-500/30 hover:border-gray-400/50 transition-all">
                 <CardHeader className="text-center">
-                  <CardTitle className="text-2xl text-purple-300">starter</CardTitle>
+                  <CardTitle className="text-2xl text-gray-300">starter</CardTitle>
                   <div className="text-4xl font-bold text-white">$4.99<span className="text-lg text-gray-300"> one-time</span></div>
                   <CardDescription className="text-gray-300">
                     build up to 2 chrome extensions
@@ -121,7 +121,7 @@ export default function PricingPage() {
                   </div>
                   <Button
                     onClick={() => window.open('https://buy.stripe.com/28EbJ0105e8o4xF6dM7kc02', '_blank')}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white"
                   >
                     get started
                   </Button>
@@ -131,7 +131,7 @@ export default function PricingPage() {
               {/* Pro Plan */}
               <Card className="bg-blue-800/30 backdrop-blur-sm border-blue-500/30 hover:border-blue-400/50 transition-all relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
+                  <div className="bg-gradient-to-r from-gray-500 to-gray-400 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
                     <Star className="w-4 h-4" />
                     <span>most popular</span>
                   </div>
@@ -152,7 +152,7 @@ export default function PricingPage() {
                   </div>
                   <Button
                     onClick={() => window.open('https://buy.stripe.com/6oU4gydMRc0g8NVeKi7kc04', '_blank')}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white"
                   >
                     get started
                   </Button>
@@ -191,7 +191,7 @@ export default function PricingPage() {
 
             {/* FAQ Section */}
             <div className="mt-20 mb-16 max-w-3xl mx-auto relative z-10">
-              <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
                 faq
               </h2>
               

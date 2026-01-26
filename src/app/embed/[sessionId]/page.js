@@ -139,7 +139,7 @@ export default function BrowserEmbed() {
     return (
       <div className="h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent mx-auto mb-4" />
           <p className="text-gray-600">Initializing browser session...</p>
           <p className="text-sm text-gray-400 mt-2">Session: {sessionId?.slice(-8)}</p>
         </div>
@@ -341,10 +341,10 @@ export default function BrowserEmbed() {
       </div>
 
       {/* Mock Extension Content */}
-      <div className="flex-1 p-8 bg-gradient-to-br from-blue-50 to-purple-50">
+      <div className="flex-1 p-8 bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-purple-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+            <div className="w-16 h-16 bg-gray-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
               <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
               </svg>
@@ -374,7 +374,7 @@ export default function BrowserEmbed() {
             <div className="border rounded-lg p-3">
               <div className="text-sm font-medium text-gray-700 mb-2">Test Actions</div>
               <div className="space-y-2">
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded text-sm hover:bg-blue-700">
+                <button className="w-full bg-gray-600 text-white py-2 px-4 rounded text-sm hover:bg-gray-700">
                   Test Extension Feature
                 </button>
                 <button className="w-full border border-gray-300 py-2 px-4 rounded text-sm hover:bg-gray-50">

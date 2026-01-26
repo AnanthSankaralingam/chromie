@@ -74,8 +74,8 @@ export default function RetentionDashboard({ data, loading }) {
                 <p className="text-sm text-slate-400 mb-1">Day 1 Retention</p>
                 <p className="text-3xl font-bold text-white">{data.d1}%</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <UserCheck className="h-5 w-5 text-blue-400" />
+              <div className="h-10 w-10 rounded-lg bg-gray-500/20 flex items-center justify-center">
+                <UserCheck className="h-5 w-5 text-gray-400" />
               </div>
             </div>
             <p className="text-xs text-slate-500 mt-2">
@@ -91,8 +91,8 @@ export default function RetentionDashboard({ data, loading }) {
                 <p className="text-sm text-slate-400 mb-1">Day 7 Retention</p>
                 <p className="text-3xl font-bold text-white">{data.d7}%</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <UserCheck className="h-5 w-5 text-purple-400" />
+              <div className="h-10 w-10 rounded-lg bg-gray-500/20 flex items-center justify-center">
+                <UserCheck className="h-5 w-5 text-gray-400" />
               </div>
             </div>
             <p className="text-xs text-slate-500 mt-2">
@@ -125,7 +125,7 @@ export default function RetentionDashboard({ data, loading }) {
         <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
           <CardHeader className="pb-2">
             <CardTitle className="text-white flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-400" />
+              <TrendingUp className="h-5 w-5 text-gray-400" />
               Weekly Retention Trend
             </CardTitle>
           </CardHeader>
@@ -155,9 +155,9 @@ export default function RetentionDashboard({ data, loading }) {
                       type="monotone"
                       dataKey="retentionRate"
                       name="Retention Rate"
-                      stroke="#3b82f6"
+                      stroke="#9ca3af"
                       strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
+                      dot={{ fill: '#9ca3af', r: 4 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -209,7 +209,7 @@ export default function RetentionDashboard({ data, loading }) {
                     <Bar
                       dataKey="returning"
                       name="Returning Users"
-                      fill="#a855f7"
+                      fill="#d1d5db"
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>

@@ -128,7 +128,7 @@ function AuthCallbackContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent mx-auto mb-4" />
         <h2 className="text-xl font-semibold mb-2">
           Signing in...
         </h2>
@@ -142,7 +142,7 @@ function AuthCallbackLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent mx-auto mb-4" />
         <h2 className="text-xl font-semibold mb-2">Loading...</h2>
         <p className="text-slate-400">Preparing authentication...</p>
       </div>

@@ -69,7 +69,7 @@ export default function HealthScore({ data, loading }) {
       <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40 lg:col-span-1">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-400" />
+            <Activity className="h-5 w-5 text-gray-400" />
             Health Score
           </CardTitle>
         </CardHeader>
@@ -178,11 +178,11 @@ export default function HealthScore({ data, loading }) {
           {/* Component Descriptions */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-lg bg-slate-700/30">
-              <span className="font-medium text-blue-400">Engagement:</span>
+              <span className="font-medium text-gray-400">Engagement:</span>
               <span className="text-slate-400 ml-2">Events per user per day</span>
             </div>
             <div className="p-3 rounded-lg bg-slate-700/30">
-              <span className="font-medium text-purple-400">Growth:</span>
+              <span className="font-medium text-gray-400">Growth:</span>
               <span className="text-slate-400 ml-2">New user acquisition trend</span>
             </div>
             <div className="p-3 rounded-lg bg-slate-700/30">

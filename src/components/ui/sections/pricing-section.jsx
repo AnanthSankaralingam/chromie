@@ -138,7 +138,7 @@ export default function PricingSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16 overflow-visible"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
             pricing
           </h2>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
@@ -161,7 +161,7 @@ export default function PricingSection() {
           transition={{ duration: 0.6 }}
           className="max-w-3xl mx-auto"
         >
-          <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
             faq
           </h2>
           
@@ -255,28 +255,28 @@ export default function PricingSection() {
 function PricingCard({ plan, index }) {
   const colorStyles = {
     slate: {
-      card: "bg-slate-800/40 border-slate-600/30 hover:border-slate-500/50",
-      badge: "bg-slate-600/20 text-slate-300 border-slate-500/40",
-      price: "text-slate-200",
-      button: "bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 shadow-lg shadow-slate-500/20"
+      card: "bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70 shadow-xl shadow-slate-900/50",
+      badge: "bg-slate-700/30 text-slate-200 border-slate-600/40",
+      price: "text-slate-100",
+      button: "bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-white/10"
     },
     purple: {
-      card: "bg-purple-900/20 border-purple-500/40 hover:border-purple-400/60",
-      badge: "bg-purple-500/20 text-purple-300 border-purple-400/50",
-      price: "text-purple-300",
-      button: "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30"
+      card: "bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70 shadow-xl shadow-slate-900/50",
+      badge: "bg-slate-700/30 text-slate-200 border-slate-600/40",
+      price: "text-slate-100",
+      button: "bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-white/10"
     },
     blue: {
-      card: "bg-blue-900/20 border-blue-500/40 hover:border-blue-400/60",
-      badge: "bg-blue-500/20 text-blue-300 border-blue-400/50",
-      price: "text-blue-300",
-      button: "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-lg shadow-blue-500/30"
+      card: "bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70 shadow-xl shadow-slate-900/50",
+      badge: "bg-slate-700/30 text-slate-200 border-slate-600/40",
+      price: "text-slate-100",
+      button: "bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-white/10"
     },
     gradient: {
-      card: "bg-gradient-to-br from-purple-900/20 via-slate-800/40 to-blue-900/20 border-purple-400/30 hover:border-purple-300/50",
-      badge: "bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-purple-200 border-purple-400/40",
-      price: "bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent",
-      button: "bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-500 hover:via-blue-500 hover:to-purple-500 shadow-lg shadow-purple-500/30"
+      card: "bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70 shadow-xl shadow-slate-900/50",
+      badge: "bg-slate-700/30 text-slate-200 border-slate-600/40",
+      price: "text-slate-100",
+      button: "bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-white/10"
     }
   }
 
@@ -290,20 +290,25 @@ function PricingCard({ plan, index }) {
       transition={{ duration: 0.5, delay: 0.1 * (index + 1) }}
       className="relative"
     >
+      {/* Glow effect for featured card */}
+      {plan.featured && (
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400/30 via-cyan-400/30 to-blue-400/30 rounded-2xl blur opacity-60 animate-pulse" />
+      )}
+      
       <div
         className={cn(
-          "flex flex-col rounded-2xl border backdrop-blur-xl p-6 sm:p-8 text-left h-full transition-all min-w-0",
+          "relative flex flex-col rounded-2xl border backdrop-blur-xl p-6 sm:p-8 text-left h-full transition-all min-w-0",
           colors.card,
-          plan.featured && "ring-2 ring-purple-400/40 shadow-lg shadow-purple-500/20"
+          plan.featured && "ring-2 ring-blue-400/50 shadow-2xl shadow-blue-500/30 border-blue-400/40"
         )}
       >
         {/* Badge and Featured Label */}
         <div className="mb-4 sm:mb-6">
           <div className="flex flex-col items-start gap-2">
-            <h3 className="text-xl sm:text-2xl font-bold text-white break-words">{plan.title}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-white break-words drop-shadow-sm">{plan.title}</h3>
             {plan.featured && (
-              <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30 px-2 sm:px-3 py-1 text-xs font-medium text-blue-300 whitespace-nowrap">
-                <Star className="w-3 h-3 flex-shrink-0" />
+              <div className="flex items-center gap-1 rounded-full bg-blue-500/20 border border-blue-400/40 px-2 sm:px-3 py-1 text-xs font-medium text-blue-200 whitespace-nowrap shadow-sm shadow-blue-500/20">
+                <Star className="w-3 h-3 flex-shrink-0 text-blue-300" />
                 <span>most popular</span>
               </div>
             )}
@@ -314,33 +319,33 @@ function PricingCard({ plan, index }) {
         <div className="mb-4 sm:mb-6">
           <h4 className={cn("text-3xl sm:text-4xl font-bold mb-2 break-words", colors.price)}>
             {plan.price}
-            {plan.period && <span className="text-base sm:text-lg text-gray-300 font-normal"> {plan.period}</span>}
+            {plan.period && <span className="text-base sm:text-lg text-slate-300 font-normal"> {plan.period}</span>}
           </h4>
           {plan.title === "free" && (
-            <p className="text-xs text-gray-400 mb-2 sm:mb-3">No credit card needed</p>
+            <p className="text-xs text-slate-400 mb-2 sm:mb-3">No credit card needed</p>
           )}
-          <p className="text-xs sm:text-sm text-gray-300 leading-relaxed break-words">{plan.description}</p>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed break-words">{plan.description}</p>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-white/10 mb-4 sm:mb-6" />
+        <div className="border-t border-slate-700/50 mb-4 sm:mb-6" />
 
         {/* Features */}
         <div className="mb-6 sm:mb-8 flex-grow min-w-0">
           {plan.previousPlanName && (
-            <p className="text-xs font-semibold text-gray-400 mb-4 sm:mb-5 uppercase tracking-wider break-words">
+            <p className="text-xs font-semibold text-slate-400 mb-4 sm:mb-5 uppercase tracking-wider break-words">
               All features in {plan.previousPlanName}, plus:
             </p>
           )}
           {!plan.previousPlanName && (
-            <p className="text-xs font-semibold text-gray-400 mb-4 sm:mb-5 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-slate-400 mb-4 sm:mb-5 uppercase tracking-wider">
               Free for everyone
             </p>
           )}
           <ul className="space-y-2.5 sm:space-y-3.5">
             {plan.features.map((feature) => (
-              <li key={feature} className="flex items-start text-xs sm:text-sm text-gray-200 min-w-0">
-                <CircleCheck className="mr-2 sm:mr-3 h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <li key={feature} className="flex items-start text-xs sm:text-sm text-slate-200 min-w-0">
+                <CircleCheck className="mr-2 sm:mr-3 h-4 w-4 text-green-400 flex-shrink-0 mt-0.5 drop-shadow-sm" />
                 <span className="flex-1 leading-relaxed break-words">{feature}</span>
               </li>
             ))}
@@ -359,9 +364,7 @@ function PricingCard({ plan, index }) {
             }}
             className={cn(
               "w-full transition-all duration-300 font-semibold py-4 sm:py-6 text-sm sm:text-base",
-              plan.featured 
-                ? "bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 text-white"
-                : colors.button
+              "bg-white text-gray-900 hover:bg-gray-100 shadow-lg shadow-white/10 hover:shadow-xl hover:shadow-white/20 hover:scale-[1.02]"
             )}
           >
             {plan.cta}

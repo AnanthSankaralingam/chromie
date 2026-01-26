@@ -313,7 +313,7 @@ export default function StreamingChat({
                 <ChatBubbleMessage variant="received">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-600 flex items-center justify-center">
                         <FileCode className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -326,7 +326,7 @@ export default function StreamingChat({
                     <button
                       id="tour-open-canvas-button"
                       onClick={() => onOpenCanvas()}
-                      className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                      className="flex-shrink-0 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                     >
                       Open
                     </button>

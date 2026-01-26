@@ -93,8 +93,8 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-          <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
@@ -113,7 +113,7 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
       {suggestedUrl && (
         <button
           onClick={() => handleSubmit(suggestedUrl)}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white border border-purple-400 rounded-lg px-4 py-3 text-sm font-medium hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg shadow-purple-500/20"
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-400 text-white border border-gray-400 rounded-lg px-4 py-3 text-sm font-medium hover:from-gray-600 hover:to-gray-500 transition-all shadow-lg shadow-gray-500/20"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -137,13 +137,13 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
               }
             }}
             placeholder="https://example.com"
-            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-500 bg-slate-700/50 text-slate-100 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all placeholder:text-slate-500"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-500 bg-slate-700/50 text-slate-100 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-400/20 outline-none transition-all placeholder:text-slate-500"
             autoFocus
           />
           <button
             onClick={() => handleSubmit(url)}
             disabled={!url.trim()}
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20 disabled:shadow-none whitespace-nowrap"
+            className="px-5 py-2.5 bg-gradient-to-r from-gray-500 to-gray-400 text-white rounded-lg text-sm font-medium hover:from-gray-600 hover:to-gray-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-500/20 disabled:shadow-none whitespace-nowrap"
           >
             Continue
           </button>
@@ -268,8 +268,8 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-          <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
@@ -301,7 +301,7 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
               }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
                     <label className="text-sm font-semibold text-slate-200">
                       {config.name}
                     </label>
@@ -332,14 +332,14 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                         className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-all ${
                           isSkipped
                             ? 'bg-slate-600/50 border-slate-500/50 text-slate-400 cursor-not-allowed'
-                            : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 placeholder:text-slate-500'
+                            : 'bg-slate-600 border-slate-500 text-slate-100 focus:border-gray-400 focus:ring-2 focus:ring-gray-400/20 placeholder:text-slate-500'
                         } outline-none`}
                       />
                       {config.defaultEndpoint && !isSkipped && (
                         <button
                           onClick={() => handleUseDefault(index)}
                           disabled={isSkipped}
-                          className="px-4 py-2.5 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-lg shadow-blue-500/20"
+                          className="px-4 py-2.5 text-xs font-medium rounded-lg transition-colors bg-gray-600 text-white hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-lg shadow-gray-500/20"
                           title={`Use default: ${config.defaultEndpoint}`}
                         >
                           Use Default
@@ -349,7 +349,7 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                     {config.defaultEndpoint && !isSkipped && (
                       <p className="text-xs text-slate-400 flex items-center gap-1">
                         <span>Default endpoint:</span>
-                        <code className="px-2 py-0.5 rounded bg-slate-800 text-blue-400 font-mono text-xs">
+                        <code className="px-2 py-0.5 rounded bg-slate-800 text-gray-400 font-mono text-xs">
                           {config.defaultEndpoint}
                         </code>
                       </p>

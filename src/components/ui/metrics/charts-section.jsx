@@ -115,7 +115,7 @@ export default function ChartsSection({ metricsData, loading, timeRange }) {
       <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
         <CardHeader className="pb-2">
           <CardTitle className="text-white flex items-center gap-2">
-            <LineIcon className="h-5 w-5 text-blue-400" />
+            <LineIcon className="h-5 w-5 text-gray-400" />
             Events Over Time
           </CardTitle>
         </CardHeader>
@@ -126,12 +126,12 @@ export default function ChartsSection({ metricsData, loading, timeRange }) {
                 <AreaChart data={timeSeriesData}>
                   <defs>
                     <linearGradient id="colorEvents" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#9ca3af" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#d1d5db" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#d1d5db" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -155,7 +155,7 @@ export default function ChartsSection({ metricsData, loading, timeRange }) {
                     type="monotone"
                     dataKey="events"
                     name="Events"
-                    stroke="#3b82f6"
+                    stroke="#9ca3af"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorEvents)"
@@ -164,7 +164,7 @@ export default function ChartsSection({ metricsData, loading, timeRange }) {
                     type="monotone"
                     dataKey="users"
                     name="Users"
-                    stroke="#a855f7"
+                    stroke="#d1d5db"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorUsers)"

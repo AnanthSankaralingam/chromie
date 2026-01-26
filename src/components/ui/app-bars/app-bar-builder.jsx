@@ -347,7 +347,7 @@ export default function AppBarBuilder({
               </div>
             </div>
             <div className="flex flex-col">
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300">
+              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-gray-300 hover:to-gray-400 transition-all duration-300">
                 chromie
               </Link>
             </div>
@@ -397,8 +397,8 @@ export default function AppBarBuilder({
                       id={tourTestWithAIButtonId}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
                       variant="outline"
-                      className="relative bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 enabled:scale-100 hover:scale-105"
-                      style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
+                      className="relative bg-slate-900 text-gray-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-gray-500/20 hover:shadow-xl hover:shadow-gray-500/30 enabled:scale-100 hover:scale-105"
+                      style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(156 163 175), rgb(209 213 219))', backgroundOrigin: 'border-box' }}
                       title="AI Testing Options"
                     >
                       {isTestingWithAI ? (
@@ -411,7 +411,7 @@ export default function AppBarBuilder({
                           <Sparkles className="h-4 w-4 mr-2" />
                           <span className="inline-flex items-center space-x-1.5">
                             <span>test with ai</span>
-                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-blue-900/50 text-blue-300 border-2 border-blue-500">new</span>
+                            <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded-full bg-gray-900/50 text-gray-300 border-2 border-gray-500">new</span>
                           </span>
                           <ChevronDown className="h-4 w-4 ml-1" />
                         </>
@@ -441,7 +441,7 @@ export default function AppBarBuilder({
                       {!userIsPaid && !isStillLoading ? (
                         <Lock className="h-4 w-4 mr-3 text-slate-500" />
                       ) : (
-                        <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                        <Bot className="h-4 w-4 mr-3 text-gray-400" />
                       )}
                       <span className="flex-1">
                         <span className="block flex items-center gap-1.5">
@@ -479,7 +479,7 @@ export default function AppBarBuilder({
                       {!userIsPaid && !isStillLoading ? (
                         <Lock className="h-4 w-4 mr-3 text-slate-500" />
                       ) : (
-                        <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                        <Sparkles className="h-4 w-4 mr-3 text-gray-400" />
                       )}
                       <span className="flex-1">
                         <span className="block flex items-center gap-1.5">
@@ -526,12 +526,12 @@ export default function AppBarBuilder({
 
               <div className="flex items-center space-x-3 pl-3 border-l border-white/10">
                 <Link href="/profile">
-                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-purple-400/50 transition-all duration-200 shadow-lg">
+                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-gray-400/50 transition-all duration-200 shadow-lg">
                     <AvatarImage
                       src={user?.user_metadata?.picture}
                       alt={user?.user_metadata?.name || user?.email}
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white text-sm font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-400 text-white text-sm font-bold">
                       {getUserInitials(user)}
                     </AvatarFallback>
                   </Avatar>
