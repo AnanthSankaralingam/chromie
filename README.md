@@ -13,7 +13,7 @@ P1:
 2. Explore major connectors: pricing (ExtPay, Stripe), database (Firebase). Leave them as "Coming Soon" if takes too long.
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
 4. ~Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)~
-5. Gallery of chromie-built extensions? like blink.new
+5. ~Gallery of chromie-built extensions? like blink.new~
 6. ~integrate options.html pattern~
 7. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
@@ -23,7 +23,8 @@ P2:
 3. Migrate to Vercel AI-SDK and remove our custom hooks/components. replace ui and service classes
 4. ~Fix AI testing. Don't need anything complicated yet.~
 5. Add more blog posts
-6. add /uninstall page for metrics users
+6. Add more featured creations + preview (either render the ext or simply play YT vid demo)
+7. add /uninstall page for metrics users
 
 P3 Scalablility: 
 1. ~Fix CDN issues with Vercel~
@@ -81,7 +82,7 @@ Bugbash:
 
 ---
 ### Random
-1. Upload your own extension/files?
+1. ~Upload your own extension/files?~
 2. dropdown to select a specific frontend type before code gen?
 3. templates can include small branding things like uninstallListeners
 4. CONNECTORS: reference Lovable, ChatGPT connectors. Probably MCP with auth but can save us a lot of templating solution time if we get it.
