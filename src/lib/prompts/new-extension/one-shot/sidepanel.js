@@ -137,7 +137,7 @@ Components:
 - Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
 - Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
 
-Premium Effects (MUST include):
+Premium Effects:
 - Hover: scale(1.02) or translateY(-2px) + enhanced shadow
 - Backdrop-filter: blur(12px) for overlays/glass
 - Focus: Glowing ring with primary color
@@ -164,6 +164,8 @@ Return a JSON object with the following structure:
   "sidepanel.html": "side panel HTML as raw text",
   "sidepanel.js": "side panel JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
+  "options.html": "If needed for settings.",
+  "options.js": "If needed for settings.",
   "styles.css": "optional: side panel styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }

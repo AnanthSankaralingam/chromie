@@ -111,13 +111,15 @@ Return a JSON object with the following structure exactly as shown:
   "popup.html": "popup HTML as raw text",
   "popup.js": "popup JavaScript as raw text",
   "content.js": "optional: webpage interaction code as raw text",
+  "options.html": "If needed for settings.",
+  "options.js": "If needed for settings.",
   "styles.css": "cutting-edge, modern styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:
 - manifest.json: Valid JSON object with quoted keys
-- All other files: Raw text strings with proper newlines  
+- All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 </output_requirements>
 

@@ -102,14 +102,14 @@ Premium Effects:
 
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png, 
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png, 
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, 
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, 
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png, 
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png, 
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png, 
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, 
+icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png,
+icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png,
+icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png,
+icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png,
+icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png,
+icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png,
+icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png,
+icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png,
 icons/world.png, icons/youtube.png
 
 CRITICAL: Always use chrome.runtime.getURL() in content scripts to load icons.
@@ -122,12 +122,14 @@ Return a JSON object with the following structure:
   "manifest.json": {valid JSON object},
   "background.js": "optional: service worker code as raw text",
   "content.js": "content script with UI injection as raw text",
+  "options.html": "If needed for settings.",
+  "options.js": "If needed for settings.",
   "styles.css": "injected CSS styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:
-- manifest.json: Valid JSON object with quoted keys
+- manifest.json: Valid JSON object with quoted keys. IF options.html is generated, must include "options_ui": {"page": "options.html", "open_in_tab": false} and "storage" in permissions array
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 </output_requirements>

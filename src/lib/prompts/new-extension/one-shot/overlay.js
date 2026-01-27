@@ -125,13 +125,15 @@ Return a JSON object with the following structure:
   "explanation": "BRIEF markdown explanation of how the extension works. IF this extension uses Google Workspace APIs (check manifest.json for oauth2 section), APPEND the workspace OAuth setup instructions from WORKSPACE_OAUTH_SETUP_EXPLANATION to your explanation.",
   "manifest.json": {valid JSON object},
   "background.js": "service worker code as raw text",
-  "content.js": "overlay injection code as raw text", 
+  "content.js": "overlay injection code as raw text",
+  "options.html": "If needed for settings.",
+  "options.js": "If needed for settings.",
   "styles.css": "optional: overlay styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:
-- manifest.json: Valid JSON object with quoted keys
+- manifest.json: Valid JSON object with quoted keys. IF options.html is generated, must include "options_ui": {"page": "options.html", "open_in_tab": false} and "storage" in permissions array
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 </output_requirements>
