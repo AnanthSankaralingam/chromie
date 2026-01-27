@@ -1,23 +1,49 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Terminal, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { Terminal, Trash2, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive }) {
+// Source badge color mapping
+const SOURCE_BADGES = {
+  'extension:background': { label: 'BG', className: 'bg-blue-600 text-white' },
+  'extension:popup': { label: 'POPUP', className: 'bg-green-600 text-white' },
+  'extension:sidepanel': { label: 'PANEL', className: 'bg-cyan-600 text-white' },
+  'extension:content': { label: 'CONTENT', className: 'bg-orange-600 text-white' },
+  'browser:page': { label: 'PAGE', className: 'bg-gray-600 text-white' },
+}
+
+function SourceBadge({ source }) {
+  const badge = SOURCE_BADGES[source] || { label: source?.split(':')[1]?.toUpperCase() || '?', className: 'bg-gray-500 text-white' }
+  return (
+    <span className={cn("px-1.5 py-0.5 text-xs font-bold rounded flex-shrink-0", badge.className)}>
+      {badge.label}
+    </span>
+  )
+}
+
+export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive, onLogsReady }) {
   const [logs, setLogs] = useState([])
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [filter, setFilter] = useState('all') // 'all', 'extension'
   const [isPolling, setIsPolling] = useState(false)
   const logsEndRef = useRef(null)
   const pollingInterval = useRef(null)
+  const previousLogsRef = useRef([])
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
-    if (isExpanded && logsEndRef.current) {
+    if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [logs, isExpanded])
+  }, [logs])
+
+  // Notify parent when logs are ready
+  useEffect(() => {
+    if (onLogsReady && logs.length > 0) {
+      onLogsReady(logs)
+    }
+  }, [logs, onLogsReady])
 
   // Fetch logs from API
   const fetchLogs = async () => {
@@ -28,7 +54,14 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
       if (response.ok) {
         const data = await response.json()
         if (data.logs && Array.isArray(data.logs)) {
+          // Debug: Log the first log entry to see its structure
+          if (data.logs.length > 0) {
+            console.log('[DEBUG] First log entry:', data.logs[0])
+            console.log('[DEBUG] First log text type:', typeof data.logs[0].text)
+            console.log('[DEBUG] First log text value:', JSON.stringify(data.logs[0].text))
+          }
           setLogs(data.logs)
+          previousLogsRef.current = data.logs
         }
       }
     } catch (error) {
@@ -36,12 +69,12 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
     }
   }
 
-  // Start/stop polling based on session status and expansion
+  // Start/stop polling based on session status (always poll when active, not just when expanded)
   useEffect(() => {
-    if (isSessionActive && isExpanded) {
+    if (isSessionActive) {
       // Fetch immediately
       fetchLogs()
-      
+
       // Start polling every 2 seconds
       setIsPolling(true)
       pollingInterval.current = setInterval(fetchLogs, 2000)
@@ -60,153 +93,173 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
         clearInterval(pollingInterval.current)
       }
     }
-  }, [isSessionActive, isExpanded, sessionId, projectId])
+  }, [isSessionActive, sessionId, projectId])
 
   const clearLogs = () => {
     setLogs([])
   }
 
+  // Get current logs for export
+  const getCurrentLogs = () => {
+    return previousLogsRef.current.length > 0 ? previousLogsRef.current : logs
+  }
+
   const getLogTypeColor = (type) => {
     switch (type) {
       case "error":
-        return "text-red-600"
+        return "text-red-400"
       case "warn":
-        return "text-yellow-600"
+      case "warning":
+        return "text-yellow-400"
       case "info":
-        return "text-blue-600"
+        return "text-blue-400"
       default:
-        return "text-gray-700"
+        return "text-gray-300"
     }
   }
 
   const getLogTypeIcon = (type) => {
     switch (type) {
       case "error":
-        return "❌"
+        return "!"
       case "warn":
-        return "⚠️"
+      case "warning":
+        return "?"
       case "info":
-        return "ℹ️"
+        return "i"
       default:
-        return "📝"
+        return ">"
     }
   }
 
+  // Filter logs based on selected filter
+  const filteredLogs = logs.filter(log => {
+    if (filter === 'all') return true
+    if (filter === 'extension') return log.source?.startsWith('extension:')
+    return true
+  })
+
+  // Count by category for filter badges
+  const extensionCount = logs.filter(l => l.source?.startsWith('extension:')).length
+
   return (
-    <div className="flex-1 flex flex-col max-w-2xl">
-      {/* Header - Collapsed View */}
-      <div className="flex items-center space-x-2">
-        <Button
-          onClick={() => setIsExpanded(!isExpanded)}
-          variant="ghost"
-          size="sm"
-          className="text-gray-600 hover:text-gray-900"
-        >
-          <Terminal className="h-4 w-4 mr-2" />
-          <span className="text-sm">Console Logs</span>
-          {logs.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-              {logs.length}
+    <div className="flex flex-col h-[240px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
+        <div className="flex items-center space-x-2 text-xs text-gray-400">
+          <Terminal className="h-3 w-3" />
+          <span>Console</span>
+          {isPolling && (
+            <span className="flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+              <span>Live</span>
             </span>
           )}
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 ml-1" />
-          ) : (
-            <ChevronDown className="h-4 w-4 ml-1" />
+          <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs">
+            {filteredLogs.length}
+          </span>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {/* Filter Dropdown */}
+          <div className="flex items-center space-x-1">
+            <Filter className="h-3 w-3 text-gray-500" />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-0.5 border-none focus:outline-none focus:ring-1 focus:ring-gray-500"
+            >
+              <option value="all">All ({logs.length})</option>
+              <option value="extension">Extension ({extensionCount})</option>
+            </select>
+          </div>
+
+          {logs.length > 0 && (
+            <Button
+              onClick={clearLogs}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
           )}
-        </Button>
-        
-        {logs.length > 0 && (
-          <Button
-            onClick={clearLogs}
-            variant="ghost"
-            size="sm"
-            className="text-gray-500 hover:text-red-600"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        )}
+        </div>
       </div>
 
-      {/* Expanded Log View */}
-      {isExpanded && (
-        <div className="mt-2 bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
-          <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-xs text-gray-400">
-              <Terminal className="h-3 w-3" />
-              <span>Extension Console</span>
-              {isPolling && (
-                <span className="flex items-center space-x-1">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                  <span>Live</span>
+      {/* Log Content - Fixed height, always visible */}
+      <div className="flex-1 overflow-y-auto font-mono text-xs space-y-0.5 bg-gray-900 p-2 rounded-b-lg">
+        {filteredLogs.length === 0 ? (
+          <div className="text-gray-500 text-center py-8">
+            <Terminal className="h-6 w-6 mx-auto mb-2 opacity-50" />
+            <p>No console logs yet</p>
+            <p className="text-xs mt-1 text-gray-600">
+              Extension logs will appear here once the test starts
+            </p>
+          </div>
+        ) : (
+          filteredLogs.map((log, index) => (
+            <div
+              key={log.id || index}
+              className={cn(
+                "px-2 py-1 rounded flex items-start gap-2",
+                log.type === "error" && "bg-red-950/40",
+                log.type === "warn" && "bg-yellow-950/40",
+                log.type === "info" && "bg-blue-950/40",
+                log.isChromieLog && "bg-purple-950/40",
+                !log.type && !log.isChromieLog && "bg-gray-800/40"
+              )}
+            >
+              {/* Type indicator */}
+              <span className={cn(
+                "flex-shrink-0 w-4 text-center font-bold",
+                getLogTypeColor(log.type)
+              )}>
+                {getLogTypeIcon(log.type)}
+              </span>
+
+              {/* Source badge */}
+              <SourceBadge source={log.source} />
+
+              {/* CHROMIE badge if applicable */}
+              {log.isChromieLog && (
+                <span className="px-1.5 py-0.5 bg-purple-600 text-white text-xs font-bold rounded flex-shrink-0">
+                  CHROMIE
+                </span>
+              )}
+
+              {/* Component if applicable */}
+              {log.component && (
+                <span className="text-purple-300 font-semibold flex-shrink-0 text-xs">
+                  {log.component}
+                </span>
+              )}
+
+              {/* Log text */}
+              <span className={cn(
+                "flex-1",
+                log.isChromieLog ? "text-purple-200" : getLogTypeColor(log.type)
+              )}>
+                {String(log.text || '')}
+              </span>
+
+              {/* Timestamp */}
+              {log.timestamp && (
+                <span className="text-gray-600 text-xs flex-shrink-0">
+                  {new Date(log.timestamp).toLocaleTimeString()}
                 </span>
               )}
             </div>
-          </div>
-          
-          <div className="p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-1 bg-gray-900">
-            {logs.length === 0 ? (
-              <div className="text-gray-500 text-center py-4">
-                <Terminal className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No console logs yet</p>
-                <p className="text-xs mt-1">Logs from your extension will appear here</p>
-              </div>
-            ) : (
-              logs.map((log, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-2 rounded border-l-2",
-                    log.isChromieLog && "bg-purple-950/30 border-purple-500",
-                    !log.isChromieLog && log.type === "error" && "bg-red-950/30 border-red-600",
-                    !log.isChromieLog && log.type === "warn" && "bg-yellow-950/30 border-yellow-600",
-                    !log.isChromieLog && log.type === "info" && "bg-blue-950/30 border-blue-600",
-                    !log.isChromieLog && !log.type && "bg-gray-800/50 border-gray-600"
-                  )}
-                >
-                  <div className="flex items-start space-x-2">
-                    <span className="flex-shrink-0">{getLogTypeIcon(log.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline space-x-2 flex-wrap">
-                        {log.isChromieLog && (
-                          <span className="px-1.5 py-0.5 bg-purple-600 text-white text-xs font-bold rounded flex-shrink-0">
-                            CHROMIE
-                          </span>
-                        )}
-                        {log.component && (
-                          <span className="text-purple-300 font-semibold flex-shrink-0 text-xs">
-                            {log.component}
-                          </span>
-                        )}
-                        {log.context && (
-                          <span className="px-1 py-0.5 bg-gray-700 text-gray-300 text-xs rounded flex-shrink-0">
-                            {log.context}
-                          </span>
-                        )}
-                        {log.prefix && !log.isChromieLog && (
-                          <span className="text-gray-400 font-semibold flex-shrink-0">
-                            {log.prefix}
-                          </span>
-                        )}
-                        <span className={cn("break-words", log.isChromieLog ? "text-purple-200" : getLogTypeColor(log.type))}>
-                          {log.text}
-                        </span>
-                      </div>
-                      {log.timestamp && (
-                        <span className="text-gray-500 text-xs">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-            <div ref={logsEndRef} />
-          </div>
-        </div>
-      )}
+          ))
+        )}
+        <div ref={logsEndRef} />
+      </div>
     </div>
   )
 }
 
+// Export a function to get the current logs for parent components
+ConsoleLogViewer.getCurrentLogs = () => {
+  // This is a placeholder - the actual implementation uses the ref
+  return []
+}

@@ -11,6 +11,7 @@ import { Conversation, ConversationContent, ConversationScrollButton } from "@/c
 import { useChatState } from "./hooks/useChatState"
 import { useStreamProcessor } from "./hooks/useStreamProcessor"
 import { cn } from "@/lib/utils"
+import ConsoleLogsContextPill from "@/components/ui/chat/console-logs-context-pill"
 
 export default function StreamingChat({
   projectId,
@@ -29,6 +30,8 @@ export default function StreamingChat({
   modelOverride,
   onCodeGenerationStarting,
   onSetInputMessage,
+  testSessionLogs,
+  onClearTestSessionLogs,
 }) {
   const chatState = useChatState(projectId, hasGeneratedCodeProp)
   const {
@@ -406,6 +409,17 @@ export default function StreamingChat({
           "w-full max-w-4xl mx-auto",
           isCanvasOpen ? "pl-[16.67%]" : ""
         )}>
+          {/* Console Logs Context Pill */}
+          {testSessionLogs && testSessionLogs.length > 0 && (
+            <ConsoleLogsContextPill
+              logs={testSessionLogs}
+              onAddToContext={(formatted) => {
+                setInputMessage(formatted)
+                onClearTestSessionLogs?.()
+              }}
+              onDismiss={() => onClearTestSessionLogs?.()}
+            />
+          )}
           <AIInputWithSearch
             placeholder={
               projectName

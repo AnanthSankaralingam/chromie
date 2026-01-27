@@ -59,6 +59,7 @@ function BuilderPageContent() {
   const [isAITestResultModalOpen, setIsAITestResultModalOpen] = useState(false)
   const [hasSavedAITestResults, setHasSavedAITestResults] = useState(false)
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false)
+  const [testSessionLogs, setTestSessionLogs] = useState(null)
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -524,6 +525,17 @@ function BuilderPageContent() {
     }
   }
 
+  // Handle logs captured from test session
+  const handleSessionLogsCapture = useCallback((logs) => {
+    console.log('[builder-page] Captured', logs.length, 'logs from test session')
+    setTestSessionLogs(logs)
+  }, [])
+
+  // Clear test session logs
+  const handleClearTestSessionLogs = useCallback(() => {
+    setTestSessionLogs(null)
+  }, [])
+
   // Show loading state
   if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
     return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
@@ -710,6 +722,8 @@ function BuilderPageContent() {
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
                 onCodeGenerationStarting={handleCodeGenerationStarting}
                 onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
+                testSessionLogs={testSessionLogs}
+                onClearTestSessionLogs={handleClearTestSessionLogs}
               />
             </div>
           )}
@@ -810,6 +824,8 @@ function BuilderPageContent() {
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
                   onCodeGenerationStarting={handleCodeGenerationStarting}
                   onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
+                  testSessionLogs={testSessionLogs}
+                  onClearTestSessionLogs={handleClearTestSessionLogs}
                 />
               </div>
             </div>
@@ -878,6 +894,8 @@ function BuilderPageContent() {
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
                   onCodeGenerationStarting={handleCodeGenerationStarting}
                   onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
+                  testSessionLogs={testSessionLogs}
+                  onClearTestSessionLogs={handleClearTestSessionLogs}
                 />
               </div>
 
@@ -948,6 +966,7 @@ function BuilderPageContent() {
         extensionFiles={fileManagement.flatFiles}
         onGeneratePuppeteerTests={handleGeneratePuppeteerTestsFromModal}
         onGenerateAiAgentTests={handleGenerateAiAgentTestsFromModal}
+        onSessionLogsCapture={handleSessionLogsCapture}
       />
 
       {/* Project Limit Modal */}
