@@ -46,7 +46,7 @@ P4:
 Bugbash:
 1. “Ask” mode
 2.  ~Yield model thoughts (title, description hidden) like in Gemini UI~
-3.  Take out purple gradient from coder prompt
+3.  ~Take out purple gradient from coder prompt~
 4.  when users have multiple extensions built and a consistent profile, the Hyperbrowser instance loads multiple extensions, I think. When I have a new tab extension in another project, it sometimes interferes with my current testing. local storage is also persisted
 5.  Coder hallucinates icons, and we don't validate existence. We should have an auto fixer for this situation by matching the most similar icon 
 6.  Rest of "Bugs" section
@@ -60,7 +60,7 @@ Bugbash:
 
 ---
 ### BUGS
-1. show projects section first on profile page.
+1. ~show projects section first on profile page.~
 2. ~shared links section not needed/working on /profile.~
 3. ~can't rename projects~
 4. WORKSPACE_AUTH_INSTRUCTIONS (commented out) injected into all coding prompts. needs to be conditional.
@@ -71,7 +71,6 @@ Bugbash:
 9. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest)
 10. prompt_tokens is always extracted from gemini object as 0.
 11. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
-12. Introduce "Ask" mode
 
 ---
 ### SECURITY
