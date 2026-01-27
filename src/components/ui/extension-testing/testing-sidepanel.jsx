@@ -363,7 +363,7 @@ export default function TestingSidepanel({
                     </div>
                     {puppeteerTestResult.error ? (
                       <div className="mt-2 text-xs whitespace-pre-wrap">
-                        <span className="font-semibold">Error:</span> {puppeteerTestResult.error}
+                        <span className="font-semibold">Error:</span> {puppeteerTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
                       </div>
                     ) : null}
                   </div>
@@ -384,7 +384,7 @@ export default function TestingSidepanel({
                             </div>
                           </div>
                           {r.error ? (
-                            <div className="mt-2 text-xs text-red-700 whitespace-pre-wrap">{r.error}</div>
+                            <div className="mt-2 text-xs text-red-700 whitespace-pre-wrap">{r.error.replace(/Hyperbrowser/gi, 'Testing Browser')}</div>
                           ) : null}
                         </div>
                       ))}
@@ -431,7 +431,7 @@ export default function TestingSidepanel({
                     </div>
                     {aiAgentTestResult.error ? (
                       <div className="mt-2 text-xs whitespace-pre-wrap">
-                        <span className="font-semibold">Error:</span> {aiAgentTestResult.error}
+                        <span className="font-semibold">Error:</span> {aiAgentTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
                       </div>
                     ) : null}
                   </div>

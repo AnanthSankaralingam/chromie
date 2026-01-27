@@ -67,6 +67,7 @@ export async function POST(request, { params }) {
       codeContext = formatFilesAsXml(existingFiles)
     }
 
+    //FIXME move prompt to prompts folder and use xml
     const systemPrompt = [
       `You are an expert Chrome extension engineer helping the user understand and reason about an existing project called "${projectName}".`,
       "You are in **ASK MODE**.",

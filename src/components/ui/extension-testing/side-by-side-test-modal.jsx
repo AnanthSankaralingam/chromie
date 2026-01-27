@@ -8,6 +8,7 @@ import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
 import ProgressSpinner from "@/components/ui/loading/progress-spinner"
 import TestingSidepanel from "@/components/ui/extension-testing/testing-sidepanel"
+import ErrorDisplay from "./error-display"
 
 export default function SideBySideTestModal({
   isOpen,
@@ -468,13 +469,7 @@ export default function SideBySideTestModal({
   const viewportHeight = sessionData?.browserInfo?.viewport?.height || 1080;
 
   // Estimate extra height for modal header and footer
-  // Header: h-14 (56px)
-  // Footer: p-4 (16px top + 16px bottom) + content height (e.g., 18px) = ~50px
   const modalExtraHeight = 56 + 50; // Total ~106px
-
-  // Log dimensions for debugging
-
-
 
   return (
     <div
@@ -622,17 +617,11 @@ export default function SideBySideTestModal({
                   </div>
                 ) : error ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                    <div className="text-center max-w-md">
-                      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load test environment</h3>
-                      <p className="text-gray-600 mb-4">
-                        There was an error setting up the browser testing environment. Please try again.
-                      </p>
-                      <Button onClick={onRefresh} disabled={isLoading}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Retry
-                      </Button>
-                    </div>
+                    <ErrorDisplay
+                      error={error}
+                      onRetry={onRefresh}
+                      isLoading={isLoading}
+                    />
                   </div>
                 ) : sessionData?.iframeUrl ? (
                   <iframe
@@ -651,9 +640,13 @@ export default function SideBySideTestModal({
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                     <div className="text-center">
-                      <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No test session available</h3>
-                      <p className="text-gray-600">Click the Test button to start a new testing session.</p>
+                      <Monitor className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Ready to Test
+                      </h3>
+                      <p className="text-gray-600">
+                        Click "Test Extension" to launch the Testing Browser
+                      </p>
                     </div>
                   </div>
                 )}

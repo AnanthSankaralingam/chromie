@@ -131,7 +131,18 @@ export default function useTestExtension(currentProjectId) {
 
       if (!response.ok) {
         console.error("❌ API Error:", data.error || data)
-        throw new Error(data.error || "Failed to create test session")
+
+        // Store rich error data for UI consumption
+        const errorData = {
+          message: data.error || "Failed to create test session",
+          code: data.errorCode,
+          type: data.errorType,
+          category: data.errorCategory,
+        }
+
+        setTestSessionData({ error: errorData })
+        setLoadingProgress(100)
+        return // Don't throw - error is stored in state for UI to display
       }
 
       console.log("✅ Session created:", data.session?.sessionId)
@@ -157,7 +168,14 @@ export default function useTestExtension(currentProjectId) {
       }
     } catch (error) {
       console.error("❌ Error:", error.message)
-      setTestSessionData(null)
+      // Store the error in state for UI to display instead of clearing it
+      setTestSessionData({
+        error: {
+          message: error.message || "Failed to create test session",
+          type: 'general',
+          category: 'unknown'
+        }
+      })
     } finally {
       setIsTestLoading(false)
       pendingCreateRef.current = null
