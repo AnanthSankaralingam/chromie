@@ -47,13 +47,13 @@ export default function BlogPostPage({ slug }) {
           className="absolute inset-0 z-0"
           squareSize={4}
           gridGap={6}
-          color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
           maxOpacity={0.15}
           flickerChance={2.0}
         />
 
         <motion.div
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.15, 0.25, 0.15],
@@ -65,7 +65,7 @@ export default function BlogPostPage({ slug }) {
           }}
         />
         <motion.div
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.1, 0.2, 0.1],
@@ -88,7 +88,7 @@ export default function BlogPostPage({ slug }) {
           {/* Back Button */}
           <Link href="/blog">
             <motion.button
-              className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors mb-8"
+              className="flex items-center gap-2 text-gray-400 hover:text-gray-300 transition-colors mb-8"
               whileHover={{ x: -5 }}
             >
               <ArrowLeft className="w-5 h-5" />
@@ -105,13 +105,13 @@ export default function BlogPostPage({ slug }) {
           >
             {/* Icon */}
             <div className="mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-purple-500/30">
-                <Icon className="w-10 h-10 text-purple-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30">
+                <Icon className="w-10 h-10 text-gray-400" />
               </div>
             </div>
 
             {/* Title */}
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent leading-tight">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-gray-300 to-gray-400 bg-clip-text text-transparent leading-tight">
               {post.title}
             </h1>
 
@@ -133,7 +133,7 @@ export default function BlogPostPage({ slug }) {
                 {post.authors.map((author, i) => (
                   <div
                     key={i}
-                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-sm font-semibold border-2 border-gray-900"
+                    className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-400 flex items-center justify-center text-white text-sm font-semibold border-2 border-gray-900"
                     title={author.name}
                   >
                     {author.name.charAt(0)}
@@ -168,8 +168,8 @@ export default function BlogPostPage({ slug }) {
                 Two big features: side-by-side testing and AI-generated test suites. Both solve the same problem: making it fast to know if your extension actually works.
               </p>
 
-              <div className="bg-purple-900/20 border-l-4 border-purple-500 p-6 rounded-r-lg mb-8">
-                <p className="text-purple-200 font-semibold mb-2">Key Features:</p>
+              <div className="bg-gray-900/20 border-l-4 border-gray-500 p-6 rounded-r-lg mb-8">
+                <p className="text-gray-200 font-semibold mb-2">Key Features:</p>
                 <ul className="list-disc list-inside text-gray-300 space-y-2">
                   <li>Side-by-side browser simulator for instant testing</li>
                   <li>AI-powered test generation from your extension description</li>
@@ -203,27 +203,27 @@ export default function BlogPostPage({ slug }) {
                 We also generate Browser Use agent tests that simulate complex, end-to-end user behavior. These AI-powered agents can handle multi-step workflows, adapt to page changes, and test scenarios that traditional scripts might miss.
               </p>
 
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl px-8 py-8">
-                <h3 className="text-xl font-semibold text-blue-200 mb-6">How It Works</h3>
+              <div className="bg-gray-900/20 border border-gray-500/30 rounded-xl px-8 py-8">
+                <h3 className="text-xl font-semibold text-gray-200 mb-6">How It Works</h3>
                 <div className="space-y-3 text-gray-300">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">1</div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">1</div>
                     <p className="m-0">Navigate to target webpage</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">2</div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">2</div>
                     <p className="m-0">Load your extension in the browser</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">3</div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">3</div>
                     <p className="m-0">Trigger extension functionality</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">4</div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">4</div>
                     <p className="m-0">Verify expected changes occurred</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">5</div>
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">5</div>
                     <p className="m-0">Report results with screenshots and logs</p>
                   </div>
                 </div>
@@ -260,13 +260,13 @@ export default function BlogPostPage({ slug }) {
                 The goal is simple: building extensions should be about building the thing you want, not fighting tooling. We handle the complexity so you don't have to.
               </p>
 
-              <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 rounded-xl p-8 mt-12">
+              <div className="bg-gradient-to-r from-gray-900/30 to-gray-900/30 border border-gray-500/30 rounded-xl p-8 mt-12">
                 <h3 className="text-2xl font-bold text-white mb-4">Try it out</h3>
                 <p className="text-gray-300 mb-6">
                   Both features are live now. Build an extension, hit test, see what happens.
                 </p>
                 <Link href="/builder">
-                  <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-purple-500/50">
+                  <button className="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-gray-500/50">
                     Start Building
                   </button>
                 </Link>
@@ -285,7 +285,7 @@ export default function BlogPostPage({ slug }) {
               {post.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-full text-sm text-gray-300 hover:border-purple-500/50 transition-colors"
+                  className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-full text-sm text-gray-300 hover:border-gray-500/50 transition-colors"
                 >
                   #{tag}
                 </span>

@@ -26,8 +26,8 @@ export default function OverviewStats({ metricsData, loading }) {
       label: 'Total Events',
       value: loading ? '--' : totalEvents.toLocaleString(),
       icon: Activity,
-      bgColor: 'bg-blue-500/20',
-      textColor: 'text-blue-400'
+      bgColor: 'bg-gray-500/20',
+      textColor: 'text-gray-400'
     },
     {
       label: 'Daily Active Users',
@@ -42,8 +42,8 @@ export default function OverviewStats({ metricsData, loading }) {
       value: loading ? '--' : mau.toLocaleString(),
       sublabel: 'MAU',
       icon: Users,
-      bgColor: 'bg-purple-500/20',
-      textColor: 'text-purple-400'
+      bgColor: 'bg-gray-500/20',
+      textColor: 'text-gray-400'
     }
   ]
 

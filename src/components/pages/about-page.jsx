@@ -39,7 +39,7 @@ export default function AboutPage() {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />

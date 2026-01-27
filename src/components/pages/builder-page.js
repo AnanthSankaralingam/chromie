@@ -625,7 +625,7 @@ function BuilderPageContent() {
             <button
               onClick={() => setActiveTab('files')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'files'
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
+                  ? 'text-gray-300 border-b-2 border-gray-400 bg-gray-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
                 }`}
             >
@@ -635,7 +635,7 @@ function BuilderPageContent() {
             <button
               onClick={() => setActiveTab('editor')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium transition-all ${activeTab === 'editor'
-                  ? 'text-purple-300 border-b-2 border-purple-400 bg-purple-500/10'
+                  ? 'text-gray-300 border-b-2 border-gray-400 bg-gray-500/10'
                   : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
                 }`}
             >

@@ -54,13 +54,13 @@ export default function BlogPage() {
           className="absolute inset-0 z-0"
           squareSize={4}
           gridGap={6}
-          color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
           maxOpacity={0.15}
           flickerChance={2.0}
         />
 
         <motion.div
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.15, 0.25, 0.15],
@@ -72,7 +72,7 @@ export default function BlogPage() {
           }}
         />
         <motion.div
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.1, 0.2, 0.1],
@@ -111,7 +111,7 @@ export default function BlogPage() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                   selectedCategory === category
-                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/50"
+                    ? "bg-gradient-to-r from-gray-600 to-gray-400 text-white shadow-lg shadow-gray-500/50"
                     : "bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 border border-gray-700/50"
                 }`}
               >
@@ -129,7 +129,7 @@ export default function BlogPage() {
                 placeholder="Search posts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all duration-300"
+                className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-500/50 focus:ring-2 focus:ring-gray-500/20 transition-all duration-300"
               />
             </div>
             <button className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-700/50 transition-all duration-300">
@@ -161,7 +161,7 @@ export default function BlogPage() {
 
         {/* Newsletter Section */}
         <div className="max-w-3xl mx-auto mt-20">
-          <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 backdrop-blur-sm rounded-2xl border border-purple-500/30 p-12 text-center">
+          <div className="bg-gradient-to-br from-gray-900/30 to-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-500/30 p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">stay updated</h2>
             <p className="text-gray-300 mb-8">
               get the latest chromie updates delivered straight to your inbox
@@ -170,9 +170,9 @@ export default function BlogPage() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20"
+                className="flex-1 px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-500/50 focus:ring-2 focus:ring-gray-500/20"
               />
-              <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-purple-500/50">
+              <button className="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-gray-500/50">
                 Subscribe
               </button>
             </div>

@@ -272,13 +272,13 @@ export default function ShareExtensionPage({ token }) {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />
           
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.15, 0.25, 0.15],
@@ -290,7 +290,7 @@ export default function ShareExtensionPage({ token }) {
             }}
           />
           <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.1, 0.2, 0.1],
@@ -305,7 +305,7 @@ export default function ShareExtensionPage({ token }) {
         </div>
         
         <div className="text-center relative z-10">
-          <Loader2 className="h-12 w-12 text-purple-400 animate-spin mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">loading extension</h2>
           <p className="text-slate-400">fetching project details...</p>
         </div>
@@ -322,13 +322,13 @@ export default function ShareExtensionPage({ token }) {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />
           
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.1, 1],
               opacity: [0.15, 0.25, 0.15],
@@ -340,7 +340,7 @@ export default function ShareExtensionPage({ token }) {
             }}
           />
           <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
+            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.1, 0.2, 0.1],
@@ -365,7 +365,7 @@ export default function ShareExtensionPage({ token }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button asChild className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            <Button asChild className="bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500">
               <Link href="/">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 go to chromie
@@ -391,7 +391,7 @@ export default function ShareExtensionPage({ token }) {
           className="absolute inset-0 z-0"
           squareSize={4}
           gridGap={6}
-          color="rgb(139, 92, 246)"
+          color="rgb(156, 163, 175)"
           maxOpacity={0.15}
           flickerChance={2.0}
         />

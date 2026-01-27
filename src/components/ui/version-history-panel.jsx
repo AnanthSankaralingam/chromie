@@ -220,9 +220,9 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
         className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-purple-900/20 to-blue-900/20">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-900/20 to-gray-900/20">
           <div className="flex items-center space-x-3">
-            <History className="h-6 w-6 text-purple-400" />
+            <History className="h-6 w-6 text-gray-400" />
             <h2 className="text-xl font-semibold text-white">Version History</h2>
           </div>
           <button
@@ -264,7 +264,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                 !userIsPaid && !isStillLoading
                   ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
               }`}
             >
               {!userIsPaid && !isStillLoading ? (
@@ -286,7 +286,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
                 placeholder="Version name (e.g., 'Before UI redesign')"
                 value={newVersionName}
                 onChange={(e) => setNewVersionName(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-500"
               />
               <textarea
                 placeholder="Description (optional)"
@@ -299,7 +299,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
                 <button
                   onClick={handleCreateVersion}
                   disabled={isCreatingVersion || !newVersionName.trim()}
-                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
                   {isCreatingVersion ? (
                     <>
@@ -332,7 +332,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
         <div className="overflow-y-auto max-h-[calc(90vh-240px)] px-6 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent" />
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-500 border-t-transparent" />
             </div>
           ) : versions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -345,13 +345,13 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
               {versions.map((version) => (
                 <div
                   key={version.id}
-                  className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden hover:border-purple-500/50 transition-colors"
+                  className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden hover:border-gray-500/50 transition-colors"
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-900/50 text-purple-300 border border-purple-500/50">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-900/50 text-gray-300 border border-gray-500/50">
                             v{version.version_number}
                           </span>
                           <h3 className="text-white font-medium">
@@ -383,7 +383,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
                         <button
                           onClick={() => handleRevertToVersion(version.id, version.version_number)}
                           disabled={isReverting}
-                          className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
+                          className="flex items-center space-x-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-colors"
                           title="Revert to this version"
                         >
                           <RotateCcw className="h-3.5 w-3.5" />

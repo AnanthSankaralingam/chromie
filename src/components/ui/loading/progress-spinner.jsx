@@ -46,7 +46,7 @@ export default function ProgressSpinner({
         </div>
         <div className="w-full bg-slate-700 rounded-full h-2">
           <div 
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+            className="bg-gradient-to-r from-gray-500 to-gray-400 h-2 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -54,7 +54,7 @@ export default function ProgressSpinner({
 
       {/* Spinner */}
       <div className="relative mb-6">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-600 border-t-blue-500 mx-auto" />
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-600 border-t-gray-500 mx-auto" />
         {!isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <CheckCircle className="h-8 w-8 text-green-500" />
@@ -84,7 +84,7 @@ export default function ProgressSpinner({
                 index <= displayedStage 
                   ? "text-green-400" 
                   : index === displayedStage + 1
-                  ? "text-blue-400"
+                  ? "text-gray-400"
                   : "text-slate-500"
               }`}
             >
@@ -92,7 +92,7 @@ export default function ProgressSpinner({
                 {index < displayedStage ? (
                   <CheckCircle className="h-4 w-4 text-green-400" />
                 ) : index === displayedStage ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                 ) : (
                   <div className="h-4 w-4 rounded-full border-2 border-slate-500" />
                 )}

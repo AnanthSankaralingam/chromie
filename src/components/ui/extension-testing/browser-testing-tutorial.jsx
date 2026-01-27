@@ -9,7 +9,7 @@ export default function BrowserTestingTutorial() {
         <div className="relative">
           {/* Loading spinner in top right */}
           <div className="absolute -top-4 -right-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent" />
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-500 border-t-transparent" />
           </div>
           
           <div className="bg-white rounded-xl shadow-lg p-12">

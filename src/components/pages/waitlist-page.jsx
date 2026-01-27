@@ -93,7 +93,7 @@ export default function WaitlistPage() {
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
-            color="rgb(139, 92, 246)"
+            color="rgb(156, 163, 175)"
             maxOpacity={0.15}
             flickerChance={2.0}
           />
@@ -108,7 +108,7 @@ export default function WaitlistPage() {
             className="text-center max-w-2xl"
           >
             <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
               You're In!
             </h1>
             <p className="text-xl text-slate-300 mb-8">
@@ -118,7 +118,7 @@ export default function WaitlistPage() {
               <Button
                 onClick={() => router.push('/')}
                 size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                className="bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-500 hover:to-gray-300"
               >
                 Back to Home
               </Button>
@@ -133,17 +133,17 @@ export default function WaitlistPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex flex-col">
       {/* Animated Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <FlickeringGrid
-          className="absolute inset-0 z-0"
-          squareSize={4}
-          gridGap={6}
-          color="rgb(139, 92, 246)"
-          maxOpacity={0.15}
-          flickerChance={2.0}
-        />
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(156, 163, 175)"
+            maxOpacity={0.15}
+            flickerChance={2.0}
+          />
         
         <motion.div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
+          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
           animate={{
             scale: [1, 1.1, 1],
             opacity: [0.15, 0.25, 0.15],
@@ -180,10 +180,10 @@ export default function WaitlistPage() {
           >
             {/* Icon and Title */}
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
-                <Sparkles className="w-8 h-8 text-purple-400" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-500/10 border border-gray-500/20 mb-6">
+                <Sparkles className="w-8 h-8 text-gray-400" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
                 Join the Waitlist
               </h1>
               <p className="text-xl text-slate-300">
@@ -212,7 +212,7 @@ export default function WaitlistPage() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
                     placeholder="John Doe"
                   />
                 </div>
@@ -229,7 +229,7 @@ export default function WaitlistPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -245,7 +245,7 @@ export default function WaitlistPage() {
                     value={formData.useCase}
                     onChange={handleChange}
                     rows={4}
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all resize-none"
                     placeholder="Tell us about your extension idea..."
                   />
                 </div>
@@ -254,7 +254,7 @@ export default function WaitlistPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-6 text-lg bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-6 text-lg bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
@@ -282,7 +282,7 @@ export default function WaitlistPage() {
                 Questions?{" "}
                 <a 
                   href="mailto:hello@chromie.dev" 
-                  className="text-purple-400 hover:text-purple-300 underline"
+                  className="text-gray-400 hover:text-gray-300 underline"
                 >
                   Email us
                 </a>
