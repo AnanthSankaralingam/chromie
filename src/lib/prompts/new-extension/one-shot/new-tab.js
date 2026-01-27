@@ -37,13 +37,12 @@ MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics for fu
 Core Principles:
 - Full viewport | Spacing: 16px, 24px, 32px | Border-radius: 12px-16px
 - Center content with max-width (1200-1400px)
-- Use gradients, glassmorphism, shadows for depth
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.3s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+1. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+2. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+3. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 14px body, 24px heading, 32px hero | Weights 600+ for headings
@@ -61,14 +60,14 @@ Premium Effects (MUST include):
 
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png, 
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png, 
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, 
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, 
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png, 
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png, 
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png, 
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, 
+icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png,
+icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png,
+icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png,
+icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png,
+icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png,
+icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png,
+icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png,
+icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png,
 icons/world.png, icons/youtube.png
 </icon_configuration>
 
@@ -80,12 +79,14 @@ Return a JSON object with the following structure:
   "background.js": "optional: service worker code as raw text",
   "newtab.html": "new tab page HTML as raw text",
   "newtab.js": "new tab page JavaScript as raw text",
+  "options.html": "If needed for settings.",
+  "options.js": "If needed for settings.",
   "styles.css": "cutting-edge, full-page styling as raw text",
   "OAUTH_SETUP.md": "IF this extension uses Google Workspace APIs (has oauth2 in manifest.json), include the full WORKSPACE_OAUTH_SETUP_FILE content. Otherwise, omit this file."
 }
 
 File Format Rules:
-- manifest.json: Valid JSON object with quoted keys
+- manifest.json: Valid JSON object with quoted keys. IF options.html is generated, must include "options_ui": {"page": "options.html", "open_in_tab": false} and "storage" in permissions array
 - All other files: Raw text strings with proper newlines
 - No JSON encoding of file contents
 </output_requirements>

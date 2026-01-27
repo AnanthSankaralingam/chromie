@@ -10,6 +10,7 @@ import { searchChromeExtensionAPI } from './chrome-api-docs.js'
 import { fetchExternalApiDocs } from './external-api-docs.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
 import { isWorkspaceAPI, collectWorkspaceScopes } from '@/lib/utils/google-workspace-scopes.js'
+import { generateApiKeyInstructions } from '@/lib/prompts/instructions/api-key-instructions.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
@@ -690,6 +691,14 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
     if (apiDocumentation) {
       output += '## External API Documentation\n\n'
       output += apiDocumentation
+      output += '\n\n'
+    }
+
+    // Add API key management instructions for non-OAuth APIs
+    const nonOAuthApis = allApis.filter(api => !isWorkspaceAPI(api.name))
+    if (nonOAuthApis.length > 0) {
+      console.log(`🔑 Adding API key management for ${nonOAuthApis.length} APIs`)
+      output += generateApiKeyInstructions(nonOAuthApis)
       output += '\n\n'
     }
   }

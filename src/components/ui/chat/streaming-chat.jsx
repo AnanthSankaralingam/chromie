@@ -357,7 +357,7 @@ export default function StreamingChat({
                 {isModelThinkingOpen && (
                   <div className="mt-2 p-3 rounded-lg border border-slate-500/20 bg-slate-800/20">
                     <div className="text-xs text-slate-400 mb-2">
-                      Detailed reasoning ({thinkingChunkCountRef.current} chunks):
+                      Detailed reasoning :
                     </div>
                     <div className="text-white text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
                       {modelThinkingDisplay || modelThinkingFull}

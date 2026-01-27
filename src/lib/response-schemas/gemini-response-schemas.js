@@ -42,6 +42,13 @@ function withContentScriptUIFields() {
   return {}  // Uses base fields only (content.js, styles.css)
 }
 
+function withOptionsFields() {
+  return {
+    "options.html": { type: Type.STRING },
+    "options.js": { type: Type.STRING }
+  }
+}
+
 // Follow-up extension schema (all files optional except explanation + manifest.json)
 export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
   name: "extension_implementation",
@@ -51,7 +58,8 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
       ...baseFileFields(),
       ...withPopupFields(),
       ...withSidepanelFields(),
-      ...withOverlayFields()
+      ...withOverlayFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -67,6 +75,8 @@ export const FOLLOWUP_EXTENSION_RESPONSE_SCHEMA = {
       "sidepanel.js",
       "overlay.html",
       "overlay.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -80,7 +90,8 @@ export const SIDEPANEL_EXTENSION_RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
       ...baseFileFields(),
-      ...withSidepanelFields()
+      ...withSidepanelFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -92,6 +103,8 @@ export const SIDEPANEL_EXTENSION_RESPONSE_SCHEMA = {
       "content.js",
       "sidepanel.html",
       "sidepanel.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -105,7 +118,8 @@ export const POPUP_EXTENSION_RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
       ...baseFileFields(),
-      ...withPopupFields()
+      ...withPopupFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -117,6 +131,8 @@ export const POPUP_EXTENSION_RESPONSE_SCHEMA = {
       "background.js",
       "popup.html",
       "popup.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -130,7 +146,8 @@ export const OVERLAY_EXTENSION_RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
       ...baseFileFields(),
-      ...withOverlayFields()
+      ...withOverlayFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -142,6 +159,8 @@ export const OVERLAY_EXTENSION_RESPONSE_SCHEMA = {
       "background.js",
       "overlay.html",
       "overlay.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -155,7 +174,8 @@ export const NEW_TAB_EXTENSION_RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
       ...baseFileFields(),
-      ...withNewTabFields()
+      ...withNewTabFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -168,6 +188,8 @@ export const NEW_TAB_EXTENSION_RESPONSE_SCHEMA = {
       "background.js",
       "newtab.html",
       "newtab.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -181,7 +203,8 @@ export const CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
       ...baseFileFields(),
-      ...withContentScriptUIFields()
+      ...withContentScriptUIFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -193,6 +216,8 @@ export const CONTENT_SCRIPT_UI_EXTENSION_RESPONSE_SCHEMA = {
       "manifest.json",
       "background.js",
       "content.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
@@ -207,7 +232,8 @@ export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
     properties: {
       ...baseFileFields(),
       ...withPopupFields(),
-      ...withSidepanelFields()
+      ...withSidepanelFields(),
+      ...withOptionsFields()
     },
     required: [
       "explanation",
@@ -221,6 +247,8 @@ export const GENERIC_EXTENSION_RESPONSE_SCHEMA = {
       "popup.js",
       "sidepanel.html",
       "sidepanel.js",
+      "options.html",
+      "options.js",
       "styles.css",
       "explanation"
     ]
