@@ -45,7 +45,7 @@ P4:
 
 
 Bugbash:
-1. “Ask” mode
+1.  ~“Ask” mode~
 2.  ~Yield model thoughts (title, description hidden) like in Gemini UI~
 3.  ~Take out purple gradient from coder prompt~
 4.  when users have multiple extensions built and a consistent profile, the Hyperbrowser instance loads multiple extensions, I think. When I have a new tab extension in another project, it sometimes interferes with my current testing. local storage is also persisted
