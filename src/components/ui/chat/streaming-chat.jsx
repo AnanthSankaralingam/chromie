@@ -11,7 +11,8 @@ import { Conversation, ConversationContent, ConversationScrollButton } from "@/c
 import { useChatState } from "./hooks/useChatState"
 import { useStreamProcessor } from "./hooks/useStreamProcessor"
 import { cn } from "@/lib/utils"
-import ConsoleLogsContextPill from "@/components/ui/chat/console-logs-context-pill"
+import LogsAppendButton from "@/components/ui/chat/logs-append-button"
+import { formatLogsForContext } from "@/lib/utils/console-logs-context"
 
 export default function StreamingChat({
   projectId,
@@ -65,6 +66,9 @@ export default function StreamingChat({
   // State for clear chat suggestion modal
   const [showClearChatSuggestion, setShowClearChatSuggestion] = useState(false)
 
+  // State to track if logs have been appended
+  const [logsAppended, setLogsAppended] = useState(false)
+
   const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis } =
     useStreamProcessor({
       chatState,
@@ -113,6 +117,13 @@ export default function StreamingChat({
     }
   }, [onSetInputMessage, setInputMessage])
 
+  // Reset append state when new logs arrive
+  useEffect(() => {
+    if (testSessionLogs) {
+      setLogsAppended(false)
+    }
+  }, [testSessionLogs])
+
   // Check message count and show clear chat suggestion
   useEffect(() => {
     if (!projectId) return
@@ -160,6 +171,12 @@ export default function StreamingChat({
 
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
+
+    // Clear logs after message is sent if they were appended
+    if (logsAppended && testSessionLogs) {
+      onClearTestSessionLogs?.()
+    }
+    setLogsAppended(false)
 
     // When no code has been generated yet, always use the agent flow (initial generation).
     const mode =
@@ -228,6 +245,20 @@ export default function StreamingChat({
       // Agent mode: existing behavior (new extension or add-to-existing with edits).
       await startGeneration(value, false, images)
     }
+  }
+
+  const handleAppendLogs = () => {
+    if (!testSessionLogs || logsAppended) return
+
+    const formatted = formatLogsForContext(testSessionLogs)
+    const currentValue = inputMessage.trim()
+
+    // Add separator if there's existing content
+    const separator = currentValue ? '\n\n' : ''
+    const newValue = currentValue + separator + formatted
+
+    setInputMessage(newValue)
+    setLogsAppended(true)
   }
 
   const handleUrlSubmit = async (userUrl) => {
@@ -481,17 +512,6 @@ export default function StreamingChat({
           "w-full max-w-4xl mx-auto",
           isCanvasOpen ? "pl-[16.67%]" : ""
         )}>
-          {/* Console Logs Context Pill */}
-          {testSessionLogs && testSessionLogs.length > 0 && (
-            <ConsoleLogsContextPill
-              logs={testSessionLogs}
-              onAddToContext={(formatted) => {
-                setInputMessage(formatted)
-                onClearTestSessionLogs?.()
-              }}
-              onDismiss={() => onClearTestSessionLogs?.()}
-            />
-          )}
           <AIInputWithSearch
             placeholder={
               projectName
@@ -504,6 +524,15 @@ export default function StreamingChat({
             disabled={isGenerating || !projectId}
             className="py-0"
             enableImageUpload={effectiveHasGeneratedCode}
+            extraControlsLeft={
+              testSessionLogs && testSessionLogs.length > 0 ? (
+                <LogsAppendButton
+                  logs={testSessionLogs}
+                  onAppend={handleAppendLogs}
+                  disabled={logsAppended || isGenerating}
+                />
+              ) : null
+            }
           />
         </div>
       </div>
