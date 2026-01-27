@@ -84,21 +84,7 @@ export function formatLogsForContext(logs, options = {}) {
   const summary = summarizeLogActivity(logs)
 
   // Build header
-  let result = `## Console Logs from Test Session\n\n`
-  result += `**Summary:** ${summary.total} total logs`
-  if (summary.errors > 0) result += `, ${summary.errors} errors`
-  if (summary.warnings > 0) result += `, ${summary.warnings} warnings`
-  result += `\n\n`
-
-  // Add source breakdown
-  const sourceLabels = Object.entries(summary.bySource)
-    .map(([source, count]) => `${getSourceLabel(source)}: ${count}`)
-    .join(', ')
-  if (sourceLabels) {
-    result += `**Sources:** ${sourceLabels}\n\n`
-  }
-
-  result += `### Log Entries\n\n`
+  let result = `## Console Logs from My Test Session\n\n`
 
   // Take the most recent logs up to maxLogs
   const logsToInclude = logs.slice(-maxLogs)

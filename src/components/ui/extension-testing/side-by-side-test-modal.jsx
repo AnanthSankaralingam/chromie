@@ -387,7 +387,27 @@ export default function SideBySideTestModal({
   }
 
   // Handle cleanup when modal is closed
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Capture logs before closing if session is active
+    if (sessionData?.sessionId && projectId && onSessionLogsCapture) {
+      try {
+        console.log('[side-by-side-test-modal] Fetching logs before close...')
+        const response = await fetch(
+          `/api/projects/${projectId}/test-extension/console-logs?sessionId=${encodeURIComponent(sessionData.sessionId)}`
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.logs && data.logs.length > 0) {
+            console.log('[side-by-side-test-modal] Captured', data.logs.length, 'logs before close')
+            onSessionLogsCapture(data.logs)
+          }
+        }
+      } catch (error) {
+        console.error('[side-by-side-test-modal] Failed to capture logs before close:', error)
+      }
+    }
+
     onClose()
   }
 

@@ -197,7 +197,7 @@ export function AIInputWithSearch({
                       : "bg-slate-700/50 text-slate-400 cursor-not-allowed",
                     disabled && "opacity-50"
                   )}
-                  title="Upload images"
+                  title="Attach images to guide frontend design"
                 >
                   <ImagePlus className="w-5 h-5" />
                 </motion.button>
