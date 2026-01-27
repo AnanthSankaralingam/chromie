@@ -14,7 +14,7 @@ P1:
 3. ~Blog/Case Studies. Minimal but effective for enterprise CTA~
 4. ~Fix Google branding errors so we can do export to chrome. Privacy policy, branding, etc. (Ananth)~
 5. Gallery of chromie-built extensions? like blink.new
-6. integrate options.html pattern
+6. ~integrate options.html pattern~
 7. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
 P2:
@@ -53,7 +53,7 @@ Bugbash:
 
 ---
 ### TODOs
-1. no hybrid ui types, i.e. popup + content injection
+1. no hybrid ui types, i.e. popup + content injection (Ananth WIP)
 2. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
 3. build reusable html components that coder can reference instead of re-building every time.
 4. store initial prompts for all projects, only description from manifest is saved right now.
@@ -68,7 +68,7 @@ Bugbash:
 6. ~Remove loading page's purple gradient~
 7. API input has commonly hallucinated APIs (LinkedIn, YouTube, etc.). Add these to a list and statically remove them from final planning output if found.
 8. often get random host_permissions. encourage one shot coder to use minimally. maybe API list is getting past planning phase even when user skips.
-9. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest)
+9. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest). Or just auto fix when HB upload errors occurs since they're just extension bugs
 10. prompt_tokens is always extracted from gemini object as 0.
 11. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
 
