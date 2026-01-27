@@ -29,7 +29,7 @@ P3 Scalablility:
 1. ~Fix CDN issues with Vercel~
 2. Enable concurrency on backend
 3. Explore offline extenison testing like Plasmo
-4. after chat size reaches five messages, recommend the user to clear chat 
+4. ~after chat size reaches five messages, recommend the user to clear chat~ 
 
 P4:
 1. Experiment with bundler
@@ -45,7 +45,7 @@ P4:
 
 Bugbash:
 1. “Ask” mode
-2.  Yield model thoughts (title, description hidden) like in Gemini UI
+2.  ~Yield model thoughts (title, description hidden) like in Gemini UI~
 3.  Take out purple gradient from coder prompt
 4.  when users have multiple extensions built and a consistent profile, the Hyperbrowser instance loads multiple extensions, I think. When I have a new tab extension in another project, it sometimes interferes with my current testing. local storage is also persisted
 5.  Coder hallucinates icons, and we don't validate existence. We should have an auto fixer for this situation by matching the most similar icon 
@@ -61,11 +61,11 @@ Bugbash:
 ---
 ### BUGS
 1. show projects section first on profile page.
-2. shared links section not needed/working on /profile.
-3. can't rename projects
+2. ~shared links section not needed/working on /profile.~
+3. ~can't rename projects~
 4. WORKSPACE_AUTH_INSTRUCTIONS (commented out) injected into all coding prompts. needs to be conditional.
-5. Remove suggestions?
-6. Remove loading page's purple gradient
+5. ~Remove suggestions?~
+6. ~Remove loading page's purple gradient~
 7. API input has commonly hallucinated APIs (LinkedIn, YouTube, etc.). Add these to a list and statically remove them from final planning output if found.
 8. often get random host_permissions. encourage one shot coder to use minimally. maybe API list is getting past planning phase even when user skips.
 9. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest)
