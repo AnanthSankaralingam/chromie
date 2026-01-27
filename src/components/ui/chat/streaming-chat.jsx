@@ -56,6 +56,9 @@ export default function StreamingChat({
     clearConversation,
   } = chatState
 
+  // Local mode for follow-up interactions once code exists: "agent" (default) vs "ask"
+  const [followUpMode, setFollowUpMode] = useState("agent") // "agent" | "ask"
+
   // State for clear chat suggestion modal
   const [showClearChatSuggestion, setShowClearChatSuggestion] = useState(false)
 
@@ -154,7 +157,74 @@ export default function StreamingChat({
 
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    await startGeneration(value, false, images)
+
+    // When no code has been generated yet, always use the agent flow (initial generation).
+    const mode =
+      effectiveHasGeneratedCode && followUpMode ? followUpMode : "agent"
+
+    if (mode === "ask") {
+      // Ask mode: answer questions using existing project code only, no edits.
+      if (!projectId) {
+        console.error("[streaming-chat] Ask mode requires a projectId")
+        return
+      }
+
+      try {
+        chatState.setIsGenerating(true)
+        const res = await fetch(`/api/projects/${projectId}/ask`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ question: value }),
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          const message =
+            errorData?.error ||
+            `Ask request failed with status ${res.status}`
+          console.error("[streaming-chat] Ask mode error:", message)
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "I couldn't answer that question right now. Please try again or switch back to agent mode.",
+            },
+          ])
+          return
+        }
+
+        const data = await res.json()
+        const answer =
+          data?.answer ||
+          "I wasn't able to generate an answer. Please try asking in a different way."
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: answer,
+          },
+        ])
+      } catch (err) {
+        console.error("[streaming-chat] Ask mode unexpected error:", err)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Something went wrong while answering that question. Please try again.",
+          },
+        ])
+      } finally {
+        chatState.setIsGenerating(false)
+      }
+    } else {
+      // Agent mode: existing behavior (new extension or add-to-existing with edits).
+      await startGeneration(value, false, images)
+    }
   }
 
   const handleUrlSubmit = async (userUrl) => {
@@ -211,7 +281,9 @@ export default function StreamingChat({
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
       <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
-        <p className="text-sm text-gray-200 font-bold">{projectName || "describe what you want to add or modify"}</p>
+        <p className="text-sm text-gray-200 font-bold">
+          {projectName || "describe what you want to add or modify"}
+        </p>
         {messages.length > 1 && !isGenerating && (
           <button
             onClick={handleClearConversation}
@@ -402,23 +474,61 @@ export default function StreamingChat({
 
       {/* Input at bottom */}
       <div className="px-4 pb-6 pt-4">
-        <div className={cn(
-          "w-full max-w-4xl mx-auto",
-          isCanvasOpen ? "pl-[16.67%]" : ""
-        )}>
-          <AIInputWithSearch
-            placeholder={
-              projectName
-                ? `describe what you want to add or modify in ${projectName}...`
-                : "describe what you want to add or modify..."
-            }
-            value={inputMessage}
-            onChange={(value) => setInputMessage(value)}
-            onSubmit={async (value, withSearch, images) => await handleSendMessage(value, withSearch, images)}
-            disabled={isGenerating || !projectId}
-            className="py-0"
-            enableImageUpload={effectiveHasGeneratedCode}
-          />
+        <div
+          className={cn(
+            "w-full max-w-4xl mx-auto",
+            isCanvasOpen ? "pl/[16.67%]" : ""
+          )}
+        >
+          <div className="relative">
+            <AIInputWithSearch
+              placeholder={
+                effectiveHasGeneratedCode && followUpMode === "ask"
+                  ? projectName
+                    ? `ask a question about ${projectName}...`
+                    : "ask a question about this extension..."
+                  : projectName
+                    ? `describe what you want to add or modify in ${projectName}...`
+                    : "describe what you want to add or modify..."
+              }
+              value={inputMessage}
+              onChange={(value) => setInputMessage(value)}
+              onSubmit={async (value, withSearch, images) =>
+                await handleSendMessage(value, withSearch, images)
+              }
+              disabled={isGenerating || !projectId}
+              className="py-0"
+              enableImageUpload={effectiveHasGeneratedCode}
+              extraControlsLeft={
+                effectiveHasGeneratedCode ? (
+                  <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-gray-900/80 border border-gray-700 px-1 py-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpMode("agent")}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        followUpMode === "agent"
+                          ? "bg-gray-100 text-black"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      agent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpMode("ask")}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        followUpMode === "ask"
+                          ? "bg-gray-100 text-black"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      ask
+                    </button>
+                  </div>
+                ) : null
+              }
+            />
+          </div>
         </div>
       </div>
 
