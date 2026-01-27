@@ -1,6 +1,6 @@
-"use client"
+ "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3 } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
@@ -40,6 +40,8 @@ export default function ProfilePage() {
   const [isGithubChecking, setIsGithubChecking] = useState(true)
   const [isGithubConnected, setIsGithubConnected] = useState(false)
   const [githubUsername, setGithubUsername] = useState(null)
+  const [isImportingExtension, setIsImportingExtension] = useState(false)
+  const importInputRef = useRef(null)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -323,6 +325,92 @@ export default function ProfilePage() {
     return plans[plan] || plans.starter
   }
 
+  const handleImportExtensionClick = () => {
+    if (!user) {
+      router.push('/')
+      return
+    }
+    if (importInputRef.current) {
+      importInputRef.current.value = ''
+      importInputRef.current.click()
+    }
+  }
+
+  const handleImportExtensionFilesSelected = async (event) => {
+    try {
+      const files = Array.from(event.target.files || [])
+      if (!files.length) {
+        return
+      }
+
+      const defaultName = "Imported Extension"
+      const projectName = window.prompt(
+        "Name your imported extension project:",
+        defaultName
+      )
+
+      if (!projectName) {
+        console.log('[import-extension] User cancelled project naming, aborting import')
+        return
+      }
+
+      setIsImportingExtension(true)
+      console.log('[import-extension] Starting client-side import from profile page', {
+        fileCount: files.length,
+        projectName,
+      })
+
+      const formData = new FormData()
+      formData.append('projectName', projectName)
+
+      files.forEach((file) => {
+        const relativePath = file.webkitRelativePath || file.name
+        formData.append('files', file, relativePath)
+      })
+
+      const response = await fetch('/api/projects/import-extension', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const message = data?.error || 'Failed to import extension'
+        console.error('[import-extension] Import failed from profile page:', {
+          status: response.status,
+          message,
+          details: data,
+        })
+        alert(message)
+        return
+      }
+
+      const newProjectId = data?.project?.id
+      if (!newProjectId) {
+        console.error('[import-extension] Import succeeded but project ID missing', data)
+        alert('Extension imported but project ID was missing in the response.')
+        return
+      }
+
+      console.log('[import-extension] Import completed successfully from profile page', {
+        projectId: newProjectId,
+        projectName: data?.project?.name,
+      })
+
+      sessionStorage.setItem('chromie_current_project_id', newProjectId)
+      router.push(`/builder?project=${newProjectId}`)
+    } catch (error) {
+      console.error('[import-extension] Unexpected error during import from profile page:', error)
+      alert(error?.message || 'Failed to import extension')
+    } finally {
+      setIsImportingExtension(false)
+      if (event?.target) {
+        event.target.value = ''
+      }
+    }
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
@@ -371,6 +459,14 @@ export default function ProfilePage() {
 
       <AppBar />
       <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
+        <input
+          ref={importInputRef}
+          type="file"
+          multiple
+          webkitdirectory="true"
+          style={{ display: 'none' }}
+          onChange={handleImportExtensionFilesSelected}
+        />
         {/* User Profile Section */}
         <div>
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
@@ -558,15 +654,30 @@ export default function ProfilePage() {
           <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-white">Your Projects</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/metrics')}
-              className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              View Metrics
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImportExtensionClick}
+                disabled={isImportingExtension}
+                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">
+                  {isImportingExtension ? 'Importing…' : 'Upload extension'}
+                </span>
+                <span className="sm:hidden">Upload</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/metrics')}
+                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Metrics
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (

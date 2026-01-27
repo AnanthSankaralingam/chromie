@@ -19,6 +19,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 import { useToast } from "@/lib/hooks/use-toast"
+import FeaturedCreationsSection from "@/components/ui/sections/featured-creations-section"
 
 export default function HomePage() {
   const { isLoading, user } = useSession()
@@ -331,7 +332,9 @@ export default function HomePage() {
     // Handle hash navigation (e.g., from /home#blog, /home#pricing, or /home#contact)
     const handleHashScroll = () => {
       const hash = window.location.hash
-      if (hash === '#blog' || hash === '#pricing' || hash === '#contact') {
+      const supportedHashes = ['#blog', '#pricing', '#contact', '#featured-creations']
+
+      if (supportedHashes.includes(hash)) {
         setTimeout(() => {
           const section = document.getElementById(hash.substring(1))
           if (section) {
@@ -425,31 +428,18 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              {/* Title Section with proper spacing */}
+              {/* Title Section with consistent styling */}
               <div className="text-center mb-12">
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2 pb-2 whitespace-nowrap overflow-x-auto"
-                  style={{
-                    background: 'linear-gradient(135deg, #FFFFFF 0%, #D1D5DB 50%, #9CA3AF 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    lineHeight: 1.15,
-                    letterSpacing: '0.01em',
-                    wordSpacing: '0.02em',
-                    maxWidth: '100%',
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-50 mb-3 leading-tight max-w-3xl mx-auto"
                 >
                   <i>extend</i> reach. not roadmaps.
                 </motion.h1>
                 <motion.p
-                  className="text-lg md:text-xl text-slate-400"
+                  className="text-sm md:text-base text-slate-400 max-w-xl mx-auto"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
@@ -522,9 +512,9 @@ export default function HomePage() {
                         size="lg"
                         title="optimize prompt"
                         className={cn(
-                          "font-semibold transition-all duration-300 px-4 py-2.5",
+                          "font-semibold transition-all duration-300 px-4 py-2.5 rounded-full text-xs md:text-sm",
                           prompt.trim() && !isOptimizing && !isGenerating
-                            ? "bg-slate-700/60 hover:bg-slate-700/80 border border-slate-600/50 hover:border-slate-500/70 shadow-md hover:shadow-lg hover:scale-105"
+                            ? "bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 shadow-md hover:shadow-lg hover:scale-105"
                             : "bg-slate-700/40 text-slate-500 cursor-not-allowed border border-slate-700/40"
                         )}
                       >
@@ -542,9 +532,9 @@ export default function HomePage() {
                         disabled={isGenerating || isOptimizing || !prompt.trim()}
                         size="lg"
                         className={cn(
-                          "font-semibold transition-all duration-300 px-6 py-2.5",
+                          "font-semibold transition-all duration-300 px-6 py-2.5 rounded-full text-xs md:text-sm",
                           prompt.trim() && !isGenerating && !isOptimizing
-                            ? "bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 hover:scale-105"
+                            ? "bg-slate-50 text-slate-900 hover:bg-white shadow-lg shadow-slate-500/30 hover:shadow-slate-500/40 hover:scale-105"
                             : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
                         )}
                       >
@@ -571,6 +561,9 @@ export default function HomePage() {
         {/* COMMENTED OUT: How It Works Section - Videos taking up too many resources on Vercel
         <HowItWorksSection />
         */}
+
+        {/* Featured Creations Section */}
+        <FeaturedCreationsSection />
 
         {/* Pricing Section */}
         <PricingSection />

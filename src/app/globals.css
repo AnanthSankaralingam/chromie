@@ -55,6 +55,7 @@
   }
   body {
     @apply bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white;
+    /* Let next/font (Inter) control the global font via the body class on RootLayout */
   }
   
   html {
@@ -62,7 +63,28 @@
     scroll-behavior: smooth;
   }
 
-  /* Hero Section Styling from Natively */
+  /* Global heading + body font system
+   * Use the same sans-serif font stack as the Featured Creations section
+   * for all headings and primary text.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  li,
+  label,
+  input,
+  textarea,
+  button {
+    /* Inherit Inter from the body so all pages share the same homepage typography */
+    font-family: inherit;
+  }
+
+  /* Hero Section Styling */
   .hero-title-positioning {
     bottom: calc(50% + 85px);
   }
@@ -80,11 +102,13 @@
     font-weight: 400;
     margin-bottom: 1rem;
     color: #ffffff;
-    font-family: var(--font-instrument-serif), Georgia, 'Times New Roman', serif !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Helvetica Neue", Arial, sans-serif !important;
   }
   
   .lcp-hero-title * {
-    font-family: var(--font-instrument-serif), Georgia, 'Times New Roman', serif !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Helvetica Neue", Arial, sans-serif !important;
   }
 
   /* Smaller screens: reduce title size to prevent overflow */
@@ -117,13 +141,15 @@
 
   .hero-text-italic {
     font-style: italic;
-    font-family: var(--font-instrument-serif), Georgia, 'Times New Roman', serif !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Helvetica Neue", Arial, sans-serif !important;
   }
   
   .hero-subtitle {
     font-size: 1.25rem;
     font-weight: 600;
-    font-family: var(--font-instrument-serif), Georgia, 'Times New Roman', serif !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Helvetica Neue", Arial, sans-serif !important;
     color: #ffffff;
   }
   

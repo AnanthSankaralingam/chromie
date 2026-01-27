@@ -30,6 +30,19 @@ export default function AppBar() {
     return 'U'
   }
 
+  // Handle "Featured creations" click - scroll if on home page, navigate otherwise
+  const handleFeaturedCreationsClick = (e) => {
+    e.preventDefault()
+    if (pathname === '/home') {
+      const section = document.getElementById('featured-creations')
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
+    } else {
+      router.push('/home#featured-creations')
+    }
+  }
+
   // Handle "Pricing" click - scroll if on home page, navigate otherwise
   const handlePricingClick = (e) => {
     e.preventDefault()
@@ -94,7 +107,10 @@ export default function AppBar() {
               </div>
             </div>
             <div className="flex flex-col">
-              <Link href={user ? "/home" : "/"} className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>
+              <Link
+                href={user ? "/home" : "/"}
+                className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300"
+              >
                 chromie
               </Link>
               {/* <span className="text-xs text-slate-400 font-medium tracking-wide">//TODO add tagline</span> */}
@@ -103,6 +119,13 @@ export default function AppBar() {
 
           <div className="flex items-center gap-4">
             <nav className="hidden md:flex items-center space-x-6">
+              <a
+                href="#featured-creations"
+                onClick={handleFeaturedCreationsClick}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                gallery
+              </a>
               <a
                 href="#pricing"
                 onClick={handlePricingClick}
@@ -142,7 +165,7 @@ export default function AppBar() {
                       src={user?.user_metadata?.picture}
                       alt={user?.user_metadata?.name || user?.email}
                     />
-                    <AvatarFallback className="bg-purple-600 text-white text-sm font-medium">
+                    <AvatarFallback className="bg-white text-slate-900 text-sm font-medium">
                       {getUserInitials(user)}
                     </AvatarFallback>
                   </Avatar>
@@ -170,6 +193,16 @@ export default function AppBar() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-white/10 mt-3 pt-3 px-2">
             <div className="flex flex-col space-y-3">
+              <a
+                href="#featured-creations"
+                onClick={(e) => {
+                  handleFeaturedCreationsClick(e)
+                  setIsMobileMenuOpen(false)
+                }}
+                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                gallery
+              </a>
               <a
                 href="#pricing"
                 onClick={(e) => {

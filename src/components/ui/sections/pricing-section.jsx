@@ -130,18 +130,21 @@ export default function PricingSection() {
   return (
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="container mx-auto max-w-7xl">
-        {/* Title */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16 overflow-visible"
+          className="text-center mb-10 md:mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+            Pricing
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
             pricing
           </h2>
-          <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
             choose the perfect plan for your chrome extension development needs
           </p>
         </motion.div>
