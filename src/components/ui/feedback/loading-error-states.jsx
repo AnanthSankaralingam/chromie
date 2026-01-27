@@ -5,7 +5,7 @@ export function LoadingState({ isLoading, isSettingUpProject }) {
   if (!isLoading && !isSettingUpProject) return null
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white relative overflow-hidden">
       <FlickeringGrid
         className="absolute inset-0 z-0"
         squareSize={4}

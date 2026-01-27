@@ -34,6 +34,48 @@ export async function GET(request, { params }) {
   }
 }
 
+export async function PATCH(request, { params }) {
+  const supabase = createClient()
+  const { id } = params
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const { name } = body
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: "Project name is required" }, { status: 400 })
+    }
+
+    // Verify project ownership and update the name
+    const { data: project, error: updateError } = await supabase
+      .from("projects")
+      .update({ name: name.trim() })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select()
+      .single()
+
+    if (updateError || !project) {
+      console.error("Error updating project:", updateError)
+      return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
+    }
+
+    return NextResponse.json({ project })
+  } catch (error) {
+    console.error("Error updating project:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
 export async function DELETE(request, { params }) {
   const supabase = createClient()
   const { id } = params

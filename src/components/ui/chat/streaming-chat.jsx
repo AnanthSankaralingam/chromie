@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { FileCode, ChevronDown, ChevronRight, Trash2 } from "lucide-react"
 import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
+import ClearChatSuggestionModal from "@/components/ui/modals/clear-chat-suggestion-modal"
 import ChatMessage from "@/components/ui/chat/chat-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ui/conversation"
@@ -55,6 +56,9 @@ export default function StreamingChat({
     clearConversation,
   } = chatState
 
+  // State for clear chat suggestion modal
+  const [showClearChatSuggestion, setShowClearChatSuggestion] = useState(false)
+
   const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis } =
     useStreamProcessor({
       chatState,
@@ -102,6 +106,23 @@ export default function StreamingChat({
       onSetInputMessage(setInputMessage)
     }
   }, [onSetInputMessage, setInputMessage])
+
+  // Check message count and show clear chat suggestion
+  useEffect(() => {
+    if (!projectId) return
+
+    const localStorageKey = `chromie-clear-chat-suggestion-shown-${projectId}`
+    const hasShownSuggestion = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
+
+    // Show modal when messages exceed 5 and not currently generating and haven't shown before
+    if (messages.length > 5 && !isGenerating && !hasShownSuggestion) {
+      setShowClearChatSuggestion(true)
+      // Mark as shown so it doesn't appear again for this project
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(localStorageKey, 'true')
+      }
+    }
+  }, [messages.length, isGenerating, projectId])
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
@@ -282,25 +303,65 @@ export default function StreamingChat({
               const hasContent = !!(modelThinkingDisplay || modelThinkingFull)
               const forceShow = thinkingChunkCountRef.current > 0
               const shouldShow = (hasContent || forceShow) && !isGenerationComplete
+
+              // Extract the latest thinking phase title from the model thinking content
+              const extractLatestPhase = (text) => {
+                if (!text) return null
+                // Match all text between ** markers
+                const matches = text.match(/\*\*(.*?)\*\*/g)
+                if (!matches || matches.length === 0) return null
+                // Get the last match and remove the ** markers
+                const lastMatch = matches[matches.length - 1]
+                return lastMatch.replace(/\*\*/g, '').trim()
+              }
+
+              const currentPhase = extractLatestPhase(modelThinkingFull || modelThinkingDisplay)
+
               return shouldShow
             })() && (
               <div className="mt-2">
                 <button
                   type="button"
-                  className="flex items-center justify-between w-full text-left text-xs uppercase tracking-wide text-slate-300 bg-slate-800/40 hover:bg-slate-800/60 border border-slate-600/40 px-3 py-2 rounded"
+                  className="flex items-center justify-between w-full text-left bg-slate-800/40 hover:bg-slate-800/60 border border-slate-600/40 px-3 py-2.5 rounded"
                   onClick={() => setIsModelThinkingOpen(!isModelThinkingOpen)}
                   aria-expanded={isModelThinkingOpen}
                 >
-                  <span>Model thoughts ({thinkingChunkCountRef.current} chunks)</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs uppercase tracking-wide text-slate-400">Reasoning</span>
+                    <span className="text-sm font-medium text-slate-200">
+                      {(() => {
+                        const extractLatestPhase = (text) => {
+                          if (!text) return null
+                          const matches = text.match(/\*\*(.*?)\*\*/g)
+                          if (!matches || matches.length === 0) return null
+                          const lastMatch = matches[matches.length - 1]
+                          return lastMatch.replace(/\*\*/g, '').trim()
+                        }
+
+                        const currentPhase = extractLatestPhase(modelThinkingFull || modelThinkingDisplay)
+                        const chunkCount = thinkingChunkCountRef.current
+
+                        if (currentPhase) {
+                          return `${currentPhase} (${chunkCount} ${chunkCount === 1 ? 'chunk' : 'chunks'})`
+                        }
+                        return "Analyzing request and planning implementation"
+                      })()}
+                    </span>
+                  </div>
                   {isModelThinkingOpen ? (
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className="h-4 w-4 text-slate-400 flex-shrink-0" />
                   ) : (
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
                   )}
                 </button>
                 {isModelThinkingOpen && (
-                  <div className="mt-2 p-3 rounded-lg border border-slate-500/20 bg-slate-800/20 text-white text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
-                    {modelThinkingDisplay || modelThinkingFull}
+                  <div className="mt-2 p-3 rounded-lg border border-slate-500/20 bg-slate-800/20">
+                    <div className="text-xs text-slate-400 mb-2">
+                      Detailed reasoning ({thinkingChunkCountRef.current} chunks):
+                    </div>
+                    <div className="text-white text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-auto italic">
+                      {modelThinkingDisplay || modelThinkingFull}
+                    </div>
                   </div>
                 )}
               </div>
@@ -363,6 +424,14 @@ export default function StreamingChat({
 
       {/* Token Usage Alert Modal */}
       <TokenUsageAlert isOpen={showTokenLimitModal} onClose={() => setShowTokenLimitModal(false)} />
+
+      {/* Clear Chat Suggestion Modal */}
+      <ClearChatSuggestionModal
+        isOpen={showClearChatSuggestion}
+        onClose={() => setShowClearChatSuggestion(false)}
+        onClearChat={handleClearConversation}
+        projectName={projectName}
+      />
     </div>
   )
 }

@@ -134,11 +134,33 @@ export default function ProfilePage() {
   const handleRenameProject = async (projectId, newName) => {
     if (!newName.trim()) return
 
-    // Project names are now automatically updated during code generation
-    // Show a message to the user
-    alert('Project names are now automatically updated based on the extension manifest. Renaming is no longer supported.')
-    setEditingProject(null)
-    setNewProjectName("")
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
+      })
+
+      if (response.ok) {
+        // Update the project in local state immediately
+        setProjects(projects.map(project =>
+          project.id === projectId
+            ? { ...project, name: newName }
+            : project
+        ))
+        setEditingProject(null)
+        setNewProjectName("")
+      } else {
+        const errorData = await response.json()
+        console.error('Failed to rename project:', errorData.error)
+        alert('Failed to rename project. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error renaming project:', error)
+      alert('Error renaming project. Please try again.')
+    }
   }
 
   // Handle project deletion
@@ -618,9 +640,8 @@ export default function ProfilePage() {
                             setEditingProject(project.id)
                             setNewProjectName(project.name)
                           }}
-                          className="text-slate-500 hover:text-slate-400 hover:bg-slate-800/50 cursor-not-allowed"
-                          title="Renaming is no longer supported - names update automatically"
-                          disabled
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          title="Rename project"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
