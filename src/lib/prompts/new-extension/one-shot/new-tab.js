@@ -37,13 +37,12 @@ MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics for fu
 Core Principles:
 - Full viewport | Spacing: 16px, 24px, 32px | Border-radius: 12px-16px
 - Center content with max-width (1200-1400px)
-- Use gradients, glassmorphism, shadows for depth
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.3s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+1. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+2. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+3. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 14px body, 24px heading, 32px hero | Weights 600+ for headings

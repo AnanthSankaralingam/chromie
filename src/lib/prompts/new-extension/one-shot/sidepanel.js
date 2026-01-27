@@ -80,39 +80,11 @@ card.addEventListener('mouseover', () => {
 </messaging_pattern>
 
 <chrome_messaging_api_rules>
-CRITICAL Chrome Extension Messaging Best Practices:
-
-1. chrome.runtime.onConnect vs chrome.runtime.onMessage:
-   - onConnect listener callbacks receive: (port)
-   - port.onMessage listener callbacks receive: (message) ONLY
-   - The 'sender' parameter is NOT available in port.onMessage callbacks
-   
-2. INCORRECT Pattern (DO NOT USE):
-   chrome.runtime.onConnect.addListener(port => {
-     port.onMessage.addListener(async (message, sender) => {  // ❌ sender is not defined here
-       await handleTask(message, port, sender.tab?.id);
-     });
-   });
-
-3. CORRECT Pattern (ALWAYS USE):
-   chrome.runtime.onConnect.addListener(port => {
-     port.onMessage.addListener(async (message) => {  // ✅ Only message parameter
-       // Get tabId from the message payload itself, not from sender
-       const { task, tabId } = message;
-       await handleTask(message, port);
-     });
-   });
-
-4. When you need sender information with ports:
-   - Store sender info when connection is established
-   - Or pass required data in the message payload
-   - Or use chrome.runtime.onMessage instead of onConnect if you need sender
-
-5. sender parameter IS available in:
-   - chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {})
-   - chrome.tabs.onMessage.addListener((message, sender, sendResponse) => {})
-   
-NEVER reference 'sender' in port.onMessage.addListener callbacks - it does not exist there.
+Chrome Messaging Best Practices:
+- In port.onMessage listeners (chrome.runtime.onConnect), do NOT use 'sender'; only (message) is received.
+- To access sender/tab info, pass it in the message or capture it earlier.
+- If you need 'sender', use chrome.runtime.onMessage or chrome.tabs.onMessage (these provide (message, sender, sendResponse)).
+- Never reference 'sender' in port.onMessage.addListener callbacks.
 </chrome_messaging_api_rules>
 
 <side_panel_template>
@@ -152,13 +124,12 @@ MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics.
 
 Core Principles:
 - Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
-- Use gradients, glassmorphism, shadows for depth
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
 Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#9ca3af→#d1d5db), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #9ca3af/#d1d5db, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+1. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+2. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+3. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
@@ -167,7 +138,6 @@ Components:
 - Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
 
 Premium Effects (MUST include):
-- Gradients on buttons/headers
 - Hover: scale(1.02) or translateY(-2px) + enhanced shadow
 - Backdrop-filter: blur(12px) for overlays/glass
 - Focus: Glowing ring with primary color
