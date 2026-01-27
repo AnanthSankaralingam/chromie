@@ -107,19 +107,12 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto w-full">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            {/* Main Headline */}
+          {/* Main Headline */}
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.7 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5"
-              style={{
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #D1D5DB 50%, #9CA3AF 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                lineHeight: 1.2,
-              }}
+            className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-50 mb-3 leading-tight max-w-3xl mx-auto"
             >
               extend reach. not roadmaps.
             </motion.h1>
@@ -129,7 +122,7 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.7 }}
-              className="text-lg md:text-xl text-slate-300 mb-8 font-light"
+              className="text-sm md:text-base text-slate-400 mb-8 max-w-xl mx-auto"
             >
               augment your product suite with a browser extension in seconds.
             </motion.p>
@@ -142,30 +135,26 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-6"
             >
               <div className="flex flex-col items-center gap-2">
-                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 transition-all duration-300">
-                  <Button
-                    onClick={handleGetStarted}
-                    size="lg"
-                    variant="ghost"
-                    className="relative text-sm px-6 py-5 bg-[#0F111A] hover:bg-slate-900 text-white rounded-full font-semibold transition-all duration-300"
-                  >
-                    join the waitlist
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleGetStarted}
+                  size="lg"
+                  variant="ghost"
+                  className="text-xs md:text-sm px-6 py-3 rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white shadow-lg shadow-slate-500/30 hover:shadow-slate-500/40 transition-all duration-300"
+                >
+                  join the waitlist
+                </Button>
                 <span className="text-sm text-slate-400 font-medium">for individuals</span>
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <div className="relative group p-[2px] rounded-full bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 hover:from-gray-400 hover:via-gray-300 hover:to-gray-400 transition-all duration-300">
-                  <Button
-                    onClick={handleBookDemo}
-                    size="lg"
-                    variant="ghost"
-                    className="relative text-sm px-6 py-5 bg-[#0F111A] hover:bg-slate-900 text-white rounded-full font-semibold transition-all duration-300"
-                  >
-                    book a demo
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleBookDemo}
+                  size="lg"
+                  variant="ghost"
+                  className="text-xs md:text-sm px-6 py-3 rounded-full font-semibold bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  book a demo
+                </Button>
                 <span className="text-sm text-slate-400 font-medium">for teams</span>
               </div>
             </motion.div>

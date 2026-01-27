@@ -301,6 +301,7 @@ export default function AppBarBuilder({
 
   const [isAITestDropdownOpen, setIsAITestDropdownOpen] = useState(false)
 
+
   const handleKickoffAIAnalysisClick = () => {
     if (!userIsPaid && !isStillLoading) {
       // Redirect to pricing page for non-paid users
@@ -531,7 +532,7 @@ export default function AppBarBuilder({
                       src={user?.user_metadata?.picture}
                       alt={user?.user_metadata?.name || user?.email}
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-gray-600 to-gray-400 text-white text-sm font-bold">
+                    <AvatarFallback className="bg-white text-slate-900 text-sm font-bold">
                       {getUserInitials(user)}
                     </AvatarFallback>
                   </Avatar>

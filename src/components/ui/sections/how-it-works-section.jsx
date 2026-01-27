@@ -7,18 +7,24 @@ export default function HowItWorksSection() {
   return (
     <section id="how-it-works" className="relative z-10 px-6 pb-20">
       <div className="container mx-auto max-w-6xl">
-        {/* Title */}
-        {/* <motion.div
+        {/* Header */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-10 md:mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent leading-tight">
-            about chromie
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+            How it works
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
+            how to use chromie
           </h2>
-        </motion.div> */}
+          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
+            follow these steps to go from idea to a tested chrome extension without touching local dev tools.
+          </p>
+        </motion.div>
 
         {/* Workflow Steps */}
         {/* <div className="grid md:grid-cols-3 gap-8 md:gap-12 mb-20">

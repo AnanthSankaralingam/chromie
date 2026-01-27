@@ -13,18 +13,21 @@ export default function BlogSection() {
   return (
     <section id="blog" className="relative z-20 px-6 py-16">
       <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-10 md:mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+            blog
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
             blog
           </h2>
-          <p className="text-xl text-gray-400">
+          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
             check out featured chromie news
           </p>
         </motion.div>
@@ -55,17 +58,17 @@ export default function BlogSection() {
 
                     {/* Date */}
                     <div className="text-sm text-gray-400 mb-3">
-                      {post.date}
+                      {String(post.date).toLowerCase()}
                     </div>
 
                     {/* Title */}
                     <h3 className="text-xl font-bold text-white mb-3 group-hover:text-gray-300 transition-colors duration-300 line-clamp-2">
-                      {post.title}
+                      {String(post.title).toLowerCase()}
                     </h3>
 
                     {/* Excerpt */}
                     <p className="text-gray-300 text-sm leading-relaxed mb-4 flex-grow line-clamp-3">
-                      {post.excerpt}
+                      {String(post.excerpt).toLowerCase()}
                     </p>
 
                     {/* Read More Link */}

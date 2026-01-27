@@ -34,6 +34,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      {/* Apply Inter globally, while still exposing serif/grotesk variables for selective use */}
       <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
         <SessionProviderClient>
           <AuthHandler />

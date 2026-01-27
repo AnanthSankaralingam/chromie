@@ -26,15 +26,18 @@ export default function ContactSection() {
   return (
     <section id="contact" className="relative z-10 px-6 py-16">
       <div className="container mx-auto max-w-2xl">
-        {/* Title */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-6"
+          className="text-center mb-8"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+            Contact
+          </p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
             contact us
           </h2>
           <p className="text-sm md:text-base text-slate-400">
