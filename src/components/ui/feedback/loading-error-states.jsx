@@ -5,17 +5,17 @@ export function LoadingState({ isLoading, isSettingUpProject }) {
   if (!isLoading && !isSettingUpProject) return null
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
       <FlickeringGrid
         className="absolute inset-0 z-0"
         squareSize={4}
         gridGap={6}
-        color="rgb(139, 92, 246)"
+        color="rgb(59, 130, 246)"
         maxOpacity={0.15}
         flickerChance={0.3}
       />
       <div className="text-center relative z-10">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4" />
         <p className="text-slate-300">
           {isLoading ? "Loading..." : "Setting up your project..."}
         </p>
@@ -28,12 +28,12 @@ export function ErrorState({ projectSetupError, onRetry }) {
   if (!projectSetupError) return null
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-slate-900 to-blue-900 text-white relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
       <FlickeringGrid
         className="absolute inset-0 z-0"
         squareSize={4}
         gridGap={6}
-        color="rgb(139, 92, 246)"
+        color="rgb(59, 130, 246)"
         maxOpacity={0.15}
         flickerChance={0.3}
       />
@@ -45,7 +45,7 @@ export function ErrorState({ projectSetupError, onRetry }) {
         <p className="text-slate-300 mb-6">{projectSetupError}</p>
         <Button
           onClick={onRetry}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           Try Again
         </Button>

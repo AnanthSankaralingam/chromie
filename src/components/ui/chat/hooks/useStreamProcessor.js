@@ -53,8 +53,6 @@ export function useStreamProcessor({
         if (onGenerationEnd) onGenerationEnd()
       }
 
-      console.log("📤 [processStream] Sending payload with images:", !!payload.images)
-
       const response = await fetchWithErrorHandling(
         "/api/generate/stream",
         {
@@ -235,8 +233,6 @@ export function useStreamProcessor({
   const startGenerationWithUrl = useCallback(
     async (prompt, userUrl, requestType, projectId, analysisData = null) => {
       if (chatState.isGenerating) return
-
-      console.log("🔗 [startGenerationWithUrl] Starting with URL:", userUrl, "Has analysisData:", !!analysisData)
 
       setIsGenerating(true)
       resetStreamState(false) // Don't reset start message flag - this is a continuation
