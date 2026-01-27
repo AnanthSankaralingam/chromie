@@ -19,7 +19,7 @@ P1:
 
 P2:
 1. Detect build errors in extensions, similar to Vercel article.
-2. Fix logging in tester and allow users to append them as context to next request.
+2. ~Fix logging in tester and allow users to append them as context to next request.~
 3. Migrate to Vercel AI-SDK and remove our custom hooks/components. replace ui and service classes
 4. ~Fix AI testing. Don't need anything complicated yet.~
 5. Add more blog posts
