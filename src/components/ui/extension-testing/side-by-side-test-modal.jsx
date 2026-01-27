@@ -22,6 +22,7 @@ export default function SideBySideTestModal({
   onGeneratePuppeteerTests,
   onGenerateAiAgentTests,
   onSessionLogsCapture,
+  onSolveErrorInChat,
 }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [isRunningHyperAgent, setIsRunningHyperAgent] = useState(false)
@@ -620,6 +621,7 @@ export default function SideBySideTestModal({
                     <ErrorDisplay
                       error={error}
                       onRetry={onRefresh}
+                      onSolveInChat={onSolveErrorInChat}
                       isLoading={isLoading}
                     />
                   </div>
