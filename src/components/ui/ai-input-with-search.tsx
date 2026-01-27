@@ -3,7 +3,7 @@
 import { Send, ImagePlus, X } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 
 import { Textarea } from "@/components/ui/textarea";
 
@@ -23,6 +23,7 @@ interface AIInputWithSearchProps {
   value?: string;
   onChange?: (value: string) => void;
   enableImageUpload?: boolean;
+  extraControlsLeft?: ReactNode;
 }
 
 export function AIInputWithSearch({
@@ -37,6 +38,7 @@ export function AIInputWithSearch({
   value: controlledValue,
   onChange: controlledOnChange,
   enableImageUpload = false,
+  extraControlsLeft,
 }: AIInputWithSearchProps) {
   const [internalValue, setInternalValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -167,6 +169,11 @@ export function AIInputWithSearch({
 
           {/* Button Container */}
           <div className="flex items-center justify-end gap-2 px-4 pb-3">
+            {extraControlsLeft && (
+              <div className="flex items-center">
+                {extraControlsLeft}
+              </div>
+            )}
             {enableImageUpload && (
               <>
                 <input

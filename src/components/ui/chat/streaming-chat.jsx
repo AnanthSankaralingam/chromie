@@ -59,6 +59,9 @@ export default function StreamingChat({
     clearConversation,
   } = chatState
 
+  // Local mode for follow-up interactions once code exists: "agent" (default) vs "ask"
+  const [followUpMode, setFollowUpMode] = useState("agent") // "agent" | "ask"
+
   // State for clear chat suggestion modal
   const [showClearChatSuggestion, setShowClearChatSuggestion] = useState(false)
 
@@ -157,7 +160,74 @@ export default function StreamingChat({
 
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
-    await startGeneration(value, false, images)
+
+    // When no code has been generated yet, always use the agent flow (initial generation).
+    const mode =
+      effectiveHasGeneratedCode && followUpMode ? followUpMode : "agent"
+
+    if (mode === "ask") {
+      // Ask mode: answer questions using existing project code only, no edits.
+      if (!projectId) {
+        console.error("[streaming-chat] Ask mode requires a projectId")
+        return
+      }
+
+      try {
+        chatState.setIsGenerating(true)
+        const res = await fetch(`/api/projects/${projectId}/ask`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ question: value }),
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          const message =
+            errorData?.error ||
+            `Ask request failed with status ${res.status}`
+          console.error("[streaming-chat] Ask mode error:", message)
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "I couldn't answer that question right now. Please try again or switch back to agent mode.",
+            },
+          ])
+          return
+        }
+
+        const data = await res.json()
+        const answer =
+          data?.answer ||
+          "I wasn't able to generate an answer. Please try asking in a different way."
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: answer,
+          },
+        ])
+      } catch (err) {
+        console.error("[streaming-chat] Ask mode unexpected error:", err)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Something went wrong while answering that question. Please try again.",
+          },
+        ])
+      } finally {
+        chatState.setIsGenerating(false)
+      }
+    } else {
+      // Agent mode: existing behavior (new extension or add-to-existing with edits).
+      await startGeneration(value, false, images)
+    }
   }
 
   const handleUrlSubmit = async (userUrl) => {
@@ -214,7 +284,9 @@ export default function StreamingChat({
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
       <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
-        <p className="text-sm text-gray-200 font-bold">{projectName || "describe what you want to add or modify"}</p>
+        <p className="text-sm text-gray-200 font-bold">
+          {projectName || "describe what you want to add or modify"}
+        </p>
         {messages.length > 1 && !isGenerating && (
           <button
             onClick={handleClearConversation}
