@@ -37,7 +37,7 @@ P4:
 2. UI overhaul
 3. ~Remove loading page's purple gradient~
 4. no hybrid ui types, i.e. popup + content injection
-5. can't easily open logs? We should fade the Chromie prefix pattern and automatically keep logs open and ***easily appendable*** to the chat 
+5. ~can't easily open logs? We should fade the Chromie prefix pattern and automatically keep logs open~ make logs ***easily appendable*** to the chat 
 6. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
 7. user can't open code while code is generating
 8. Unclear: what's the difference between icon upload and image upload to AI
