@@ -1,7 +1,7 @@
 // Shared console log storage for test sessions
 // This is used across API routes to store and retrieve console logs
 
-const MAX_LOGS_PER_SESSION = 100
+const MAX_LOGS_PER_SESSION = 500
 
 // Use global to ensure singleton across module reloads in Next.js
 const getSessionLogs = () => {
@@ -15,13 +15,23 @@ const getSessionLogs = () => {
 /**
  * Add a log entry for a session
  * @param {string} sessionId - Session identifier
- * @param {Object} logEntry - Log entry object { type, text, prefix, timestamp }
+ * @param {Object} logEntry - Log entry object { id, type, text, source, timestamp, ... }
  */
 export function addLog(sessionId, logEntry) {
   if (!sessionId || !logEntry) return
 
   const sessionLogs = getSessionLogs()
   const logs = sessionLogs.get(sessionId) || []
+
+  // Deduplicate by id if present
+  if (logEntry.id) {
+    const existingIndex = logs.findIndex(l => l.id === logEntry.id)
+    if (existingIndex !== -1) {
+      // Already exists, skip
+      return
+    }
+  }
+
   logs.push(logEntry)
 
   // Keep only last MAX_LOGS_PER_SESSION logs

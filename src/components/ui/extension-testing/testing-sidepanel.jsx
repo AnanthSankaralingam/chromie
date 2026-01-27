@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useRef, useCallback } from "react"
 import { Play, FileCode, Bot, CheckCircle, AlertCircle, Terminal, Sparkles, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -58,11 +58,36 @@ export default function TestingSidepanel({
 
   // Session info
   viewportLabel,
+
+  // Logs capture callback
+  onSessionLogsCapture,
 }) {
   const [activeTab, setActiveTab] = useState("puppeteer")
   const [testsExist, setTestsExist] = useState({ puppeteer: true, aiAgent: true })
   const [isCheckingTests, setIsCheckingTests] = useState(true)
   const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
+
+  // Track current session logs for capture on session end
+  const sessionLogsRef = useRef([])
+  const previousSessionActiveRef = useRef(isSessionActive)
+
+  // Callback to capture logs from ConsoleLogViewer
+  const handleLogsReady = useCallback((logs) => {
+    sessionLogsRef.current = logs
+  }, [])
+
+  // Capture logs when session ends
+  useEffect(() => {
+    // Detect session ending (was active, now inactive)
+    if (previousSessionActiveRef.current && !isSessionActive) {
+      const capturedLogs = sessionLogsRef.current
+      if (capturedLogs.length > 0 && onSessionLogsCapture) {
+        console.log('[testing-sidepanel] Session ended, capturing', capturedLogs.length, 'logs')
+        onSessionLogsCapture(capturedLogs)
+      }
+    }
+    previousSessionActiveRef.current = isSessionActive
+  }, [isSessionActive, onSessionLogsCapture])
 
   // Check which tests exist when component mounts or projectId changes
   useEffect(() => {
@@ -435,6 +460,7 @@ export default function TestingSidepanel({
               sessionId={sessionId}
               projectId={projectId}
               isSessionActive={isSessionActive}
+              onLogsReady={handleLogsReady}
             />
           </div>
         </div>

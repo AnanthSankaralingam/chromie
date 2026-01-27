@@ -2,30 +2,49 @@
 import * as logStorage from './console-log-storage.js'
 
 /**
- * Process and filter log messages - only store CHROMIE-tagged logs
+ * Determine the log source from context and target info
  */
-export function processLogMessage(text, type, context, sessionId) {
-  // Extract CHROMIE prefix: [CHROMIE:COMPONENT] message
-  const chromiePrefixMatch = text.match(/^\[CHROMIE:([^\]]+)\](.*)/)
+function determineLogSource(context, targetInfo = {}) {
+  const { targetUrl } = targetInfo
 
-  if (!chromiePrefixMatch) {
-    // Skip non-CHROMIE logs
-    return
+  // Use context first, then fall back to URL-based detection
+  if (context === 'background') return 'extension:background'
+  if (context === 'popup') return 'extension:popup'
+  if (context === 'sidepanel') return 'extension:sidepanel'
+
+  // If no specific context, check URL
+  if (targetUrl?.startsWith('chrome-extension://')) {
+    if (targetUrl.includes('/popup.html')) return 'extension:popup'
+    if (targetUrl.includes('/sidepanel.html')) return 'extension:sidepanel'
+    return 'extension:content'
   }
 
-  const component = chromiePrefixMatch[1]
-  const cleanText = chromiePrefixMatch[2].trim()
+  return 'browser:page'
+}
+
+/**
+ * Process and store ALL log messages (no filtering)
+ * CHROMIE prefix is still extracted for styling purposes, but does NOT filter logs
+ */
+export function processLogMessage(text, type, context, sessionId, targetInfo = {}) {
+  // Determine source from context and target info
+  const source = determineLogSource(context, targetInfo)
+
+  // Extract CHROMIE prefix if present (for styling only, NOT filtering)
+  const chromiePrefixMatch = text.match(/^\[CHROMIE:([^\]]+)\](.*)/)
 
   const logEntry = {
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     type: type,
-    text: cleanText,
-    prefix: 'CHROMIE:' + component,
-    component: component,
-    isChromieLog: true,
+    text: chromiePrefixMatch ? chromiePrefixMatch[2].trim() : text,
+    source: source,
+    isChromieLog: !!chromiePrefixMatch,
+    component: chromiePrefixMatch ? chromiePrefixMatch[1] : null,
     context: context,
     timestamp: new Date().toISOString()
   }
 
+  // Store ALL logs, not just CHROMIE-tagged ones
   logStorage.addLog(sessionId, logEntry)
 }
 
@@ -43,14 +62,16 @@ export async function attachToPage(targetPage, targetUrl, sessionId) {
     contextType = 'sidepanel'
   }
 
+  const targetInfo = { targetUrl }
+
   // Attach console listener
   targetPage.on('console', (msg) => {
-    processLogMessage(msg.text(), msg.type(), contextType, sessionId)
+    processLogMessage(msg.text(), msg.type(), contextType, sessionId, targetInfo)
   })
 
   // Attach error listener
   targetPage.on('pageerror', (error) => {
-    processLogMessage(error.message, 'error', contextType, sessionId)
+    processLogMessage(error.message, 'error', contextType, sessionId, targetInfo)
   })
 
   // Set up CDP for additional console capture
@@ -62,11 +83,22 @@ export async function attachToPage(targetPage, targetUrl, sessionId) {
       const { type, args } = params
       if (args && args.length > 0) {
         const text = args.map(arg => {
-          if (arg.value !== undefined) return String(arg.value)
-          if (arg.description) return arg.description
-          return String(arg.type)
+          // Handle different CDP RemoteObject types
+          if (arg.type === 'string') {
+            return arg.value || ''
+          }
+          if (arg.value !== undefined) {
+            return String(arg.value)
+          }
+          if (arg.description) {
+            return arg.description
+          }
+          if (arg.unserializableValue) {
+            return arg.unserializableValue
+          }
+          return String(arg.type || '')
         }).join(' ')
-        processLogMessage(text, type, contextType, sessionId)
+        processLogMessage(text, type, contextType, sessionId, targetInfo)
       }
     })
   } catch (cdpError) {
@@ -78,6 +110,8 @@ export async function attachToPage(targetPage, targetUrl, sessionId) {
  * Attach to a service worker target using CDP
  */
 export async function attachToServiceWorker(target, targetUrl, sessionId, activeCDPSessions) {
+  const targetInfo = { targetUrl }
+
   try {
     const workerClient = await target.createCDPSession()
     const sessionKey = `sw-${target._targetId || targetUrl}`
@@ -91,11 +125,22 @@ export async function attachToServiceWorker(target, targetUrl, sessionId, active
       const { type, args } = params
       if (args && args.length > 0) {
         const text = args.map(arg => {
-          if (arg.value !== undefined) return String(arg.value)
-          if (arg.description) return arg.description
-          return String(arg.type)
+          // Handle different CDP RemoteObject types
+          if (arg.type === 'string') {
+            return arg.value || ''
+          }
+          if (arg.value !== undefined) {
+            return String(arg.value)
+          }
+          if (arg.description) {
+            return arg.description
+          }
+          if (arg.unserializableValue) {
+            return arg.unserializableValue
+          }
+          return String(arg.type || '')
         }).join(' ')
-        processLogMessage(text, type, 'background', sessionId)
+        processLogMessage(text, type, 'background', sessionId, targetInfo)
       }
     })
 
@@ -104,14 +149,8 @@ export async function attachToServiceWorker(target, targetUrl, sessionId, active
       const errorText = params.exceptionDetails.exception?.description ||
                        params.exceptionDetails.text ||
                        'Unknown error'
-      processLogMessage(errorText, 'error', 'background', sessionId)
+      processLogMessage(errorText, 'error', 'background', sessionId, targetInfo)
     })
-
-    // Test injection to verify CDP is working
-    await workerClient.send('Runtime.evaluate', {
-      expression: `console.log('[CHROMIE-TEST] CDP attached to service worker'); 'CDP_TEST_EXECUTED';`,
-      returnByValue: true
-    }).catch(() => {})
 
     workerClient.on('disconnected', () => {
       activeCDPSessions.delete(sessionKey)
@@ -135,11 +174,12 @@ export async function setupLogCapture(browser, page, sessionId) {
   for (const worker of existingWorkers) {
     const workerUrl = worker.url()
     if (workerUrl.startsWith('chrome-extension://')) {
+      const targetInfo = { targetUrl: workerUrl }
       worker.on('console', (msg) => {
-        processLogMessage(msg.text(), msg.type(), 'background', sessionId)
+        processLogMessage(msg.text(), msg.type(), 'background', sessionId, targetInfo)
       })
       worker.on('error', (error) => {
-        processLogMessage(error.message, 'error', 'background', sessionId)
+        processLogMessage(error.message, 'error', 'background', sessionId, targetInfo)
       })
     }
   }
@@ -148,39 +188,41 @@ export async function setupLogCapture(browser, page, sessionId) {
   browser.on('workercreated', (worker) => {
     const workerUrl = worker.url()
     if (workerUrl.startsWith('chrome-extension://')) {
+      const targetInfo = { targetUrl: workerUrl }
       worker.on('console', (msg) => {
-        processLogMessage(msg.text(), msg.type(), 'background', sessionId)
+        processLogMessage(msg.text(), msg.type(), 'background', sessionId, targetInfo)
       })
       worker.on('error', (error) => {
-        processLogMessage(error.message, 'error', 'background', sessionId)
+        processLogMessage(error.message, 'error', 'background', sessionId, targetInfo)
       })
     }
   })
 
   // Listen for new targets (sidepanels, popups, etc.)
   browser.on('targetcreated', async (target) => {
-    const targetType = target.type()
-    const targetUrl = target.url()
+    try {
+      // Wait for target to be ready and URL to stabilize
+      await new Promise(resolve => setTimeout(resolve, 200))
 
-    const isExtensionTarget = targetUrl.startsWith('chrome-extension://')
-    const couldBeSidepanel = targetType === 'page' || targetType === 'other'
+      const targetType = target.type()
+      const targetUrl = target.url()
 
-    if (isExtensionTarget || (couldBeSidepanel && targetType !== 'browser')) {
-      try {
-        // Wait for target to be ready
-        await new Promise(resolve => setTimeout(resolve, 200))
-        const updatedUrl = target.url()
+      // Only attach to extension targets
+      const isExtensionTarget = targetUrl.startsWith('chrome-extension://')
 
-        const targetPage = await target.page().catch(() => null)
-
-        if (targetPage) {
-          await attachToPage(targetPage, updatedUrl || targetUrl, sessionId)
-        } else if (isExtensionTarget) {
-          await attachToServiceWorker(target, updatedUrl || targetUrl, sessionId, activeCDPSessions)
-        }
-      } catch (error) {
-        console.error(`[extension-log-capture] Failed to attach to target:`, error.message)
+      if (!isExtensionTarget) {
+        return // Skip non-extension targets (regular web pages)
       }
+
+      const targetPage = await target.page().catch(() => null)
+
+      if (targetPage) {
+        await attachToPage(targetPage, targetUrl, sessionId)
+      } else {
+        await attachToServiceWorker(target, targetUrl, sessionId, activeCDPSessions)
+      }
+    } catch (error) {
+      console.error(`[extension-log-capture] Failed to attach to target:`, error.message)
     }
   })
 

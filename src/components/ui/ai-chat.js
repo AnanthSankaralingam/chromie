@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import StreamingChat from "@/components/ui/chat/streaming-chat"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 
-export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting, onSetInputMessage }) {
+export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting, onSetInputMessage, testSessionLogs, onClearTestSessionLogs }) {
   const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
   const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
 
@@ -35,6 +35,8 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
         onShowTokenLimitModal={() => setShowTokenLimitModal(true)}
         onCodeGenerationStarting={onCodeGenerationStarting}
         onSetInputMessage={onSetInputMessage}
+        testSessionLogs={testSessionLogs}
+        onClearTestSessionLogs={onClearTestSessionLogs}
       />
       <TokenUsageAlert isOpen={showTokenLimitModal} onClose={() => setShowTokenLimitModal(false)} />
     </>

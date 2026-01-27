@@ -20,6 +20,7 @@ export default function SideBySideTestModal({
   extensionFiles = [],
   onGeneratePuppeteerTests,
   onGenerateAiAgentTests,
+  onSessionLogsCapture,
 }) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [isRunningHyperAgent, setIsRunningHyperAgent] = useState(false)
@@ -658,6 +659,7 @@ export default function SideBySideTestModal({
             aiAgentTestResult={hyperAgentResult}
             onGeneratePuppeteerTests={onGeneratePuppeteerTests}
             onGenerateAiAgentTests={onGenerateAiAgentTests}
+            onSessionLogsCapture={onSessionLogsCapture}
           />
         </div>
       </div>
