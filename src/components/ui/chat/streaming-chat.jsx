@@ -508,32 +508,76 @@ export default function StreamingChat({
 
       {/* Input at bottom */}
       <div className="px-4 pb-6 pt-4">
-        <div className={cn(
-          "w-full max-w-4xl mx-auto",
-          isCanvasOpen ? "pl-[16.67%]" : ""
-        )}>
-          <AIInputWithSearch
-            placeholder={
-              projectName
-                ? `describe what you want to add or modify in ${projectName}...`
-                : "describe what you want to add or modify..."
-            }
-            value={inputMessage}
-            onChange={(value) => setInputMessage(value)}
-            onSubmit={async (value, withSearch, images) => await handleSendMessage(value, withSearch, images)}
-            disabled={isGenerating || !projectId}
-            className="py-0"
-            enableImageUpload={effectiveHasGeneratedCode}
-            extraControlsLeft={
-              testSessionLogs && testSessionLogs.length > 0 ? (
-                <LogsAppendButton
-                  logs={testSessionLogs}
-                  onAppend={handleAppendLogs}
-                  disabled={logsAppended || isGenerating}
-                />
-              ) : null
-            }
-          />
+        <div
+          className={cn(
+            "w-full max-w-4xl mx-auto",
+            isCanvasOpen ? "pl-[16.67%]" : ""
+          )}
+        >
+          <div className="relative">
+            <AIInputWithSearch
+              placeholder={
+                effectiveHasGeneratedCode && followUpMode === "ask"
+                  ? projectName
+                    ? `ask a question about ${projectName}...`
+                    : "ask a question about this extension..."
+                  : projectName
+                    ? `describe what you want to add or modify in ${projectName}...`
+                    : "describe what you want to add or modify..."
+              }
+              value={inputMessage}
+              onChange={(value) => setInputMessage(value)}
+              onSubmit={async (value, withSearch, images) =>
+                await handleSendMessage(value, withSearch, images)
+              }
+              disabled={isGenerating || !projectId}
+              className="py-0"
+              enableImageUpload={effectiveHasGeneratedCode}
+              extraControlsLeft={
+                effectiveHasGeneratedCode ? (
+                  <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-gray-900/80 border border-gray-700 px-1 py-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpMode("agent")}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        followUpMode === "agent"
+                          ? "bg-gray-100 text-black"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      agent
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFollowUpMode("ask")}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        followUpMode === "ask"
+                          ? "bg-gray-100 text-black"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      ask
+                    </button>
+                    {testSessionLogs && testSessionLogs.length > 0 && (
+                      <div className="ml-1">
+                        <LogsAppendButton
+                          logs={testSessionLogs}
+                          onAppend={handleAppendLogs}
+                          disabled={logsAppended || isGenerating}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : testSessionLogs && testSessionLogs.length > 0 ? (
+                  <LogsAppendButton
+                    logs={testSessionLogs}
+                    onAppend={handleAppendLogs}
+                    disabled={logsAppended || isGenerating}
+                  />
+                ) : null
+              }
+            />
+          </div>
         </div>
       </div>
 
