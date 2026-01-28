@@ -17,7 +17,7 @@ P1:
 6. ~Quick, basic, effective Puppeteer unit tests across different UI types (solid for popup rn)~
 
 P2:
-1. Detect HB errors in extension upload automatically. If it's an extension error, instantly debug. For example, if coder hallucinates icons, run an auto fixer to match most similar icon. Or simply tell followup error and ask it to debug. 
+1. ~Detect HB errors in extension upload automatically. If it's an extension error, instantly debug. For example, if coder hallucinates icons, run an auto fixer to match most similar icon. Or simply tell followup error and ask it to debug.~
 2. ~make logs ***easily appendable*** to the chat~ 
 3. no hybrid ui types, i.e. popup + content injection
 4. Add more blog posts
