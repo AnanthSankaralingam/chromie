@@ -4,9 +4,10 @@
 - focus exclusively on core functionality for each feature request
 - avoid feature creep and unnecessary complexity
 - prioritize essential user workflows and app security
+- do not write readme files unlesss explicitly requested
 
 ## terminal commands
-- only use syntax for windows powershell
+- only use syntax for mac
 
 ## architecture
 - use pages router pattern
@@ -20,3 +21,4 @@
 
 ## database related changes
 - reference supabase-info.md for all database related changes
+- Update supabase-info.md after making database changes.

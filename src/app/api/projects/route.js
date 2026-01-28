@@ -94,6 +94,7 @@ export async function POST(request) {
           user_id: user.id,
           name,
           description,
+          initial_prompt: description?.slice(0, 2000) || null,
           created_at: new Date().toISOString(),
           last_used_at: new Date().toISOString(),
           archived: false,

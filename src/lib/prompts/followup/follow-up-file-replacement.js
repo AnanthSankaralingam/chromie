@@ -1,3 +1,5 @@
+import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+
 export const FOLLOW_UP_FILE_REPLACEMENT_PROMPT = `
 You are a Chrome extension development expert. Your task is to modify an existing Chrome extension to implement new features or changes based on the user's request.
 

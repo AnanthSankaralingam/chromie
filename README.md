@@ -39,16 +39,15 @@ P4 Scalablility:
 1. when users have multiple extensions built and a consistent profile, the Hyperbrowser instance loads multiple extensions, I think. When I have a new tab extension in another project, it sometimes interferes with my current testing. local storage is also persisted
 2. WORKSPACE_AUTH_INSTRUCTIONS (commented out) injected into all coding prompts. needs to be conditional.
 3. user can't open code while code is generating
-4. API input has commonly hallucinated APIs (LinkedIn, YouTube, etc.). Add these to a list and statically remove them from final planning output if found.
-5. often get random host_permissions. encourage one shot coder to use minimally. maybe API list is getting past planning phase even when user skips.
-6. prompt_tokens is always extracted from gemini object as 0.
-7. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
+4. ~often get random host_permissions. encourage one shot coder to use minimally.~ Move API requirements to its own LLM call, don't group it
+5. prompt_tokens is always extracted from gemini object as 0.
+6. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
 
 ---
 ### TODOs
 1. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
 2. build reusable html components that coder can reference instead of re-building every time.
-3. store initial prompts for all projects, only description from manifest is saved right now.
+3. ~store initial prompts for all projects, only description from manifest is saved right now.~
 4. tag specific files in the chat
 ---
 ### SECURITY
