@@ -1,5 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
 
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 // ${WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL}
@@ -63,9 +64,9 @@ Core Principles:
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
 Color Schemes (choose ONE):
-1. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-2. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
-3. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
+- Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+- Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+- Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
@@ -81,18 +82,7 @@ Premium Effects (MUST include):
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>
 
-<icon_configuration>
-MANDATORY: Use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png, 
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png, 
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, 
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, 
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png, 
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png, 
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png, 
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, 
-icons/world.png, icons/youtube.png
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <chrome_messaging_api_rules>
 Chrome Messaging Best Practices:
@@ -123,14 +113,7 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
-<console_logging_requirements>
-MANDATORY: Add console.log statements to track key events. Include the filename in each log:
-- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
-- Log important operations and user interactions
-- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
-
-All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:popup.js], [CHROMIE:content.js]).
-</console_logging_requirements>
+${CONSOLE_LOGGING_REQUIREMENTS}
 
 <implementation_guidelines>
 - Create a stunning, modern popup interface that feels premium and polished

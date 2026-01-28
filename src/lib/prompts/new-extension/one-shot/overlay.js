@@ -1,5 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
 
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 // ${WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT}
@@ -101,15 +102,7 @@ Premium Effects (MUST include):
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>
 
-<icon_configuration>
-MANDATORY: Use ONLY these available icon files:
-- icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
-- icons/planet-icon.png, icons/search-icon.png, icons/timer-icon.png, icons/note-icon.png
-- icons/home-icon.png, icons/heart-icon.png, icons/cloud-icon.png, icons/calendar-icon.png
-
-Usage: Always use chrome.runtime.getURL() to load icons dynamically in JavaScript.
-Example: const iconUrl = chrome.runtime.getURL('icons/note-icon.png');
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <chrome_messaging_api_rules>
 Chrome Messaging Best Practices:
@@ -138,14 +131,7 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
-<console_logging_requirements>
-MANDATORY: Add console.log statements to track key events. Include the filename in each log:
-- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
-- Log important operations and user interactions
-- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
-
-All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:content.js]).
-</console_logging_requirements>
+${CONSOLE_LOGGING_REQUIREMENTS}
 
 <implementation_guidelines>
 - Create a robust overlay that works on all websites

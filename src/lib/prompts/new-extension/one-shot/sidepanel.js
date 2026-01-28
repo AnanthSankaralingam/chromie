@@ -1,5 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
 
 export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the user request.
 
@@ -127,9 +128,9 @@ Core Principles:
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
 Color Schemes (choose ONE):
-1. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-2. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
-3. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
+- Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
+- Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+- Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
@@ -145,15 +146,7 @@ Premium Effects:
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>
 
-<icon_configuration>
-MANDATORY: Use ONLY these available icon files:
-- icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
-- icons/planet-icon.png, icons/search-icon.png, icons/timer-icon.png, icons/note-icon.png
-- icons/home-icon.png, icons/heart-icon.png, icons/cloud-icon.png, icons/calendar-icon.png
-
-Usage in side panel: Always use chrome.runtime.getURL() in JavaScript.
-Example: document.getElementById('icon').src = chrome.runtime.getURL('icons/home-icon.png');
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <output_requirements>
 Return a JSON object with the following structure:
@@ -176,14 +169,7 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
-<console_logging_requirements>
-MANDATORY: Add console.log statements to track key events. Include the filename in each log:
-- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
-- Log important operations and user interactions
-- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
-
-All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:sidepanel.js], [CHROMIE:content.js]).
-</console_logging_requirements>
+${CONSOLE_LOGGING_REQUIREMENTS}
 
 <implementation_guidelines>
 - Create a comprehensive side panel interface

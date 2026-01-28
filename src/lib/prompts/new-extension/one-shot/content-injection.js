@@ -1,6 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
-
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 export const NEW_EXT_CONTENT_SCRIPT_UI_PROMPT = `
 You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages based on the user request.
@@ -100,20 +100,7 @@ Premium Effects:
 - Hover states with scale or translateY
 </styling_requirements>
 
-<icon_configuration>
-MANDATORY: Use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png,
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png,
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png,
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png,
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png,
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png,
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png,
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png,
-icons/world.png, icons/youtube.png
-
-CRITICAL: Always use chrome.runtime.getURL() in content scripts to load icons.
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <output_requirements>
 Return a JSON object with the following structure:
@@ -134,14 +121,7 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
-<console_logging_requirements>
-MANDATORY: Add console.log statements to track key events. Include the filename in each log:
-- Log script initialization: console.log('[CHROMIE:filename] Script loaded')
-- Log important operations and user interactions
-- Log errors: console.error('[CHROMIE:filename] Error:', error)
-
-All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:content.js]).
-</console_logging_requirements>
+${CONSOLE_LOGGING_REQUIREMENTS}
 
 <implementation_guidelines>
 - Create UI that integrates naturally with web pages
