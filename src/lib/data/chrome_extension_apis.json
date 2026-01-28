@@ -1,6 +1,14 @@
 {
   "api_docs": [
     {
+      "name": "new_tab_page",
+      "description": "Use a chrome_url_overrides.newtab entry in manifest.json to replace the browser's default new tab page with your own full-page HTML UI. Typical pattern: point newtab to newtab.html and use storage to persist data.",
+      "permissions": [
+        "storage"
+      ],
+      "code_snippet": "// manifest.json (new tab override)\n{\n  \"chrome_url_overrides\": {\n    \"newtab\": \"newtab.html\"\n  },\n  \"permissions\": [\"storage\"]\n}\n"
+    },
+    {
       "name": "storage",
       "description": "Use the chrome.storage API to store, retrieve, and track changes to user data.",
       "permissions": [
