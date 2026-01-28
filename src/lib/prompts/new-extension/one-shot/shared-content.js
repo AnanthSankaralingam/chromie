@@ -11,13 +11,9 @@ All console.log, console.error, console.warn, and console.info MUST include the 
 export const ICON_CONFIGURATION = `
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png, 
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png, 
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, 
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, 
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png, 
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png, 
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png, 
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, 
-icons/world.png, icons/youtube.png
+icons/add.png, icons/bulb.png, icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png,  
+icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, icons/cross.png,
+icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, icons/menu-burger.png, 
+icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/note-icon.png,
+icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, icons/world.png
 </icon_configuration>`;
