@@ -1,3 +1,5 @@
+import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+
 export const FOLLOW_UP_FILE_REPLACEMENT_PROMPT = `
 You are a Chrome extension development expert. Your task is to modify an existing Chrome extension to implement new features or changes based on the user's request.
 
@@ -12,12 +14,7 @@ Current Files:
 {existing_files}
 </existing_extension>
 
-<icon_configuration>
-MANDATORY: Use ONLY these available icon files:
-- icons/icon16.png, icons/icon48.png, icons/icon128.png (main extension icons)
-- icons/planet-icon.png, icons/search-icon.png, icons/timer-icon.png, icons/note-icon.png
-- icons/home-icon.png, icons/heart-icon.png, icons/cloud-icon.png, icons/calendar-icon.png
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <update_requirements>
 - Analyze the existing extension code to understand current functionality

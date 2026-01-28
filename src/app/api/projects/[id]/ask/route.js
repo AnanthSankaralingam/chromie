@@ -4,6 +4,102 @@ import { llmService } from "@/lib/services/llm-service"
 import { CREDIT_COSTS, PLANNING_MODELS, SUPPORTED_PROVIDERS } from "@/lib/constants"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { formatFilesAsXml } from "@/lib/codegen/patching-handlers/requirements-helpers"
+import { ASK_MODE_PROMPT } from "@/lib/prompts/ask/ask-mode-prompt"
+import { ASK_PLANNING_PROMPT } from "@/lib/prompts/ask/ask-planning"
+import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis"
+
+/**
+ * Calls the planning agent to determine which files are relevant to answer the question
+ * @param {string} question - The user's question
+ * @param {Object} existingFiles - Map of file paths to contents
+ * @returns {Promise<Object>} - Planning result with files and success flag
+ */
+async function callAskPlanning(question, existingFiles) {
+  console.log("[ask-mode] Starting ask planning...")
+
+  // Analyze files for summaries
+  const analysisResult = analyzeExtensionFiles(existingFiles)
+  const fileSummaries = formatFileSummariesForPlanning(analysisResult)
+
+  console.log("[ask-mode] File summaries generated")
+
+  // Build planning prompt
+  const prompt = ASK_PLANNING_PROMPT.replace("{USER_QUESTION}", question).replace(
+    "{FILE_SUMMARIES}",
+    fileSummaries
+  )
+
+  // Call LLM for planning
+  console.log("[ask-mode] Calling ask planning agent...")
+  const response = await llmService.createResponse({
+    provider: SUPPORTED_PROVIDERS.ANTHROPIC,
+    model: PLANNING_MODELS.DEFAULT,
+    input: [{ role: "user", content: prompt }],
+    temperature: 0.1,
+    max_output_tokens: 1000,
+    store: false,
+  })
+
+  const responseText =
+    response?.output_text || response?.choices?.[0]?.message?.content || ""
+
+  // Parse JSON response
+  try {
+    // Extract JSON from response (handle potential markdown code blocks)
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      console.warn("[ask-mode] No JSON found in planning response, using all files")
+      return {
+        success: false,
+        justification: "Could not parse planning response",
+        files: Object.keys(existingFiles),
+      }
+    }
+
+    const planningResult = JSON.parse(jsonMatch[0])
+    console.log("[ask-mode] Planning complete:", JSON.stringify(planningResult, null, 2))
+
+    return {
+      success: true,
+      justification: planningResult.justification || "",
+      files: planningResult.files || Object.keys(existingFiles),
+    }
+  } catch (error) {
+    console.error("[ask-mode] Failed to parse planning response:", error)
+    return {
+      success: false,
+      justification: "Planning response parsing failed",
+      files: Object.keys(existingFiles),
+    }
+  }
+}
+
+/**
+ * Filter existing files to only include relevant ones
+ * @param {Object} existingFiles - All existing files
+ * @param {Array<string>} relevantPaths - Paths to include
+ * @returns {Object} - Filtered files
+ */
+function filterRelevantFiles(existingFiles, relevantPaths) {
+  if (!relevantPaths || relevantPaths.length === 0) {
+    return existingFiles
+  }
+
+  const filtered = {}
+  for (const path of relevantPaths) {
+    if (existingFiles[path]) {
+      filtered[path] = existingFiles[path]
+    }
+  }
+
+  // Always include manifest.json if it exists
+  if (existingFiles["manifest.json"] && !filtered["manifest.json"]) {
+    filtered["manifest.json"] = existingFiles["manifest.json"]
+  }
+
+  console.log(`[ask-mode] Filtered to ${Object.keys(filtered).length} relevant files`)
+  return filtered
+}
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -61,62 +157,48 @@ export async function POST(request, { params }) {
 
     const projectName = project.name || "Chrome Extension"
 
-    // Build a compact, read-only code context
+    // Run planning to determine relevant files
+    const planningResult = await callAskPlanning(question, existingFiles)
+
+    // Filter files based on planning result
+    const relevantFiles = planningResult.success
+      ? filterRelevantFiles(existingFiles, planningResult.files)
+      : existingFiles
+
+    // Build code context with relevant files only
     let codeContext = ""
-    if (Object.keys(existingFiles).length > 0) {
-      codeContext = formatFilesAsXml(existingFiles)
+    if (Object.keys(relevantFiles).length > 0) {
+      codeContext = formatFilesAsXml(relevantFiles)
+    } else {
+      codeContext = "There is currently no code context loaded for this project."
     }
 
-    //FIXME move prompt to prompts folder and use xml
-    const systemPrompt = [
-      `You are an expert Chrome extension engineer helping the user understand and reason about an existing project called "${projectName}".`,
-      "You are in **ASK MODE**.",
-      "",
-      "ASK MODE OBJECTIVE:",
-      "Answer the user's question **only by reading and reasoning about the project's code files** provided in the context below.",
-      "",
-      "STRICT GROUNDING RULES:",
-      "- The code files are your ONLY source of truth. You are not allowed to use outside knowledge or generic domain explanations.",
-      "- Before answering, scan the code context and identify the most relevant files and functions.",
-      "- In every answer, reference the specific files (and functions if obvious) you used, under a short `Sources:` section at the end.",
-      "- If the answer cannot be supported by the provided code, explicitly say so and explain what is missing. Do NOT guess.",
-      "- Prefer precise, implementation-aware explanations over generic advice.",
-      "- When the user asks \"how does X work in this?\", interpret \"this\" as **this Chrome extension implementation** and walk through the relevant code paths (e.g., manifest, background scripts, content scripts, UI files).",
-      "",
-      "WHAT YOU MUST NOT DO:",
-      "- Do NOT propose concrete code edits, refactors, or new features (no patches, no step-by-step edit instructions).",
-      "- Do NOT describe multi-step editing plans or suggest specific line-level changes.",
-      "- If the user asks for a change, explain how the current code works and what *conceptual* changes would be required, without giving editing instructions.",
-      "",
-      codeContext
-        ? "PROJECT CODE CONTEXT (XML-FORMATTED CODE FILES):\n" + codeContext
-        : "There is currently no code context loaded for this project. You must answer at a very high level and clearly state that you are not looking at the real code.",
-    ]
-      .filter(Boolean)
-      .join("\n\n")
+    // Build prompt using the new template
+    const prompt = ASK_MODE_PROMPT.replace("{USER_QUESTION}", question)
+      .replace("{PROJECT_NAME}", projectName)
+      .replace("{EXISTING_FILES}", codeContext)
 
-    // Log a concise summary of the prompt so we can verify that files are included
+    // Log a concise summary of the prompt
     try {
-      const fileCount = Object.keys(existingFiles).length
-      const preview = systemPrompt.slice(0, 600)
-      console.log("[ask-mode] Built system prompt", {
+      const fileCount = Object.keys(relevantFiles).length
+      const preview = prompt.slice(0, 600)
+      console.log("[ask-mode] Built ask prompt", {
         projectId,
         projectName,
-        fileCount,
+        totalFiles: Object.keys(existingFiles).length,
+        relevantFiles: fileCount,
+        planningSuccess: planningResult.success,
         preview,
       })
     } catch (e) {
-      console.error("[ask-mode] Error logging system prompt preview:", e)
+      console.error("[ask-mode] Error logging prompt preview:", e)
     }
 
     const response = await llmService.createResponse({
       // Use Claude Haiku (same default as planning) for ask-mode analysis
       provider: SUPPORTED_PROVIDERS.ANTHROPIC,
       model: PLANNING_MODELS.DEFAULT,
-      input: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question },
-      ],
+      input: [{ role: "user", content: prompt }],
       temperature: 0.1,
       max_output_tokens: 3000,
       // Ask mode is read-only and should NOT pollute the main project chat history.

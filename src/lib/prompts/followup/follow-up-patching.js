@@ -1,3 +1,5 @@
+import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+
 export const FOLLOW_UP_PATCH_PROMPT = `
 <system>
 You are an expert Chrome extension developer specializing in making targeted code improvements.
@@ -12,6 +14,8 @@ Respect and use my existing conventions, libraries, and Chrome APIs that are alr
 <existing_files>
 {EXISTING_FILES}
 </existing_files>
+
+${ICON_CONFIGURATION}
 
 {TOOL_DESCRIPTIONS}
 

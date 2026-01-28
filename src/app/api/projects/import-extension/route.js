@@ -130,6 +130,7 @@ export async function POST(request) {
           user_id: user.id,
           name: requestedName || "Imported Extension",
           description: requestedDescription,
+          initial_prompt: requestedDescription?.slice(0, 2000) || null,
           created_at: new Date().toISOString(),
           last_used_at: new Date().toISOString(),
           archived: false,

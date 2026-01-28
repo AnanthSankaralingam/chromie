@@ -1,3 +1,5 @@
+import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+
 export const CHROME_API_SEARCH_TOOL = `
 <chrome_api_search>
 Use this tool to search Chrome extension API documentation when you need to verify API methods, parameters, permissions, or best practices.
@@ -65,6 +67,8 @@ Respect and use my existing conventions, libraries, and Chrome APIs that are alr
 <existing_files>
 {EXISTING_FILES}
 </existing_files>
+
+${ICON_CONFIGURATION}
 
 {TOOL_DESCRIPTIONS}
 

@@ -43,6 +43,7 @@ export async function POST(request, { params }) {
         id,
         name,
         description,
+        initial_prompt,
         user_id
       `)
       .eq("id", projectId)
@@ -142,6 +143,7 @@ export async function POST(request, { params }) {
         user_id: user.id,
         name: finalName,
         description: originalProject.description,
+        initial_prompt: originalProject.initial_prompt || null,
         created_at: new Date().toISOString(),
         last_used_at: new Date().toISOString(),
         archived: false,

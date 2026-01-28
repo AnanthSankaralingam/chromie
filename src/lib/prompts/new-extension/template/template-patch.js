@@ -1,3 +1,5 @@
+import { STYLING_REQUIREMENTS, ICON_CONFIGURATION } from '../one-shot/shared-content.js';
+
 export const TEMPLATE_PATCH_PROMPT = `
 <system>
 You are an expert Chrome extension developer specializing in adapting template extensions to user requirements.
@@ -53,72 +55,16 @@ The template provides the core structure and functionality. Your job is to:
 </critical_rules>
 
 <chrome_messaging_api_rules>
-CRITICAL Chrome Extension Messaging Best Practices:
-
-1. chrome.runtime.onConnect vs chrome.runtime.onMessage:
-   - onConnect listener callbacks receive: (port)
-   - port.onMessage listener callbacks receive: (message) ONLY
-   - The 'sender' parameter is NOT available in port.onMessage callbacks
-   
-2. INCORRECT Pattern (DO NOT USE):
-   chrome.runtime.onConnect.addListener(port => {
-     port.onMessage.addListener(async (message, sender) => {  // ❌ sender is not defined here
-       await handleTask(message, port, sender.tab?.id);
-     });
-   });
-
-3. CORRECT Pattern (ALWAYS USE):
-   chrome.runtime.onConnect.addListener(port => {
-     port.onMessage.addListener(async (message) => {  // ✅ Only message parameter
-       // Get tabId from the message payload itself, not from sender
-       const { task, tabId } = message;
-       await handleTask(message, port);
-     });
-   });
-
-4. When you need sender information with ports:
-   - Store sender info when connection is established
-   - Or pass required data in the message payload
-   - Or use chrome.runtime.onMessage instead of onConnect if you need sender
-
-5. sender parameter IS available in:
-   - chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {})
-   - chrome.tabs.onMessage.addListener((message, sender, sendResponse) => {})
-   
-NEVER reference 'sender' in port.onMessage.addListener callbacks - it does not exist there.
+Chrome Messaging Best Practices:
+- In port.onMessage listeners (chrome.runtime.onConnect), do NOT use 'sender'; only (message) is received.
+- To access sender/tab info, pass it in the message or capture it earlier.
+- If you need 'sender', use chrome.runtime.onMessage or chrome.tabs.onMessage (these provide (message, sender, sendResponse)).
+- Never reference 'sender' in port.onMessage.addListener callbacks.
 </chrome_messaging_api_rules>
 
-<styling_requirements>
-When modifying styles.css, maintain these premium standards:
+${STYLING_REQUIREMENTS}
 
-Core Principles:
-- Full viewport | Spacing: 16px, 24px, 32px | Border-radius: 12px-16px
-- Center content with max-width (1200-1400px)
-- Use gradients, glassmorphism, shadows for depth
-- Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.3s
-
-Premium Effects (preserve these):
-- Hero gradient backgrounds
-- Hover: scale(1.02) or translateY(-2px) + shadow
-- Backdrop-filter: blur(16px) for glass effects
-- Smooth fade-in animations on load
-- Custom scrollbar styling
-
-Only modify colors, spacing, or specific component styles if the user request demands it.
-</styling_requirements>
-
-<icon_configuration>
-When referencing icons in patches, use ONLY these available icon files:
-icons/add.png, icons/angle-left.png, icons/angle-right.png, icons/bulb.png, 
-icons/calendar-icon.png, icons/check.png, icons/cloud-icon.png, icons/cross.png, 
-icons/download.png, icons/globe.png, icons/heart-icon.png, icons/home-icon.png, 
-icons/icon16.png, icons/icon48.png, icons/icon128.png, icons/info.png, 
-icons/instagram.png, icons/linkedin.png, icons/list-check.png, icons/marker.png, 
-icons/menu-burger.png, icons/note-icon.png, icons/paper-plane.png, icons/planet-icon.png, 
-icons/refresh.png, icons/search-icon.png, icons/settings-sliders.png, icons/shopping-cart.png, 
-icons/timer-icon.png, icons/trash.png, icons/user.png, icons/users-alt.png, 
-icons/world.png, icons/youtube.png
-</icon_configuration>
+${ICON_CONFIGURATION}
 
 <v4a_diff_format>
 <file_marker>
@@ -164,7 +110,7 @@ Template matched: "Productivity Timer" - basic countdown timer
 </template_example>
 
 <response_example>
-I'll adapt the Productivity Timer template to add pomodoro-specific features and session tracking. The changes include updating the timer logic for 25/5 minute intervals and adding session history storage.
+Here's the Pomodoro focus timer extension that you requested. It features 25-minute focus intervals, 5-minute breaks, and tracks your completed sessions throughout the day.
 
 *** Begin Patch
 *** Update File: manifest.json
@@ -244,7 +190,7 @@ MANDATORY: When adding or modifying code, ensure console logs include the filena
 <output_format>
 Your response should be formatted as:
 
-[2-3 sentences explaining the adaptations you're making]
+[2-3 sentences explaining what the end extension looks like]
 
 *** Begin Patch
 [Your V4A diff patches here]
