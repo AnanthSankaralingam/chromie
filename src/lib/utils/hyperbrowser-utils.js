@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { ExtensionError, ERROR_CODES } from "@/lib/errors/extension-error"
 
 /**
  * Validate extension files and ensure required files are present
@@ -9,7 +10,7 @@ export async function validateExtensionFiles(files) {
 
   const manifestFile = files.find(f => f.file_path === 'manifest.json')
   if (!manifestFile) {
-    throw new Error("Extension must have a manifest.json file")
+    throw new ExtensionError("Extension must have a manifest.json file", ERROR_CODES.INVALID_MANIFEST)
   }
 
   try {
@@ -20,9 +21,9 @@ export async function validateExtensionFiles(files) {
       manifest_version: manifest.manifest_version
     })
 
-    if (!manifest.name) throw new Error("manifest.json must have a 'name' field")
-    if (!manifest.version) throw new Error("manifest.json must have a 'version' field")
-    if (!manifest.manifest_version) throw new Error("manifest.json must have a 'manifest_version' field")
+    if (!manifest.name) throw new ExtensionError("manifest.json must have a 'name' field", ERROR_CODES.INVALID_MANIFEST)
+    if (!manifest.version) throw new ExtensionError("manifest.json must have a 'version' field", ERROR_CODES.INVALID_MANIFEST)
+    if (!manifest.manifest_version) throw new ExtensionError("manifest.json must have a 'manifest_version' field", ERROR_CODES.INVALID_MANIFEST)
 
     if (manifest.action && manifest.action.default_popup) {
       const popupFile = files.find(f => f.file_path === manifest.action.default_popup)
@@ -116,7 +117,7 @@ export async function validateExtensionFiles(files) {
         console.log('[validate] icons resolved from shared_icons', Array.from(foundInShared))
 
         if (missing.length > 0) {
-          throw new Error(`Missing required icons: ${missing.join(', ')}. Upload them as custom assets or seed them in shared_icons.`)
+          throw new ExtensionError(`Missing required icons: ${missing.join(', ')}`, ERROR_CODES.MISSING_ICONS)
         }
       }
 
@@ -126,7 +127,11 @@ export async function validateExtensionFiles(files) {
     console.log("✅ Extension files validation passed")
   } catch (error) {
     console.error("❌ Extension validation failed:", error.message)
-    throw new Error(`Extension validation failed: ${error.message}`)
+    // Re-throw ExtensionError as-is, wrap other errors
+    if (error instanceof ExtensionError) {
+      throw error
+    }
+    throw new ExtensionError(`Extension validation failed: ${error.message}`, ERROR_CODES.INVALID_MANIFEST)
   }
 }
 

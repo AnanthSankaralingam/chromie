@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
+import { classifyError } from "@/lib/utils/error-classifier"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -243,8 +244,16 @@ export async function POST(request, { params }) {
       }
     })
   } catch (error) {
-    console.error("Error creating Hyperbrowser test session:", error)
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 })
+    console.error("Error creating Testing Browser session:", error)
+
+    const classification = classifyError(error)
+
+    return NextResponse.json({
+      error: error.message || "Internal server error",
+      errorCode: error.code || null,
+      errorType: classification.type,
+      errorCategory: classification.category,
+    }, { status: 500 })
   }
 }
 

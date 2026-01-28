@@ -525,6 +525,20 @@ function BuilderPageContent() {
     }
   }
 
+  // Handle solving test errors in chat
+  const handleSolveErrorInChat = (errorMessage) => {
+    console.log('🔧 Solve in chat clicked')
+    if (setInputMessageRef.current) {
+      // Sanitize error message to replace internal names
+      const sanitizedMessage = errorMessage
+        .replace(/Hyperbrowser/gi, 'Testing Browser')
+        .replace(/BrowserBase/gi, 'Testing Browser')
+      setInputMessageRef.current(`Debug this: ${sanitizedMessage}`)
+    }
+    // Close the test modal
+    testExtension.handleCloseTestModal()
+  }
+
   // Handle logs captured from test session
   const handleSessionLogsCapture = useCallback((logs) => {
     console.log('[builder-page] Captured', logs.length, 'logs from test session')
@@ -967,6 +981,7 @@ function BuilderPageContent() {
         onGeneratePuppeteerTests={handleGeneratePuppeteerTestsFromModal}
         onGenerateAiAgentTests={handleGenerateAiAgentTestsFromModal}
         onSessionLogsCapture={handleSessionLogsCapture}
+        onSolveErrorInChat={handleSolveErrorInChat}
       />
 
       {/* Project Limit Modal */}

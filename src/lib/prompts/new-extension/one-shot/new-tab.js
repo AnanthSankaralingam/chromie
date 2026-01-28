@@ -4,6 +4,16 @@ import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '.
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 // ${WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB}
 
+export const CONSOLE_LOGGING_REQUIREMENTS = `
+<console_logging_requirements>
+MANDATORY: Add console.log statements to track key events. Include the filename in each log:
+- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
+- Log important operations and user interactions
+- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
+
+All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:newtab.js]).
+</console_logging_requirements>`;
+
 export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension that replaces the new tab page.
 
 <user_request>
@@ -91,14 +101,7 @@ File Format Rules:
 - No JSON encoding of file contents
 </output_requirements>
 
-<console_logging_requirements>
-MANDATORY: Add console.log statements to track key events. Include the filename in each log:
-- Log script initialization: console.log('[CHROMIE:filename.js] Script loaded')
-- Log important operations and user interactions
-- Log errors: console.error('[CHROMIE:filename.js] Error:', error)
-
-All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:newtab.js]).
-</console_logging_requirements>
+${CONSOLE_LOGGING_REQUIREMENTS}
 
 <implementation_guidelines>
 - Create a beautiful, functional new tab experience

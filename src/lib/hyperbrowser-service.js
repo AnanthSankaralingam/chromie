@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils/hyperbrowser-utils"
 import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil, primeExtensionContext as primeExtensionContextUtil } from "@/lib/utils/browser-actions"
 import { runPinExtension } from "@/lib/scripts/pin-extension"
+import { ExtensionError, ERROR_CODES } from "@/lib/errors/extension-error"
 
 export class HyperbrowserService {
   constructor() {
@@ -174,7 +175,7 @@ export class HyperbrowserService {
       
       if (!this.apiKey || !this.client) {
         console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
-        throw new Error("Missing HYPERBROWSER_API_KEY")
+        throw new ExtensionError("Testing Browser is not configured. Please contact support.", ERROR_CODES.MISSING_API_KEY)
       }
 
       // If extension files were provided, zip and upload them to get an extensionId
@@ -431,7 +432,7 @@ export class HyperbrowserService {
     
     if (!this.apiKey || !this.client) {
       console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
-      throw new Error("Missing HYPERBROWSER_API_KEY")
+      throw new ExtensionError("Testing Browser is not configured. Please contact support.", ERROR_CODES.MISSING_API_KEY)
     }
 
     console.log("[HYPERBROWSER-SERVICE] ✅ Starting zip process for", files.length, "files")
@@ -537,7 +538,7 @@ export class HyperbrowserService {
         .in('path_hint', iconsToFetchFromShared)
         .eq('visibility', 'global')
       if (error) {
-        throw new Error(`Failed to fetch shared icons: ${error.message}`)
+        throw new ExtensionError(`Failed to fetch shared icons: ${error.message}`, ERROR_CODES.MISSING_ICONS)
       }
       const byPath = new Map((rows || []).map(r => [r.path_hint, r]))
       const missing = []
@@ -558,7 +559,7 @@ export class HyperbrowserService {
         }
       }
       if (missing.length > 0) {
-        throw new Error(`Missing required icons: ${missing.join(', ')}. Seed them into shared_icons or add a global fallback.`)
+        throw new ExtensionError(`Missing required icons: ${missing.join(', ')}. Please upload icon files to your extension.`, ERROR_CODES.MISSING_ICONS)
       }
     } else {
       console.log('[hyperbrowser] All required icons provided as custom assets or none needed')
@@ -590,7 +591,7 @@ export class HyperbrowserService {
     } catch (err) {
       console.error("[HYPERBROWSER-SERVICE] ❌ Failed to upload extension:", err.message)
       console.error("[HYPERBROWSER-SERVICE] Error stack:", err.stack)
-      throw err
+      throw new ExtensionError(`Failed to upload extension: ${err.message}`, ERROR_CODES.UPLOAD_FAILED, { originalError: err })
     } finally {
       // Clean up the temporary file regardless of success/failure
       try {
