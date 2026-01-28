@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const { data: featuredRows, error: featuredError } = await supabase
       .from("featured_projects")
-      .select("id, project_id, position, created_at")
+      .select("id, project_id, position, created_at, demo_video_url")
       .order("position", { ascending: true })
       .order("created_at", { ascending: false })
 
@@ -68,6 +68,7 @@ export async function GET() {
           featuredId: row.id,
           position: row.position,
           featuredAt: row.created_at,
+          demoVideoUrl: row.demo_video_url ?? null,
         }
       })
       .filter(Boolean)
