@@ -41,9 +41,8 @@ P4 Scalablility:
 3. user can't open code while code is generating
 4. API input has commonly hallucinated APIs (LinkedIn, YouTube, etc.). Add these to a list and statically remove them from final planning output if found.
 5. often get random host_permissions. encourage one shot coder to use minimally. maybe API list is getting past planning phase even when user skips.
-6. errors not yielded correctly in UI, giving user a place to go. especially with HB errors, should clearly explain what's wrong (i.e. manifest). Or just auto fix when HB upload errors occurs since they're just extension bugs
-7. prompt_tokens is always extracted from gemini object as 0.
-8. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
+6. prompt_tokens is always extracted from gemini object as 0.
+7. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
 
 ---
 ### TODOs
