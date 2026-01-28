@@ -1,6 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_CONTENT_SCRIPT } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS } from './shared-content.js';
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 export const NEW_EXT_CONTENT_SCRIPT_UI_PROMPT = `
 You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages based on the user request.
@@ -81,24 +81,7 @@ Note: Adjust "matches" to target specific websites if needed
 </manifest_configuration>
 </content_script_ui_implementation_requirements>
 
-<styling_requirements>
-MANDATORY: Create styles.css that injects cleanly without conflicts.
-
-Critical Principles:
-- Use unique class prefixes (ext-, extension-) to avoid conflicts
-- CSS resets for injected elements
-- Compact, minimal design
-
-Color Schemes (choose ONE or custom based on user request):
-1. Vibrant: Primary #6366f1→#8b5cf6 gradient
-2. Dark: Primary #818cf8, dark backgrounds
-3. Minimal: Primary #2563eb
-
-Premium Effects:
-- Backdrop-filter: blur(12px) for overlays
-- Smooth transform transitions
-- Hover states with scale or translateY
-</styling_requirements>
+${STYLING_REQUIREMENTS}
 
 ${ICON_CONFIGURATION}
 
@@ -126,7 +109,7 @@ ${CONSOLE_LOGGING_REQUIREMENTS}
 <implementation_guidelines>
 - Create UI that integrates naturally with web pages
 - Use mutation observers to handle dynamic content
-- Avoid conflicts with existing page JavaScript and CSS
+- Keep host_permissions minimal and specific to the use case
 - Do not generate placeholder code.
 - Target specific websites if listed in external_resources
 - Implement proper error handling, comments, and logging

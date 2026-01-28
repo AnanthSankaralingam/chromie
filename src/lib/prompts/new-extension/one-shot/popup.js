@@ -1,6 +1,6 @@
 import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../../instructions/workspace-auth-instructions.js';
 import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION } from './shared-content.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS } from './shared-content.js';
 
 //TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
 // ${WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL}
@@ -56,31 +56,7 @@ Required manifest.json sections:
 </manifest_configuration>
 </popup_implementation_requirements>
 
-<styling_requirements>
-MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics.
-
-Core Principles:
-- Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
-- Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
-
-Color Schemes (choose ONE):
-- Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-- Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
-- Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-
-Components:
-- Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
-- Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
-
-Premium Effects (MUST include):
-- Hover: scale(1.02) or translateY(-2px) + enhanced shadow
-- Backdrop-filter: blur(12px) for overlays/glass
-- Focus: Glowing ring with primary color
-- Layered shadows for realistic depth
-- Custom scrollbar styling (webkit-scrollbar)
-</styling_requirements>
+${STYLING_REQUIREMENTS}
 
 ${ICON_CONFIGURATION}
 
@@ -118,6 +94,7 @@ ${CONSOLE_LOGGING_REQUIREMENTS}
 <implementation_guidelines>
 - Create a stunning, modern popup interface that feels premium and polished
 - Implement quick actions and controls users expect
+- Keep host_permissions minimal and specific to the use case
 - Implement proper error handling, comments, and logging
 - Do not generate placeholder code.
 - Handle popup closure and state management properly
