@@ -52,6 +52,10 @@ export const WORKSPACE_API_SCOPES = {
   'Google Forms API': {
     body: ['https://www.googleapis.com/auth/forms.body'],
     responses_readonly: ['https://www.googleapis.com/auth/forms.responses.readonly']
+  },
+  'Google Keep API': {
+    readonly: ['https://www.googleapis.com/auth/keep.readonly'],
+    full: ['https://www.googleapis.com/auth/keep']
   }
 };
 

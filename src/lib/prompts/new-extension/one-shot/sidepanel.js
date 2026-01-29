@@ -1,5 +1,3 @@
-import { WORKSPACE_AUTH_INSTRUCTIONS_POPUP_SIDEPANEL } from '../../instructions/workspace-auth-instructions.js';
-import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
 import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS } from './shared-content.js';
 
 export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a side panel frontend based on the user request.
@@ -15,6 +13,10 @@ export const NEW_EXT_SIDEPANEL_PROMPT = `You are a Chrome extension development 
 <external_resources>
 {EXTERNAL_RESOURCES}
 </external_resources>
+
+<workspace_authentication>
+{WORKSPACE_AUTH}
+</workspace_authentication>
 
 <side_panel_implementation_requirements>
 <side_panel_strategy>

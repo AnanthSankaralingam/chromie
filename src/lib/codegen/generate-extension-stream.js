@@ -485,7 +485,12 @@ export async function* generateChromeExtensionStream({
       );
       
       console.log('📄 [generate-extension-stream] EXTERNAL_RESOURCES with webpage data and user APIs:', updatedPlanningOutputs.EXTERNAL_RESOURCES.substring(0, 150) + (updatedPlanningOutputs.EXTERNAL_RESOURCES.length > 150 ? '...' : ''));
-      
+      console.log('🔐 [generate-extension-stream] WORKSPACE_AUTH injected:',
+        updatedPlanningOutputs.WORKSPACE_AUTH ? (updatedPlanningOutputs.WORKSPACE_AUTH.length > 0 ? 'YES' : 'NO') : 'NO');
+      if (requirementsAnalysis.workspaceScopes && requirementsAnalysis.workspaceScopes.length > 0) {
+        console.log('🔑 Required OAuth scopes:', requirementsAnalysis.workspaceScopes);
+      }
+
       // Extract custom icon information from existing files (for new extensions with uploaded icons)
       let customIconsInfo = '';
       if (Object.keys(existingFiles).length > 0) {
@@ -508,20 +513,22 @@ export async function* generateChromeExtensionStream({
       if (usingTemplate) {
         // Format template files as XML for prompt
         const templateFilesXml = formatTemplateFilesAsXml(templateFiles)
-        
+
         replacements = {
           USER_REQUEST: finalUserPrompt,
           USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
           EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
-          TEMPLATE_FILES: templateFilesXml
+          TEMPLATE_FILES: templateFilesXml,
+          WORKSPACE_AUTH: updatedPlanningOutputs.WORKSPACE_AUTH
         };
-        
+
         console.log(`📦 [generate-extension-stream] Using template files for patching (${Object.keys(templateFiles).length} files)`)
       } else {
         replacements = {
           USER_REQUEST: finalUserPrompt,
           USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
-          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo
+          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
+          WORKSPACE_AUTH: updatedPlanningOutputs.WORKSPACE_AUTH
         };
       }
     }
