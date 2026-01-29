@@ -205,10 +205,10 @@ export class GeminiAdapter {
 
       // Yield final token usage information
       if (totalTokens > 0) {
-        yield { 
-          type: 'token_usage', 
+        yield {
+          type: 'token_usage',
           usage: {
-            prompt_tokens: 0, // Gemini doesn't provide prompt token count in streaming
+            prompt_tokens: promptTokens,
             completion_tokens: outputTokens,
             thoughts_tokens: thoughtsTokens,
             total_tokens: totalTokens,

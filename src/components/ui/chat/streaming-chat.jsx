@@ -474,7 +474,7 @@ export default function StreamingChat({
             )}
 
             {/* Open Canvas Button */}
-            {effectiveHasGeneratedCode && onOpenCanvas && !isGenerating && !isCanvasOpen && (
+            {effectiveHasGeneratedCode && onOpenCanvas && !isCanvasOpen && (
               <ChatBubble variant="received">
                 <ChatBubbleAvatar src="/chromie-logo-1.png" fallback="AI" className="h-8 w-8 shrink-0" />
                 <ChatBubbleMessage variant="received">
@@ -487,7 +487,9 @@ export default function StreamingChat({
                         <div className="text-sm font-medium text-white truncate">
                           {projectName || "Chrome Extension"}
                         </div>
-                        <div className="text-xs text-slate-400">Code generated successfully</div>
+                        <div className="text-xs text-slate-400">
+                          {isGenerating ? "Generating code..." : "Code generated successfully"}
+                        </div>
                       </div>
                     </div>
                     <button

@@ -40,7 +40,7 @@ P4 Scalablility:
 2. WORKSPACE_AUTH_INSTRUCTIONS (commented out) injected into all coding prompts. needs to be conditional.
 3. user can't open code while code is generating
 4. ~often get random host_permissions. encourage one shot coder to use minimally.~ Move API requirements to its own LLM call, don't group it
-5. prompt_tokens is always extracted from gemini object as 0.
+5. ~prompt_tokens is always extracted from gemini object as 0.~
 6. Long files (client secret keys, Firebase CDN) can be input into coder as raw content and mess up context.
 
 ---
