@@ -1,9 +1,4 @@
-import { WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB } from '../../instructions/workspace-auth-instructions.js';
-import { WORKSPACE_OAUTH_SETUP_EXPLANATION, WORKSPACE_OAUTH_SETUP_FILE } from '../../instructions/workspace-oauth-setup-prompt.js';
 import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS } from './shared-content.js';
-
-//TODO: Add workspace auth instructions to the prompt as dynamic content from planning orchestrator
-// ${WORKSPACE_AUTH_INSTRUCTIONS_NEW_TAB}
 
 export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension that replaces the new tab page.
 
@@ -18,6 +13,10 @@ export const NEW_EXT_NEW_TAB_PROMPT = `You are a Chrome extension development ex
 <external_resources>
 {EXTERNAL_RESOURCES}
 </external_resources>
+
+<workspace_authentication>
+{WORKSPACE_AUTH}
+</workspace_authentication>
 
 <new_tab_implementation_requirements>
 

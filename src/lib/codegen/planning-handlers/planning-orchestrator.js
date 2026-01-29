@@ -11,6 +11,7 @@ import { fetchExternalApiDocs } from './external-api-docs.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
 import { isWorkspaceAPI, collectWorkspaceScopes } from '@/lib/utils/google-workspace-scopes.js'
 import { generateApiKeyInstructions } from '@/lib/prompts/instructions/api-key-instructions.js'
+import { getWorkspaceAuthInstructions } from '@/lib/prompts/instructions/workspace-auth-instructions.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
@@ -459,7 +460,7 @@ function parseJsonResponse(outputText, prefill) {
  * @returns {Promise<Object>} Formatted strings for prompt replacement
  */
 export async function formatPlanningOutputs(planningResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null, featureRequest = '') {
-  const { useCaseResult, externalResourcesResult, codeSnippet } = planningResult
+  const { useCaseResult, externalResourcesResult, codeSnippet, frontendType, usesWorkspaceAPIs, workspaceScopes } = planningResult
 
   // Format use case and Chrome APIs
   const useCaseFormatted = formatUseCaseOutput(useCaseResult, featureRequest)
@@ -475,10 +476,18 @@ export async function formatPlanningOutputs(planningResult, scrapedWebpageAnalys
   // Format code snippet
   const codeSnippetFormatted = formatCodeSnippet(codeSnippet, useCaseResult.matched_use_case?.name)
 
+  // Format workspace auth instructions
+  const workspaceAuthFormatted = formatWorkspaceAuthInstructions(
+    frontendType,
+    usesWorkspaceAPIs,
+    workspaceScopes
+  )
+
   return {
     USE_CASE_CHROME_APIS: useCaseFormatted,
     EXTERNAL_RESOURCES: externalResourcesFormatted,
-    CODE_SNIPPETS: codeSnippetFormatted
+    CODE_SNIPPETS: codeSnippetFormatted,
+    WORKSPACE_AUTH: workspaceAuthFormatted
   }
 }
 
@@ -740,4 +749,33 @@ ${codeSnippet}
 
 Use this as a reference for implementing similar functionality, but adapt it to the specific user requirements.
 `
+}
+
+/**
+ * Format workspace authentication instructions based on frontend type
+ * @param {string} frontendType - Frontend type (popup, sidepanel, new_tab, overlay, content_script_ui)
+ * @param {boolean} usesWorkspaceAPIs - Whether workspace APIs are detected
+ * @param {Array} workspaceScopes - Required OAuth scopes
+ * @returns {string} Formatted workspace auth instructions or empty string
+ */
+function formatWorkspaceAuthInstructions(frontendType, usesWorkspaceAPIs, workspaceScopes) {
+  if (!usesWorkspaceAPIs) {
+    return ''
+  }
+
+  const instructions = getWorkspaceAuthInstructions(frontendType)
+
+  // Append detected scopes for reference
+  let output = instructions
+  if (workspaceScopes && workspaceScopes.length > 0) {
+    output += `\n\n<detected_workspace_scopes>\n`
+    output += `The planning phase detected these required OAuth scopes:\n`
+    workspaceScopes.forEach(scope => {
+      output += `- ${scope}\n`
+    })
+    output += `\nEnsure these scopes are included in manifest.json oauth2.scopes array.\n`
+    output += `</detected_workspace_scopes>\n`
+  }
+
+  return output
 }

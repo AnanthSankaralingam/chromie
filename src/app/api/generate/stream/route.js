@@ -215,9 +215,12 @@ export async function POST(request) {
     let modelUsed = modelOverride || 'unknown'
     let requiresUrl = false
     let createdVersionId = null
-    
+
     // Auto-create version snapshot before processing user message
-    if (projectId) {
+    // Skip if resuming from a previous request (to avoid duplicate messages)
+    const isResumingRequest = Boolean(initialRequirementsAnalysis && initialPlanningTokenUsage)
+
+    if (projectId && !isResumingRequest) {
       try {
         console.log(`📸 Creating auto-version snapshot for project ${projectId}`)
         const { data: versionId, error: versionError } = await supabase
@@ -226,13 +229,13 @@ export async function POST(request) {
             p_version_name: `Before: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`,
             p_description: `Auto-snapshot before user message: "${prompt}"`,
           })
-        
+
         if (versionError) {
           console.error("⚠️ Failed to create auto-version snapshot:", versionError)
         } else {
           createdVersionId = versionId
           console.log(`✅ Created auto-version snapshot: ${versionId}`)
-          
+
           // Immediately store user message with version ID and images if present
           const { llmService } = await import('@/lib/services/llm-service')
           const userMessage = {
@@ -240,19 +243,21 @@ export async function POST(request) {
             content: prompt,
             versionId: versionId
           }
-          
+
           // Include images if provided
           if (images && images.length > 0) {
             userMessage.images = images
             console.log(`📷 Including ${images.length} images in stored message`)
           }
-          
+
           await llmService.chatMessages.addMessage(projectId, userMessage)
           console.log(`💾 Stored user message with version ID: ${versionId}`)
         }
       } catch (versionErr) {
         console.error("⚠️ Error creating auto-version snapshot:", versionErr)
       }
+    } else if (isResumingRequest) {
+      console.log(`♻️ Skipping version snapshot and message storage - resuming from previous request`)
     }
     
     const stream = new ReadableStream({
