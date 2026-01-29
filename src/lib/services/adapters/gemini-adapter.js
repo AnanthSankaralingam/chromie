@@ -173,6 +173,7 @@ export class GeminiAdapter {
       let totalTokens = 0
       let thoughtsTokens = 0
       let outputTokens = 0
+      let promptTokens = 0
 
       // Process streaming response - simplified based on working version
       for await (const chunk of response) {
@@ -181,7 +182,8 @@ export class GeminiAdapter {
           if (chunk?.usageMetadata) {
             thoughtsTokens = chunk.usageMetadata.thoughtsTokenCount || 0
             outputTokens = chunk.usageMetadata.candidatesTokenCount || 0
-            totalTokens = thoughtsTokens + outputTokens
+            promptTokens = chunk.usageMetadata.promptTokenCount || 0
+            totalTokens = thoughtsTokens + outputTokens + promptTokens
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []

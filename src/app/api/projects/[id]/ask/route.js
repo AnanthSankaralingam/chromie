@@ -181,14 +181,12 @@ export async function POST(request, { params }) {
     // Log a concise summary of the prompt
     try {
       const fileCount = Object.keys(relevantFiles).length
-      const preview = prompt.slice(0, 600)
       console.log("[ask-mode] Built ask prompt", {
         projectId,
         projectName,
         totalFiles: Object.keys(existingFiles).length,
         relevantFiles: fileCount,
         planningSuccess: planningResult.success,
-        preview,
       })
     } catch (e) {
       console.error("[ask-mode] Error logging prompt preview:", e)
