@@ -32,6 +32,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState(null)
   const [iconDimensions, setIconDimensions] = useState(null)
+  const [isPrimaryIcon, setIsPrimaryIcon] = useState(false)
   const fileInputRef = useRef(null)
 
   const handleFileSelect = async (e) => {
@@ -123,6 +124,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
             content_base64: base64Content,
             file_type: fileType,
             mime_type: selectedFile.type,
+            is_primary_icon: fileType === 'icon' ? isPrimaryIcon : false,
           }),
         })
 
@@ -164,6 +166,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
     setCustomPath("")
     setError(null)
     setIconDimensions(null)
+    setIsPrimaryIcon(false)
     setIsUploading(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -178,6 +181,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
     setFilePreview(null)
     setError(null)
     setIconDimensions(null)
+    setIsPrimaryIcon(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -223,24 +227,23 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
               </SelectContent>
             </Select>
             {fileType === "icon" && (
-              <p className="text-xs text-slate-400">
-                Icons will be automatically resized to 16x16, 48x48, and 128x128 for Chrome extension compatibility
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-slate-400">
+                  Icons will be automatically resized to 16x16, 48x48, and 128x128 for Chrome extension compatibility
+                </p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isPrimaryIcon}
+                    onChange={(e) => setIsPrimaryIcon(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-slate-900"
+                  />
+                  <span className="text-sm text-white">
+                    Set as primary extension icon (updates manifest.json)
+                  </span>
+                </label>
+              </div>
             )}
-          </div>
-
-          {/* File Path */}
-          <div className="space-y-2">
-            <Label className="text-white">File Path</Label>
-            <Input
-              value={customPath}
-              onChange={(e) => setCustomPath(e.target.value)}
-              placeholder={fileType === "icon" ? "icons/custom-icon.png" : "assets/my-file.json"}
-              className="bg-slate-800 border-slate-700 text-white"
-            />
-            <p className="text-xs text-slate-400">
-              Path where the file will be accessible in your extension
-            </p>
           </div>
 
           {/* File Upload */}
@@ -269,6 +272,20 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
               onChange={handleFileSelect}
               className="hidden"
             />
+          </div>
+
+          {/* File Path */}
+          <div className="space-y-2">
+            <Label className="text-white">File Path</Label>
+            <Input
+              value={customPath}
+              onChange={(e) => setCustomPath(e.target.value)}
+              placeholder={fileType === "icon" ? "icons/custom-icon.png" : "assets/my-file.json"}
+              className="bg-slate-800 border-slate-700 text-white"
+            />
+            <p className="text-xs text-slate-400">
+              Path where the file will be accessible in your extension
+            </p>
           </div>
 
           {/* Preview */}

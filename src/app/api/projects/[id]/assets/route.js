@@ -5,6 +5,55 @@ import sharp from 'sharp'
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 
+/**
+ * Updates manifest.json with icon references for a primary icon
+ */
+async function updateManifestIcons(supabase, projectId, iconBaseName) {
+  try {
+    console.log(`🔍 Attempting to update manifest.json for project ${projectId} with icon base: ${iconBaseName}`)
+
+    const { data: manifestFile, error: fetchError } = await supabase
+      .from('code_files')
+      .select('content')
+      .eq('project_id', projectId)
+      .eq('file_path', 'manifest.json')
+      .single()
+
+    if (fetchError) {
+      console.error('❌ Error fetching manifest.json:', fetchError)
+      return
+    }
+
+    if (!manifestFile?.content) {
+      console.warn('⚠️ manifest.json not found or has no content')
+      return
+    }
+
+    console.log('📄 Found manifest.json, updating icons...')
+    const manifest = JSON.parse(manifestFile.content)
+    manifest.icons = {
+      "16": `icons/${iconBaseName}-16.png`,
+      "48": `icons/${iconBaseName}-48.png`,
+      "128": `icons/${iconBaseName}-128.png`
+    }
+
+    const { error: updateError } = await supabase
+      .from('code_files')
+      .update({ content: JSON.stringify(manifest, null, 2) })
+      .eq('project_id', projectId)
+      .eq('file_path', 'manifest.json')
+
+    if (updateError) {
+      console.error('❌ Error updating manifest.json:', updateError)
+      return
+    }
+
+    console.log(`✅ Updated manifest.json with primary icon references: ${iconBaseName}`)
+  } catch (error) {
+    console.error('❌ Exception updating manifest.json:', error)
+  }
+}
+
 // Allowed icon sizes for Chrome extensions
 const CHROME_ICON_SIZES = [16, 32, 48, 64, 128, 256, 512]
 
@@ -97,7 +146,7 @@ export async function POST(request, { params }) {
     }
 
     const body = await request.json()
-    const { file_path, content_base64, file_type, mime_type } = body
+    const { file_path, content_base64, file_type, mime_type, is_primary_icon = false } = body
 
     // Validate required fields
     if (!file_path || typeof file_path !== 'string') {
@@ -179,11 +228,11 @@ export async function POST(request, { params }) {
       }
     }
 
-    // For icons, automatically create resized versions for Chrome extension requirements
+    // For primary icons, automatically create resized versions for Chrome extension requirements
     const assetsToUpload = []
     const uploadedAssets = []
 
-    if (file_type === 'icon' && mime_type.startsWith('image/') && mime_type !== 'image/svg+xml') {
+    if (is_primary_icon && file_type === 'icon' && mime_type.startsWith('image/') && mime_type !== 'image/svg+xml') {
       // Required Chrome extension icon sizes
       const requiredSizes = [16, 48, 128]
       
@@ -277,10 +326,24 @@ export async function POST(request, { params }) {
       console.log(`✅ Uploaded asset for project ${id}: ${asset.file_path} (${asset.file_size} bytes, ${asset.mime_type})`)
     }
 
-    return NextResponse.json({ 
+    // Update manifest.json if this is a primary icon
+    console.log(`🔍 Checking if should update manifest: is_primary_icon=${is_primary_icon}, file_type=${file_type}, uploadedAssets.length=${uploadedAssets.length}`)
+    if (is_primary_icon && file_type === 'icon' && uploadedAssets.length > 1) {
+      const pathParts = file_path.split('/')
+      const fileName = pathParts[pathParts.length - 1]
+      const fileNameWithoutExt = fileName.replace(/\.(png|jpg|jpeg)$/i, '')
+      console.log(`📝 Calling updateManifestIcons with base name: ${fileNameWithoutExt}`)
+      await updateManifestIcons(supabase, id, fileNameWithoutExt)
+    } else {
+      console.log('⏭️ Skipping manifest update (condition not met)')
+    }
+
+    return NextResponse.json({
       assets: uploadedAssets,
-      message: file_type === 'icon' && uploadedAssets.length > 1
-        ? `Successfully uploaded original + ${uploadedAssets.length - 1} resized versions (16x16, 48x48, 128x128)` 
+      message: is_primary_icon && file_type === 'icon' && uploadedAssets.length > 1
+        ? `Successfully uploaded primary icon + ${uploadedAssets.length - 1} resized versions and updated manifest.json`
+        : file_type === 'icon' && uploadedAssets.length > 1
+        ? `Successfully uploaded original + ${uploadedAssets.length - 1} resized versions (16x16, 48x48, 128x128)`
         : 'Successfully uploaded asset'
     })
   } catch (error) {

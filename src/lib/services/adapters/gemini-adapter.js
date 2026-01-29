@@ -173,6 +173,7 @@ export class GeminiAdapter {
       let totalTokens = 0
       let thoughtsTokens = 0
       let outputTokens = 0
+      let promptTokens = 0
 
       // Process streaming response - simplified based on working version
       for await (const chunk of response) {
@@ -181,7 +182,8 @@ export class GeminiAdapter {
           if (chunk?.usageMetadata) {
             thoughtsTokens = chunk.usageMetadata.thoughtsTokenCount || 0
             outputTokens = chunk.usageMetadata.candidatesTokenCount || 0
-            totalTokens = thoughtsTokens + outputTokens
+            promptTokens = chunk.usageMetadata.promptTokenCount || 0
+            totalTokens = thoughtsTokens + outputTokens + promptTokens
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []
@@ -203,10 +205,10 @@ export class GeminiAdapter {
 
       // Yield final token usage information
       if (totalTokens > 0) {
-        yield { 
-          type: 'token_usage', 
+        yield {
+          type: 'token_usage',
           usage: {
-            prompt_tokens: 0, // Gemini doesn't provide prompt token count in streaming
+            prompt_tokens: promptTokens,
             completion_tokens: outputTokens,
             thoughts_tokens: thoughtsTokens,
             total_tokens: totalTokens,
