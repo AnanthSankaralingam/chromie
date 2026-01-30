@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { FileCode, ChevronDown, ChevronRight, Trash2 } from "lucide-react"
 import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
@@ -69,6 +69,10 @@ export default function StreamingChat({
 
   // State to track if logs have been appended
   const [logsAppended, setLogsAppended] = useState(false)
+
+  // Refs for auto-scrolling to AI message start
+  const messagesContainerRef = useRef(null)
+  const lastAssistantMessageCountRef = useRef(0)
 
   const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis } =
     useStreamProcessor({
@@ -141,6 +145,38 @@ export default function StreamingChat({
       }
     }
   }, [messages.length, isGenerating, projectId])
+
+  // Auto-scroll to the beginning of AI messages when they're received
+  useEffect(() => {
+    const assistantMessages = messages.filter(m => m.role === 'assistant')
+    const currentAssistantCount = assistantMessages.length
+
+    // Check if a new assistant message was added
+    if (currentAssistantCount > lastAssistantMessageCountRef.current) {
+      // Find the container with the scrollable content
+      const scrollContainer = messagesContainerRef.current?.querySelector('[data-scroll-container]')
+
+      if (scrollContainer) {
+        // Find all assistant message elements
+        const messageElements = scrollContainer.querySelectorAll('[data-message-role="assistant"]')
+
+        if (messageElements.length > 0) {
+          // Get the last (most recent) assistant message element
+          const lastAssistantElement = messageElements[messageElements.length - 1]
+
+          // Scroll to the top of this message with smooth behavior
+          lastAssistantElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          })
+        }
+      }
+
+      // Update the ref to track current count
+      lastAssistantMessageCountRef.current = currentAssistantCount
+    }
+  }, [messages])
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
@@ -349,9 +385,9 @@ export default function StreamingChat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-hidden pb-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-hidden pb-4">
         <Conversation>
-          <ConversationContent smooth={true} className="custom-scrollbar">
+          <ConversationContent smooth={true} className="custom-scrollbar" data-scroll-container>
             {messages
               .filter((message) => !message.isThinking)
               .map((message, index, filteredMessages) => {
@@ -361,25 +397,26 @@ export default function StreamingChat({
                   (!prevMessage || prevMessage.role !== "assistant")
 
                 return (
-                  <ChatMessage
-                    key={index}
-                    message={message}
-                    index={index}
-                    showAvatar={showAvatar}
-                    typingCancelSignal={chatState.typingCancelSignal}
-                    onUrlSubmit={handleUrlSubmit}
-                    onApiSubmit={handleApiSubmit}
-                    onUrlCancel={handleUrlCancel}
-                    onApiCancel={handleApiCancel}
-                    setMessages={setMessages}
-                    projectId={projectId}
-                    onRevert={() => {
-                      // Reload the page to refresh the code canvas with reverted files
-                      if (typeof window !== 'undefined') {
-                        window.location.reload()
-                      }
-                    }}
-                  />
+                  <div key={index} data-message-role={message.role}>
+                    <ChatMessage
+                      message={message}
+                      index={index}
+                      showAvatar={showAvatar}
+                      typingCancelSignal={chatState.typingCancelSignal}
+                      onUrlSubmit={handleUrlSubmit}
+                      onApiSubmit={handleApiSubmit}
+                      onUrlCancel={handleUrlCancel}
+                      onApiCancel={handleApiCancel}
+                      setMessages={setMessages}
+                      projectId={projectId}
+                      onRevert={() => {
+                        // Reload the page to refresh the code canvas with reverted files
+                        if (typeof window !== 'undefined') {
+                          window.location.reload()
+                        }
+                      }}
+                    />
+                  </div>
                 )
               })}
 

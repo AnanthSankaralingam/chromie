@@ -163,6 +163,7 @@ export function TourProvider({ children, onComplete, storageKey = DEFAULT_STORAG
       isTourCompleted,
       nextStep,
       skipTour,
+      activeStep: currentStep >= 0 ? steps[currentStep] : null,
     }),
     [completeStepById, currentStep, isTourCompleted, nextStep, setSteps, skipTour, startTour, steps]
   )
@@ -176,19 +177,20 @@ export function TourProvider({ children, onComplete, storageKey = DEFAULT_STORAG
       <AnimatePresence>
         {currentStep >= 0 && activeStep && elementPosition && (
           <>
+            {/* Visual overlay with cutout */}
             <motion.div
               key="tour-dim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-[2px]"
+              className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-[2px] pointer-events-none"
               style={{
                 clipPath: `polygon(
                   0% 0%,
                   0% 100%,
                   100% 100%,
                   100% 0%,
-                  
+
                   ${elementPosition.left}px 0%,
                   ${elementPosition.left}px ${elementPosition.top}px,
                   ${elementPosition.left + (activeStep?.width || elementPosition.width)}px ${elementPosition.top}px,
@@ -201,13 +203,114 @@ export function TourProvider({ children, onComplete, storageKey = DEFAULT_STORAG
               }}
             />
 
+            {/* Blocking overlays - four rectangles around the highlighted element */}
+            {/* Top blocker */}
+            <motion.div
+              key="tour-blocker-top"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed z-[90]"
+              style={{
+                top: 0,
+                left: 0,
+                right: 0,
+                height: elementPosition.top,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+              }}
+            />
+            {/* Bottom blocker */}
+            <motion.div
+              key="tour-blocker-bottom"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed z-[90]"
+              style={{
+                top: elementPosition.top + (activeStep?.height || elementPosition.height),
+                left: 0,
+                right: 0,
+                bottom: 0,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+              }}
+            />
+            {/* Left blocker */}
+            <motion.div
+              key="tour-blocker-left"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed z-[90]"
+              style={{
+                top: elementPosition.top,
+                left: 0,
+                width: elementPosition.left,
+                height: activeStep?.height || elementPosition.height,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+              }}
+            />
+            {/* Right blocker */}
+            <motion.div
+              key="tour-blocker-right"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed z-[90]"
+              style={{
+                top: elementPosition.top,
+                left: elementPosition.left + (activeStep?.width || elementPosition.width),
+                right: 0,
+                height: activeStep?.height || elementPosition.height,
+                pointerEvents: 'auto',
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+              }}
+            />
+
+            {/* Center blocker - only shown on steps > 0 to block the highlighted element */}
+            {currentStep > 0 && (
+              <motion.div
+                key="tour-blocker-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed z-[91] rounded-lg"
+                style={{
+                  top: elementPosition.top,
+                  left: elementPosition.left,
+                  width: activeStep?.width || elementPosition.width,
+                  height: activeStep?.height || elementPosition.height,
+                  pointerEvents: 'auto',
+                  cursor: 'not-allowed',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+              />
+            )}
+
             <motion.div
               key="tour-highlight"
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.2 }}
-              className={cn("fixed z-[91] border-2 border-purple-400/80 shadow-[0_0_0_8px_rgba(168,85,247,0.12)] rounded-lg pointer-events-none")}
+              className="fixed z-[92] border-2 border-purple-400/80 shadow-[0_0_0_8px_rgba(168,85,247,0.12)] rounded-lg pointer-events-none"
               style={{
                 top: elementPosition.top,
                 left: elementPosition.left,
@@ -256,15 +359,13 @@ export function TourProvider({ children, onComplete, storageKey = DEFAULT_STORAG
                           Back
                         </button>
                       )}
-                      {currentStep === 0 ? null : (
-                        <button
-                          onClick={nextStep}
-                          className="text-xs px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-500 text-white transition-colors"
-                          type="button"
-                        >
-                          {currentStep === steps.length - 1 ? "Finish" : "Next"}
-                        </button>
-                      )}
+                      <button
+                        onClick={nextStep}
+                        className="text-xs px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+                        type="button"
+                      >
+                        {currentStep === steps.length - 1 ? "Finish" : "Next"}
+                      </button>
                     </div>
                   </div>
                 </div>

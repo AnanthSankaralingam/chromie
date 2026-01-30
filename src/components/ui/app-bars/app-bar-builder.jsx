@@ -15,6 +15,7 @@ import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
 import GithubExportStatusModal from "@/components/ui/modals/github-export-status-modal"
 import PrivacyPolicyInfoModal from "@/components/ui/modals/privacy-policy-info-modal"
+import MetricsComingSoonModal from "@/components/ui/modals/metrics-coming-soon-modal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,7 @@ export default function AppBarBuilder({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isPublishOpen, setIsPublishOpen] = useState(false)
   const [isPrivacyPolicyInfoOpen, setIsPrivacyPolicyInfoOpen] = useState(false)
+  const [isMetricsComingSoonOpen, setIsMetricsComingSoonOpen] = useState(false)
   const {
     isTestButtonHighlighted,
     isDownloadButtonHighlighted,
@@ -157,7 +159,7 @@ export default function AppBarBuilder({
 
   const handleAddMetricsClick = () => {
     stopAllHighlights()
-    onAddMetrics?.()
+    setIsMetricsComingSoonOpen(true)
   }
 
   const handleShareConfirm = () => {
@@ -767,6 +769,10 @@ export default function AppBarBuilder({
         isOpen={isPrivacyPolicyInfoOpen}
         onClose={() => setIsPrivacyPolicyInfoOpen(false)}
         onContinue={handlePrivacyPolicyContinue}
+      />
+      <MetricsComingSoonModal
+        isOpen={isMetricsComingSoonOpen}
+        onClose={() => setIsMetricsComingSoonOpen(false)}
       />
     </header>
   )

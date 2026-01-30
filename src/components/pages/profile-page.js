@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload, FileText, Shield } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
@@ -43,6 +43,9 @@ export default function ProfilePage() {
   const [githubUsername, setGithubUsername] = useState(null)
   const [isImportingExtension, setIsImportingExtension] = useState(false)
   const importInputRef = useRef(null)
+  const [privacyPolicies, setPrivacyPolicies] = useState([])
+  const [privacyPoliciesLoading, setPrivacyPoliciesLoading] = useState(true)
+  const [copiedPolicyId, setCopiedPolicyId] = useState(null)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -88,6 +91,28 @@ export default function ProfilePage() {
     }
   }
 
+  // Fetch user's privacy policies
+  const fetchPrivacyPolicies = async () => {
+    try {
+      setPrivacyPoliciesLoading(true)
+      const response = await fetch('/api/privacy-policy')
+      if (response.ok) {
+        const data = await response.json()
+        // Filter projects to only those with privacy policies
+        const projectsWithPolicies = (data.projects || []).filter(
+          project => project.privacy_slug
+        )
+        setPrivacyPolicies(projectsWithPolicies)
+      } else {
+        console.error('Failed to fetch privacy policies')
+      }
+    } catch (error) {
+      console.error('Error fetching privacy policies:', error)
+    } finally {
+      setPrivacyPoliciesLoading(false)
+    }
+  }
+
   // Fetch GitHub connection status
   const fetchGithubStatus = async () => {
     try {
@@ -130,6 +155,7 @@ export default function ProfilePage() {
       fetchBilling()
       fetchShares()
       fetchGithubStatus()
+      fetchPrivacyPolicies()
     }
   }, [user])
 
@@ -247,6 +273,26 @@ export default function ProfilePage() {
       document.body.removeChild(textArea)
       setCopiedShareId(shareId)
       setTimeout(() => setCopiedShareId(null), 2000)
+    }
+  }
+
+  // Handle privacy policy link copy
+  const handleCopyPolicyLink = async (policyUrl, policyId) => {
+    try {
+      await navigator.clipboard.writeText(policyUrl)
+      setCopiedPolicyId(policyId)
+      setTimeout(() => setCopiedPolicyId(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea")
+      textArea.value = policyUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textArea)
+      setCopiedPolicyId(policyId)
+      setTimeout(() => setCopiedPolicyId(null), 2000)
     }
   }
 
@@ -929,6 +975,87 @@ export default function ProfilePage() {
               </div>
             )}
           </CardContent>
+          </Card>
+        </div>
+
+        {/* Privacy Policies Section */}
+        <div>
+          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>Privacy Policies</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {privacyPoliciesLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-white">Loading privacy policies...</div>
+                </div>
+              ) : privacyPolicies.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-slate-300">No privacy policies yet. Create one from the builder!</div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {privacyPolicies.map((project) => {
+                    const policyUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/privacy-policy/${project.privacy_slug}`
+                    return (
+                      <div key={project.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
+                              <FileText className="h-4 w-4 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-white font-medium">{project.name} - Privacy Policy</h3>
+                              {project.description && (
+                                <p className="text-slate-400 text-sm">{project.description}</p>
+                              )}
+                              <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
+                                {project.privacy_policy_last_updated && (
+                                  <span className="flex items-center space-x-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>Updated {formatDate(project.privacy_policy_last_updated)}</span>
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-400 font-mono truncate max-w-md">
+                                {policyUrl}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleCopyPolicyLink(policyUrl, project.id)}
+                            className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
+                            title="Copy policy link"
+                          >
+                            {copiedPolicyId === project.id ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.open(policyUrl, '_blank')}
+                            className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
+                            title="View privacy policy"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
 
