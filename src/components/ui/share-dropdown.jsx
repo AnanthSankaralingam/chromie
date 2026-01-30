@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
-import { Share, Download, Link, Upload, ChevronDown, Github, GitFork, Lock } from "lucide-react"
+import { Share, Download, Link, Upload, ChevronDown, Github, GitFork, Lock, Shield } from "lucide-react"
 
 export default function ShareDropdown({
   projectId,
@@ -21,6 +21,7 @@ export default function ShareDropdown({
   onPublishClick,
   onExportToGithubClick,
   onForkClick,
+  onPrivacyPolicyClick,
   isExportingToGithub = false,
   isForkLoading = false,
   hasGithubRepo = false,
@@ -58,6 +59,11 @@ export default function ShareDropdown({
   const handleForkClick = () => {
     setIsOpen(false)
     onForkClick?.()
+  }
+
+  const handlePrivacyPolicyClick = () => {
+    setIsOpen(false)
+    onPrivacyPolicyClick?.()
   }
 
   const isDisabled = !projectId || isGenerating || isTestDisabled
@@ -137,7 +143,7 @@ export default function ShareDropdown({
           </span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => {
             if (!userIsPaid && !isStillLoading) {
               window.location.href = '/pricing'
@@ -155,6 +161,27 @@ export default function ShareDropdown({
           )}
           <span className="flex-1">
             {!userIsPaid && !isStillLoading ? `${githubLabel} (Paid)` : githubLabel}
+          </span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => {
+            if (!userIsPaid && !isStillLoading) {
+              window.location.href = '/pricing'
+              return
+            }
+            handlePrivacyPolicyClick()
+          }}
+          disabled={isDisabled || (!userIsPaid && !isStillLoading)}
+          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+        >
+          {!userIsPaid && !isStillLoading ? (
+            <Lock className="h-4 w-4 mr-3 text-slate-500" />
+          ) : (
+            <Shield className="h-4 w-4 mr-3 text-purple-400" />
+          )}
+          <span className="flex-1">
+            {!userIsPaid && !isStillLoading ? "Privacy Policy (Paid)" : "Privacy Policy"}
           </span>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -14,6 +14,7 @@ import PublishModal from "@/components/ui/modals/modal-publish"
 import ShareModal from "@/components/ui/modals/share-extension"
 import ShareDropdown from "@/components/ui/share-dropdown"
 import GithubExportStatusModal from "@/components/ui/modals/github-export-status-modal"
+import PrivacyPolicyInfoModal from "@/components/ui/modals/privacy-policy-info-modal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,7 @@ export default function AppBarBuilder({
   const isStillLoading = Boolean(isLoadingPaidPlan)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isPublishOpen, setIsPublishOpen] = useState(false)
+  const [isPrivacyPolicyInfoOpen, setIsPrivacyPolicyInfoOpen] = useState(false)
   const {
     isTestButtonHighlighted,
     isDownloadButtonHighlighted,
@@ -167,6 +169,15 @@ export default function AppBarBuilder({
   const handlePublishClick = () => {
     console.log('[publish] open modal')
     setIsPublishOpen(true)
+  }
+
+  const handlePrivacyPolicyClick = () => {
+    setIsPrivacyPolicyInfoOpen(true)
+  }
+
+  const handlePrivacyPolicyContinue = () => {
+    setIsPrivacyPolicyInfoOpen(false)
+    window.location.href = '/privacy-policy'
   }
 
   const handleForkClick = async () => {
@@ -516,6 +527,7 @@ export default function AppBarBuilder({
                   onPublishClick={handlePublishClick}
                   onExportToGithubClick={handleExportToGithubClick}
                   onForkClick={handleForkClick}
+                  onPrivacyPolicyClick={handlePrivacyPolicyClick}
                   isExportingToGithub={isExportingToGithub}
                   isForkLoading={isForkLoading}
                   hasGithubRepo={hasGithubRepo}
@@ -712,6 +724,7 @@ export default function AppBarBuilder({
                 onPublishClick={() => { handlePublishClick(); setIsMobileMenuOpen(false) }}
                 onExportToGithubClick={() => { handleExportToGithubClick(); setIsMobileMenuOpen(false) }}
                 onForkClick={() => { handleForkClick(); setIsMobileMenuOpen(false) }}
+                onPrivacyPolicyClick={() => { handlePrivacyPolicyClick(); setIsMobileMenuOpen(false) }}
                 isExportingToGithub={isExportingToGithub}
                 isForkLoading={isForkLoading}
                 hasGithubRepo={hasGithubRepo}
@@ -749,6 +762,11 @@ export default function AppBarBuilder({
         message={githubModalMessage}
         repoUrl={githubModalRepoUrl}
         repoName={githubModalRepoName}
+      />
+      <PrivacyPolicyInfoModal
+        isOpen={isPrivacyPolicyInfoOpen}
+        onClose={() => setIsPrivacyPolicyInfoOpen(false)}
+        onContinue={handlePrivacyPolicyContinue}
       />
     </header>
   )
