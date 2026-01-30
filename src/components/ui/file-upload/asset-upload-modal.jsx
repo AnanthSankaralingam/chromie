@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/forms-and-input/label"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { Upload, Image as ImageIcon, FileIcon, X, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/forms-and-input/select"
+import { INPUT_LIMITS } from "@/lib/constants"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const CHROME_ICON_SIZES = [16, 32, 48, 64, 128, 256, 512]
@@ -279,7 +280,8 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
             <Label className="text-white">File Path</Label>
             <Input
               value={customPath}
-              onChange={(e) => setCustomPath(e.target.value)}
+              onChange={(e) => setCustomPath(e.target.value.slice(0, INPUT_LIMITS.FILE_PATH))}
+              maxLength={INPUT_LIMITS.FILE_PATH}
               placeholder={fileType === "icon" ? "icons/custom-icon.png" : "assets/my-file.json"}
               className="bg-slate-800 border-slate-700 text-white"
             />

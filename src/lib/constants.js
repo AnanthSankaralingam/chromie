@@ -91,6 +91,14 @@ export const PLAN_RESET_TYPES = {
   ONE_TIME: 'one_time'
 }
 
+// Input limits for security and abuse prevention (characters)
+export const INPUT_LIMITS = {
+  PROMPT: 5000,           // Main prompt, follow-up, chat messages
+  API_DESCRIPTION: 1000,  // API descriptions, feedback textarea
+  URL: 2000,              // URLs (API endpoints, website URLs)
+  FILE_PATH: 500,          // File paths (e.g. asset upload path)
+}
+
 // API Key configuration
 export const API_KEY_CONFIG = {
   // Maximum API keys per user (across all projects)

@@ -678,6 +678,7 @@ function BuilderPageContent() {
               <AIChat
                 projectId={projectSetup.currentProjectId}
                 projectName={projectSetup.currentProjectName}
+                availableFiles={fileManagement.flatFiles}
                 autoGeneratePrompt={autoGeneratePrompt}
                 onAutoGenerateComplete={handleAutoGenerateComplete}
                 onCodeGenerated={async (response) => {
@@ -757,6 +758,7 @@ function BuilderPageContent() {
                 isLoadingFiles={fileManagement.isLoadingFiles}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                flatFiles={fileManagement.flatFiles}
               />
             </div>
           )}
@@ -781,6 +783,7 @@ function BuilderPageContent() {
                 <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}
+                  availableFiles={fileManagement.flatFiles}
                   autoGeneratePrompt={autoGeneratePrompt}
                   onAutoGenerateComplete={handleAutoGenerateComplete}
                   onCodeGenerated={async (response) => {
@@ -851,6 +854,7 @@ function BuilderPageContent() {
                 <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}
+                  availableFiles={fileManagement.flatFiles}
                   autoGeneratePrompt={autoGeneratePrompt}
                   onAutoGenerateComplete={handleAutoGenerateComplete}
                   onCodeGenerated={async (response) => {
@@ -935,6 +939,7 @@ function BuilderPageContent() {
                             onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
                             onAssetDeleted={fileManagement.handleAssetDelete}
                             onSearchChange={setSearchQuery}
+                            flatFiles={fileManagement.flatFiles}
                           />
                         </div>
                       )}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { llmService } from "@/lib/services/llm-service"
+import { INPUT_LIMITS } from "@/lib/constants"
 import { ONE_SHOT_OPTIMIZER_PROMPT, ONE_SHOT_OPTIMIZER_PROMPT_PREFILL } from "@/lib/prompts/new-extension/optimizer/optimize-prompt"
 
 export async function POST(request) {
@@ -20,6 +21,13 @@ export async function POST(request) {
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
+    }
+
+    if (prompt.length > INPUT_LIMITS.PROMPT) {
+      return NextResponse.json(
+        { error: `Prompt must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less` },
+        { status: 400 }
+      )
     }
 
     // Construct the optimization prompt by replacing the placeholder

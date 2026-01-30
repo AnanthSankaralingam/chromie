@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
+import { INPUT_LIMITS } from "@/lib/constants"
 import emailService from "@/lib/services/email-service"
 
 export async function GET() {
@@ -41,6 +42,13 @@ export async function POST(request) {
   }
 
   const { name, description } = await request.json()
+
+  if (description && typeof description === 'string' && description.length > INPUT_LIMITS.PROMPT) {
+    return NextResponse.json(
+      { error: `Description must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less` },
+      { status: 400 }
+    )
+  }
 
   console.log("Creating project for user:", user.id, "with data:", { name, description })
 

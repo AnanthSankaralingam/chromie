@@ -54,6 +54,7 @@ export async function* generateChromeExtensionStream({
   initialRequirementsAnalysis = null, // New parameter to preserve state
   initialPlanningTokenUsage = null, // New parameter to preserve state
   images = null, // Image attachments for vision-enabled requests
+  taggedFiles = null, // User-tagged files that bypass planner selection
   supabase = null, // Supabase client for authenticated database access
 }) {
   try {
@@ -193,7 +194,7 @@ export async function* generateChromeExtensionStream({
       requirementsAnalysis.enabledTools = promptSelection.enabledTools;
       requirementsAnalysis.relevantFiles = promptSelection.useAllFiles
         ? existingFiles
-        : filterRelevantFiles(existingFiles, planningResult.files);
+        : filterRelevantFiles(existingFiles, planningResult.files, taggedFiles);
       requirementsAnalysis.selectedPrompt = promptSelection.prompt;
       requirementsAnalysis.planningJustification = planningResult.justification;
 

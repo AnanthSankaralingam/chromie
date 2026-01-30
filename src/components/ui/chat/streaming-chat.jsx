@@ -33,6 +33,7 @@ export default function StreamingChat({
   onSetInputMessage,
   testSessionLogs,
   onClearTestSessionLogs,
+  flatFiles,
 }) {
   const chatState = useChatState(projectId, hasGeneratedCodeProp)
   const {
@@ -143,7 +144,7 @@ export default function StreamingChat({
 
   // Note: URL and API prompts are now handled as chat messages, not modals
 
-  const handleSendMessage = async (value, withSearch, images) => {
+  const handleSendMessage = async (value, withSearch, images, taggedFiles) => {
     if ((!value.trim() && (!images || images.length === 0)) || isGenerating) return
 
     // Convert File objects to data URLs for consistent storage
@@ -163,10 +164,24 @@ export default function StreamingChat({
       )
     }
 
+    // Fetch file contents from flatFiles for tagged files
+    let taggedFilesWithContent = []
+    if (taggedFiles && taggedFiles.length > 0 && flatFiles) {
+      taggedFilesWithContent = taggedFiles.map(tag => {
+        const fileData = flatFiles.find(f => f.file_path === tag.path)
+        return {
+          path: tag.path,
+          name: tag.name,
+          content: fileData?.content || ''
+        }
+      })
+    }
+
     const userMessage = {
       role: "user",
       content: value,
       images: imageDataUrls.length > 0 ? imageDataUrls : undefined,
+      taggedFiles: taggedFilesWithContent.length > 0 ? taggedFilesWithContent : undefined,
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -196,7 +211,10 @@ export default function StreamingChat({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ question: value }),
+          body: JSON.stringify({
+            question: value,
+            taggedFiles: taggedFilesWithContent
+          }),
         })
 
         if (!res.ok) {
@@ -243,7 +261,7 @@ export default function StreamingChat({
       }
     } else {
       // Agent mode: existing behavior (new extension or add-to-existing with edits).
-      await startGeneration(value, false, images)
+      await startGeneration(value, false, images, taggedFilesWithContent)
     }
   }
 
@@ -529,12 +547,14 @@ export default function StreamingChat({
               }
               value={inputMessage}
               onChange={(value) => setInputMessage(value)}
-              onSubmit={async (value, withSearch, images) =>
-                await handleSendMessage(value, withSearch, images)
+              onSubmit={async (value, withSearch, images, taggedFiles) =>
+                await handleSendMessage(value, withSearch, images, taggedFiles)
               }
               disabled={isGenerating || !projectId}
               className="py-0"
               enableImageUpload={effectiveHasGeneratedCode}
+              availableFiles={flatFiles || []}
+              enableFileTagging={true}
               extraControlsLeft={
                 effectiveHasGeneratedCode ? (
                   <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-gray-900/80 border border-gray-700 px-1 py-0.5 text-[11px]">
