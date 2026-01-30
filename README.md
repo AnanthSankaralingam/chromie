@@ -49,7 +49,7 @@ P3:
 2. move all API calls (planning, coding) to a nextjs route or lambda function. ideally lambda/ec2 for security, .env file not impenetrable. can rotate API keys for security/centralized billing
 3. ~sanitize all user inputs: prompt, URL, endpoints, etc. Also have maximum input lengths~
 4. minimize use of service role supabase, it bypasses RLS.
-5. Thoroughly validate uploaded extensions for size, file types, etc.
+5. ~Thoroughly validate uploaded extensions for size, file types, etc.~
 
 ---
 ### Random
