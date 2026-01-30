@@ -137,7 +137,7 @@ function BuilderPageContent() {
         content: (
           <div className="space-y-1">
             <p>Generate a secure share link once you’re happy with the build.</p>
-            <p className="text-xs text-slate-400">We’ll mark onboarding done after this step.</p>
+            <p className="text-xs text-slate-400">You won't see this again now.</p>
           </div>
         ),
       }
