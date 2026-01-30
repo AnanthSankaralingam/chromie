@@ -5,15 +5,15 @@ Focus on getting production ready extensions to the store. we can't directly dep
 ---
 
 ### P0
-1. Privacy policy creation is a big bottleneck in going to prod, for both google oauth and extensions. allow chromie to host them for user projects (wip ananth)
-2. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements.
+1. ~Privacy policy creation is a big bottleneck in going to prod, for both google oauth and extensions. allow chromie to host them for user projects~
+2. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements. (wip ananth)
 3. Brand assets: use Canva template with brand images (#2) and create a deck for users. Like image replacement on Google Slides template. If too hard can fade.
 
 ---
 
 ### P1
 1. Add read file tool to coder, stress test scraping with intent in followups.
-2. Allow users to generate icons, or select from shared icons table.
+2. Allow users to generate icons, or select from shared icons table. (wip ananth)
 3. permission justification: use AI to read extension summary and fill in permissions needed to go to prod in Chrome Store.
 4. Demo creation: automate demo creation with HB and Veo. We can record AI demoing the extension then make it flashy with video AI. Lowkey a product idea of its own too. Bottleneck is that user needs to post it and get a YT link themselves so we can only let them download .mp4 for foreseeable future.
 
