@@ -27,8 +27,8 @@ P3:
 1. offline job for scraping api docs. live API expensive and sometimes times out (max 29s). add a profile to scraper.
 2. Create scraping with intent job
 3. ~Unclear: what's the difference between icon upload and image upload to AI. Not every icon should be resized to all 4 sizes too, only main one.~
-4. Patch applying for hunks sometimes fails, but still mostly working
-5. add /uninstall page for metrics users
+4. ~Patch applying for hunks sometimes fails, but still mostly working~
+5. ~add /uninstall page for metrics users~
 
 ---
 ### BUGS
