@@ -1,27 +1,31 @@
 // Plan limits for credit usage and browser testing
 export const PLAN_LIMITS = {
-  free: { 
+  free: {
     monthly_credits: 10,
     max_projects: 1,
     monthly_browser_minutes: 15,
+    max_privacy_policies: 0,
     reset_type: 'monthly'
   },
-  starter: { 
+  starter: {
     monthly_credits: 20,
     max_projects: 2,
     monthly_browser_minutes: 30,
+    max_privacy_policies: 1,
     reset_type: 'one_time'
   },
-  pro: { 
+  pro: {
     monthly_credits: 500,
     max_projects: 10,
     monthly_browser_minutes: 120,
+    max_privacy_policies: 3,
     reset_type: 'one_time'
   },
-  legend: { 
+  legend: {
     monthly_credits: 1000,
     max_projects: 300,
     monthly_browser_minutes: 240,
+    max_privacy_policies: Infinity,
     reset_type: 'monthly'
   }
 }
