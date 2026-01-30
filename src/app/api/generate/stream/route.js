@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateChromeExtensionStream } from "@/lib/codegen/generate-extension-stream"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
-import { CREDIT_COSTS } from "@/lib/constants"
+import { CREDIT_COSTS, INPUT_LIMITS } from "@/lib/constants"
 import { llmService } from "@/lib/services/llm-service"
 import { randomUUID } from "crypto"
 
@@ -122,7 +122,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images, taggedFiles } = await request.json()
 
     console.log('[api/generate/stream] received', {
       conversationTokenTotal_in: conversationTokenTotal ?? null,
@@ -130,11 +130,37 @@ export async function POST(request) {
       contextWindowMaxTokens: contextWindowMaxTokens || null,
       has_initialRequirementsAnalysis: Boolean(initialRequirementsAnalysis),
       has_initialPlanningTokenUsage: Boolean(initialPlanningTokenUsage),
-      hasImages: Boolean(images && images.length > 0)
+      hasImages: Boolean(images && images.length > 0),
+      hasTaggedFiles: Boolean(taggedFiles && taggedFiles.length > 0)
     })
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
+    }
+
+    if (typeof prompt === 'string' && prompt.length > INPUT_LIMITS.PROMPT) {
+      return NextResponse.json(
+        { error: `Prompt must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less` },
+        { status: 400 }
+      )
+    }
+
+    if (userProvidedUrl && typeof userProvidedUrl === 'string' && userProvidedUrl.length > INPUT_LIMITS.URL) {
+      return NextResponse.json(
+        { error: `URL must be ${INPUT_LIMITS.URL.toLocaleString()} characters or less` },
+        { status: 400 }
+      )
+    }
+
+    if (userProvidedApis && Array.isArray(userProvidedApis)) {
+      for (const api of userProvidedApis) {
+        if (api?.endpoint && api.endpoint.length > INPUT_LIMITS.URL) {
+          return NextResponse.json(
+            { error: `API endpoint must be ${INPUT_LIMITS.URL.toLocaleString()} characters or less` },
+            { status: 400 }
+          )
+        }
+      }
     }
 
     if (!projectId) {
@@ -288,6 +314,7 @@ export async function POST(request) {
             initialRequirementsAnalysis: initialRequirementsAnalysis || null,
             initialPlanningTokenUsage: initialPlanningTokenUsage || null,
             images: images || null,
+            taggedFiles: taggedFiles || null,
             supabase: supabase // Pass authenticated supabase client
           })) {
             const data = JSON.stringify(chunk)

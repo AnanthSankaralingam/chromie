@@ -52,7 +52,7 @@ export default function ModalUrlPrompt({
           ` : ''}
 
           <div class="option-group" style="margin-bottom: 16px;">
-            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" style="width: 100%; padding: 12px 16px; background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
+            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" maxlength="2000" style="width: 100%; padding: 12px 16px; background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
           </div>
 
           <div style="display:flex; gap:12px; align-items:center; justify-content: space-between;">
@@ -83,7 +83,7 @@ export default function ModalUrlPrompt({
     
     // Continue with custom URL
     useCustomBtn.addEventListener('click', () => {
-      let url = urlInput.value.trim();
+      let url = urlInput.value.trim().slice(0, 2000);
       if (!url) {
         alert('Please enter a valid URL');
         return;

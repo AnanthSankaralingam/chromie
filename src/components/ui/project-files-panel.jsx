@@ -3,6 +3,7 @@ import FileTree from "./file-tree"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import AssetUploadModal from "./file-upload/asset-upload-modal"
+import AssetUploadInfoModal from "./modals/asset-upload-info-modal"
 
 export default function ProjectFilesPanel({
   fileStructure,
@@ -13,9 +14,32 @@ export default function ProjectFilesPanel({
   onSearchChange,
   projectId,
   onAssetUploaded,
-  onAssetDeleted
+  onAssetDeleted,
+  flatFiles = []
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
+
+  // Handle upload button click with first-time info modal
+  const handleUploadClick = () => {
+    try {
+      const hasSeenInfo = typeof window !== 'undefined' &&
+        window.localStorage.getItem('asset_upload_info_seen') === '1'
+
+      if (!hasSeenInfo) {
+        setIsInfoModalOpen(true)
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('asset_upload_info_seen', '1')
+        }
+      } else {
+        setIsUploadModalOpen(true)
+      }
+    } catch (e) {
+      // If localStorage fails, just open the modal
+      setIsUploadModalOpen(true)
+    }
+  }
+
   // Listen for global selection/focus events
   if (typeof window !== 'undefined') {
     // Auto-select a file being written/updated
@@ -83,10 +107,11 @@ export default function ProjectFilesPanel({
           </div>
           {projectId && (
             <Button
-              onClick={() => setIsUploadModalOpen(true)}
+              onClick={handleUploadClick}
               size="sm"
               variant="outline"
               className="bg-slate-700/50 border-slate-600/50 hover:bg-slate-600/50 text-white"
+              title="Upload icons and assets for your Chrome extension"
             >
               <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
               <span className="hidden sm:inline">Upload</span>
@@ -120,6 +145,15 @@ export default function ProjectFilesPanel({
           />
         </div>
       </div>
+
+      {/* Info Modal */}
+      <AssetUploadInfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => {
+          setIsInfoModalOpen(false)
+          setIsUploadModalOpen(true)
+        }}
+      />
 
       {/* Asset Upload Modal */}
       {projectId && (

@@ -122,7 +122,7 @@ export function useStreamProcessor({
   )
 
   const startGeneration = useCallback(
-    async (prompt, isAutoGeneration = false, images = null) => {
+    async (prompt, isAutoGeneration = false, images = null, taggedFiles = null) => {
       if (chatState.isGenerating) {
         return
       }
@@ -184,6 +184,11 @@ export function useStreamProcessor({
         // Add images to payload if present
         if (imageData) {
           payload.images = imageData
+        }
+
+        // Add tagged files to payload if present
+        if (taggedFiles && taggedFiles.length > 0) {
+          payload.taggedFiles = taggedFiles
         }
 
         await processStream(payload)

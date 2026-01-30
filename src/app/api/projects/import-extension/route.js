@@ -1,44 +1,30 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { checkLimit, formatLimitError } from "@/lib/limit-checker"
+import { checkLimit, formatLimitError, getUserLimits } from "@/lib/limit-checker"
+import { INPUT_LIMITS } from "@/lib/constants"
+import {
+  FILE_VALIDATION_LIMITS,
+  ALLOWED_EXTENSIONS,
+  validateExtensionFiles,
+  isAllowedCodeFile,
+  isAllowedImageFile,
+  getFileExtension
+} from "@/lib/utils/file-validation"
 
-const TEXT_EXTENSIONS = new Set([
-  "js",
-  "jsx",
-  "ts",
-  "tsx",
-  "json",
-  "html",
-  "css",
-  "md",
-  "txt",
-])
-
-const IMAGE_EXTENSIONS = new Set([
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "svg",
-  "ico",
-])
-
-function getExtension(filePath = "") {
-  const parts = filePath.split(".")
-  if (parts.length < 2) return ""
-  return parts.pop().toLowerCase()
-}
+const TEXT_EXTENSIONS = ALLOWED_EXTENSIONS.code
+const IMAGE_EXTENSIONS = ALLOWED_EXTENSIONS.images
 
 function isTextFile(filePath) {
-  const ext = getExtension(filePath)
-  return TEXT_EXTENSIONS.has(ext) || filePath === "manifest.json"
+  return isAllowedCodeFile(filePath) || filePath === "manifest.json"
 }
 
 function isImageFile(filePath, mimeType = "") {
-  const ext = getExtension(filePath)
-  if (IMAGE_EXTENSIONS.has(ext)) return true
-  if (mimeType.startsWith("image/")) return true
+  if (isAllowedImageFile(filePath)) return true
+  if (mimeType.startsWith("image/")) {
+    // Double-check the extension is allowed even if mime type says it's an image
+    const ext = getFileExtension(filePath)
+    return IMAGE_EXTENSIONS.has(ext)
+  }
   return false
 }
 
@@ -55,17 +41,63 @@ export async function POST(request) {
   }
 
   try {
+    // Check if user has a paid plan
+    const userLimits = await getUserLimits(user.id, supabase)
+    const isPaidUser = userLimits.plan !== 'free'
+
+    if (!isPaidUser) {
+      console.log('[import-extension] Free user attempted to import extension', {
+        userId: user.id,
+        plan: userLimits.plan
+      })
+      return NextResponse.json(
+        {
+          error: "Extension upload is only available for paid users",
+          details: {
+            feature: "extension_upload",
+            currentPlan: userLimits.plan,
+            suggestion: "Purchase a Starter or Pro package to upload extensions"
+          }
+        },
+        { status: 403 }
+      )
+    }
+
     const formData = await request.formData()
 
     const requestedName = formData.get("projectName")
     const requestedDescription =
       formData.get("description") || "Imported Chrome extension"
 
+    if (requestedDescription && typeof requestedDescription === 'string' && requestedDescription.length > INPUT_LIMITS.PROMPT) {
+      return NextResponse.json(
+        { error: `Description must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less` },
+        { status: 400 }
+      )
+    }
+
     const files = formData.getAll("files") || []
 
     if (!files.length) {
       return NextResponse.json(
         { error: "No files provided for import" },
+        { status: 400 }
+      )
+    }
+
+    // Validate file count and types
+    const validation = validateExtensionFiles(files)
+    if (!validation.valid) {
+      console.log('[import-extension] File validation failed', {
+        userId: user.id,
+        error: validation.error,
+        invalidFiles: validation.invalidFiles
+      })
+      return NextResponse.json(
+        {
+          error: validation.error,
+          invalidFiles: validation.invalidFiles
+        },
         { status: 400 }
       )
     }
@@ -160,6 +192,10 @@ export async function POST(request) {
       const relativePath = normalizePath(rawRelativePath)
       if (!relativePath) {
         console.warn("[import-extension] Skipping file with no name")
+        continue
+      }
+      if (relativePath.length > INPUT_LIMITS.FILE_PATH) {
+        console.warn("[import-extension] Skipping file with path too long:", relativePath.length)
         continue
       }
 

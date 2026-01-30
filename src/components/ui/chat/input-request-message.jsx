@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Check } from "lucide-react"
 import externalApisData from '../../../lib/data/external_apis.json'
+import { INPUT_LIMITS } from "@/lib/constants"
 
 // Get default endpoint for an API from external_apis.json
 function getDefaultEndpoint(apiName) {
@@ -31,7 +32,7 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
 
   const handleSubmit = (submittedUrl) => {
     if (submittedUrl && submittedUrl.trim()) {
-      let finalUrl = submittedUrl.trim()
+      let finalUrl = submittedUrl.trim().slice(0, INPUT_LIMITS.URL)
       // Add https:// if the user omitted protocol
       if (!/^https?:\/\//i.test(finalUrl)) {
         finalUrl = `https://${finalUrl}`
@@ -130,9 +131,10 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
           <input
             type="url"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => setUrl(e.target.value.slice(0, INPUT_LIMITS.URL))}
+            maxLength={INPUT_LIMITS.URL}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+            if (e.key === 'Enter') {
                 handleSubmit(url)
               }
             }}
@@ -184,21 +186,23 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
   }, [message.suggestedAPIs])
 
   const handleEndpointChange = (index, newEndpoint) => {
+    const limited = newEndpoint.slice(0, INPUT_LIMITS.URL)
     setApiConfigs(prev => prev.map((config, i) => 
-      i === index ? { ...config, endpoint: newEndpoint } : config
+      i === index ? { ...config, endpoint: limited } : config
     ))
   }
 
   const handleDocLinkChange = (index, newLink) => {
+    const limited = newLink.slice(0, INPUT_LIMITS.URL)
     setApiConfigs(prev =>
       prev.map((config, i) =>
-        i === index ? { ...config, doc_link: newLink } : config
+        i === index ? { ...config, doc_link: limited } : config
       )
     )
   }
 
   const handleDocDescriptionChange = (index, newDescription) => {
-    const limited = newDescription.slice(0, 1000)
+    const limited = newDescription.slice(0, INPUT_LIMITS.API_DESCRIPTION)
     setApiConfigs(prev =>
       prev.map((config, i) =>
         i === index ? { ...config, doc_description: limited } : config
@@ -330,6 +334,7 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                         type="url"
                         value={config.endpoint}
                         onChange={(e) => handleEndpointChange(index, e.target.value)}
+                        maxLength={INPUT_LIMITS.URL}
                         placeholder="https://api.example.com/v1"
                         disabled={isSkipped}
                         className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition-all ${
@@ -367,6 +372,7 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                       type="url"
                       value={config.doc_link || ''}
                       onChange={(e) => handleDocLinkChange(index, e.target.value)}
+                      maxLength={INPUT_LIMITS.URL}
                       placeholder="https://docs.example.com/api"
                       disabled={isSkipped}
                       className={`w-full px-4 py-2.5 rounded-lg border text-sm transition-all ${
@@ -382,11 +388,12 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
 
                   <div className="space-y-1">
                     <label className="block text-xs font-medium text-slate-300">
-                      How to use this API <span className="text-slate-500">(optional, max 1000 characters)</span>
+                      How to use this API <span className="text-slate-500">(optional, max {INPUT_LIMITS.API_DESCRIPTION} characters)</span>
                     </label>
                     <textarea
                       value={config.doc_description || ''}
                       onChange={(e) => handleDocDescriptionChange(index, e.target.value)}
+                      maxLength={INPUT_LIMITS.API_DESCRIPTION}
                       placeholder="Describe how this API should be used in your extension (e.g., key endpoints, common workflows). Avoid pasting full docs URLs here."
                       rows={3}
                       disabled={isSkipped}
@@ -398,7 +405,7 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
                     />
                     <div className="flex justify-end">
                       <span className="text-[11px] text-slate-500">
-                        {(config.doc_description || '').length}/1000
+                        {(config.doc_description || '').length}/{INPUT_LIMITS.API_DESCRIPTION}
                       </span>
                     </div>
                   </div>

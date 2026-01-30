@@ -266,25 +266,44 @@ export async function* runPatchingWithToolLoop(prompt, existingFiles, callLLM, o
  * Filter existing files to only include relevant ones
  * @param {Object} existingFiles - All existing files
  * @param {Array<string>} relevantPaths - Paths to include
+ * @param {Array<Object>} taggedFiles - User-tagged files with path and content (highest priority)
  * @returns {Object} - Filtered files
  */
-export function filterRelevantFiles(existingFiles, relevantPaths) {
-  if (!relevantPaths || relevantPaths.length === 0) {
-    return existingFiles;
-  }
-
+export function filterRelevantFiles(existingFiles, relevantPaths, taggedFiles = null) {
   const filtered = {};
-  for (const path of relevantPaths) {
-    if (existingFiles[path]) {
-      filtered[path] = existingFiles[path];
-    }
-  }
 
-  // Always include manifest.json if it exists
-  if (existingFiles['manifest.json'] && !filtered['manifest.json']) {
+  // Priority 1: Always include manifest.json if it exists
+  if (existingFiles['manifest.json']) {
     filtered['manifest.json'] = existingFiles['manifest.json'];
   }
 
-  console.log(`📁 [followup-orchestrator] Filtered to ${Object.keys(filtered).length} relevant files`);
+  // Priority 2: ALWAYS include user-tagged files (bypass planner)
+  if (taggedFiles && taggedFiles.length > 0) {
+    for (const taggedFile of taggedFiles) {
+      if (taggedFile.path && taggedFile.content) {
+        filtered[taggedFile.path] = taggedFile.content;
+        console.log(`📌 [followup-orchestrator] Including user-tagged file: ${taggedFile.path}`);
+      }
+    }
+  }
+
+  // Priority 3: Include planner-selected files (if not already included)
+  if (relevantPaths && relevantPaths.length > 0) {
+    for (const path of relevantPaths) {
+      if (!filtered[path] && existingFiles[path]) {
+        filtered[path] = existingFiles[path];
+      }
+    }
+  } else {
+    // If no planner paths, include all existing files not already included
+    for (const path in existingFiles) {
+      if (!filtered[path]) {
+        filtered[path] = existingFiles[path];
+      }
+    }
+  }
+
+  const taggedCount = taggedFiles ? taggedFiles.length : 0;
+  console.log(`📁 [followup-orchestrator] Filtered to ${Object.keys(filtered).length} relevant files (${taggedCount} user-tagged)`);
   return filtered;
 }

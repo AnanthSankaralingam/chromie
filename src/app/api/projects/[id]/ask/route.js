@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { llmService } from "@/lib/services/llm-service"
-import { CREDIT_COSTS, PLANNING_MODELS, SUPPORTED_PROVIDERS } from "@/lib/constants"
+import { CREDIT_COSTS, INPUT_LIMITS, PLANNING_MODELS, SUPPORTED_PROVIDERS } from "@/lib/constants"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { formatFilesAsXml } from "@/lib/codegen/patching-handlers/requirements-helpers"
 import { ASK_MODE_PROMPT } from "@/lib/prompts/ask/ask-mode-prompt"
@@ -78,26 +78,45 @@ async function callAskPlanning(question, existingFiles) {
  * Filter existing files to only include relevant ones
  * @param {Object} existingFiles - All existing files
  * @param {Array<string>} relevantPaths - Paths to include
+ * @param {Array<Object>} taggedFiles - User-tagged files with path and content (highest priority)
  * @returns {Object} - Filtered files
  */
-function filterRelevantFiles(existingFiles, relevantPaths) {
-  if (!relevantPaths || relevantPaths.length === 0) {
-    return existingFiles
-  }
-
+function filterRelevantFiles(existingFiles, relevantPaths, taggedFiles = null) {
   const filtered = {}
-  for (const path of relevantPaths) {
-    if (existingFiles[path]) {
-      filtered[path] = existingFiles[path]
-    }
-  }
 
-  // Always include manifest.json if it exists
-  if (existingFiles["manifest.json"] && !filtered["manifest.json"]) {
+  // Priority 1: Always include manifest.json if it exists
+  if (existingFiles["manifest.json"]) {
     filtered["manifest.json"] = existingFiles["manifest.json"]
   }
 
-  console.log(`[ask-mode] Filtered to ${Object.keys(filtered).length} relevant files`)
+  // Priority 2: ALWAYS include user-tagged files (bypass planner)
+  if (taggedFiles && taggedFiles.length > 0) {
+    for (const taggedFile of taggedFiles) {
+      if (taggedFile.path && taggedFile.content) {
+        filtered[taggedFile.path] = taggedFile.content
+        console.log(`[ask-mode] Including user-tagged file: ${taggedFile.path}`)
+      }
+    }
+  }
+
+  // Priority 3: Include planner-selected files (if not already included)
+  if (relevantPaths && relevantPaths.length > 0) {
+    for (const path of relevantPaths) {
+      if (!filtered[path] && existingFiles[path]) {
+        filtered[path] = existingFiles[path]
+      }
+    }
+  } else {
+    // If no planner paths, include all existing files not already included
+    for (const path in existingFiles) {
+      if (!filtered[path]) {
+        filtered[path] = existingFiles[path]
+      }
+    }
+  }
+
+  const taggedCount = taggedFiles ? taggedFiles.length : 0
+  console.log(`[ask-mode] Filtered to ${Object.keys(filtered).length} relevant files (${taggedCount} user-tagged)`)
   return filtered
 }
 
@@ -115,10 +134,17 @@ export async function POST(request, { params }) {
   }
 
   try {
-    const { question } = await request.json()
+    const { question, taggedFiles } = await request.json()
 
     if (!question || !question.trim()) {
       return NextResponse.json({ error: "Question is required" }, { status: 400 })
+    }
+
+    if (question.length > INPUT_LIMITS.PROMPT) {
+      return NextResponse.json(
+        { error: `Question must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less` },
+        { status: 400 }
+      )
     }
 
     // Verify project ownership
@@ -160,10 +186,10 @@ export async function POST(request, { params }) {
     // Run planning to determine relevant files
     const planningResult = await callAskPlanning(question, existingFiles)
 
-    // Filter files based on planning result
+    // Filter files based on planning result and tagged files
     const relevantFiles = planningResult.success
-      ? filterRelevantFiles(existingFiles, planningResult.files)
-      : existingFiles
+      ? filterRelevantFiles(existingFiles, planningResult.files, taggedFiles)
+      : filterRelevantFiles(existingFiles, [], taggedFiles)
 
     // Build code context with relevant files only
     let codeContext = ""

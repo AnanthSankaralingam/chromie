@@ -19,6 +19,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { extensionSuggestions } from "@/lib/data/extension-suggestions"
 import { useToast } from "@/lib/hooks/use-toast"
+import { INPUT_LIMITS } from "@/lib/constants"
 import FeaturedCreationsSection from "@/components/ui/sections/featured-creations-section"
 
 export default function HomePage() {
@@ -61,7 +62,7 @@ export default function HomePage() {
   }, [])
 
   const handleTextareaChange = (e) => {
-    const value = e.target.value
+    const value = e.target.value.slice(0, INPUT_LIMITS.PROMPT)
     setPrompt(value)
     adjustHeight()
 
@@ -108,11 +109,11 @@ export default function HomePage() {
       return
     }
 
-    if (promptText.length > 1500) {
+    if (promptText.length > INPUT_LIMITS.PROMPT) {
       toast({
         variant: "destructive",
         title: "Prompt too long",
-        description: "Prompt must be less than 1500 characters.",
+        description: `Prompt must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less.`,
       })
       return
     }
@@ -151,6 +152,15 @@ export default function HomePage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!prompt.trim()) return
+
+    if (prompt.length > INPUT_LIMITS.PROMPT) {
+      toast({
+        variant: "destructive",
+        title: "Prompt too long",
+        description: `Prompt must be ${INPUT_LIMITS.PROMPT.toLocaleString()} characters or less.`,
+      })
+      return
+    }
 
     if (!user) {
       // Save prompt to sessionStorage and URL params before showing auth modal
@@ -481,6 +491,7 @@ export default function HomePage() {
                       onBlur={handleTextareaBlur}
                       placeholder={placeholderText || "describe your extension..."}
                       disabled={isGenerating || isOptimizing}
+                      maxLength={INPUT_LIMITS.PROMPT}
                       className={cn(
                         "w-full px-0 py-0",
                         "resize-none",
@@ -493,7 +504,7 @@ export default function HomePage() {
                         "disabled:opacity-50 disabled:cursor-not-allowed"
                       )}
                       style={{
-                        overflow: "hidden",
+                        overflowY: "auto",
                       }}
                     />
                   </div>

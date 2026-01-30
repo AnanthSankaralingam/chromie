@@ -16,6 +16,7 @@ import { navigateToBuilderWithProject, cn } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
+import { validateExtensionFiles, FILE_VALIDATION_LIMITS, ALLOWED_EXTENSIONS } from "@/lib/utils/file-validation"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
@@ -343,6 +344,31 @@ export default function ProfilePage() {
         return
       }
 
+      // Check if user has a paid plan
+      if (!billing) {
+        alert('Extension upload is only available for paid users. Please purchase a Starter or Pro package to upload extensions.')
+        return
+      }
+
+      // Validate files before proceeding
+      const validation = validateExtensionFiles(files)
+      if (!validation.valid) {
+        let errorMessage = validation.error
+        if (validation.invalidFiles && validation.invalidFiles.length > 0) {
+          const allowedExtsList = [
+            ...Array.from(ALLOWED_EXTENSIONS.code),
+            ...Array.from(ALLOWED_EXTENSIONS.images)
+          ].join(', ')
+          errorMessage += `\n\nInvalid files:\n${validation.invalidFiles.slice(0, 10).join('\n')}`
+          if (validation.invalidFiles.length > 10) {
+            errorMessage += `\n... and ${validation.invalidFiles.length - 10} more`
+          }
+          errorMessage += `\n\nAllowed file types: ${allowedExtsList}`
+        }
+        alert(errorMessage)
+        return
+      }
+
       const defaultName = "Imported Extension"
       const projectName = window.prompt(
         "Name your imported extension project:",
@@ -659,8 +685,12 @@ export default function ProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={handleImportExtensionClick}
-                disabled={isImportingExtension}
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                disabled={isImportingExtension || !billing}
+                title={!billing ? "Extension upload is only available for paid users" : "Upload an existing Chrome extension"}
+                className={cn(
+                  "border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800",
+                  !billing && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">
