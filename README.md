@@ -20,8 +20,9 @@ Focus on getting production ready extensions to the store. we can't directly dep
 ---
 
 ### P2
-1. Add more blog posts  
-2. Add more featured creations + preview (either render the ext or simply play YT vid demo)
+1. Stress test with popular use cases. make sure it uses options.html and host permissions correctly. use base template for side panel
+2. Add more blog posts  
+3. Add more featured creations + preview (either render the ext or simply play YT vid demo)
 
 ---
 
