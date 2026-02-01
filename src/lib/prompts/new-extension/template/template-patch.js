@@ -201,8 +201,7 @@ Your response should be formatted as:
 - Use the FULL file path as provided in the template files
 - Context lines must match the existing template code EXACTLY, including whitespace
 - Consolidate all changes to each file into a single *** Update File: block
-- Only patch files that actually need changes
-- Do not create new icons or images
+- Style beautiful, premium extensions
 - Update manifest.json when changing permissions, APIs, or adding/removing files
 - If no changes are needed to a file, don't include it in the patch
 - NEVER generate placeholder code - make real, functional changes

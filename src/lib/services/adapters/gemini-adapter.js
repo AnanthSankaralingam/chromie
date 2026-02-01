@@ -61,12 +61,8 @@ export class GeminiAdapter {
 
       // Add thinking config for all Gemini models if explicitly provided
       if (thinkingConfig?.includeThoughts) {
-        // Transform config format for Gemini 3+ which uses thinkingLevel instead of includeThoughts
-        if (model.includes('gemini-3')) {
-          generationConfig.thinkingConfig = { thinkingLevel: 'MEDIUM' }
-        } else {
-          generationConfig.thinkingConfig = thinkingConfig
-        }
+        // Both Gemini 2.5 and 3 use includeThoughts: true for streaming thoughts
+        generationConfig.thinkingConfig = thinkingConfig
         console.log('[gemini-adapter] CREATE Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -145,12 +141,8 @@ export class GeminiAdapter {
 
       // Add thinking config for all Gemini models if explicitly provided
       if (thinkingConfig?.includeThoughts) {
-        // Transform config format for Gemini 3+ which uses thinkingLevel instead of includeThoughts
-        if (model.includes('gemini-3')) {
-          generationConfig.thinkingConfig = { thinkingLevel: 'MEDIUM' } //TODO make this configurable for followup vs new
-        } else {
-          generationConfig.thinkingConfig = thinkingConfig
-        }
+        // Both Gemini 2.5 and 3 use includeThoughts: true for streaming thoughts
+        generationConfig.thinkingConfig = thinkingConfig
         console.log('[gemini-adapter] STREAM Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -170,9 +162,9 @@ export class GeminiAdapter {
 
       // Generate content stream directly
       console.log('[gemini-adapter] calling generateContentStream with config:', JSON.stringify(generationConfig, null, 2))
-      
+
       // Use the correct API structure based on working version
-      const response = await this.genai.models.generateContentStream({
+      const streamResponse = await this.genai.models.generateContentStream({
         model: model,
         contents: contents,
         config: generationConfig
@@ -185,7 +177,7 @@ export class GeminiAdapter {
       let promptTokens = 0
 
       // Process streaming response - simplified based on working version
-      for await (const chunk of response) {
+      for await (const chunk of streamResponse) {
         try {
           // Extract token usage from chunk if available
           if (chunk?.usageMetadata) {
@@ -196,17 +188,29 @@ export class GeminiAdapter {
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []
+
+          // Debug: log chunk structure for investigation
+          if (parts.length > 0) {
+            parts.forEach((part, idx) => {
+              console.log(`[gemini-adapter] Part ${idx}:`, {
+                keys: Object.keys(part),
+                hasText: !!part?.text,
+                textLength: part?.text?.length,
+                hasThought: !!part?.thought,
+                hasThoughtSig: !!part?.thoughtSignature,
+                thoughtSigValue: part?.thoughtSignature
+              })
+            })
+          }
+
           for (const part of parts) {
-            // Debug: log part structure for Gemini 3
-            if (model.includes('gemini-3') && parts.length > 0) {
-              console.log('[gemini-adapter] Part keys:', Object.keys(part), 'thought:', !!part?.thought, 'executable:', !!part?.executable)
+            const text = part?.text
+            if (!text) {
+              continue
             }
 
-            const text = part?.text
-            if (!text) continue
-
-            if (part?.thought) {
-              console.log('[gemini-adapter] 💭 Yielding thinking chunk:', text.substring(0, 100))
+            // Check if this part is a thought (rolling summary of model reasoning)
+            if (part.thought) {
               yield { type: 'thinking_chunk', content: text }
             } else {
               yield { type: 'answer_chunk', content: text }
