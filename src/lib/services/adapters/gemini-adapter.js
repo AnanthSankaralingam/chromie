@@ -59,10 +59,14 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
-      //FIXME depracated all newer models have thinking config
-      // Only add thinking config for models that support it, if explicitly provided
-      if (model.includes('gemini-2.5') && thinkingConfig?.includeThoughts) {
-        generationConfig.thinkingConfig = thinkingConfig
+      // Add thinking config for all Gemini models if explicitly provided
+      if (thinkingConfig?.includeThoughts) {
+        // Transform config format for Gemini 3+ which uses thinkingLevel instead of includeThoughts
+        if (model.includes('gemini-3')) {
+          generationConfig.thinkingConfig = { thinkingLevel: 'MEDIUM' }
+        } else {
+          generationConfig.thinkingConfig = thinkingConfig
+        }
         console.log('[gemini-adapter] CREATE Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -139,9 +143,14 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
-      // Only add thinking config for models that support it, if explicitly provided
-      if (model.includes('gemini-2.5') && thinkingConfig?.includeThoughts) {
-        generationConfig.thinkingConfig = thinkingConfig
+      // Add thinking config for all Gemini models if explicitly provided
+      if (thinkingConfig?.includeThoughts) {
+        // Transform config format for Gemini 3+ which uses thinkingLevel instead of includeThoughts
+        if (model.includes('gemini-3')) {
+          generationConfig.thinkingConfig = { thinkingLevel: 'MEDIUM' } //TODO make this configurable for followup vs new
+        } else {
+          generationConfig.thinkingConfig = thinkingConfig
+        }
         console.log('[gemini-adapter] STREAM Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -188,10 +197,16 @@ export class GeminiAdapter {
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []
           for (const part of parts) {
+            // Debug: log part structure for Gemini 3
+            if (model.includes('gemini-3') && parts.length > 0) {
+              console.log('[gemini-adapter] Part keys:', Object.keys(part), 'thought:', !!part?.thought, 'executable:', !!part?.executable)
+            }
+
             const text = part?.text
             if (!text) continue
-            
+
             if (part?.thought) {
+              console.log('[gemini-adapter] 💭 Yielding thinking chunk:', text.substring(0, 100))
               yield { type: 'thinking_chunk', content: text }
             } else {
               yield { type: 'answer_chunk', content: text }
