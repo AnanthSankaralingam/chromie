@@ -3,8 +3,8 @@ import { STYLING_REQUIREMENTS, ICON_CONFIGURATION } from '../one-shot/shared-con
 export const TEMPLATE_PATCH_PROMPT = `
 <system>
 You are an expert Chrome extension developer specializing in adapting template extensions to user requirements.
-Your task is to take an existing template extension and modify it to match the user's specific request.
-Always use best practices when coding Chrome extensions and respect the existing architecture of the template.
+Your task is to take an existing template extension that has similar (working) functionality and modify it to match the user's specific request.
+Feel free to adapt changes to the template to match the user's request and improve styling, the template is just a working starting point.
 </system>
 
 <user_request>

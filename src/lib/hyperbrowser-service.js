@@ -237,12 +237,8 @@ export class HyperbrowserService {
 
       const session = await this.client.sessions.create(sessionCreatePayload)
       
-      console.log("[HYPERBROWSER-SERVICE] Session object keys:", Object.keys(session))
-
       // Get session details for embedding
-      console.log("[HYPERBROWSER-SERVICE] 🔍 Fetching session details...")
       const sessionDetails = await this.client.sessions.get(session.id)
-      console.log("[HYPERBROWSER-SERVICE] Session details keys:", Object.keys(sessionDetails))
       
       // Extract live view URL from various possible fields
       const liveViewUrl = sessionDetails.liveViewUrl || 
@@ -286,13 +282,8 @@ export class HyperbrowserService {
         }
       }
       
-      console.log("[HYPERBROWSER-SERVICE] 📦 Session result object created")
-      console.log("[HYPERBROWSER-SERVICE] Result keys:", Object.keys(result))
-      
       // Wait for session to be fully ready before attempting navigation
-      console.log("[HYPERBROWSER-SERVICE] ⏳ Waiting 2 seconds for session to be ready...")
       await new Promise(resolve => setTimeout(resolve, 2000))
-      console.log("[HYPERBROWSER-SERVICE] ✅ Wait complete")
       
       // Automatically pin the extension to toolbar and capture the Chrome extension ID
       // Default behavior: fire-and-forget so the user can see the session quickly.
@@ -565,19 +556,14 @@ export class HyperbrowserService {
       console.log('[hyperbrowser] All required icons provided as custom assets or none needed')
     }
 
-    console.log("[HYPERBROWSER-SERVICE] 🗜️  Generating zip buffer...")
     const buffer = await zip.generateAsync({ type: "nodebuffer" })
-    console.log("[HYPERBROWSER-SERVICE] ✅ Zip buffer generated, size:", buffer.length, "bytes")
     
     const tempZipPath = path.join(os.tmpdir(), `chromie-extension-${Date.now()}.zip`)
-    console.log("[HYPERBROWSER-SERVICE] 💾 Writing zip to temp file:", tempZipPath)
     await fs.promises.writeFile(tempZipPath, buffer)
-    console.log("[HYPERBROWSER-SERVICE] ✅ Temporary extension zip written")
 
     try {
       console.log("[HYPERBROWSER-SERVICE] 🚀 Uploading extension to Hyperbrowser...")
       const extensionName = `chromie-extension-${Date.now()}`
-      console.log("[HYPERBROWSER-SERVICE] Extension name:", extensionName)
       
       const extension = await this.client.extensions.create({
         name: extensionName,
@@ -585,8 +571,7 @@ export class HyperbrowserService {
       })
       
       const extensionId = extension?.id || null
-      console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded successfully!")
-      console.log("[HYPERBROWSER-SERVICE] Extension ID:", extensionId)
+      console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded successfully!", extensionId)
       return extensionId
     } catch (err) {
       console.error("[HYPERBROWSER-SERVICE] ❌ Failed to upload extension:", err.message)
@@ -595,7 +580,6 @@ export class HyperbrowserService {
     } finally {
       // Clean up the temporary file regardless of success/failure
       try {
-        console.log("[HYPERBROWSER-SERVICE] 🧹 Cleaning up temp file...")
         await fs.promises.unlink(tempZipPath)
         console.log("[HYPERBROWSER-SERVICE] ✅ Temporary extension zip removed")
       } catch (cleanupErr) {
