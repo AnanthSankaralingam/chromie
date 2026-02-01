@@ -32,9 +32,7 @@
     "example_use_cases": [
       "Create an AI assistant that can navigate websites and extract information based on natural language queries",
       "Build a browser automation agent that can perform multi-step web tasks like form filling, data scraping, and content analysis",
-      "Develop an intelligent research assistant that can browse multiple pages and summarize findings",
-      "Make an AI shopping assistant that can search products, compare prices, and extract specifications",
-      "Create a social media automation agent that can navigate platforms and gather insights"
+      "Develop an intelligent research assistant that can browse multiple pages and summarize findings"
     ]
   },
   {
@@ -85,6 +83,36 @@
       "Save work sessions with multiple tabs for later restoration",
       "Create named workspaces for different projects",
       "Quick save and restore browsing contexts"
+    ]
+  },
+  {
+    "title": "chat-with-ai-provider",
+    "category": "AI & Automation",
+    "description": "Bare-bones chat UI that talks to an LLM provider (e.g. OpenAI) using your API key.",
+    "supported_frontend_types": ["overlay", "popup", "sidepanel"],
+    "key_features": [
+      "chat_interface",
+      "llm_integration",
+      "api_key_settings",
+      "conversation_history"
+    ],
+    "example_use_cases": [
+      "Add a quick AI assistant to any page via overlay or side panel",
+      "Build a custom chat extension with your own API key and model"
+    ]
+  },
+  {
+    "title": "speech-to-text-webkit",
+    "category": "Audio",
+    "description": "Minimal WebKit-only speech-to-text template. Uses the browser’s Speech Recognition API, can be adapted to other speech-to-text APIs.",
+    "supported_frontend_types": ["popup", "sidepanel"],
+    "key_features": [
+      "webkit_speech_api",
+      "realtime_transcript"
+    ],
+    "example_use_cases": [
+      "Dictation or note-taking in the panel",
+      "Voice input template to plug into forms or chat"
     ]
   }
 ]

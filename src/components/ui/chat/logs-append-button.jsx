@@ -25,8 +25,7 @@ export default function LogsAppendButton({ logs, onAppend, disabled }) {
         )}
         aria-label="Append test logs to message"
       >
-        <ScrollText className="h-5 w-5 text-white" />
-        <span className="text-white text-sm font-medium">Logs</span>
+        <span className="text-white text-[11px] font-medium">Logs</span>
 
         {/* Error indicator */}
         {hasErrors && !disabled && (

@@ -6,6 +6,7 @@
 import { llmService } from "@/lib/services/llm-service"
 import { selectUnifiedSchema } from "@/lib/response-schemas/unified-schemas"
 import { DEFAULT_MODEL } from "@/lib/constants"
+import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { containsPatch } from "@/lib/codegen/patching-handlers/patch-applier"
 import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-handlers/json-extractor"
 import { processPatchModeOutput } from "@/lib/codegen/patching-handlers/patch-processor"
@@ -179,19 +180,32 @@ async function* handleReplacementMode(outputText, sessionId, replacements, conte
  * @returns {AsyncGenerator} Stream of code generation
  */
 export async function* generateExtensionCodeStream(codingPrompt, replacements, sessionId, skipThinking = false, options = {}) {
-  const { 
-    conversationTokenTotal = 0, 
-    modelOverride, 
-    frontendType, 
+  const {
+    conversationTokenTotal = 0,
+    modelOverride,
+    frontendType,
     requestType,
     usePatchingMode = false,
     existingFilesForPatch = {},
     userRequest = '',
     originalUserRequest = '', // Original natural language request for clean history storage
-    images = null // Image attachments for vision-enabled requests
+    images = null, // Image attachments for vision-enabled requests
+    expectedFileCount = 3 // Number of files expected to be generated/modified
   } = options
-  
+
   console.log("Generating extension code with streaming...", usePatchingMode ? "(patching mode)" : "(replacement mode)")
+
+  // Determine thinking level based on request type and file count
+  let thinkingLevel = 'MEDIUM' // Default
+  if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+    // Follow-ups always use MEDIUM
+    thinkingLevel = 'MEDIUM'
+    console.log(`💭 [generateExtensionCodeStream] Follow-up request: using MEDIUM thinking level`)
+  } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+    // New extensions: LOW for 2 or fewer files, MEDIUM for 3+
+    thinkingLevel = expectedFileCount <= 2 ? 'LOW' : 'MEDIUM'
+    console.log(`💭 [generateExtensionCodeStream] New extension with ${expectedFileCount} files: using ${thinkingLevel} thinking level`)
+  }
   
   // Replace placeholders in the coding prompt
   let finalPrompt = codingPrompt
@@ -264,7 +278,10 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
     max_output_tokens: 32000,
     response_format: jsonSchema,
     session_id: sessionId,
-    thinkingConfig: { includeThoughts: true }
+    thinkingConfig: {
+      includeThoughts: true,
+      thinkingLevel: thinkingLevel
+    }
   })) {
     if (s?.type === 'thinking_chunk') {
       yield { type: 'thinking_chunk', content: s.content }
@@ -338,7 +355,10 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
     max_output_tokens: 40000,
     response_format: jsonSchema,
     session_id: sessionId,
-    thinkingConfig: { includeThoughts: true }
+    thinkingConfig: {
+      includeThoughts: true,
+      thinkingLevel: thinkingLevel
+    }
   })
   
   const { tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)

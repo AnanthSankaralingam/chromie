@@ -548,9 +548,25 @@ export async function* generateChromeExtensionStream({
 
     // Prepare existing files for patching if in patch mode
     // If using template, use template files; otherwise use existing files
-    const patchableFiles = usePatchingMode 
+    const patchableFiles = usePatchingMode
       ? (usingTemplate ? prepareFilesForPatching(templateFiles) : prepareFilesForPatching(existingFiles))
       : {}
+
+    // Calculate expected file count for thinking level determination
+    let expectedFileCount = 0
+    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      // For follow-ups, count relevant files
+      expectedFileCount = Object.keys(requirementsAnalysis.relevantFiles || {}).length
+    } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+      // For new extensions, estimate from template or use reasonable default
+      if (usingTemplate && templateFiles) {
+        expectedFileCount = Object.keys(templateFiles).length
+      } else {
+        // Conservative estimate for new extensions without template
+        expectedFileCount = 4
+      }
+    }
+    console.log(`📊 [generate-extension-stream] Expected file count for thinking level: ${expectedFileCount}`)
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(
@@ -567,7 +583,8 @@ export async function* generateChromeExtensionStream({
           usePatchingMode,
           existingFilesForPatch: patchableFiles,
           userRequest: featureRequest,
-          images: images // Pass images to code generation
+          images: images, // Pass images to code generation
+          expectedFileCount: expectedFileCount // For dynamic thinking level
         }
       )) {
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'

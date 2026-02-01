@@ -23,18 +23,22 @@
  */
 export function extractPatchBlock(text) {
     if (!text || typeof text !== 'string') return null
-    
-    const beginMarker = '*** Begin Patch'
-    const endMarker = '*** End Patch'
-    
-    const beginIndex = text.indexOf(beginMarker)
-    if (beginIndex === -1) return null
-    
-    const endIndex = text.indexOf(endMarker, beginIndex)
-    if (endIndex === -1) return null
-    
+
+    // Match with flexible whitespace: ***Begin Patch or *** Begin Patch
+    const beginRegex = /\*{3}\s*Begin\s+Patch/i
+    const endRegex = /\*{3}\s*End\s+Patch/i
+
+    const beginMatch = text.match(beginRegex)
+    if (!beginMatch) return null
+
+    const beginIndex = beginMatch.index + beginMatch[0].length
+
+    const remainingText = text.substring(beginIndex)
+    const endMatch = remainingText.match(endRegex)
+    if (!endMatch) return null
+
     // Extract content between markers (excluding the markers themselves)
-    return text.substring(beginIndex + beginMarker.length, endIndex).trim()
+    return remainingText.substring(0, endMatch.index).trim()
   }
   
   /**
@@ -44,7 +48,7 @@ export function extractPatchBlock(text) {
    */
   export function containsPatch(text) {
     if (!text || typeof text !== 'string') return false
-    return text.includes('*** Begin Patch') && text.includes('*** End Patch')
+    return /\*{3}\s*Begin\s+Patch/i.test(text) && /\*{3}\s*End\s+Patch/i.test(text)
   }
   
   /**
@@ -181,9 +185,27 @@ export function extractPatchBlock(text) {
    */
   function findHunkPosition(originalLines, hunk) {
     const searchLines = [...hunk.contextBefore, ...hunk.removals]
-    
+
     if (searchLines.length === 0) {
-      // No context or removals - can't locate precisely
+      // No context before - try using contextAfter to locate insertion point
+      if (hunk.contextAfter.length > 0) {
+        for (let i = 0; i <= originalLines.length - hunk.contextAfter.length; i++) {
+          let match = true
+          for (let j = 0; j < hunk.contextAfter.length; j++) {
+            const originalTrimmed = originalLines[i + j].trim()
+            const contextTrimmed = hunk.contextAfter[j].trim()
+
+            if (originalTrimmed !== contextTrimmed) {
+              match = false
+              break
+            }
+          }
+          if (match) {
+            return i // Insert before the contextAfter
+          }
+        }
+      }
+
       // Try to find based on function marker if present
       if (hunk.functionMarker) {
         for (let i = 0; i < originalLines.length; i++) {
@@ -368,14 +390,10 @@ export function extractPatchBlock(text) {
       errors: [],
       explanation: ''
     }
-    
-    // Extract explanation (text before *** Begin Patch)
-    const beginMarker = '*** Begin Patch'
-    const beginIndex = patchText.indexOf(beginMarker)
-    if (beginIndex > 0) {
-      result.explanation = patchText.substring(0, beginIndex).trim()
-    }
-    
+
+    // Extract explanation (text before Begin Patch marker)
+    result.explanation = extractExplanation(patchText)
+
     // Extract and parse the patch block
     const patchBlock = extractPatchBlock(patchText)
     if (!patchBlock) {
@@ -415,13 +433,11 @@ export function extractPatchBlock(text) {
    */
   export function extractExplanation(patchText) {
     if (!patchText) return ''
-    
-    const beginMarker = '*** Begin Patch'
-    const beginIndex = patchText.indexOf(beginMarker)
-    
-    if (beginIndex > 0) {
-      return patchText.substring(0, beginIndex).trim()
+
+    const beginMatch = patchText.match(/\*{3}\s*Begin\s+Patch/i)
+    if (beginMatch && beginMatch.index > 0) {
+      return patchText.substring(0, beginMatch.index).trim()
     }
-    
+
     return ''
   }
