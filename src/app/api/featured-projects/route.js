@@ -73,11 +73,6 @@ export async function GET() {
       })
       .filter(Boolean)
 
-    console.log(
-      "[FeaturedProjects] Returning featured projects",
-      { requestedCount: featuredRows.length, resolvedCount: orderedProjects.length }
-    )
-
     return NextResponse.json({ projects: orderedProjects }, { status: 200 })
   } catch (error) {
     console.error("[FeaturedProjects] Unexpected error loading featured projects:", error)

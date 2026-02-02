@@ -12,6 +12,13 @@ import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-han
 import { processPatchModeOutput } from "@/lib/codegen/patching-handlers/patch-processor"
 import { saveFilesToDatabase, updateProjectMetadata } from "@/lib/codegen/output-handlers/file-saver"
 
+// Gemini Thinking Levels - matching the Gemini API enum values
+const ThinkingLevel = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+}
+
 /**
  * Processes response metadata and returns token usage info
  * @param {Object} response - LLM response object
@@ -196,14 +203,14 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   console.log("Generating extension code with streaming...", usePatchingMode ? "(patching mode)" : "(replacement mode)")
 
   // Determine thinking level based on request type and file count
-  let thinkingLevel = 'MEDIUM' // Default
+  let thinkingLevel = ThinkingLevel.MEDIUM // Default
   if (requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
     // Follow-ups always use MEDIUM
-    thinkingLevel = 'MEDIUM'
+    thinkingLevel = ThinkingLevel.MEDIUM
     console.log(`💭 [generateExtensionCodeStream] Follow-up request: using MEDIUM thinking level`)
   } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
     // New extensions: LOW for 2 or fewer files, MEDIUM for 3+
-    thinkingLevel = expectedFileCount <= 2 ? 'LOW' : 'MEDIUM'
+    thinkingLevel = expectedFileCount <= 2 ? ThinkingLevel.LOW : ThinkingLevel.MEDIUM
     console.log(`💭 [generateExtensionCodeStream] New extension with ${expectedFileCount} files: using ${thinkingLevel} thinking level`)
   }
   
@@ -212,6 +219,13 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   for (const [placeholder, value] of Object.entries(replacements)) {
     console.log(`Adding ${placeholder} to the prompt`)
     finalPrompt = finalPrompt.replace(new RegExp(`{${placeholder}}`, 'g'), value)
+  }
+
+  // Remove empty <workspace_authentication> section when Planning Orchestrator reported no workspace/Google OAuth usage
+  const beforeLen = finalPrompt.length
+  finalPrompt = finalPrompt.replace(/\s*<workspace_authentication>\s*<\/workspace_authentication>\s*/g, '\n\n')
+  if (finalPrompt.length !== beforeLen) {
+    console.log('🔐 [generate-extension-code-stream] Removed empty <workspace_authentication> section from coding prompt')
   }
 
   console.log('🧾 Raw final coding prompt (stream):\n', finalPrompt)
@@ -231,13 +245,13 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   try {
     // Handle new request with Gemini streaming
     if (provider === 'gemini') {
-      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
+      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
       return
     }
 
     // Handle new request with other providers
-    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
-    
+    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
+
   } catch (err) {
     console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
     const adapter = llmService.providerRegistry.getAdapter(provider)
@@ -255,7 +269,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 /**
  * Handles Gemini streaming flow
  */
-async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
   console.log("[generateExtensionCodeStream] Using Gemini streaming", images ? `with ${images.length} images` : '')
   
   let combinedText = ''
@@ -334,7 +348,7 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
 /**
  * Handles standard (non-streaming) response flow
  */
-async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
   console.log("[generateExtensionCodeStream] Using Responses API (new)", images ? `with ${images.length} images` : '')
   
   // Prepare input with images if provided

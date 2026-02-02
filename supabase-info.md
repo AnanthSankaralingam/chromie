@@ -51,12 +51,13 @@ Helper functions:
 ### 2a. `featured_projects`
 Stores a curated list of project IDs that should appear in the "Featured Creations" gallery on the Chromie home page.
 
-| Column        | Type         | Details                                                                      |
-|---------------|--------------|------------------------------------------------------------------------------|
-| `id`          | uuid         | PK, DEFAULT gen_random_uuid()                                               |
-| `project_id`  | uuid         | FK → `projects.id`, ON DELETE CASCADE                                       |
-| `position`    | integer      | Optional; smaller numbers appear earlier in the gallery                     |
-| `created_at`  | timestamptz  | DEFAULT now(); when the project was added to the featured list              |
+| Column           | Type         | Details                                                                      |
+|------------------|--------------|------------------------------------------------------------------------------|
+| `id`             | uuid         | PK, DEFAULT gen_random_uuid()                                               |
+| `project_id`     | uuid         | FK → `projects.id`, ON DELETE CASCADE                                       |
+| `position`       | integer      | Optional; smaller numbers appear earlier in the gallery                     |
+| `demo_video_url` | text         | Optional; YouTube or direct video URL (mp4, webm) for the featured card    |
+| `created_at`     | timestamptz  | DEFAULT now(); when the project was added to the featured list              |
 
 Recommended indexes:
 - `idx_featured_projects_project_id` on `project_id` for fast joins

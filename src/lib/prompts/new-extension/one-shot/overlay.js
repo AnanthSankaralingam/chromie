@@ -41,7 +41,7 @@ MANDATORY: Use overlay injection pattern that creates floating UI elements on we
     // Add your overlay content here
     overlay.innerHTML = 
       '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">' +
-        '<img id="icons/planet-icon.png" style="width: 20px; height: 20px;" alt="Extension">' +
+        '<img id="icons/icon16.png" style="width: 20px; height: 20px;" alt="Extension">' +
         '<h3 style="margin: 0; color: #1976d2; font-size: 16px;">{ext_name}</h3>' +
       '</div>' +
       '<div id="overlay-content">' +
@@ -49,8 +49,8 @@ MANDATORY: Use overlay injection pattern that creates floating UI elements on we
       '</div>';
     
     // Set icon dynamically
-    const iconImg = overlay.querySelector('#icons/planet-icon.png');
-    iconImg.src = chrome.runtime.getURL('icons/planet-icon.png');
+    const iconImg = overlay.querySelector('#icons/icon16.png');
+    iconImg.src = chrome.runtime.getURL('icons/icon16.png');
     
     return overlay;
   }
