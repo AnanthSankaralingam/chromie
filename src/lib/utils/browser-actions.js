@@ -41,21 +41,11 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
   // Prefer connectUrl to avoid disrupting the embedded live view after the Puppeteer client disconnects.
   const wsEndpoint = sessionInfo.connectUrl || sessionInfo.wsEndpoint
   
-  console.log("[BROWSER-ACTIONS] 📡 WebSocket endpoint extraction:")
-  console.log("[BROWSER-ACTIONS]   - wsEndpoint field:", sessionInfo.wsEndpoint || "not present")
-  console.log("[BROWSER-ACTIONS]   - connectUrl field:", sessionInfo.connectUrl || "not present")
-  console.log("[BROWSER-ACTIONS]   - Selected:", wsEndpoint || "NONE")
-  
   if (!wsEndpoint) {
     console.error("[BROWSER-ACTIONS] ❌ No WebSocket endpoint found")
     console.error("[BROWSER-ACTIONS] Full session info:", sessionInfo)
     throw new Error(`Missing wsEndpoint for session ${sessionId}. Available fields: ${Object.keys(sessionInfo).join(', ')}`)
   }
-  
-  console.log("[BROWSER-ACTIONS] ✅ WebSocket endpoint found")
-  console.log("[BROWSER-ACTIONS] Endpoint type:", typeof wsEndpoint)
-  console.log("[BROWSER-ACTIONS] Endpoint length:", wsEndpoint?.length)
-  console.log("[BROWSER-ACTIONS] Endpoint value:", wsEndpoint)
   
   // Ensure wsEndpoint is a string
   if (typeof wsEndpoint !== 'string') {
@@ -73,12 +63,6 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     // Try to parse the WebSocket URL to ensure it's valid
     try {
       const url = new URL(wsEndpoint)
-      console.log("[BROWSER-ACTIONS] ✅ WebSocket URL is valid:")
-      console.log("[BROWSER-ACTIONS]   - Protocol:", url.protocol)
-      console.log("[BROWSER-ACTIONS]   - Hostname:", url.hostname)
-      console.log("[BROWSER-ACTIONS]   - Port:", url.port || "default")
-      console.log("[BROWSER-ACTIONS]   - Pathname:", url.pathname)
-      console.log("[BROWSER-ACTIONS]   - Search:", url.search || "none")
     } catch (urlError) {
       console.warn("[BROWSER-ACTIONS] ⚠️  Could not parse wsEndpoint as URL:", urlError.message)
       console.warn("[BROWSER-ACTIONS] Proceeding anyway...")
@@ -236,10 +220,6 @@ export async function navigateToUrl(sessionId, url, apiKey) {
     if (sessionInfo.expiresAt) {
       const now = new Date()
       const expiresAt = new Date(sessionInfo.expiresAt)
-      console.log("[BROWSER-ACTIONS] ⏰ Session expiry check:")
-      console.log("[BROWSER-ACTIONS]   - Expires at:", expiresAt.toISOString())
-      console.log("[BROWSER-ACTIONS]   - Current time:", now.toISOString())
-      
       if (now > expiresAt) {
         console.error("[BROWSER-ACTIONS] ❌ Session has expired")
         throw new Error(`Session ${sessionId} has expired. Expired at: ${expiresAt.toISOString()}`)
