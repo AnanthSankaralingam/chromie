@@ -1,5 +1,10 @@
 // Browser control utilities for Hyperbrowser sessions
 import { Hyperbrowser } from "@hyperbrowser/sdk"
+import {
+  getCachedConnection,
+  setCachedConnection,
+  releaseConnection
+} from "./puppeteer-connection-cache.js"
 
 // Dynamic import helper to avoid bundling issues
 async function getPuppeteerConnect() {
@@ -14,6 +19,8 @@ async function getPuppeteerConnect() {
 
 /**
  * Obtain a Puppeteer browser context connected to the Hyperbrowser session via CDP
+ * Uses a session-scoped connection cache to ensure all operations share the same connection.
+ * This is critical for CDP event delivery - only the first connection receives events.
  * @param {string} sessionId
  * @param {string} apiKey - Hyperbrowser API key
  * @returns {Promise<{ browser: any, page: any }>} connected objects
@@ -23,10 +30,23 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     console.error("[BROWSER-ACTIONS] ❌ Missing Hyperbrowser API key")
     throw new Error("Missing Hyperbrowser API key")
   }
-  
+
+  // Check cache first - reuse existing connection if available and still connected
+  const cached = getCachedConnection(sessionId)
+  if (cached?.browser?.connected) {
+    console.log("[BROWSER-ACTIONS] ✅ Reusing cached Puppeteer connection for session", sessionId)
+    return { browser: cached.browser, page: cached.page }
+  }
+
+  // If we had a cached connection but it's no longer connected, clean it up
+  if (cached) {
+    console.log("[BROWSER-ACTIONS] ⚠️  Cached connection disconnected, creating new one")
+    releaseConnection(sessionId)
+  }
+
   const client = new Hyperbrowser({ apiKey })
   let sessionInfo
-  
+
   try {
     sessionInfo = await client.sessions.get(sessionId)
   } catch (sessionError) {
@@ -34,25 +54,25 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     console.error("[BROWSER-ACTIONS] Error stack:", sessionError.stack)
     throw sessionError
   }
-  
+
   // Hyperbrowser sometimes returns multiple endpoints:
   // - connectUrl: intended for automation (CDP)
   // - wsEndpoint: can be used for CDP, but in some setups it appears coupled to the live viewer
   // Prefer connectUrl to avoid disrupting the embedded live view after the Puppeteer client disconnects.
   const wsEndpoint = sessionInfo.connectUrl || sessionInfo.wsEndpoint
-  
+
   if (!wsEndpoint) {
     console.error("[BROWSER-ACTIONS] ❌ No WebSocket endpoint found")
     console.error("[BROWSER-ACTIONS] Full session info:", sessionInfo)
     throw new Error(`Missing wsEndpoint for session ${sessionId}. Available fields: ${Object.keys(sessionInfo).join(', ')}`)
   }
-  
+
   // Ensure wsEndpoint is a string
   if (typeof wsEndpoint !== 'string') {
     console.error("[BROWSER-ACTIONS] ❌ wsEndpoint is not a string:", typeof wsEndpoint)
     throw new Error(`wsEndpoint must be a string, got ${typeof wsEndpoint}: ${wsEndpoint}`)
   }
-  
+
   // Switch to Puppeteer connection per Hyperbrowser docs
   try {
     console.log("[BROWSER-ACTIONS] 🔌 Loading Puppeteer...")
@@ -71,15 +91,25 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     console.log("[BROWSER-ACTIONS] 🔄 Calling puppeteer.connect()...")
     const browser = await puppeteerConnect({ browserWSEndpoint: wsEndpoint })
     console.log("[BROWSER-ACTIONS] ✅ Puppeteer connected to browser successfully")
-    
+
     console.log("[BROWSER-ACTIONS] 📄 Getting browser pages...")
     const pages = await browser.pages()
     console.log("[BROWSER-ACTIONS] Found pages count:", pages.length)
-    
+
     const page = pages[0] || (await browser.newPage())
     console.log("[BROWSER-ACTIONS] ✅ Page ready:", !!page)
-    console.log("[BROWSER-ACTIONS] 🎉 getPuppeteerSessionContext complete")
-    
+
+    // Cache this connection for reuse
+    setCachedConnection(sessionId, browser, page)
+
+    // Set up auto-cleanup when browser disconnects
+    browser.on('disconnected', () => {
+      console.log("[BROWSER-ACTIONS] 🔌 Browser disconnected, releasing cached connection for session", sessionId)
+      releaseConnection(sessionId)
+    })
+
+    console.log("[BROWSER-ACTIONS] 🎉 getPuppeteerSessionContext complete (new connection cached)")
+
     return { browser, page }
   } catch (puppeteerError) {
     console.error("[BROWSER-ACTIONS] ❌ Puppeteer connection failed")
@@ -88,6 +118,15 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     console.error("[BROWSER-ACTIONS] Full error:", puppeteerError)
     throw new Error(`Failed to connect to browser session: ${puppeteerError.message}`)
   }
+}
+
+/**
+ * Release/cleanup Puppeteer connection for a session
+ * Call this when terminating a session to clean up resources
+ * @param {string} sessionId
+ */
+export function releasePuppeteerConnection(sessionId) {
+  releaseConnection(sessionId)
 }
 
 /**

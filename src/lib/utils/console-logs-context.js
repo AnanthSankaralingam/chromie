@@ -3,22 +3,27 @@
  */
 
 /**
- * Get a human-readable label for a log source
+ * Get a file name label for a log source
+ * Returns the actual file name (e.g., "background.js") for better context
  */
 function getSourceLabel(source) {
   switch (source) {
     case 'extension:background':
-      return 'Background'
+      return 'background.js'
     case 'extension:popup':
-      return 'Popup'
+      return 'popup.js'
     case 'extension:sidepanel':
-      return 'Sidepanel'
+      return 'sidepanel.js'
+    case 'extension:newtab':
+      return 'newtab.js'
+    case 'extension:options':
+      return 'options.js'
     case 'extension:content':
-      return 'Content Script'
+      return 'content.js'
     case 'browser:page':
-      return 'Page'
+      return 'page'
     default:
-      return source || 'Unknown'
+      return source || 'unknown'
   }
 }
 

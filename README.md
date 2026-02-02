@@ -6,8 +6,8 @@ Focus on getting production ready extensions to the store. we can't directly dep
 
 ### P0
 1. ~Privacy policy creation is a big bottleneck in going to prod, for both google oauth and extensions. allow chromie to host them for user projects~
-2. use base template for side panel, highlight->action, etc. This way we guarantee basic behavior (sometimes we still have to right click to open side panel now, despite tailored prompts)
-3. Logs aren't universal and guaranteed to display. when they do exist and are appended as context, development is really streamlined
+2. ~use base template for side panel, highlight->action, etc. This way we guarantee basic behavior (sometimes we still have to right click to open side panel now, despite tailored prompts)~
+3. ~Logs aren't universal and guaranteed to display. when they do exist and are appended as context, development is really streamlined~
 4. Testing features aren't clear (even to me), logs should be prioritized. Puppeteer tests also always pass and aren't clearly explained to the user. 
 5. revamp Deploy to Chrome store feature; instead of direct deployment, create a walkthrough where users can easily generate brand assets, privacy policy, permission justifications, etc. Then they can copy paste into Developer Dashboard
 6. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements. 
@@ -16,18 +16,20 @@ Focus on getting production ready extensions to the store. we can't directly dep
 ---
 
 ### P1
-1. Add read file tool to coder, stress test scraping with intent in followups.
-2. use base template for side panel, highlight->action, etc. This way we guarantee basic behavior (sometimes we still have to right click to open side panel now, despite tailored prompts)
-3. Allow users to generate icons, or select from shared icons table. (wip ananth)
-4. permission justification: use AI to read extension summary and fill in permissions needed to go to prod in Chrome Store.
-5. Demo creation: automate demo creation with HB and Veo. We can record AI demoing the extension then make it flashy with video AI. Lowkey a product idea of its own too. Bottleneck is that user needs to post it and get a YT link themselves so we can only let them download .mp4 for foreseeable future.
+1. Add read file tool to coder. stress test scraping with intent in followups.
+2. Allow users to generate icons, or select from shared icons table. (wip ananth)
+3. permission justification: use AI to read extension summary and fill in permissions needed to go to prod in Chrome Store.
+4. Demo creation: automate demo creation with HB and Veo. We can record AI demoing the extension then make it flashy with video AI. Lowkey a product idea of its own too. Bottleneck is that user needs to post it and get a YT link themselves so we can only let them download .mp4 for foreseeable future.
 
 ---
 
 ### P2
 1. Stress test with popular use cases. make sure it uses options.html and host permissions correctly. 
-2. Add more blog posts  
-3. Add more featured creations + preview (either render the ext or simply play YT vid demo)
+2. Allow users to select another API instead of just confirming/denying the suggested with docs.
+3. Add more blog posts  
+4. Add more featured creations + preview (either render the ext or simply play YT vid demo)
+5. confirm frontend type with user
+6. let followup agent use grep search tool
 
 ---
 
@@ -36,13 +38,17 @@ Focus on getting production ready extensions to the store. we can't directly dep
 2. Create scraping with intent job for follow up requests
 3. Add more blog posts  
 4. Add more featured creations + preview (either render the ext or simply play YT vid demo)
+5. user should be able to restart a profile. this solves when other extension storage impacts current ext testing.
+6. copy prompt button
+7. remove "heres what i built for you:"
 
 ---
 
 ### BUGS
 1. no preview when .md files created
 2. agent and user cannot delete files. user should also be able to manually create files.
-3. does .chromie folder need to be user visible? and whats its use?
+3. does .chromie folder need to be user visible? 
+4. reloading builder page doesnt kill testing session. user should be able to create only one browser session.
 
 ---
 

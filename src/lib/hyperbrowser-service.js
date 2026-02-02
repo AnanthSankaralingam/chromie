@@ -284,7 +284,24 @@ export class HyperbrowserService {
       
       // Wait for session to be fully ready before attempting navigation
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
+      // IMPORTANT: Set up log capture FIRST, before pin-extension
+      // This ensures the connection that receives CDP events is the same one used for log capture.
+      // If we create the connection in pin-extension first, that connection "claims" CDP events
+      // and any subsequent connection (for log capture) won't receive them.
+      if (extensionId) {
+        try {
+          console.log("[HYPERBROWSER-SERVICE] 📋 Setting up log capture BEFORE pin-extension...")
+          const { browser, page } = await getPuppeteerContextUtil(session.id, this.apiKey)
+          const { setupLogCapture } = await import('@/lib/utils/extension-log-capture')
+          await setupLogCapture(browser, page, session.id)
+          console.log("[HYPERBROWSER-SERVICE] ✅ Log capture set up successfully")
+        } catch (logCaptureErr) {
+          console.error("[HYPERBROWSER-SERVICE] ❌ Failed to set up log capture:", logCaptureErr.message)
+          // Non-fatal - continue with session creation
+        }
+      }
+
       // Automatically pin the extension to toolbar and capture the Chrome extension ID
       // Default behavior: fire-and-forget so the user can see the session quickly.
       // For AI analysis flow: allow awaiting pinning so we can kick off tests immediately after pin completes.
@@ -640,10 +657,19 @@ export class HyperbrowserService {
   async terminateSession(sessionId) {
     try {
       if (!sessionId) return false
-      
+
+      // Clean up cached Puppeteer connection first
+      try {
+        const { releaseConnection } = await import('@/lib/utils/puppeteer-connection-cache')
+        releaseConnection(sessionId)
+        console.log("[HYPERBROWSER-SERVICE] ✅ Released cached Puppeteer connection for session:", sessionId)
+      } catch (cacheErr) {
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️  Could not release cached connection:", cacheErr.message)
+      }
+
       // Stop the Hyperbrowser session
       await this.client.sessions.stop(sessionId)
-      
+
       console.log("Session stopped for:", sessionId)
       return true
     } catch (error) {
