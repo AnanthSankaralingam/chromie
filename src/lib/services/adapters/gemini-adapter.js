@@ -189,20 +189,6 @@ export class GeminiAdapter {
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []
 
-          // Debug: log chunk structure for investigation
-          if (parts.length > 0) {
-            parts.forEach((part, idx) => {
-              console.log(`[gemini-adapter] Part ${idx}:`, {
-                keys: Object.keys(part),
-                hasText: !!part?.text,
-                textLength: part?.text?.length,
-                hasThought: !!part?.thought,
-                hasThoughtSig: !!part?.thoughtSignature,
-                thoughtSigValue: part?.thoughtSignature
-              })
-            })
-          }
-
           for (const part of parts) {
             const text = part?.text
             if (!text) {

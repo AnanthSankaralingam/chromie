@@ -1,5 +1,19 @@
 [
   {
+    "title": "base-frontends",
+    "category": "Base",
+    "description": "Minimal starter templates with no custom features: side panel (action opens panel), overlay (injected floating UI on pages), highlight-to-action (context menu on selection or right-click).",
+    "supported_frontend_types": ["sidepanel", "overlay", "highlight"],
+    "key_features": [
+      "minimal_side_panel",
+      "overlay_injection",
+      "context_menu_selection"
+    ],
+    "example_use_cases": [
+      "Start a new extension from a side panel, overlay, or highlight-to-action base"
+    ]
+  },
+  {
     "title": "audio-capture",
     "category": "Audio",
     "description": "Captures audio from browser tabs for analysis, detection, or processing workflows. Provides tab audio capture infrastructure that can be extended with analysis, file upload, and results display functionality.",
@@ -111,8 +125,8 @@
       "realtime_transcript"
     ],
     "example_use_cases": [
-      "Dictation or note-taking in the panel",
-      "Voice input template to plug into forms or chat"
+      "Dictation or voice note-taking",
+      "Voice input to plug into forms or chat"
     ]
   }
 ]

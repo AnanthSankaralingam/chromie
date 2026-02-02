@@ -1,5 +1,6 @@
 // Extension console log capture utilities for Hyperbrowser test sessions
 import * as logStorage from './console-log-storage.js'
+import { isLogCaptureActive, markLogCaptureActive } from './puppeteer-connection-cache.js'
 
 /**
  * Determine the log source from context and target info
@@ -11,11 +12,15 @@ function determineLogSource(context, targetInfo = {}) {
   if (context === 'background') return 'extension:background'
   if (context === 'popup') return 'extension:popup'
   if (context === 'sidepanel') return 'extension:sidepanel'
+  if (context === 'newtab') return 'extension:newtab'
+  if (context === 'options') return 'extension:options'
 
   // If no specific context, check URL
   if (targetUrl?.startsWith('chrome-extension://')) {
     if (targetUrl.includes('/popup.html')) return 'extension:popup'
     if (targetUrl.includes('/sidepanel.html')) return 'extension:sidepanel'
+    if (targetUrl.includes('/newtab.html')) return 'extension:newtab'
+    if (targetUrl.includes('/options.html')) return 'extension:options'
     return 'extension:content'
   }
 
@@ -50,6 +55,7 @@ export function processLogMessage(text, type, context, sessionId, targetInfo = {
 
 /**
  * Attach console listeners to a page (popup, sidepanel, etc.)
+ * Uses CDP only to avoid duplicate logs from both Puppeteer events and CDP.
  */
 export async function attachToPage(targetPage, targetUrl, sessionId) {
   if (!targetPage) return
@@ -60,21 +66,16 @@ export async function attachToPage(targetPage, targetUrl, sessionId) {
     contextType = 'popup'
   } else if (targetUrl.includes('/sidepanel.html')) {
     contextType = 'sidepanel'
+  } else if (targetUrl.includes('/newtab.html')) {
+    contextType = 'newtab'
+  } else if (targetUrl.includes('/options.html')) {
+    contextType = 'options'
   }
 
   const targetInfo = { targetUrl }
 
-  // Attach console listener
-  targetPage.on('console', (msg) => {
-    processLogMessage(msg.text(), msg.type(), contextType, sessionId, targetInfo)
-  })
-
-  // Attach error listener
-  targetPage.on('pageerror', (error) => {
-    processLogMessage(error.message, 'error', contextType, sessionId, targetInfo)
-  })
-
-  // Set up CDP for additional console capture
+  // Use CDP only for console capture to avoid duplicates
+  // (Puppeteer's page.on('console') and CDP both capture the same logs)
   try {
     const pageClient = await targetPage.target().createCDPSession()
     await pageClient.send('Runtime.enable')
@@ -100,6 +101,14 @@ export async function attachToPage(targetPage, targetUrl, sessionId) {
         }).join(' ')
         processLogMessage(text, type, contextType, sessionId, targetInfo)
       }
+    })
+
+    // Capture exceptions via CDP
+    pageClient.on('Runtime.exceptionThrown', (params) => {
+      const errorText = params.exceptionDetails.exception?.description ||
+                       params.exceptionDetails.text ||
+                       'Unknown error'
+      processLogMessage(errorText, 'error', contextType, sessionId, targetInfo)
     })
   } catch (cdpError) {
     console.warn(`[extension-log-capture] Could not attach CDP to ${contextType}:`, cdpError.message)
@@ -165,8 +174,17 @@ export async function attachToServiceWorker(target, targetUrl, sessionId, active
 
 /**
  * Set up console log capture for extension targets
+ * This function is idempotent - calling it multiple times for the same session is safe.
  */
 export async function setupLogCapture(browser, page, sessionId) {
+  // Idempotency check - only set up log capture once per session
+  if (isLogCaptureActive(sessionId)) {
+    console.log('[extension-log-capture] Log capture already active for session', sessionId)
+    return new Map() // Return empty map since capture is already set up
+  }
+
+  console.log('[extension-log-capture] Setting up log capture for session', sessionId)
+
   const activeCDPSessions = new Map()
 
   // Attach console listeners to existing workers
@@ -243,6 +261,10 @@ export async function setupLogCapture(browser, page, sessionId) {
       }
     }
   }
+
+  // Mark log capture as active for this session to prevent duplicate setup
+  markLogCaptureActive(sessionId)
+  console.log('[extension-log-capture] Log capture setup complete for session', sessionId)
 
   return activeCDPSessions
 }

@@ -213,24 +213,9 @@ export async function POST(request, { params }) {
       console.warn("[test-extension] ⚠️  No Chrome extension ID in session response")
     }
 
-    // Start console log capture in background
-    const apiKey = process.env.HYPERBROWSER_API_KEY
-    if (apiKey) {
-      Promise.all([
-        import("@/lib/utils/browser-actions"),
-        import("@/lib/utils/extension-log-capture")
-      ])
-        .then(([{ getPuppeteerSessionContext }, logCapture]) => {
-          return getPuppeteerSessionContext(session.sessionId, apiKey)
-            .then(({ browser, page }) => ({ browser, page, logCapture }))
-        })
-        .then(async ({ browser, page, logCapture }) => {
-          await logCapture.setupLogCapture(browser, page, session.sessionId)
-        })
-        .catch((err) => {
-          console.error("[test-extension] Failed to start console log capture:", err.message)
-        })
-    }
+    // Log capture is now set up in hyperbrowser-service.js createTestSession()
+    // BEFORE pin-extension runs, using the same cached connection.
+    // This ensures CDP events are delivered to the log capture listeners.
 
     // Skip database storage since browser_sessions table doesn't exist
 

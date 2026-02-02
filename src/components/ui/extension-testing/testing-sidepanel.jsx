@@ -157,6 +157,18 @@ export default function TestingSidepanel({
         </div>
       </div>
 
+      <div className="p-4 border-b border-gray-200">
+        <SectionHeader icon={Terminal} title="Console logs" subtitle="Extension console output from this session. Initial logs may be missed." />
+        <div className="mt-2">
+          <ConsoleLogViewer
+            sessionId={sessionId}
+            projectId={projectId}
+            isSessionActive={isSessionActive}
+            onLogsReady={handleLogsReady}
+          />
+        </div>
+      </div>
+
       <div className="p-4 border-b border-gray-200 space-y-3">
         <SectionHeader
           icon={Play}
@@ -451,18 +463,6 @@ export default function TestingSidepanel({
               )}
             </div>
           )}
-        </div>
-
-        <div className="border-t border-gray-200 p-4">
-          <SectionHeader icon={Terminal} title="Console logs" subtitle="Extension console output from this session." />
-          <div className="mt-2">
-            <ConsoleLogViewer
-              sessionId={sessionId}
-              projectId={projectId}
-              isSessionActive={isSessionActive}
-              onLogsReady={handleLogsReady}
-            />
-          </div>
         </div>
       </div>
     </aside>
