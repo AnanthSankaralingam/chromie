@@ -11,8 +11,8 @@ Focus on getting production ready extensions to the store. we can't directly dep
 4. ~Testing features aren't clear (even to me), logs should be prioritized.~
 5. Puppeteer tests also always pass and aren't clearly explained to the user.
 6. ~revamp Deploy to Chrome store feature; instead of direct deployment, create a walkthrough where users can easily generate brand assets, privacy policy, permission justifications, etc. Then they can copy paste into Developer Dashboard~
-7. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements. 
-8. Brand assets: use Canva template with brand images (#2) and create a deck for users. Like image replacement on Google Slides template. If too hard can fade.
+7. ~Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements.~ 
+8. ~Brand assets: use Canva template with brand images (#2) and create a deck for users. Like image replacement on Google Slides template. If too hard can fade.~
 
 ---
 
