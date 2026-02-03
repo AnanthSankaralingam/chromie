@@ -5,7 +5,7 @@ import { llmService } from "@/lib/services/llm-service"
 import { SUPPORTED_PROVIDERS, PLANNING_MODELS } from "@/lib/constants"
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis"
 import { analyzeManifest } from "@/lib/codegen/file-analysis/analyzers/manifest-analyzer"
-import { buildPermissionJustificationPrompt } from "@/lib/prompts/deployment/permission-justification"
+import { buildPermissionJustificationPrompt } from "@/lib/prompts/followup/workflows/permission-justification"
 import chromeApiDocs from "@/lib/data/chrome_extension_apis.json"
 
 // POST: Generate permission justifications using AI
