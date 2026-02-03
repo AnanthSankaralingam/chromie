@@ -343,6 +343,33 @@ Additional indexes and constraints:
 
 ---
 
+### 15. `testing_replays`
+Stores testing replay videos and live URLs for each test run from the simulated browser.
+
+| Column            | Type         | Details                                                     |
+|-------------------|--------------|-------------------------------------------------------------|
+| `id`              | uuid         | PK, DEFAULT gen_random_uuid()                               |
+| `project_id`      | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
+| `session_id`      | text         | NOT NULL; Hyperbrowser session ID                          |
+| `live_url`        | text         | Live view URL for the browser session                       |
+| `video_url`       | text         | Video recording URL (MP4)                                   |
+| `recording_status` | text         | DEFAULT 'unknown'; status of video recording                |
+| `test_type`       | text         | NOT NULL, DEFAULT 'ai'; type of test ('ai', 'puppeteer', 'hyperagent') |
+| `test_result`     | jsonb        | Test results and metadata                                   |
+| `created_at`      | timestamptz  | DEFAULT now()                                               |
+| `updated_at`      | timestamptz  | DEFAULT now()                                               |
+
+Additional indexes:
+- `idx_testing_replays_project_id` on `project_id` for fast project queries
+- `idx_testing_replays_created_at` on `created_at DESC` for chronological ordering
+
+RLS policies:
+- Users can SELECT replays only for projects they own
+- Users can INSERT replays only for projects they own
+- Users can DELETE replays only for projects they own
+
+---
+
 ---
 ## Project Limits by Plan
 
@@ -444,6 +471,12 @@ create policy shared_icons_read_global
 - Users can SELECT aggregates only for projects they own.
 - No INSERT/UPDATE/DELETE policies for users (aggregates are generated automatically by cron jobs).
 - **Note:** Aggregates are read-only for users and managed exclusively by the `daily-metrics-aggregation` cron job.
+
+### 15. `testing_replays`
+- Users can SELECT replays only for projects they own.
+- Users can INSERT replays only for projects they own.
+- Users can DELETE replays only for projects they own.
+- No UPDATE policy (replays are immutable records).
 
 ---
 

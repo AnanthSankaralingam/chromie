@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
+import { analyzeLogsForTestVerification, formatErrorSummary } from "@/lib/utils/test-log-verification"
 
 export async function GET(request, { params }) {
   const supabase = createClient()
@@ -145,6 +146,13 @@ export async function POST(request, { params }) {
         return taskContent.trim()
       }).filter(task => task.length > 0 && !task.includes('undefined') && !task.includes('${'))
       
+      // Limit to maximum 5 tests to avoid long execution times and repetition
+      const maxTests = 5
+      if (tasks.length > maxTests) {
+        console.log(`⚠️ Found ${tasks.length} tests, limiting to first ${maxTests} to avoid repetition`)
+        tasks = tasks.slice(0, maxTests)
+      }
+      
       console.log(`✅ Extracted ${tasks.length} test tasks from script`)
       tasks.forEach((task, i) => console.log(`   Task ${i + 1}: ${task.substring(0, 100)}...`))
     } else {
@@ -169,7 +177,7 @@ Note: Stay on simple websites without CAPTCHAs during testing`
     } else if (tasks.length === 1) {
       testTask = tasks[0]
     } else {
-      // Combine multiple tasks into a sequence
+      // Combine multiple tasks into a sequence (already limited to max 5)
       testTask = tasks.map((task, i) => `${i + 1}. ${task}`).join('\n')
     }
 
@@ -199,6 +207,22 @@ Note: Stay on simple websites without CAPTCHAs during testing`
     // Wait for session to be fully ready
     await new Promise(resolve => setTimeout(resolve, 3000))
 
+    // Get session details to extract live URL
+    let liveUrl = null
+    try {
+      const sessionDetails = await hbClient.sessions.get(session.id)
+      liveUrl = sessionDetails.liveViewUrl || 
+                sessionDetails.liveUrl || 
+                sessionDetails.debuggerUrl || 
+                sessionDetails.debuggerFullscreenUrl ||
+                session.liveViewUrl ||
+                session.liveUrl ||
+                null
+      console.log("🖥️  Extracted live URL:", liveUrl ? "Found" : "Not found")
+    } catch (liveUrlError) {
+      console.warn("⚠️ Could not fetch live URL:", liveUrlError.message)
+    }
+
     // Execute BrowserUse task on the new session
     console.log("🤖 Starting BrowserUse agent...")
     const result = await hbClient.agents.browserUse.startAndWait({
@@ -208,6 +232,24 @@ Note: Stay on simple websites without CAPTCHAs during testing`
     })
 
     console.log("✅ BrowserUse test completed:", result.data?.finalResult)
+
+    // Wait a moment for logs to be captured before session closes
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Analyze extension logs to verify test results
+    console.log("📊 Analyzing extension logs for test verification...")
+    const logAnalysis = analyzeLogsForTestVerification(session.id, {
+      checkExtensionErrors: true,
+      checkRuntimeErrors: true,
+      timeWindowMs: 10 * 60 * 1000, // Check logs from last 10 minutes
+    })
+
+    console.log("📊 Log analysis:", {
+      hasErrors: logAnalysis.hasErrors,
+      errorCount: logAnalysis.errorCount,
+      warningCount: logAnalysis.warningCount,
+      totalLogs: logAnalysis.totalLogs,
+    })
 
     // Get the video recording URL with polling
     console.log("🎥 Fetching video recording URL...")
@@ -253,16 +295,32 @@ Note: Stay on simple websites without CAPTCHAs during testing`
       recordingStatus = 'error'
     }
 
+    // Determine final success status based on both agent result and logs
+    const agentSuccess = result.data?.finalResult && !result.data?.finalResult.toLowerCase().includes("failed")
+    const logBasedFailure = logAnalysis.hasErrors ? formatErrorSummary(logAnalysis.errors) : null
+    const finalSuccess = agentSuccess && !logAnalysis.hasErrors
+
     // Prepare test results data
     const testResults = {
-      success: true,
-      message: "AI test completed successfully",
+      success: finalSuccess,
+      message: finalSuccess
+        ? "AI test completed successfully"
+        : logBasedFailure
+        ? `Test completed but extension logs show errors: ${logBasedFailure}`
+        : "AI test completed with issues",
       result: result.data?.finalResult || "Test completed",
       task: testTask,
       sessionId: session.id,
       videoUrl: videoUrl,
       recordingStatus: recordingStatus,
-      note: videoUrl ? "Video recording is ready for playback" : "Video recording may still be processing. Try checking again in a few moments."
+      note: videoUrl ? "Video recording is ready for playback" : "Video recording may still be processing. Try checking again in a few moments.",
+      logAnalysis: {
+        hasErrors: logAnalysis.hasErrors,
+        errorCount: logAnalysis.errorCount,
+        warningCount: logAnalysis.warningCount,
+        totalLogs: logAnalysis.totalLogs,
+        logBasedFailure: logBasedFailure,
+      },
     }
 
     // Save test results to database (stored in projects table)
@@ -290,6 +348,37 @@ Note: Stay on simple websites without CAPTCHAs during testing`
       }
     } catch (saveError) {
       console.error("⚠️ Error saving test results:", saveError)
+      // Continue anyway - don't fail the request
+    }
+
+    // Save testing replay to testing_replays table
+    try {
+      const { error: replayError } = await supabase
+        .from("testing_replays")
+        .insert({
+          project_id: projectId,
+          session_id: session.id,
+          live_url: liveUrl,
+          video_url: videoUrl,
+          recording_status: recordingStatus,
+          test_type: 'ai',
+          test_result: {
+            success: finalSuccess,
+            message: testResults.message,
+            result: testResults.result,
+            task: testTask,
+            logAnalysis: testResults.logAnalysis
+          }
+        })
+
+      if (replayError) {
+        console.error("⚠️ Failed to save testing replay to database:", replayError)
+        // Continue anyway - don't fail the request
+      } else {
+        console.log("✅ Testing replay saved to database")
+      }
+    } catch (replayError) {
+      console.error("⚠️ Error saving testing replay:", replayError)
       // Continue anyway - don't fail the request
     }
 

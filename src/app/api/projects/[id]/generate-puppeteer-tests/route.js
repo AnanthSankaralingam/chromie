@@ -397,48 +397,66 @@ function buildPuppeteerTestFile({
         const target = step.target || '';
         const value = step.value || '';
         const assertion = step.assertion || '';
+        const isAssertion = !!assertion;
         
         if (action === 'waitForSelector' || assertion === 'waitForSelector') {
           const selector = target.replace(/"/g, '\\"');
-          lines.push('  try {');
-          lines.push('    await testPage.waitForSelector("' + selector + '", { timeout: 10000 });');
-          if (assertion) {
-            lines.push('    expect(true).toBeTruthy(); // Element found');
-          }
-          lines.push('  } catch (e) {');
-          lines.push('    console.log("[puppeteer] Warning: Selector not found: ' + selector + '");');
-          if (!assertion) {
-            lines.push('    // Continue test even if element not found');
+          if (isAssertion) {
+            // Assertion: must succeed or test fails
+            lines.push('  await testPage.waitForSelector("' + selector + '", { timeout: 10000 });');
+            lines.push('  expect(true).toBeTruthy(); // Element found');
           } else {
-            lines.push('    throw e; // Fail test if assertion fails');
+            // Non-assertion: log warning but continue
+            lines.push('  try {');
+            lines.push('    await testPage.waitForSelector("' + selector + '", { timeout: 10000 });');
+            lines.push('  } catch (e) {');
+            lines.push('    console.log("[puppeteer] Warning: Selector not found: ' + selector + '");');
+            lines.push('  }');
           }
-          lines.push('  }');
         } else if (action === 'click') {
           const selector = target.replace(/"/g, '\\"');
-          lines.push('  try {');
-          lines.push('    await testPage.click("' + selector + '");');
-          lines.push('  } catch (e) {');
-          lines.push('    console.log("[puppeteer] Warning: Could not click: ' + selector + '");');
-          lines.push('  }');
+          if (isAssertion) {
+            // Assertion: must succeed or test fails
+            lines.push('  await testPage.click("' + selector + '");');
+          } else {
+            // Non-assertion: log warning but continue
+            lines.push('  try {');
+            lines.push('    await testPage.click("' + selector + '");');
+            lines.push('  } catch (e) {');
+            lines.push('    console.log("[puppeteer] Warning: Could not click: ' + selector + '");');
+            lines.push('  }');
+          }
         } else if (action === 'type') {
           const selector = target.replace(/"/g, '\\"');
           const text = value.replace(/"/g, '\\"');
-          lines.push('  try {');
-          lines.push('    await testPage.type("' + selector + '", "' + text + '");');
-          lines.push('  } catch (e) {');
-          lines.push('    console.log("[puppeteer] Warning: Could not type into: ' + selector + '");');
-          lines.push('  }');
-        } else if (action === 'evaluate') {
-          lines.push('  try {');
-          lines.push('    var result = await testPage.evaluate(function() {');
-          lines.push('      ' + (value || 'return true;'));
-          lines.push('    });');
-          if (assertion) {
-            lines.push('    expect(result).toBeTruthy();');
+          if (isAssertion) {
+            // Assertion: must succeed or test fails
+            lines.push('  await testPage.type("' + selector + '", "' + text + '");');
+          } else {
+            // Non-assertion: log warning but continue
+            lines.push('  try {');
+            lines.push('    await testPage.type("' + selector + '", "' + text + '");');
+            lines.push('  } catch (e) {');
+            lines.push('    console.log("[puppeteer] Warning: Could not type into: ' + selector + '");');
+            lines.push('  }');
           }
-          lines.push('  } catch (e) {');
-          lines.push('    console.log("[puppeteer] Warning: Evaluation failed");');
-          lines.push('  }');
+        } else if (action === 'evaluate') {
+          if (isAssertion) {
+            // Assertion: must succeed or test fails
+            lines.push('  var result = await testPage.evaluate(function() {');
+            lines.push('    ' + (value || 'return true;'));
+            lines.push('  });');
+            lines.push('  expect(result).toBeTruthy();');
+          } else {
+            // Non-assertion: log warning but continue
+            lines.push('  try {');
+            lines.push('    var result = await testPage.evaluate(function() {');
+            lines.push('      ' + (value || 'return true;'));
+            lines.push('    });');
+            lines.push('  } catch (e) {');
+            lines.push('    console.log("[puppeteer] Warning: Evaluation failed");');
+            lines.push('  }');
+          }
         }
         lines.push('');
       }

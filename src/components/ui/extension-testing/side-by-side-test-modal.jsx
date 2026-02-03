@@ -36,6 +36,8 @@ export default function SideBySideTestModal({
   const hasAutoRunPuppeteerRef = useRef(false)
   const autoRefreshAttemptedRef = useRef(false)
   const lastSequenceIdRef = useRef(null)
+  const puppeteerAbortControllerRef = useRef(null)
+  const aiAgentAbortControllerRef = useRef(null)
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
@@ -224,6 +226,10 @@ export default function SideBySideTestModal({
     setIsRunningHyperAgent(true)
     setHyperAgentResult(null)
 
+    // Create abort controller for this test run
+    const abortController = new AbortController()
+    aiAgentAbortControllerRef.current = abortController
+
     try {
       const waited = await waitForSessionActive({ label: "ai-agent" })
       if (!waited.ok) {
@@ -241,6 +247,7 @@ export default function SideBySideTestModal({
         body: JSON.stringify({
           sessionId: sessionData.sessionId,
         }),
+        signal: abortController.signal,
       })
 
       const result = await response.json()
@@ -251,12 +258,76 @@ export default function SideBySideTestModal({
 
       setHyperAgentResult(result)
     } catch (error) {
+      // Don't set error if it was aborted
+      if (error.name === 'AbortError') {
+        console.log("[hyperagent-test] Test aborted by user")
+        return
+      }
       setHyperAgentResult({
         success: false,
         error: error.message,
       })
     } finally {
       setIsRunningHyperAgent(false)
+      aiAgentAbortControllerRef.current = null
+    }
+  }
+
+  // Stop AI Agent tests
+  const handleStopAiAgentTests = async () => {
+    if (!sessionData?.sessionId || !projectId) {
+      console.error("[hyperagent-test] Missing session ID or project ID for stopping tests")
+      return
+    }
+
+    console.log("[hyperagent-test] Stopping AI agent tests...")
+    
+    // Abort the fetch request first
+    if (aiAgentAbortControllerRef.current) {
+      aiAgentAbortControllerRef.current.abort()
+      aiAgentAbortControllerRef.current = null
+    }
+
+    setIsRunningHyperAgent(false)
+    setHyperAgentResult({
+      success: false,
+      error: "Test stopped by user - terminating session...",
+    })
+
+    // Terminate the session to stop server-side test execution
+    try {
+      const response = await fetch(`/api/projects/${projectId}/test-extension`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+          startedAt: sessionData.startedAt,
+        }),
+      })
+
+      if (response.ok) {
+        console.log("[hyperagent-test] ✅ Session terminated, tests stopped")
+        setHyperAgentResult({
+          success: false,
+          error: "Test stopped by user. Session terminated.",
+        })
+        // Mark session as expired so the UI reflects that the browser is closed
+        setSessionExpired(true)
+      } else {
+        console.error("[hyperagent-test] Failed to terminate session")
+        setHyperAgentResult({
+          success: false,
+          error: "Failed to stop test - session may still be running",
+        })
+      }
+    } catch (error) {
+      console.error("[hyperagent-test] Error stopping tests:", error)
+      setHyperAgentResult({
+        success: false,
+        error: "Error stopping test",
+      })
     }
   }
 
@@ -422,6 +493,10 @@ export default function SideBySideTestModal({
     setIsRunningPuppeteerTests(true)
     setPuppeteerTestResult(null)
 
+    // Create abort controller for this test run
+    const abortController = new AbortController()
+    puppeteerAbortControllerRef.current = abortController
+
     try {
       const waited = await waitForSessionActive({ label: "puppeteer" })
       if (!waited.ok) {
@@ -440,6 +515,7 @@ export default function SideBySideTestModal({
         body: JSON.stringify({
           sessionId: sessionData.sessionId,
         }),
+        signal: abortController.signal,
       })
 
       const result = await response.json()
@@ -450,17 +526,81 @@ export default function SideBySideTestModal({
 
       setPuppeteerTestResult(result)
     } catch (error) {
+      // Don't set error if it was aborted
+      if (error.name === 'AbortError') {
+        console.log("[puppeteer-tests] Test aborted by user")
+        return
+      }
       setPuppeteerTestResult({
         success: false,
         error: error.message,
       })
     } finally {
       setIsRunningPuppeteerTests(false)
+      puppeteerAbortControllerRef.current = null
       // We previously forced an iframe reconnect here by incrementing iframeReconnectNonce,
       // but this was causing "NOT FOUND" errors in the simulated browser.
       // The backend now keeps the CDP connection alive to prevent session disruption.
       console.log("[puppeteer-tests] ✅ Run complete", {
         sessionId: sessionData?.sessionId,
+      })
+    }
+  }
+
+  // Stop Puppeteer tests
+  const handleStopPuppeteerTests = async () => {
+    if (!sessionData?.sessionId || !projectId) {
+      console.error("[puppeteer-tests] Missing session ID or project ID for stopping tests")
+      return
+    }
+
+    console.log("[puppeteer-tests] Stopping puppeteer tests...")
+    
+    // Abort the fetch request first
+    if (puppeteerAbortControllerRef.current) {
+      puppeteerAbortControllerRef.current.abort()
+      puppeteerAbortControllerRef.current = null
+    }
+
+    setIsRunningPuppeteerTests(false)
+    setPuppeteerTestResult({
+      success: false,
+      error: "Test stopped by user - terminating session...",
+    })
+
+    // Terminate the session to stop server-side test execution
+    try {
+      const response = await fetch(`/api/projects/${projectId}/test-extension`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+          startedAt: sessionData.startedAt,
+        }),
+      })
+
+      if (response.ok) {
+        console.log("[puppeteer-tests] ✅ Session terminated, tests stopped")
+        setPuppeteerTestResult({
+          success: false,
+          error: "Test stopped by user. Session terminated.",
+        })
+        // Mark session as expired so the UI reflects that the browser is closed
+        setSessionExpired(true)
+      } else {
+        console.error("[puppeteer-tests] Failed to terminate session")
+        setPuppeteerTestResult({
+          success: false,
+          error: "Failed to stop test - session may still be running",
+        })
+      }
+    } catch (error) {
+      console.error("[puppeteer-tests] Error stopping tests:", error)
+      setPuppeteerTestResult({
+        success: false,
+        error: "Error stopping test",
       })
     }
   }
@@ -502,12 +642,12 @@ export default function SideBySideTestModal({
                   sessionData?.status === 'active' ? "text-green-600" : "text-gray-400"
                 )}
               />
-              <h2 className="text-lg font-semibold text-gray-900">Extension Test Environment</h2>
+              <h2 className="text-lg font-semibold text-gray-900">extension test environment</h2>
             </div>
 
             {sessionData && (
               <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <span>Session: {sessionData.sessionId?.slice(-8)}</span>
+                <span>session: {sessionData.sessionId?.slice(-8)}</span>
               </div>
             )}
           </div>
@@ -541,7 +681,7 @@ export default function SideBySideTestModal({
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center space-x-2 flex-shrink-0">
                 <Monitor className="h-4 w-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Live Browser Session</span>
+                <span className="text-sm font-medium text-gray-700">live browser session</span>
               </div>
 
               <div className="flex-1 relative overflow-hidden">
@@ -549,15 +689,15 @@ export default function SideBySideTestModal({
                   <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
                     <div className="text-center max-w-md">
                       <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Session Time Limit Reached</h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">session time limit reached</h3>
                       <p className="text-gray-600 mb-4">
-                        This session has reached its time limit, but you can continue using it. Close the modal when you're done testing.
+                        this session has reached its time limit, but you can continue using it. close the modal when you're done testing.
                       </p>
                       <Button
                         onClick={handleClose}
                         className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
                       >
-                        Close Session
+                        close session
                       </Button>
                     </div>
                   </div>
@@ -581,11 +721,11 @@ export default function SideBySideTestModal({
                       <div className="mb-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-gray-600 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">
-                          {loadingStages[loadingStage]?.title || "Initializing..."}
+                          {loadingStages[loadingStage]?.title ? loadingStages[loadingStage].title.toLowerCase() : "initializing..."}
                         </h3>
                         <p className="text-gray-600 text-sm">
-                          {loadingStages[loadingStage]?.description ||
-                            "Please wait while we prepare your testing environment"}
+                          {loadingStages[loadingStage]?.description ? loadingStages[loadingStage].description.toLowerCase() :
+                            "please wait while we prepare your testing environment"}
                         </p>
                       </div>
 
@@ -603,7 +743,7 @@ export default function SideBySideTestModal({
                                     className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`,
                                   })}
                                 </div>
-                                <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
+                                <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title.toLowerCase()}</h5>
                               </div>
                               <ul className="text-base text-gray-600 space-y-2 text-left">
                                 {instructionBoxes[loadingStage].items.map((item, index) => (
@@ -632,7 +772,7 @@ export default function SideBySideTestModal({
                     sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
                     allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
                     loading="eager"
-                    title="BrowserBase Session"
+                    title="browserbase session"
                     style={{
                       transform: "translateZ(0)",
                       willChange: "transform",
@@ -644,10 +784,10 @@ export default function SideBySideTestModal({
                     <div className="text-center">
                       <Monitor className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Ready to Test
+                        ready to test
                       </h3>
                       <p className="text-gray-600">
-                        Click "Test Extension" to launch the Testing Browser
+                        click "test extension" to launch the testing browser
                       </p>
                     </div>
                   </div>
@@ -675,6 +815,8 @@ export default function SideBySideTestModal({
             onGeneratePuppeteerTests={onGeneratePuppeteerTests}
             onGenerateAiAgentTests={onGenerateAiAgentTests}
             onSessionLogsCapture={onSessionLogsCapture}
+            onStopPuppeteerTests={handleStopPuppeteerTests}
+            onStopAiAgentTests={handleStopAiAgentTests}
           />
         </div>
       </div>

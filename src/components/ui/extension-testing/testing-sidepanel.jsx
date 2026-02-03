@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
-import { Play, FileCode, Bot, CheckCircle, AlertCircle, Terminal, Sparkles, Lock } from "lucide-react"
+import { Play, FileCode, Bot, CheckCircle, AlertCircle, Terminal, Sparkles, Lock, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ConsoleLogViewer from "@/components/ui/extension-testing/console-log-viewer"
@@ -19,7 +19,7 @@ function ResultStatusPill({ status }) {
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", isSuccess ? "bg-green-600" : "bg-red-600")} />
-      {isSuccess ? "Passed" : "Failed"}
+      {isSuccess ? "passed" : "failed"}
     </span>
   )
 }
@@ -61,6 +61,10 @@ export default function TestingSidepanel({
 
   // Logs capture callback
   onSessionLogsCapture,
+
+  // Stop handlers
+  onStopPuppeteerTests,
+  onStopAiAgentTests,
 }) {
   const [activeTab, setActiveTab] = useState("puppeteer")
   const [testsExist, setTestsExist] = useState({ puppeteer: true, aiAgent: true })
@@ -129,36 +133,7 @@ export default function TestingSidepanel({
   return (
     <aside className="w-[380px] max-w-[42vw] border-l border-gray-200 bg-white flex flex-col overflow-hidden">
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between gap-3">
-          <div className="font-semibold text-gray-900">Testing</div>
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                isSessionActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-              )}
-              title={isSessionActive ? "Session active" : "Session inactive"}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", isSessionActive ? "bg-green-600" : "bg-gray-400")} />
-              {isSessionActive ? "Live" : "Offline"}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-            <div className="text-gray-500">Session</div>
-            <div className="mt-0.5 font-mono text-gray-900">{sessionId ? sessionId.slice(-8) : "—"}</div>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-            <div className="text-gray-500">Viewport</div>
-            <div className="mt-0.5 text-gray-900">{viewportLabel || "—"}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 border-b border-gray-200">
-        <SectionHeader icon={Terminal} title="Console logs" subtitle="Extension console output from this session. Initial logs may be missed." />
+        <SectionHeader icon={Terminal} title="extension logs" />
         <div className="mt-2">
           <ConsoleLogViewer
             sessionId={sessionId}
@@ -172,8 +147,7 @@ export default function TestingSidepanel({
       <div className="p-4 border-b border-gray-200 space-y-3">
         <SectionHeader
           icon={Play}
-          title="Run tests"
-          subtitle="Run automated tests against the current live session."
+          title="run tests"
         />
 
         <div className="space-y-2">
@@ -189,11 +163,11 @@ export default function TestingSidepanel({
                   )}
                   onClick={() => setActiveTab("puppeteer")}
                 >
-                  Puppeteer tests
+                  basic tests
                 </button>
               </div>
               <div className="mt-0.5 text-xs text-gray-500">
-                Basic validation (quick smoke tests).
+                puppeteer validation (quick smoke tests)
               </div>
             </div>
 
@@ -204,16 +178,26 @@ export default function TestingSidepanel({
               {testsExist.puppeteer ? (
                 <button
                   onClick={() => {
-                    console.log("[testing-sidepanel] ▶️ Run puppeteer tests clicked", { projectId, sessionId })
-                    setActiveTab("puppeteer")
-                    onRunPuppeteerTests?.()
+                    if (isRunningPuppeteerTests) {
+                      console.log("[testing-sidepanel] ⏹️ Stop puppeteer tests clicked", { projectId, sessionId })
+                      onStopPuppeteerTests?.()
+                    } else {
+                      console.log("[testing-sidepanel] ▶️ Run puppeteer tests clicked", { projectId, sessionId })
+                      setActiveTab("puppeteer")
+                      onRunPuppeteerTests?.()
+                    }
                   }}
-                  disabled={isRunningPuppeteerTests || !sessionId}
-                  className="p-1 text-emerald-600 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  title="Run Puppeteer tests"
+                  disabled={!sessionId}
+                  className={cn(
+                    "p-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                    isRunningPuppeteerTests 
+                      ? "text-red-600 hover:text-red-700" 
+                      : "text-emerald-600 hover:text-emerald-700"
+                  )}
+                  title={isRunningPuppeteerTests ? "stop basic tests" : "run basic tests"}
                 >
                   {isRunningPuppeteerTests ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-600 border-t-transparent" />
+                    <Square className="h-4 w-4 fill-red-600" />
                   ) : (
                     <Play className="h-4 w-4 fill-emerald-600" />
                   )}
@@ -226,9 +210,9 @@ export default function TestingSidepanel({
                   }}
                   disabled={isCheckingTests}
                   className="px-2 py-1 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors rounded"
-                  title="Generate Puppeteer tests"
+                  title="generate basic tests"
                 >
-                  Generate
+                  generate
                 </button>
               )}
             </div>
@@ -263,9 +247,9 @@ export default function TestingSidepanel({
               </div>
               <div className="mt-0.5 text-xs text-gray-500">
                 {!isPaid && !isLoadingPaidPlan ? (
-                  <span className="text-amber-600">Paid feature — upgrade to unlock</span>
+                  <span className="text-amber-600">paid feature — upgrade to unlock</span>
                 ) : (
-                  "End‑to‑end user simulation (realistic interactions)."
+                  "end‑to‑end simulation (real interactions)"
                 )}
               </div>
             </div>
@@ -275,22 +259,32 @@ export default function TestingSidepanel({
                 <ResultStatusPill status={aiAgentStatus} />
               )}
               {!isPaid && !isLoadingPaidPlan ? (
-                <div className="p-1 text-gray-400 cursor-not-allowed" title="AI agent testing is a paid feature">
+                <div className="p-1 text-gray-400 cursor-not-allowed" title="ai agent testing is a paid feature">
                   <Lock className="h-4 w-4" />
                 </div>
               ) : testsExist.aiAgent ? (
                 <button
                   onClick={() => {
-                    console.log("[testing-sidepanel] ▶️ Run AI agent tests clicked", { projectId, sessionId })
-                    setActiveTab("aiAgent")
-                    onRunAiAgentTests?.()
+                    if (isRunningAiAgentTests) {
+                      console.log("[testing-sidepanel] ⏹️ Stop AI agent tests clicked", { projectId, sessionId })
+                      onStopAiAgentTests?.()
+                    } else {
+                      console.log("[testing-sidepanel] ▶️ Run AI agent tests clicked", { projectId, sessionId })
+                      setActiveTab("aiAgent")
+                      onRunAiAgentTests?.()
+                    }
                   }}
-                  disabled={isRunningAiAgentTests || !sessionId}
-                  className="p-1 text-emerald-600 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  title="Run AI agent tests"
+                  disabled={!sessionId}
+                  className={cn(
+                    "p-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                    isRunningAiAgentTests 
+                      ? "text-red-600 hover:text-red-700" 
+                      : "text-emerald-600 hover:text-emerald-700"
+                  )}
+                  title={isRunningAiAgentTests ? "stop ai agent tests" : "run ai agent tests"}
                 >
                   {isRunningAiAgentTests ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-600 border-t-transparent" />
+                    <Square className="h-4 w-4 fill-red-600" />
                   ) : (
                     <Play className="h-4 w-4 fill-emerald-600" />
                   )}
@@ -303,9 +297,9 @@ export default function TestingSidepanel({
                   }}
                   disabled={isCheckingTests}
                   className="px-2 py-1 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors rounded"
-                  title="Generate AI agent tests"
+                  title="generate ai agent tests"
                 >
-                  Generate
+                  generate
                 </button>
               )}
             </div>
@@ -315,7 +309,7 @@ export default function TestingSidepanel({
 
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <SectionHeader icon={AlertCircle} title="Results" subtitle="See pass/fail and error messages here." />
+          <SectionHeader icon={AlertCircle} title="results" />
           <div className="mt-3 flex items-center gap-2">
             <button
               type="button"
@@ -325,7 +319,7 @@ export default function TestingSidepanel({
                 activeTab === "puppeteer" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               )}
             >
-              Puppeteer
+              basic
             </button>
             <button
               type="button"
@@ -347,13 +341,13 @@ export default function TestingSidepanel({
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <div className="flex items-center gap-2 font-medium mb-1">
                     <AlertCircle className="h-4 w-4" />
-                    Tests not generated yet
+                    tests not generated yet
                   </div>
-                  <div className="text-xs">Click "Generate" above to create Puppeteer tests for this extension.</div>
+                  <div className="text-xs">click "generate" above to create basic tests for this extension.</div>
                 </div>
               ) : !puppeteerTestResult ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-                  Run Puppeteer tests to see results here.
+                  run basic tests to see results here.
                 </div>
               ) : (
                 <>
@@ -371,13 +365,23 @@ export default function TestingSidepanel({
                       ) : (
                         <AlertCircle className="h-4 w-4 text-red-700" />
                       )}
-                      {puppeteerTestResult.success ? "Puppeteer tests passed" : "Puppeteer tests failed"}
+                      {puppeteerTestResult.success ? "basic tests passed" : "basic tests failed"}
                     </div>
                     {puppeteerTestResult.error ? (
                       <div className="mt-2 text-xs whitespace-pre-wrap">
-                        <span className="font-semibold">Error:</span> {puppeteerTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
+                        <span className="font-semibold">error:</span> {puppeteerTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
                       </div>
                     ) : null}
+                    {puppeteerTestResult.logAnalysis?.logBasedFailure ? (
+                      <div className="mt-2 text-xs whitespace-pre-wrap">
+                        <span className="font-semibold">extension logs:</span> {puppeteerTestResult.logAnalysis.logBasedFailure.replace(/Hyperbrowser/gi, 'Testing Browser')}
+                      </div>
+                    ) : null}
+                    {puppeteerTestResult.logAnalysis && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        analyzed {puppeteerTestResult.logAnalysis.totalLogs || 0} log(s) • {puppeteerTestResult.logAnalysis.errorCount || 0} error(s) • {puppeteerTestResult.logAnalysis.warningCount || 0} warning(s)
+                      </div>
+                    )}
                   </div>
 
                   {Array.isArray(puppeteerTestResult.results) && puppeteerTestResult.results.length > 0 ? (
@@ -385,7 +389,7 @@ export default function TestingSidepanel({
                       {puppeteerTestResult.results.map((r, idx) => (
                         <div key={idx} className="rounded-lg border border-gray-200 bg-white p-3">
                           <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-medium text-gray-900">{r.name || `Test ${idx + 1}`}</div>
+                            <div className="text-sm font-medium text-gray-900">{r.name ? r.name.toLowerCase() : `test ${idx + 1}`}</div>
                             <div
                               className={cn(
                                 "text-xs font-semibold",
@@ -403,7 +407,7 @@ export default function TestingSidepanel({
                     </div>
                   ) : (
                     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-                      No test results returned.
+                      no test results returned.
                     </div>
                   )}
                 </>
@@ -415,13 +419,13 @@ export default function TestingSidepanel({
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <div className="flex items-center gap-2 font-medium mb-1">
                     <AlertCircle className="h-4 w-4" />
-                    Tests not generated yet
+                    tests not generated yet
                   </div>
-                  <div className="text-xs">Click "Generate" above to create AI agent tests for this extension.</div>
+                  <div className="text-xs">click "generate" above to create ai agent tests for this extension.</div>
                 </div>
               ) : !aiAgentTestResult ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-                  Run AI agent tests to see results here.
+                  run ai agent tests to see results here.
                 </div>
               ) : (
                 <>
@@ -439,22 +443,32 @@ export default function TestingSidepanel({
                       ) : (
                         <AlertCircle className="h-4 w-4 text-red-700" />
                       )}
-                      {aiAgentTestResult.success ? "AI agent tests passed" : "AI agent tests failed"}
+                      {aiAgentTestResult.success ? "ai agent tests passed" : "ai agent tests failed"}
                     </div>
                     {aiAgentTestResult.error ? (
                       <div className="mt-2 text-xs whitespace-pre-wrap">
-                        <span className="font-semibold">Error:</span> {aiAgentTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
+                        <span className="font-semibold">error:</span> {aiAgentTestResult.error.replace(/Hyperbrowser/gi, 'Testing Browser')}
                       </div>
                     ) : null}
+                    {aiAgentTestResult.logAnalysis?.logBasedFailure ? (
+                      <div className="mt-2 text-xs whitespace-pre-wrap">
+                        <span className="font-semibold">extension logs:</span> {aiAgentTestResult.logAnalysis.logBasedFailure.replace(/Hyperbrowser/gi, 'Testing Browser')}
+                      </div>
+                    ) : null}
+                    {aiAgentTestResult.logAnalysis && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        analyzed {aiAgentTestResult.logAnalysis.totalLogs || 0} log(s) • {aiAgentTestResult.logAnalysis.errorCount || 0} error(s) • {aiAgentTestResult.logAnalysis.warningCount || 0} warning(s)
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-lg border border-gray-200 bg-white p-3">
-                    <div className="text-xs text-gray-500">Task</div>
+                    <div className="text-xs text-gray-500">task</div>
                     <div className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
                       {aiAgentTestResult.task || "—"}
                     </div>
 
-                    <div className="mt-3 text-xs text-gray-500">Result</div>
+                    <div className="mt-3 text-xs text-gray-500">result</div>
                     <div className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
                       {aiAgentTestResult.result || aiAgentTestResult.message || "—"}
                     </div>
