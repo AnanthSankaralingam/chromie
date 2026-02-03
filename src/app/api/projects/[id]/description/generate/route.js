@@ -4,7 +4,7 @@ import { validateProjectId } from "@/lib/validation"
 import { llmService } from "@/lib/services/llm-service"
 import { SUPPORTED_PROVIDERS, PLANNING_MODELS } from "@/lib/constants"
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis"
-import { buildDescriptionPrompt } from "@/lib/prompts/description-generation"
+import { buildDescriptionPrompt } from "@/lib/prompts/followup/workflows/description-generation"
 
 // POST: Generate Chrome Web Store description using AI
 export async function POST(request, { params }) {
@@ -75,8 +75,8 @@ export async function POST(request, { params }) {
       provider: SUPPORTED_PROVIDERS.ANTHROPIC,
       model: PLANNING_MODELS.DEFAULT,
       input: [{ role: "user", content: prompt }],
-      temperature: 0.2, // Slightly higher for creativity
-      max_output_tokens: 500,
+      temperature: 0.3, // Slightly higher for creativity and emoji usage
+      max_output_tokens: 2000, // Increased for longer descriptions
       store: false,
     })
 

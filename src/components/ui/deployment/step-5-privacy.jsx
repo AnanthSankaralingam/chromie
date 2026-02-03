@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Copy, ExternalLink, CheckCircle2, FileText, RefreshCw } from "lucide-react"
+import { Sparkles, Copy, ExternalLink, CheckCircle2, FileText, RefreshCw, Eye, Edit } from "lucide-react"
+import { parseMarkdown } from "@/components/ui/chat/markdown-parser"
 
 export default function Step5Privacy({
   projectId,
@@ -18,27 +19,33 @@ export default function Step5Privacy({
   const [copiedUrl, setCopiedUrl] = useState(false)
   const [error, setError] = useState(null)
   const [hasExistingPolicy, setHasExistingPolicy] = useState(false)
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
 
-  // Check for existing policy on mount
+  // Fetch existing policy on mount
   useEffect(() => {
-    if (existingSlug) {
-      setHasExistingPolicy(true)
-      setPolicySlug(existingSlug)
-      loadExistingPolicy(existingSlug)
-    }
-  }, [existingSlug])
-
-  const loadExistingPolicy = async (slug) => {
-    try {
-      const response = await fetch(`/api/privacy-policy/${slug}`)
-      if (response.ok) {
-        const data = await response.json()
-        setPolicyText(data.policy_text || "")
+    const fetchExistingPolicy = async () => {
+      try {
+        // Fetch from privacy policy API to get both slug and content
+        const response = await fetch(`/api/projects/${projectId}/privacy-policy`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.privacy_slug) {
+            setPolicySlug(data.privacy_slug)
+            setHasExistingPolicy(true)
+          }
+          if (data.privacy_policy) {
+            setPolicyText(data.privacy_policy)
+          }
+        }
+      } catch (err) {
+        console.error("Error loading existing policy:", err)
       }
-    } catch (err) {
-      console.error("Error loading existing policy:", err)
     }
-  }
+
+    if (projectId) {
+      fetchExistingPolicy()
+    }
+  }, [projectId])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -56,15 +63,15 @@ export default function Step5Privacy({
       }
 
       const generateData = await generateResponse.json()
-      setPolicyText(generateData.policy)
+      setPolicyText(generateData.privacy_policy)
 
       // Auto-save to get slug
       setIsSaving(true)
       const saveResponse = await fetch(`/api/projects/${projectId}/privacy-policy`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          policy_text: generateData.policy,
+          privacy_policy: generateData.privacy_policy,
         }),
       })
 
@@ -76,7 +83,7 @@ export default function Step5Privacy({
       const slug = saveData.privacy_slug || saveData.slug
       setPolicySlug(slug)
       setHasExistingPolicy(true)
-      onPolicyGenerated(slug, generateData.policy)
+      onPolicyGenerated(slug, generateData.privacy_policy)
       onComplete()
     } catch (err) {
       console.error("Error generating/saving privacy policy:", err)
@@ -88,7 +95,7 @@ export default function Step5Privacy({
   }
 
   const handleCopyUrl = async () => {
-    const url = `https://chromie.com/privacy-policy/${policySlug}`
+    const url = `https://chromie.dev/privacy-policy/${policySlug}`
     try {
       await navigator.clipboard.writeText(url)
       setCopiedUrl(true)
@@ -99,10 +106,46 @@ export default function Step5Privacy({
   }
 
   const handleViewPolicy = () => {
-    window.open(`https://chromie.com/privacy-policy/${policySlug}`, "_blank")
+    window.open(`https://chromie.dev/privacy-policy/${policySlug}`, "_blank")
   }
 
-  const policyUrl = policySlug ? `https://chromie.com/privacy-policy/${policySlug}` : ""
+  const handleSavePolicy = async () => {
+    if (!policyText || policyText.trim().length < 100) {
+      setError("Privacy policy must be at least 100 characters")
+      return
+    }
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      const saveResponse = await fetch(`/api/projects/${projectId}/privacy-policy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          privacy_policy: policyText,
+        }),
+      })
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save privacy policy")
+      }
+
+      const saveData = await saveResponse.json()
+      const slug = saveData.privacy_slug || saveData.slug
+      setPolicySlug(slug)
+      setHasExistingPolicy(true)
+      onPolicyGenerated(slug, policyText)
+      onComplete()
+    } catch (err) {
+      console.error("Error saving privacy policy:", err)
+      setError(err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const policyUrl = policySlug ? `https://chromie.dev/privacy-policy/${policySlug}` : ""
 
   return (
     <div className="space-y-6">
@@ -118,105 +161,149 @@ export default function Step5Privacy({
         </p>
       </div>
 
-      {/* Generate button (if no existing policy) */}
-      {!hasExistingPolicy && (
-        <div>
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating || isSaving}
-            className="bg-indigo-600 hover:bg-indigo-700 w-full"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {isGenerating
-              ? "Generating Privacy Policy..."
-              : isSaving
-              ? "Saving..."
-              : "Generate Privacy Policy with AI"}
-          </Button>
-          <p className="text-xs text-zinc-500 mt-2">
-            AI will analyze your extension and create a comprehensive privacy policy
-          </p>
-        </div>
-      )}
-
-      {/* Existing/generated policy display */}
-      {hasExistingPolicy && policySlug && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-green-500 mb-4">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="font-semibold">Privacy Policy Ready</span>
-          </div>
-
-          {/* Policy URL */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2 text-zinc-400">Hosted Privacy Policy URL</h3>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <code className="text-sm text-indigo-400 break-all">{policyUrl}</code>
-                <div className="flex items-center gap-2 ml-4">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCopyUrl}
-                    className="text-zinc-400 hover:text-white flex-shrink-0"
-                  >
-                    {copiedUrl ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleViewPolicy}
-                    className="text-zinc-400 hover:text-white flex-shrink-0"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    View
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500">
-                Use this URL in the "Privacy Policy" field on the Chrome Web Store listing
-              </p>
-            </div>
-          </div>
-
-          {/* Policy preview */}
-          {policyText && (
-            <div>
-              <h3 className="text-sm font-semibold mb-2 text-zinc-400">Policy Preview</h3>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-zinc-300 font-sans">
-                    {policyText}
-                  </pre>
-                </div>
-              </div>
-            </div>
+      {/* Generate/Regenerate controls */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-zinc-400">Privacy Policy</h3>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleGenerate}
+          disabled={isGenerating || isSaving}
+          className="text-zinc-400 hover:text-white"
+        >
+          {isGenerating || isSaving ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+              {isGenerating ? "Generating..." : "Saving..."}
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4 mr-1" />
+              {hasExistingPolicy ? "Regenerate with AI" : "Generate with AI"}
+            </>
           )}
+        </Button>
+      </div>
 
-          {/* Regenerate option */}
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || isSaving}
-              variant="outline"
-              className="border-zinc-700 hover:bg-zinc-800"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isGenerating ? "animate-spin" : ""}`} />
-              {isGenerating ? "Regenerating..." : "Regenerate Privacy Policy"}
-            </Button>
+      {/* Policy URL (if exists) */}
+      {hasExistingPolicy && policySlug && (
+        <div>
+          <div className="flex items-center gap-2 text-green-500 mb-3">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="text-sm font-semibold">Privacy Policy URL Generated</span>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <code className="text-sm text-indigo-400 break-all flex-1">{policyUrl}</code>
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleCopyUrl}
+                  className="text-zinc-400 hover:text-white flex-shrink-0 h-8 w-8 p-0"
+                >
+                  {copiedUrl ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleViewPolicy}
+                  className="text-zinc-400 hover:text-white flex-shrink-0 h-8 w-8 p-0"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Policy editor/preview */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-zinc-500">
+            {!policyText
+              ? "Click 'Generate with AI' to create a privacy policy or write your own in markdown"
+              : isPreviewMode
+              ? "Previewing rendered markdown"
+              : "Editing privacy policy markdown"}
+          </p>
+          <div className="flex items-center gap-2">
+            {policyText && (
+              <>
+                <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsPreviewMode(false)}
+                    className={`rounded-r-none ${
+                      !isPreviewMode
+                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Edit className="w-3.5 h-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsPreviewMode(true)}
+                    className={`rounded-l-none border-l border-zinc-800 ${
+                      isPreviewMode
+                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5 mr-1" />
+                    Preview
+                  </Button>
+                </div>
+                {!isPreviewMode && (
+                  <Button
+                    size="sm"
+                    onClick={handleSavePolicy}
+                    disabled={isSaving}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Edit Mode - Markdown Editor */}
+        {!isPreviewMode && (
+          <>
+            <textarea
+              value={policyText}
+              onChange={(e) => setPolicyText(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 min-h-[400px] resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
+              placeholder="# Privacy Policy&#10;&#10;Write your privacy policy in markdown format...&#10;&#10;## Information We Collect&#10;&#10;## How We Use Your Information&#10;&#10;..."
+              disabled={isGenerating || isSaving}
+            />
+            <p className="text-xs text-zinc-500 mt-2">
+              {policyText.length} characters • Minimum 100 characters required
+            </p>
+          </>
+        )}
+
+        {/* Preview Mode - Rendered Markdown */}
+        {isPreviewMode && policyText && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 min-h-[400px] max-h-[600px] overflow-y-auto">
+            <div
+              className="prose prose-invert prose-sm max-w-none [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_p]:mb-3 [&_p]:leading-relaxed [&_ul]:space-y-1 [&_ul]:my-3 [&_li]:ml-4 [&_li]:mb-1"
+              dangerouslySetInnerHTML={{ __html: parseMarkdown(policyText) }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Error message */}
       {error && (
@@ -232,14 +319,7 @@ export default function Step5Privacy({
 
       {/* Instructions */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <h4 className="font-semibold mb-2 text-sm">What to do with this URL:</h4>
-        <ol className="text-sm text-zinc-400 space-y-1 list-decimal list-inside">
-          <li>Copy the privacy policy URL above</li>
-          <li>Open your Chrome Web Store Developer Dashboard</li>
-          <li>Navigate to your extension's listing</li>
-          <li>Paste the URL in the "Privacy Policy" field</li>
-          <li>Save your changes</li>
-        </ol>
+        <h4 className="font-semibold mb-2 text-sm">Paste this URL in the "Privacy Policy" field in the Developer Dashboard.</h4>
       </div>
     </div>
   )

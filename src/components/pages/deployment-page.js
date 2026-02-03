@@ -95,6 +95,12 @@ export default function DeploymentPage() {
     }
   }
 
+  const handleStepClick = (step) => {
+    if (step >= 1 && step <= 5) {
+      setCurrentStep(step)
+    }
+  }
+
   const handleStepComplete = (step) => {
     setCompletedSteps((prev) => new Set(prev).add(step))
   }
@@ -184,6 +190,7 @@ export default function DeploymentPage() {
       stepDescription={currentStepConfig.description}
       onBack={handleBack}
       onNext={handleNext}
+      onStepClick={handleStepClick}
       canGoBack={currentStep > 1}
       canGoNext={true}
       nextLabel={currentStep === 5 ? "Complete" : "Next"}

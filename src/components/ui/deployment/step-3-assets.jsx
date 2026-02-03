@@ -134,22 +134,21 @@ export default function Step3Assets({ projectId, projectData, onComplete }) {
       {/* Upload section */}
       {resizedAssets.length === 0 && (
         <div>
-          <label htmlFor="asset-upload" className="block w-full cursor-pointer">
-            <div className="border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-500" />
-              <p className="text-lg font-semibold mb-2">Upload Promotional Image</p>
-              <p className="text-sm text-zinc-400 mb-4">
-                PNG or JPG, max 5MB. We'll create all required sizes for you.
-              </p>
-              <Button
-                type="button"
-                className="bg-indigo-600 hover:bg-indigo-700"
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Processing..." : "Choose Image"}
-              </Button>
-            </div>
-          </label>
+          <div className="border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
+            <Upload className="w-12 h-12 mx-auto mb-4 text-zinc-500" />
+            <p className="text-lg font-semibold mb-2">Upload Promotional Image</p>
+            <p className="text-sm text-zinc-400 mb-4">
+              PNG or JPG, max 5MB. We'll create all required sizes for you.
+            </p>
+            <Button
+              type="button"
+              onClick={() => document.getElementById("asset-upload").click()}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Processing..." : "Choose Image"}
+            </Button>
+          </div>
           <input
             id="asset-upload"
             type="file"
