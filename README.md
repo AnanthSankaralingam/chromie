@@ -8,10 +8,11 @@ Focus on getting production ready extensions to the store. we can't directly dep
 1. ~Privacy policy creation is a big bottleneck in going to prod, for both google oauth and extensions. allow chromie to host them for user projects~
 2. ~use base template for side panel, highlight->action, etc. This way we guarantee basic behavior (sometimes we still have to right click to open side panel now, despite tailored prompts)~
 3. ~Logs aren't universal and guaranteed to display. when they do exist and are appended as context, development is really streamlined~
-4. Testing features aren't clear (even to me), logs should be prioritized. Puppeteer tests also always pass and aren't clearly explained to the user. 
-5. revamp Deploy to Chrome store feature; instead of direct deployment, create a walkthrough where users can easily generate brand assets, privacy policy, permission justifications, etc. Then they can copy paste into Developer Dashboard
-6. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements. 
-7. Brand assets: use Canva template with brand images (#2) and create a deck for users. Like image replacement on Google Slides template. If too hard can fade.
+4. ~Testing features aren't clear (even to me), logs should be prioritized.~
+5. Puppeteer tests also always pass and aren't clearly explained to the user.
+6. revamp Deploy to Chrome store feature; instead of direct deployment, create a walkthrough where users can easily generate brand assets, privacy policy, permission justifications, etc. Then they can copy paste into Developer Dashboard
+7. Generate brand images for production: Using extension icon and optionally the ext frontend (like sidepanel.html for example), generate images and resize them to Chrome Store requirements. 
+8. Brand assets: use Canva template with brand images (#2) and create a deck for users. Like image replacement on Google Slides template. If too hard can fade.
 
 ---
 
