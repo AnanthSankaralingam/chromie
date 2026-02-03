@@ -771,11 +771,7 @@ export default function AppBarBuilder({
       <PublishModal
         isOpen={isPublishOpen}
         onClose={() => setIsPublishOpen(false)}
-        onConfirm={() => {
-          // TODO: implement zipping and publish to Chrome Web Store via supabase and oauth
-          console.log('[publish] confirm requested')
-          setIsPublishOpen(false)
-        }}
+        projectId={projectId}
       />
       <ShareModal
         isOpen={isShareModalOpen}
