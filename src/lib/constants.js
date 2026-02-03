@@ -34,7 +34,8 @@ export const PLAN_LIMITS = {
 export const CREDIT_COSTS = {
   INITIAL_GENERATION: 3,  // Initial code generation project requests
   FOLLOW_UP_GENERATION: 1,  // Follow-up code generation requests
-  BROWSER_TESTING: 1  // Browser testing session (per use)
+  BROWSER_TESTING: 1,  // Browser testing session (per use)
+  IMAGE_GENERATION: 3  // AI image generation (per use)
 }
 
 // Default plan for users without billing info
