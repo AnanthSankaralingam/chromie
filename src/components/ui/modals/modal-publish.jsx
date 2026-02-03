@@ -5,12 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Upload, X } from "lucide-react"
 import { useCallback } from "react"
+import { useRouter } from "next/navigation"
 
-export default function PublishModal({ isOpen, onClose, onConfirm }) {
+export default function PublishModal({ isOpen, onClose, onConfirm, projectId }) {
+  const router = useRouter()
+
   const handleConfirm = useCallback(() => {
     console.log("[publish] confirm clicked")
-    onConfirm?.()
-  }, [onConfirm])
+    onClose()
+    router.push(`/deployment?project=${projectId}`)
+  }, [onClose, router, projectId])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -28,7 +32,7 @@ export default function PublishModal({ isOpen, onClose, onConfirm }) {
                 <span className="text-2xl font-bold text-white">Publish</span>
               </div>
               <CardDescription className="text-slate-400">
-                Note that if it's your first time publishing, you'll be redirected to the Developer Dashboard to provide some details like name, description, screenshots, category, and privacy information!
+                We'll guide you through preparing your extension for the Chrome Web Store, including generating descriptions, promotional assets, permission justifications, and privacy policy.
               </CardDescription>
             </CardHeader>
 
@@ -40,7 +44,7 @@ export default function PublishModal({ isOpen, onClose, onConfirm }) {
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 font-medium"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Publish to Chrome Web Store
+                  Continue to Deployment
                 </Button>
               </div>
             </CardContent>
