@@ -148,11 +148,11 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
       <div className="flex items-center justify-between px-2 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
         <div className="flex items-center space-x-2 text-xs text-gray-400">
           <Terminal className="h-3 w-3" />
-          <span>Console</span>
+          <span>console</span>
           {isPolling && (
             <span className="flex items-center space-x-1">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-              <span>Live</span>
+              <span>live</span>
             </span>
           )}
           <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs">
@@ -169,8 +169,8 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
               onChange={(e) => setFilter(e.target.value)}
               className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-0.5 border-none focus:outline-none focus:ring-1 focus:ring-gray-500"
             >
-              <option value="all">All ({logs.length})</option>
-              <option value="extension">Extension ({extensionCount})</option>
+              <option value="all">all ({logs.length})</option>
+              <option value="extension">extension ({extensionCount})</option>
             </select>
           </div>
 
@@ -192,9 +192,9 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
         {filteredLogs.length === 0 ? (
           <div className="text-gray-500 text-center py-8">
             <Terminal className="h-6 w-6 mx-auto mb-2 opacity-50" />
-            <p>No console logs yet</p>
+            <p>no console logs yet</p>
             <p className="text-xs mt-1 text-gray-600">
-              Extension logs will appear here once the test starts
+              extension logs will appear here once the test starts
             </p>
           </div>
         ) : (

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { Hyperbrowser } from "@hyperbrowser/sdk"
+import { analyzeLogsForTestVerification, formatErrorSummary } from "@/lib/utils/test-log-verification"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -160,6 +161,12 @@ export async function POST(request, { params }) {
         const taskContent = match.match(/task:\s*["`']([^"`']+)["`']/)[1]
         return taskContent.trim()
       })
+      // Limit to maximum 5 tests to avoid long execution times
+      const maxTests = 5
+      if (tasks.length > maxTests) {
+        console.log(`⚠️ Found ${tasks.length} tests, limiting to first ${maxTests} to avoid repetition`)
+        tasks = tasks.slice(0, maxTests)
+      }
       console.log(`✅ Extracted ${tasks.length} test tasks from script`)
     } else {
       console.log("⚠️ No tasks found in script, using fallback")
@@ -171,7 +178,7 @@ export async function POST(request, { params }) {
     if (tasks.length === 1) {
       testTask = tasks[0]
     } else if (tasks.length > 1) {
-      // Combine multiple tasks into a sequence
+      // Combine multiple tasks into a sequence (limited to avoid repetition)
       testTask = tasks.join('. Then, ')
     } else {
       testTask = `Test the ${extensionName} extension functionality`
@@ -188,13 +195,143 @@ export async function POST(request, { params }) {
 
     console.log("✅ BrowserUse test completed:", result.data?.finalResult)
 
+    // Wait a moment for logs to be captured
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Analyze extension logs to verify test results
+    console.log("📊 Analyzing extension logs for test verification...")
+    const logAnalysis = analyzeLogsForTestVerification(sessionId, {
+      checkExtensionErrors: true,
+      checkRuntimeErrors: true,
+      timeWindowMs: 10 * 60 * 1000, // Check logs from last 10 minutes
+    })
+
+    console.log("📊 Log analysis:", {
+      hasErrors: logAnalysis.hasErrors,
+      errorCount: logAnalysis.errorCount,
+      warningCount: logAnalysis.warningCount,
+      totalLogs: logAnalysis.totalLogs,
+    })
+
+    // Determine final success status based on both agent result and logs
+    const agentSuccess = result.data?.finalResult && !result.data?.finalResult.toLowerCase().includes("failed")
+    const logBasedFailure = logAnalysis.hasErrors ? formatErrorSummary(logAnalysis.errors) : null
+    const finalSuccess = agentSuccess && !logAnalysis.hasErrors
+
+    // Get session details to extract live URL
+    let liveUrl = null
+    try {
+      const sessionDetails = await hbClient.sessions.get(sessionId)
+      liveUrl =
+        sessionDetails.liveViewUrl ||
+        sessionDetails.liveUrl ||
+        sessionDetails.debuggerUrl ||
+        sessionDetails.debuggerFullscreenUrl ||
+        null
+      console.log("🖥️  Extracted live URL:", liveUrl ? "Found" : "Not found")
+    } catch (liveUrlError) {
+      console.warn("⚠️ Could not fetch live URL:", liveUrlError.message)
+    }
+
+    // Attempt to fetch video recording URL for this session
+    console.log("🎥 [hyperagent-test] Fetching video recording URL...")
+    let videoUrl = null
+    let recordingStatus = "unknown"
+    try {
+      const maxAttempts = 30
+      let attempts = 0
+
+      while (attempts < maxAttempts) {
+        const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
+        recordingStatus = recordingResponse.status
+        videoUrl = recordingResponse.recordingUrl
+
+        console.log(
+          `📹 [hyperagent-test] Recording status (attempt ${attempts + 1}/${maxAttempts}):`,
+          recordingStatus
+        )
+
+        if (recordingStatus === "completed") {
+          console.log("✅ [hyperagent-test] Video recording ready:", videoUrl)
+          break
+        } else if (recordingStatus === "failed") {
+          console.error("❌ [hyperagent-test] Video recording failed:", recordingResponse.error)
+          break
+        } else if (recordingStatus === "not_enabled") {
+          console.warn("⚠️ [hyperagent-test] Video recording not enabled for this session")
+          break
+        } else if (recordingStatus === "pending" || recordingStatus === "in_progress") {
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          attempts++
+        } else {
+          console.warn("⚠️ [hyperagent-test] Unknown recording status:", recordingStatus)
+          break
+        }
+      }
+    } catch (recordingError) {
+      console.error("❌ [hyperagent-test] Failed to fetch video recording URL:", recordingError)
+      recordingStatus = "error"
+    }
+
+    // Save testing replay to testing_replays table
+    try {
+      const { error: replayError } = await supabase.from("testing_replays").insert({
+        project_id: projectId,
+        session_id: sessionId,
+        live_url: liveUrl,
+        video_url: videoUrl,
+        recording_status: recordingStatus,
+        test_type: "hyperagent",
+        test_result: {
+          success: finalSuccess,
+          message: finalSuccess
+            ? "BrowserUse test completed successfully"
+            : logBasedFailure
+            ? `Test completed but extension logs show errors: ${logBasedFailure}`
+            : "BrowserUse test completed with issues",
+          result: result.data?.finalResult || "Test completed",
+          task: testTask,
+          logAnalysis: {
+            hasErrors: logAnalysis.hasErrors,
+            errorCount: logAnalysis.errorCount,
+            warningCount: logAnalysis.warningCount,
+            totalLogs: logAnalysis.totalLogs,
+            logBasedFailure: logBasedFailure,
+          },
+        },
+      })
+
+      if (replayError) {
+        console.error("⚠️ Failed to save testing replay to database:", replayError)
+        // Continue anyway - don't fail the request
+      } else {
+        console.log("✅ Testing replay saved to database")
+      }
+    } catch (replayError) {
+      console.error("⚠️ Error saving testing replay:", replayError)
+      // Continue anyway - don't fail the request
+    }
+
     // Return the test results
     return NextResponse.json({
-      success: true,
-      message: "BrowserUse test completed successfully",
+      success: finalSuccess,
+      message: finalSuccess
+        ? "BrowserUse test completed successfully"
+        : logBasedFailure
+        ? `Test completed but extension logs show errors: ${logBasedFailure}`
+        : "BrowserUse test completed with issues",
       result: result.data?.finalResult || "Test completed",
       task: testTask,
       sessionId: sessionId,
+      logAnalysis: {
+        hasErrors: logAnalysis.hasErrors,
+        errorCount: logAnalysis.errorCount,
+        warningCount: logAnalysis.warningCount,
+        totalLogs: logAnalysis.totalLogs,
+        logBasedFailure: logBasedFailure,
+      },
+      videoUrl,
+      recordingStatus,
     })
 
   } catch (error) {

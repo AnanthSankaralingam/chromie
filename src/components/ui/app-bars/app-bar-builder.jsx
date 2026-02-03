@@ -16,6 +16,7 @@ import ShareDropdown from "@/components/ui/share-dropdown"
 import GithubExportStatusModal from "@/components/ui/modals/github-export-status-modal"
 import PrivacyPolicyInfoModal from "@/components/ui/modals/privacy-policy-info-modal"
 import MetricsComingSoonModal from "@/components/ui/modals/metrics-coming-soon-modal"
+import TestingReplaysModal from "@/components/ui/modals/testing-replays-modal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,7 @@ export default function AppBarBuilder({
   const [isPublishOpen, setIsPublishOpen] = useState(false)
   const [isPrivacyPolicyInfoOpen, setIsPrivacyPolicyInfoOpen] = useState(false)
   const [isMetricsComingSoonOpen, setIsMetricsComingSoonOpen] = useState(false)
+  const [isTestingReplaysModalOpen, setIsTestingReplaysModalOpen] = useState(false)
   const {
     isTestButtonHighlighted,
     isDownloadButtonHighlighted,
@@ -140,6 +142,11 @@ export default function AppBarBuilder({
     }
     setIsAITestDropdownOpen(false)
     onTestWithAI?.(true) // viewOnly = true
+  }
+
+  const handleViewTestingReplaysClick = () => {
+    setIsAITestDropdownOpen(false)
+    setIsTestingReplaysModalOpen(true)
   }
 
   const handleDownloadClick = () => {
@@ -443,7 +450,7 @@ export default function AppBarBuilder({
                     >
                       <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
                       <span className="flex-1">
-                        <span className="block">Generate Puppeteer Tests</span>
+                        <span className="block">Generate Basic Tests</span>
                         <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
                       </span>
                     </DropdownMenuItem>
@@ -460,7 +467,7 @@ export default function AppBarBuilder({
                       <span className="flex-1">
                         <span className="block flex items-center gap-1.5">
                           {!userIsPaid && !isStillLoading && <Lock className="h-3 w-3" />}
-                          {isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}
+                          {isGeneratingTestAgent ? "Creating..." : "Generate AI Agent Tests"}
                         </span>
                         <span className="block text-[11px] leading-tight text-slate-400">
                           {!userIsPaid && !isStillLoading ? "Paid feature — upgrade to unlock" : "Setup for end‑to‑end AI testing"}
@@ -498,11 +505,22 @@ export default function AppBarBuilder({
                       <span className="flex-1">
                         <span className="block flex items-center gap-1.5">
                           {!userIsPaid && !isStillLoading && <Lock className="h-3 w-3" />}
-                          {isTestingWithAI ? "Executing..." : "Execute Testing Agent"}
+                          {isTestingWithAI ? "Executing..." : "Run Tests"}
                         </span>
                         <span className="block text-[11px] leading-tight text-slate-400">
                           {!userIsPaid && !isStillLoading ? "Paid feature — upgrade to unlock" : "Runs Puppeteer → AI agent"}
                         </span>
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleViewTestingReplaysClick}
+                      disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    >
+                      <History className="h-4 w-4 mr-3 text-blue-400" />
+                      <span className="flex-1">
+                        <span className="block">View Testing Replays</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">Watch past test recordings</span>
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -629,7 +647,7 @@ export default function AppBarBuilder({
                 >
                   <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
                   <span className="flex-1">
-                    <span className="block">Generate Puppeteer Tests</span>
+                    <span className="block">Generate Basic Tests</span>
                     <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
                   </span>
                 </DropdownMenuItem>
@@ -646,7 +664,7 @@ export default function AppBarBuilder({
                   <span className="flex-1">
                     <span className="block flex items-center gap-1.5">
                       {!userIsPaid && !isStillLoading && <Lock className="h-3 w-3" />}
-                      {isGeneratingTestAgent ? "Creating..." : "Generate AI Tests"}
+                      {isGeneratingTestAgent ? "Creating..." : "Generate AI Agent Tests"}
                     </span>
                     <span className="block text-[11px] leading-tight text-slate-400">
                       {!userIsPaid && !isStillLoading ? "Paid feature — upgrade to unlock" : "Setup for end‑to‑end AI testing"}
@@ -684,11 +702,22 @@ export default function AppBarBuilder({
                   <span className="flex-1">
                     <span className="block flex items-center gap-1.5">
                       {!userIsPaid && !isStillLoading && <Lock className="h-3 w-3" />}
-                      {isTestingWithAI ? "Executing..." : "Execute Testing Agent"}
+                      {isTestingWithAI ? "Executing..." : "Run Tests"}
                     </span>
                     <span className="block text-[11px] leading-tight text-slate-400">
                       {!userIsPaid && !isStillLoading ? "Paid feature — upgrade to unlock" : "Runs Puppeteer → AI agent"}
                     </span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { handleViewTestingReplaysClick(); setIsMobileMenuOpen(false) }}
+                  disabled={isTestDisabled || isGenerating || isTestingWithAI}
+                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                >
+                  <History className="h-4 w-4 mr-3 text-blue-400" />
+                  <span className="flex-1">
+                    <span className="block">View Testing Replays</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">Watch past test recordings</span>
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -773,6 +802,11 @@ export default function AppBarBuilder({
       <MetricsComingSoonModal
         isOpen={isMetricsComingSoonOpen}
         onClose={() => setIsMetricsComingSoonOpen(false)}
+      />
+      <TestingReplaysModal
+        isOpen={isTestingReplaysModalOpen}
+        onClose={() => setIsTestingReplaysModalOpen(false)}
+        projectId={projectId}
       />
     </header>
   )

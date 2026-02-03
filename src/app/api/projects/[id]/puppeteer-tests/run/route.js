@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import vm from "vm"
 import { createClient } from "@/lib/supabase/server"
 import { getPuppeteerSessionContext } from "@/lib/utils/browser-actions"
+import { analyzeLogsForTestVerification, formatErrorSummary } from "@/lib/utils/test-log-verification"
+import { Hyperbrowser } from "@hyperbrowser/sdk"
 
 export const runtime = "nodejs"
 
@@ -225,14 +227,157 @@ export async function POST(request, { params }) {
       apiKey,
     })
 
+    // Wait a moment for logs to be captured
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // Analyze extension logs to verify test results
+    console.log("[puppeteer-tests/run] 📊 Analyzing extension logs for test verification...")
+    const logAnalysis = analyzeLogsForTestVerification(sessionId, {
+      checkExtensionErrors: true,
+      checkRuntimeErrors: true,
+      timeWindowMs: 10 * 60 * 1000, // Check logs from last 10 minutes
+    })
+
+    console.log("[puppeteer-tests/run] 📊 Log analysis:", {
+      hasErrors: logAnalysis.hasErrors,
+      errorCount: logAnalysis.errorCount,
+      warningCount: logAnalysis.warningCount,
+      totalLogs: logAnalysis.totalLogs,
+    })
+
+    // If logs show errors, mark tests as failed even if they didn't throw
+    let finalPassed = run.passed
+    let logBasedFailure = null
+
+    if (logAnalysis.hasErrors) {
+      console.log("[puppeteer-tests/run] ⚠️  Extension logs contain errors, marking tests as failed")
+      finalPassed = false
+      logBasedFailure = formatErrorSummary(logAnalysis.errors)
+
+      // Add a synthetic test result for log-based failures if all tests passed but logs show errors
+      if (run.passed && run.results.length > 0) {
+        // Check if we should add a log-based failure result
+        const hasLogFailureResult = run.results.some(
+          (r) => r.name && r.name.toLowerCase().includes("log")
+        )
+
+        if (!hasLogFailureResult) {
+          run.results.push({
+            name: "extension logs verification",
+            status: "failed",
+            durationMs: 0,
+            error: logBasedFailure,
+            logBased: true,
+          })
+        }
+      }
+    }
+
+    // Get session details to extract live URL and attempt to fetch video recording
+    let liveUrl = null
+    let videoUrl = null
+    let recordingStatus = "unknown"
+    try {
+      const hbClient = new Hyperbrowser({ apiKey })
+      const sessionDetails = await hbClient.sessions.get(sessionId)
+      liveUrl =
+        sessionDetails.liveViewUrl ||
+        sessionDetails.liveUrl ||
+        sessionDetails.debuggerUrl ||
+        sessionDetails.debuggerFullscreenUrl ||
+        null
+      console.log("[puppeteer-tests/run] 🖥️  Extracted live URL:", liveUrl ? "Found" : "Not found")
+
+      console.log("[puppeteer-tests/run] 🎥 Fetching video recording URL...")
+      const maxAttempts = 30
+      let attempts = 0
+
+      while (attempts < maxAttempts) {
+        const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
+        recordingStatus = recordingResponse.status
+        videoUrl = recordingResponse.recordingUrl
+
+        console.log(
+          `[puppeteer-tests/run] 📹 Recording status (attempt ${attempts + 1}/${maxAttempts}):`,
+          recordingStatus
+        )
+
+        if (recordingStatus === "completed") {
+          console.log("[puppeteer-tests/run] ✅ Video recording ready:", videoUrl)
+          break
+        } else if (recordingStatus === "failed") {
+          console.error("[puppeteer-tests/run] ❌ Video recording failed:", recordingResponse.error)
+          break
+        } else if (recordingStatus === "not_enabled") {
+          console.warn("[puppeteer-tests/run] ⚠️ Video recording not enabled for this session")
+          break
+        } else if (recordingStatus === "pending" || recordingStatus === "in_progress") {
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          attempts++
+        } else {
+          console.warn("[puppeteer-tests/run] ⚠️ Unknown recording status:", recordingStatus)
+          break
+        }
+      }
+    } catch (liveUrlError) {
+      console.warn("[puppeteer-tests/run] ⚠️ Could not fetch live URL or recording:", liveUrlError.message)
+      recordingStatus = recordingStatus === "unknown" ? "error" : recordingStatus
+    }
+
+    // Save testing replay to testing_replays table
+    try {
+      const { error: replayError } = await supabase.from("testing_replays").insert({
+        project_id: projectId,
+        session_id: sessionId,
+        live_url: liveUrl,
+        video_url: videoUrl,
+        recording_status: recordingStatus,
+        test_type: "puppeteer",
+        test_result: {
+          success: finalPassed,
+          results: run.results,
+          logAnalysis: {
+            hasErrors: logAnalysis.hasErrors,
+            errorCount: logAnalysis.errorCount,
+            warningCount: logAnalysis.warningCount,
+            totalLogs: logAnalysis.totalLogs,
+            logBasedFailure: logBasedFailure,
+          },
+        },
+      })
+
+      if (replayError) {
+        console.error("[puppeteer-tests/run] ⚠️ Failed to save testing replay to database:", replayError)
+        // Continue anyway - don't fail the request
+      } else {
+        console.log("[puppeteer-tests/run] ✅ Testing replay saved to database")
+      }
+    } catch (replayError) {
+      console.error("[puppeteer-tests/run] ⚠️ Error saving testing replay:", replayError)
+      // Continue anyway - don't fail the request
+    }
+
     const response = {
-      success: run.passed,
+      success: finalPassed,
       sessionId,
       filePath: "tests/puppeteer/index.test.js",
       results: run.results,
+      logAnalysis: {
+        hasErrors: logAnalysis.hasErrors,
+        errorCount: logAnalysis.errorCount,
+        warningCount: logAnalysis.warningCount,
+        totalLogs: logAnalysis.totalLogs,
+        logBasedFailure: logBasedFailure,
+      },
     }
 
-    console.log("[puppeteer-tests/run] ✅ Completed", { projectId, sessionId, passed: run.passed })
+    console.log("[puppeteer-tests/run] ✅ Completed", {
+      projectId,
+      sessionId,
+      passed: finalPassed,
+      testPassed: run.passed,
+      logBasedFailure: logBasedFailure !== null,
+    })
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
     console.error("[puppeteer-tests/run] ❌ Error:", error)

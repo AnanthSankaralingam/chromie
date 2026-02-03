@@ -207,13 +207,16 @@ export class HyperbrowserService {
       }
       
       const sessionCreatePayload = {
-        // Hyperbrowser session configuration - using only free plan features
+        // Hyperbrowser session configuration
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
         timeoutMinutes: 3,
         enableWindowManager: true,
         enableWindowManagerTaskbar: true,
-        enableLogCapture: false // Disable logger extension
+        enableLogCapture: false, // Disable logger extension
+        // Enable session recording so automated tests can be replayed as video
+        enableWebRecording: true,
+        enableVideoWebRecording: true,
       }
 
       // Add extension if available

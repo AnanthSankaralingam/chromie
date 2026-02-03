@@ -129,6 +129,17 @@ export default function StreamingChat({
     }
   }, [testSessionLogs])
 
+  // Reset logsAppended if logs are removed from input message
+  useEffect(() => {
+    if (logsAppended && testSessionLogs && testSessionLogs.length > 0) {
+      const formatted = formatLogsForContext(testSessionLogs)
+      // Check if the formatted logs are still in the input message
+      if (!inputMessage.includes(formatted)) {
+        setLogsAppended(false)
+      }
+    }
+  }, [inputMessage, logsAppended, testSessionLogs])
+
   // Check message count and show clear chat suggestion
   useEffect(() => {
     if (!projectId) return
@@ -594,37 +605,37 @@ export default function StreamingChat({
               enableFileTagging={true}
               extraControlsLeft={
                 effectiveHasGeneratedCode ? (
-                  <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-gray-900/80 border border-gray-700 px-1 py-0.5 text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() => setFollowUpMode("agent")}
-                      className={`px-2 py-0.5 rounded-full transition-colors ${
-                        followUpMode === "agent"
-                          ? "bg-gray-100 text-black"
-                          : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      agent
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFollowUpMode("ask")}
-                      className={`px-2 py-0.5 rounded-full transition-colors ${
-                        followUpMode === "ask"
-                          ? "bg-gray-100 text-black"
-                          : "text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      ask
-                    </button>
+                  <div className="pointer-events-auto flex items-center gap-2">
+                    <div className="flex items-center gap-1 rounded-full bg-gray-900/80 border border-gray-700 px-1 py-0.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setFollowUpMode("agent")}
+                        className={`px-2 py-0.5 rounded-full transition-colors ${
+                          followUpMode === "agent"
+                            ? "bg-gray-100 text-black"
+                            : "text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        agent
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFollowUpMode("ask")}
+                        className={`px-2 py-0.5 rounded-full transition-colors ${
+                          followUpMode === "ask"
+                            ? "bg-gray-100 text-black"
+                            : "text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        ask
+                      </button>
+                    </div>
                     {testSessionLogs && testSessionLogs.length > 0 && (
-                      <div className="ml-1">
-                        <LogsAppendButton
-                          logs={testSessionLogs}
-                          onAppend={handleAppendLogs}
-                          disabled={logsAppended || isGenerating}
-                        />
-                      </div>
+                      <LogsAppendButton
+                        logs={testSessionLogs}
+                        onAppend={handleAppendLogs}
+                        disabled={logsAppended || isGenerating}
+                      />
                     )}
                   </div>
                 ) : testSessionLogs && testSessionLogs.length > 0 ? (

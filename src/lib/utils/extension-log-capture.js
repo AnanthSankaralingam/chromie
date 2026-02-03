@@ -186,6 +186,34 @@ export async function setupLogCapture(browser, page, sessionId) {
   console.log('[extension-log-capture] Setting up log capture for session', sessionId)
 
   const activeCDPSessions = new Map()
+  const attachedPageTargets = new Set()
+
+  const tryAttachToTarget = async (target) => {
+    try {
+      // Wait briefly for URL/type to stabilize (helps for rapidly changing targets)
+      await new Promise(resolve => setTimeout(resolve, 150))
+
+      const targetUrl = target.url()
+      const isExtensionTarget = targetUrl.startsWith('chrome-extension://')
+      if (!isExtensionTarget) return
+
+      // Avoid attaching multiple times to the same underlying target/page
+      const targetId = target?._targetId || targetUrl
+      const attachKey = `page-${targetId}`
+      if (attachedPageTargets.has(attachKey)) return
+
+      const targetPage = await target.page().catch(() => null)
+      if (targetPage) {
+        await attachToPage(targetPage, targetUrl, sessionId)
+        attachedPageTargets.add(attachKey)
+      } else {
+        // Service workers/offscreen/etc. are handled separately and already deduped via activeCDPSessions
+        await attachToServiceWorker(target, targetUrl, sessionId, activeCDPSessions)
+      }
+    } catch (error) {
+      console.error(`[extension-log-capture] Failed to attach to target:`, error.message)
+    }
+  }
 
   // Attach console listeners to existing workers
   const existingWorkers = await page.workers()
@@ -218,48 +246,20 @@ export async function setupLogCapture(browser, page, sessionId) {
 
   // Listen for new targets (sidepanels, popups, etc.)
   browser.on('targetcreated', async (target) => {
-    try {
-      // Wait for target to be ready and URL to stabilize
-      await new Promise(resolve => setTimeout(resolve, 200))
+    await tryAttachToTarget(target)
+  })
 
-      const targetType = target.type()
-      const targetUrl = target.url()
-
-      // Only attach to extension targets
-      const isExtensionTarget = targetUrl.startsWith('chrome-extension://')
-
-      if (!isExtensionTarget) {
-        return // Skip non-extension targets (regular web pages)
-      }
-
-      const targetPage = await target.page().catch(() => null)
-
-      if (targetPage) {
-        await attachToPage(targetPage, targetUrl, sessionId)
-      } else {
-        await attachToServiceWorker(target, targetUrl, sessionId, activeCDPSessions)
-      }
-    } catch (error) {
-      console.error(`[extension-log-capture] Failed to attach to target:`, error.message)
-    }
+  // CRITICAL: When you navigate an existing tab directly to a chrome-extension:// URL,
+  // Puppeteer/Chrome does NOT create a new target. The same target's URL changes.
+  // We must listen for target changes to attach log capture in that case.
+  browser.on('targetchanged', async (target) => {
+    await tryAttachToTarget(target)
   })
 
   // Attach to existing extension targets
   const existingTargets = browser.targets()
   for (const target of existingTargets) {
-    const targetUrl = target.url()
-    if (targetUrl.startsWith('chrome-extension://')) {
-      try {
-        const targetPage = await target.page().catch(() => null)
-        if (targetPage) {
-          await attachToPage(targetPage, targetUrl, sessionId)
-        } else {
-          await attachToServiceWorker(target, targetUrl, sessionId, activeCDPSessions)
-        }
-      } catch (error) {
-        console.error(`[extension-log-capture] Failed to attach to existing target:`, error.message)
-      }
-    }
+    await tryAttachToTarget(target)
   }
 
   // Mark log capture as active for this session to prevent duplicate setup

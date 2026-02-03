@@ -51,8 +51,12 @@ export async function generateHyperAgentTestScript({ projectId, projectName, use
   // Create the prompt for BrowserUse script generation
   const prompt = `TASK: Generate executable JavaScript code for BrowserUse testing.
 
-CRITICAL RULE: In ALL task descriptions, you MUST use {{POPUP_URL}}, {{OPTIONS_URL}}, or {{SIDEPANEL_URL}} placeholders to navigate to extension pages. 
-NEVER write "click extension icon" or "open popup" - ALWAYS start with "Navigate to {{POPUP_URL}}" or the appropriate placeholder.
+CRITICAL RULE: Use {{POPUP_URL}}, {{OPTIONS_URL}}, or {{SIDEPANEL_URL}} placeholders to navigate to extension pages when:
+1. Starting a test (navigate to initial page)
+2. Switching to a different extension page (e.g., going to settings)
+
+DO NOT navigate when interacting on the same page (clicking buttons, typing inputs, etc.) - just use click/type actions directly.
+NEVER write "click extension icon" or "open popup" - use URL placeholders instead.
 
 IMPORTANT: You must output ONLY code. Do not think, plan, or explain. Start immediately with the import statement.
 
@@ -72,30 +76,60 @@ ${filesContext}
 </extension_files>
 
 <accessing_extension_pages>
-MANDATORY: You MUST use placeholder variables for extension URLs in ALL your test task descriptions.
+CRITICAL: Understand when to navigate vs when to interact on the same page.
 
 The Chrome extension ID will be injected at runtime. Use these placeholder variables:
 - {{POPUP_URL}} - will be replaced with chrome-extension://<id>/${popupFile || "popup.html"}
 - {{OPTIONS_URL}} - will be replaced with chrome-extension://<id>/${optionsPage || "options.html"}
 - {{SIDEPANEL_URL}} - will be replaced with chrome-extension://<id>/${sidePanelPath || "sidepanel.html"}
 
+NAVIGATION RULES:
+1. USE NAVIGATION when switching to a DIFFERENT extension page:
+   - Going to settings/options page → Use "Navigate to {{OPTIONS_URL}}"
+   - Starting a test on a specific page → Use "Navigate to {{POPUP_URL}}" or appropriate placeholder
+   - Switching between popup and side panel → Use navigation
+
+2. DO NOT NAVIGATE when interacting on the SAME page:
+   - Clicking buttons, typing in inputs, submitting forms → Just use click/type actions
+   - These interactions happen on the current page, no navigation needed
+   - Only navigate if you need to switch to a different extension page
+
 CORRECT Examples:
 ✅ "1. Navigate to {{POPUP_URL}} 2. Use type action to enter [text] into the [type of input] field 3. Use click action on the [purpose/label] button"
-✅ "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on the [purpose/label] button 3. Verify [expected result]"
-✅ "1. Navigate to {{OPTIONS_URL}} 2. Use click action on the [purpose/label] control 3. Verify [expected result]"
+   (All on same page - navigate once, then interact)
+
+✅ "1. Navigate to {{POPUP_URL}} 2. Use click action on the send button 3. Verify [expected result]"
+   (Staying on same page - navigate once, then interact)
+
+✅ "1. Navigate to {{POPUP_URL}} 2. Use click action on the settings button 3. Navigate to {{OPTIONS_URL}} 4. Use click action on the save button"
+   (Switching pages - navigate to options page when going to settings)
+
+✅ "1. Navigate to {{SIDEPANEL_URL}} 2. Use type action to enter text 3. Use click action on the submit button"
+   (All on same page - navigate once, then interact)
 
 WRONG Examples (DO NOT DO THIS):
-❌ "1. Navigate to chrome://newtab/ 2. Click the extension icon 3. Use type action..."
-❌ "1. Open the popup 2. Use click action..."
-❌ "1. Click extension icon to open side panel 2. Use type action..."
-❌ "1. Navigate to {{POPUP_URL}} 2. Use click action on button with ID 'submitBtn'"
+❌ "1. Navigate to {{POPUP_URL}} 2. Navigate to {{POPUP_URL}} 3. Use click action on button"
+   (Don't navigate twice to same page)
 
-ALWAYS start your task with "Navigate to {{POPUP_URL}}" (or the appropriate placeholder for the extension type).
+❌ "1. Navigate to {{POPUP_URL}} 2. Use click action on send button 3. Navigate to {{POPUP_URL}}"
+   (Don't navigate again after clicking - stay on same page)
+
+❌ "1. Navigate to chrome://newtab/ 2. Click the extension icon 3. Use type action..."
+   (Don't click extension icon - use URL placeholders)
+
+❌ "1. Open the popup 2. Use click action..."
+   (Don't say "open popup" - use "Navigate to {{POPUP_URL}}")
+
+ALWAYS start your task with "Navigate to {{POPUP_URL}}" (or the appropriate placeholder) when beginning a test.
+Only use navigation again if you need to switch to a DIFFERENT extension page (like going to settings).
 If the extension ID is not available at runtime, the system will automatically convert this to fallback instructions.
 </accessing_extension_pages>
 
 <browseruse_script_format>
-CRITICAL: Generate a complete, executable BrowserUse script in this EXACT format:
+CRITICAL: Generate a complete, executable BrowserUse script in this EXACT format with EXACTLY 3-5 tests maximum.
+
+IMPORTANT: Each test must cover a DIFFERENT aspect of the extension. Do NOT create repetitive tests.
+
 \`\`\`javascript
 import { Hyperbrowser } from "@hyperbrowser/sdk";
 
@@ -111,24 +145,35 @@ const runTest = async (sessionId) => {
   console.log('🧪 Starting BrowserUse test for ${projectName}');
 
   try {
-    // Test 1: [First test description]
+    // Test 1: Core functionality - [Describe main feature]
     const result1 = await client.agents.browserUse.startAndWait({
-      task: "1. Navigate to {{${frontendType === "side_panel" ? "SIDEPANEL_URL" : frontendType === "popup" ? "POPUP_URL" : "POPUP_URL"}}} 2. [Remaining test steps - use specific element IDs/classes from the extension code]",
+      task: "1. Navigate to {{${frontendType === "side_panel" ? "SIDEPANEL_URL" : frontendType === "popup" ? "POPUP_URL" : "POPUP_URL"}}} 2. [Test main feature with specific steps]",
       sessionId: sessionId,
       keepBrowserOpen: true,
     });
     console.log('✅ Test 1 completed:', result1.data?.finalResult);
 
-    // Test 2: [Second test description if needed]
+    // Test 2: [Different aspect - edge cases, UI, or secondary feature]
     const result2 = await client.agents.browserUse.startAndWait({
-      task: "1. Navigate to {{${frontendType === "side_panel" ? "SIDEPANEL_URL" : frontendType === "popup" ? "POPUP_URL" : "POPUP_URL"}}} 2. [Remaining test steps - use specific element IDs/classes from the extension code]",
+      task: "1. Navigate to {{${frontendType === "side_panel" ? "SIDEPANEL_URL" : frontendType === "popup" ? "POPUP_URL" : "POPUP_URL"}}} 2. [Test different aspect with specific steps]",
       sessionId: sessionId,
       keepBrowserOpen: true,
     });
     console.log('✅ Test 2 completed:', result2.data?.finalResult);
 
+    // Test 3: [Another different aspect - only include if extension has enough features]
+    const result3 = await client.agents.browserUse.startAndWait({
+      task: "1. Navigate to {{${frontendType === "side_panel" ? "SIDEPANEL_URL" : frontendType === "popup" ? "POPUP_URL" : "POPUP_URL"}}} 2. [Test another unique aspect]",
+      sessionId: sessionId,
+      keepBrowserOpen: true,
+    });
+    console.log('✅ Test 3 completed:', result3.data?.finalResult);
+
+    // Only add Test 4 and Test 5 if the extension has enough distinct features to warrant them
+    // If the extension is simple, stop at 3 tests
+
     console.log('🎉 All tests completed successfully');
-    return { success: true, results: [result1, result2] };
+    return { success: true, results: [result1, result2, result3] };
   } catch (err) {
     console.error('❌ Test failed:', err.message);
     return { success: false, error: err.message };
@@ -151,6 +196,21 @@ if (import.meta.url === \`file://\${process.argv[1]}\`) {
 </browseruse_script_format>
 
 <test_task_requirements>
+CRITICAL: Generate EXACTLY 3-5 test tasks maximum. Each test should cover a DIFFERENT aspect of the extension to avoid repetition.
+
+Test Coverage Strategy:
+- Test 1: Core functionality - Test the main feature/primary use case
+- Test 2: Edge cases - Test boundary conditions, empty inputs, or error handling
+- Test 3: UI interactions - Test different UI elements, navigation, or state changes
+- Test 4 (if applicable): Integration - Test interaction with web pages or external services
+- Test 5 (if applicable): Settings/Configuration - Test options page or configuration if it exists
+
+AVOID REPETITION:
+- Do NOT create multiple tests that test the same feature
+- Each test should focus on a UNIQUE aspect of the extension
+- If the extension has limited features, generate fewer tests (3 is sufficient)
+- Prioritize quality and diversity over quantity
+
 Create specific task descriptions based on the extension type, following BrowserUse best practices:
 
 1. BE SPECIFIC & NUMBERED:
@@ -174,10 +234,12 @@ Create specific task descriptions based on the extension type, following Browser
    - Define what to do if a step fails
    - Example: "If page doesn't load, refresh and wait 5 seconds"
 
-5. ALWAYS USE URL PLACEHOLDERS FOR EXTENSION PAGES:
-   - NEVER write "Click extension icon" or "Open popup"
-   - ALWAYS use {{POPUP_URL}}, {{OPTIONS_URL}}, or {{SIDEPANEL_URL}} placeholders
-   - Example: "1. Navigate to {{POPUP_URL}} 2. Use click action on button 'Submit'"
+5. NAVIGATION VS INTERACTION:
+   - Use "Navigate to {{URL}}" ONLY when switching to a different extension page
+   - Once on a page, use click/type actions directly - DO NOT navigate again unless switching pages
+   - Example (same page): "1. Navigate to {{POPUP_URL}} 2. Use type action to enter text 3. Use click action on submit button"
+   - Example (different page): "1. Navigate to {{POPUP_URL}} 2. Use click action on settings button 3. Navigate to {{OPTIONS_URL}} 4. Use click action on save button"
+   - NEVER write "Click extension icon" or "Open popup" - use URL placeholders instead
 
 FOR SIDE PANEL EXTENSIONS:
 - CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on the [purpose-based button name] 3. Verify [expected behavior]"
@@ -199,10 +261,17 @@ Based on the extension files provided:
 1. Analyze the manifest.json to understand permissions and features
 2. Analyze HTML files to understand what buttons, inputs, and controls exist
 3. Analyze JS files to understand the extension's functionality
-4. Create task descriptions that test the ACTUAL features implemented
-5. Describe UI elements by their PURPOSE or VISIBLE LABEL, not by technical IDs or classes
-6. Test the EXACT functionality from the user's original request
-7. ALWAYS use URL placeholders ({{POPUP_URL}}, {{OPTIONS_URL}}, {{SIDEPANEL_URL}}) - NEVER "click extension icon"
+4. Identify DISTINCT features/functionality - each test should cover a UNIQUE aspect
+5. Create EXACTLY 3-5 test tasks that cover different aspects (core feature, edge cases, UI interactions, etc.)
+6. Describe UI elements by their PURPOSE or VISIBLE LABEL, not by technical IDs or classes
+7. Test the EXACT functionality from the user's original request
+8. NAVIGATION RULES:
+   - Use "Navigate to {{URL}}" when starting a test or switching to a different extension page
+   - Once on a page, interact directly (click/type) without navigating again unless switching pages
+   - Use URL placeholders ({{POPUP_URL}}, {{OPTIONS_URL}}, {{SIDEPANEL_URL}}) - NEVER "click extension icon"
+   - Example: "1. Navigate to {{POPUP_URL}} 2. Use click action on send button" (stays on same page)
+   - Example: "1. Navigate to {{POPUP_URL}} 2. Navigate to {{OPTIONS_URL}}" (switching pages)
+9. If the extension has limited features, generate only 3 tests. Do NOT create repetitive tests.
 
 When describing elements in tasks:
 - Use descriptive names based on what the button/input DOES or what label/text it displays
@@ -211,19 +280,27 @@ When describing elements in tasks:
 - Focus on the user-visible purpose/label of the element
 
 For POPUP extensions:
-- CORRECT: "1. Navigate to {{POPUP_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result based on functionality]"
+- CORRECT (same page): "1. Navigate to {{POPUP_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result based on functionality]"
+- CORRECT (switching pages): "1. Navigate to {{POPUP_URL}} 2. Use click action on settings button 3. Navigate to {{OPTIONS_URL}} 4. Use click action on save button"
 - WRONG: "1. Navigate to chrome://newtab/ 2. Click extension icon 3. Use click action..."
+- WRONG: "1. Navigate to {{POPUP_URL}} 2. Navigate to {{POPUP_URL}} 3. Use click action" (don't navigate twice to same page)
 - WRONG: "1. Navigate to {{POPUP_URL}} 2. Use click action on button with ID 'xyz123'"
 
 For SIDE PANEL extensions:
-- CORRECT: "1. Navigate to {{SIDEPANEL_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result]"
+- CORRECT (same page): "1. Navigate to {{SIDEPANEL_URL}} 2. Use type action to enter text into the [input type] field 3. Use click action on the [button purpose/label] button 4. Verify [expected result]"
+- CORRECT (switching pages): "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on options button 3. Navigate to {{OPTIONS_URL}} 4. Verify settings page loads"
 - WRONG: "1. Open side panel 2. Use type action..."
+- WRONG: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click action on submit 3. Navigate to {{SIDEPANEL_URL}}" (don't navigate again after clicking - stay on same page)
 - WRONG: "1. Navigate to {{SIDEPANEL_URL}} 2. Use click on element with class 'xyz-class'"
 </customization_guidelines>
 
 Generate the complete executable script now.
 
 CRITICAL INSTRUCTIONS:
+- Generate EXACTLY 3-5 test tasks maximum
+- Each test must cover a DIFFERENT aspect (core feature, edge cases, UI, settings, etc.)
+- Do NOT create repetitive tests that test the same feature
+- If the extension is simple, generate only 3 tests
 - Do NOT include any thinking, planning, or explanations
 - Do NOT use markdown code blocks
 - Return ONLY raw JavaScript code
