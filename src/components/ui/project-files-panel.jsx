@@ -15,6 +15,8 @@ export default function ProjectFilesPanel({
   projectId,
   onAssetUploaded,
   onAssetDeleted,
+  onFileDeleted,
+  onFileCreated,
   flatFiles = []
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -142,6 +144,8 @@ export default function ProjectFilesPanel({
             isLoadingFiles={isLoadingFiles}
             searchQuery={searchQuery}
             onDeleteAsset={onAssetDeleted}
+            onDeleteFile={onFileDeleted}
+            onCreateFile={onFileCreated}
           />
         </div>
       </div>

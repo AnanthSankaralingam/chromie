@@ -143,20 +143,23 @@ export default function useFileManagement(currentProjectId, user) {
       // Combine code files and assets
       const allFiles = [...codeFiles, ...assetFiles]
 
+      // Filter out internal .chromie folder (used for storing extension metadata)
+      const visibleFiles = allFiles.filter(file => !file.file_path.startsWith('.chromie/'))
+
       // Store both flat files for actions and transformed tree for display
-      setFlatFiles(allFiles)
-      const transformedFiles = transformFilesToTree(allFiles)
+      setFlatFiles(visibleFiles)
+      const transformedFiles = transformFilesToTree(visibleFiles)
       setFileStructure(transformedFiles)
       setLoadedProjectId(currentProjectId) // Mark this project as loaded
       
       
       // Debug manifest.json specifically
-      const manifestFile = allFiles.find(file => file.file_path === 'manifest.json')
+      const manifestFile = visibleFiles.find(file => file.file_path === 'manifest.json')
       if (manifestFile) {
       }
 
       // Extract and update project with extension info from manifest.json
-      const extensionInfo = extractExtensionInfo(allFiles)
+      const extensionInfo = extractExtensionInfo(visibleFiles)
       if (extensionInfo) {
         // Check if we need to update (avoid unnecessary updates)
         const lastUpdateKey = `last_project_update_${currentProjectId}`
@@ -251,12 +254,101 @@ export default function useFileManagement(currentProjectId, user) {
       }
 
       console.log(`Deleted asset: ${file.file_path}`)
-      
+
       // Refresh the file list to reflect the deletion
       await loadProjectFiles(true)
-      
+
     } catch (error) {
       console.error('Error deleting asset:', error)
+      throw error
+    }
+  }
+
+  // Function to delete a regular code file
+  const handleFileDelete = async (file) => {
+    if (!file || file.isAsset || !currentProjectId) {
+      console.error('Invalid file or no project ID available')
+      return
+    }
+
+    // Prevent concurrent delete operations
+    if (isLoadingRef.current) {
+      console.warn('Already loading, skipping delete')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}/files`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: file.file_path
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to delete file')
+      }
+
+      console.log(`Deleted file: ${file.file_path}`)
+
+      // Refresh the file list to reflect the deletion
+      await loadProjectFiles(true)
+
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      throw error
+    }
+  }
+
+  // Function to create a new file
+  const handleFileCreate = async (fileName) => {
+    if (!fileName || !currentProjectId) {
+      console.error('Invalid file name or no project ID available')
+      return
+    }
+
+    // Prevent concurrent operations
+    if (isLoadingRef.current) {
+      console.warn('Already loading, skipping create')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${currentProjectId}/files`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          file_path: fileName,
+          content: '' // Create with empty content
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to create file')
+      }
+
+      console.log(`Created file: ${fileName}`)
+
+      // Refresh the file list to reflect the new file
+      await loadProjectFiles(true)
+
+      // Select the newly created file
+      setTimeout(() => {
+        const event = new CustomEvent('editor:selectFile', {
+          detail: { file_path: fileName }
+        })
+        window.dispatchEvent(event)
+      }, 100)
+
+    } catch (error) {
+      console.error('Error creating file:', error)
       throw error
     }
   }
@@ -296,6 +388,8 @@ export default function useFileManagement(currentProjectId, user) {
     loadProjectFiles,
     handleFileSave,
     handleAssetDelete,
+    handleFileDelete,
+    handleFileCreate,
     extractExtensionInfo,
     updateProjectWithExtensionInfo,
     findManifestFile

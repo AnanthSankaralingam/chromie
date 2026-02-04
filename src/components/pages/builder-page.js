@@ -755,6 +755,8 @@ function BuilderPageContent() {
                 projectId={projectSetup.currentProjectId}
                 onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
                 onAssetDeleted={fileManagement.handleAssetDelete}
+                onFileDeleted={fileManagement.handleFileDelete}
+                onFileCreated={fileManagement.handleFileCreate}
                 isLoadingFiles={fileManagement.isLoadingFiles}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -938,6 +940,8 @@ function BuilderPageContent() {
                             projectId={projectSetup.currentProjectId}
                             onAssetUploaded={() => fileManagement.loadProjectFiles(true)}
                             onAssetDeleted={fileManagement.handleAssetDelete}
+                            onFileDeleted={fileManagement.handleFileDelete}
+                            onFileCreated={fileManagement.handleFileCreate}
                             onSearchChange={setSearchQuery}
                             flatFiles={fileManagement.flatFiles}
                           />

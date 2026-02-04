@@ -44,10 +44,8 @@ async function storeConversationHistory(sessionId, originalUserRequest, explanat
   }
 
   // Only store assistant message - user message was already stored with version ID in stream route
-  // Add the "Here's what I've built for you" prefix to match the UI display
-  const formattedExplanation = `Here's what I've built for you:\n\n${explanation}`
-  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: formattedExplanation })
-  console.log(`✅ [conversation-history] Stored assistant explanation (${formattedExplanation.length} chars)`)
+  await llmService.chatMessages.addMessage(sessionId, { role: 'assistant', content: explanation })
+  console.log(`✅ [conversation-history] Stored assistant explanation (${explanation.length} chars)`)
 }
 
 /**

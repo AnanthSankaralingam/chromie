@@ -20,6 +20,13 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json().catch(() => ({}))
+
+    // Handle session termination via POST (for sendBeacon compatibility)
+    if (body?.action === "terminate" && body?.sessionId) {
+      console.log("[test-extension] POST terminate action for session:", body.sessionId)
+      const ok = await hyperbrowserService.terminateSession(body.sessionId)
+      return NextResponse.json({ success: ok })
+    }
     // Always await pinning to capture the Chrome extension ID
     const awaitPinExtension = body?.awaitPinExtension !== false
 
@@ -212,12 +219,6 @@ export async function POST(request, { params }) {
     } else {
       console.warn("[test-extension] ⚠️  No Chrome extension ID in session response")
     }
-
-    // Log capture is now set up in hyperbrowser-service.js createTestSession()
-    // BEFORE pin-extension runs, using the same cached connection.
-    // This ensures CDP events are delivered to the log capture listeners.
-
-    // Skip database storage since browser_sessions table doesn't exist
 
     return NextResponse.json({
       session: {

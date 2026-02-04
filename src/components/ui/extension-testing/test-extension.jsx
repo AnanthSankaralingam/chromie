@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 
+const SESSION_STORAGE_KEY = "chromie_active_session"
+
 export default function useTestExtension(currentProjectId) {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testSessionData, setTestSessionData] = useState(null)
@@ -10,6 +12,7 @@ export default function useTestExtension(currentProjectId) {
   const cleanupAfterCreateRef = useRef(false)
   const isModalOpenRef = useRef(false)
   const lastCreateOptionsRef = useRef({})
+  const orphanCleanupDone = useRef(false)
 
   // Session cleanup function
   const cleanupSession = async (sessionId, projectId, startedAt = null) => {
@@ -19,6 +22,13 @@ export default function useTestExtension(currentProjectId) {
 
     cleanupAttempted.current = true
     console.log("🧹 Cleaning up session:", sessionId)
+
+    // Clear from sessionStorage
+    try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY)
+    } catch (e) {
+      // sessionStorage may not be available
+    }
 
     try {
       const response = await fetch(`/api/projects/${projectId}/test-extension`, {
@@ -31,11 +41,11 @@ export default function useTestExtension(currentProjectId) {
           startedAt: startedAt || testSessionData?.startedAt
         }),
       })
-      
+
       if (response.ok) {
         const result = await response.json()
         console.log("✅ Session cleaned up")
-        
+
         // Update browser usage indicator if available
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           window.dispatchEvent(new CustomEvent('browserUsageUpdated'))
@@ -48,23 +58,58 @@ export default function useTestExtension(currentProjectId) {
     }
   }
 
+  // Clean up orphaned sessions on mount (fire-and-forget, doesn't block)
+  useEffect(() => {
+    if (orphanCleanupDone.current || !currentProjectId) return
+    orphanCleanupDone.current = true
+
+    try {
+      const stored = sessionStorage.getItem(SESSION_STORAGE_KEY)
+      if (stored) {
+        const { sessionId, projectId } = JSON.parse(stored)
+        if (sessionId && projectId) {
+          console.log("🧹 Found orphaned session on mount, cleaning up:", sessionId)
+          sessionStorage.removeItem(SESSION_STORAGE_KEY)
+          // Use sendBeacon for reliable delivery (survives any navigation edge cases)
+          if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify({ action: "terminate", sessionId })], { type: 'application/json' })
+            navigator.sendBeacon(`/api/projects/${projectId}/test-extension`, blob)
+          } else {
+            // Fallback to fetch with keepalive
+            fetch(`/api/projects/${projectId}/test-extension`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "terminate", sessionId }),
+              keepalive: true,
+            }).catch(() => {})
+          }
+        }
+      }
+    } catch (e) {
+      // sessionStorage may not be available or JSON parse failed
+    }
+  }, [currentProjectId])
+
   // Handle browser window close and navigation
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       if (testSessionData?.sessionId && currentProjectId) {
-        // Use sendBeacon for reliable cleanup on page unload
-        const cleanupData = JSON.stringify({ 
-          sessionId: testSessionData.sessionId 
+        // Clear sessionStorage immediately
+        try {
+          sessionStorage.removeItem(SESSION_STORAGE_KEY)
+        } catch (e) {}
+
+        // Use sendBeacon with POST action for reliable cleanup on page unload
+        // (sendBeacon only supports POST, so we use action: "terminate")
+        const cleanupData = JSON.stringify({
+          action: "terminate",
+          sessionId: testSessionData.sessionId
         })
-        
-        // Try to send cleanup request via sendBeacon
+
         if (navigator.sendBeacon) {
           const blob = new Blob([cleanupData], { type: 'application/json' })
           navigator.sendBeacon(`/api/projects/${currentProjectId}/test-extension`, blob)
         }
-        
-        // Also try synchronous cleanup as fallback
-        cleanupSession(testSessionData.sessionId, currentProjectId)
       }
     }
 
@@ -149,7 +194,18 @@ export default function useTestExtension(currentProjectId) {
       console.log("📌 Automatic pinning initiated on server")
       console.log("   Session ID:", data.session?.sessionId)
       console.log("   Live URL:", data.session?.liveViewUrl ? "✓" : "✗")
-      
+
+      // Persist session info to survive page reloads
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          sessionId: data.session?.sessionId,
+          projectId: currentProjectId,
+          startedAt: data.session?.startedAt,
+        }))
+      } catch (e) {
+        // sessionStorage may not be available
+      }
+
       setTestSessionData({
         ...data.session,
         autoRunHyperAgent: options?.autoRunHyperAgent === true,

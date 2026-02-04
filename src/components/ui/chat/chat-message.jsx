@@ -4,17 +4,13 @@ import { useState } from "react"
 import MarkdownMessage from "./markdown-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 import { UrlInputRequest, ApiInputRequest } from "./input-request-message"
-import { RotateCcw } from "lucide-react"
+import { RotateCcw, Copy, Check } from "lucide-react"
 
 export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, setMessages, projectId, onRevert }) {
   const [isReverting, setIsReverting] = useState(false)
-  // Check if this is a final explanation message (contains "Here's what I've built for you")
-  // Make the check case-insensitive and more flexible
-  const isFinalExplanation = message.role === "assistant" &&
-    message.content &&
-    (message.content.includes("Here's what I've built for you") ||
-     message.content.toLowerCase().includes("here's what i've built") ||
-     message.content.includes("Here's what I've built"))
+  const [isCopied, setIsCopied] = useState(false)
+  // Check if this is a final explanation message (marked with isFinalExplanation flag)
+  const isFinalExplanation = message.role === "assistant" && message.isFinalExplanation === true
 
   const variant = message.role === "user" ? "sent" : "received"
   const isUser = message.role === "user"
@@ -29,7 +25,7 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
 
   const handleRevert = async () => {
     if (!message.versionId || !projectId) return
-    
+
     if (!confirm("Revert to this version? This will restore your project to the state before this message.")) {
       return
     }
@@ -47,7 +43,7 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
 
       const data = await response.json()
       console.log("✅ Reverted to version:", data)
-      
+
       // Notify parent component that revert was successful
       if (onRevert) {
         onRevert()
@@ -62,6 +58,22 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
     }
   }
 
+  const handleCopy = async () => {
+    if (!message.content) return
+
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setIsCopied(true)
+
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setIsCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Failed to copy prompt:", error)
+    }
+  }
+
   return (
     <ChatBubble variant={variant}>
       {/* Show avatar only for first AI message in succession */}
@@ -72,19 +84,37 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
           className="h-8 w-8 shrink-0"
         />
       )}
-      
-      {/* Revert button for user messages - placed BEFORE message on left side */}
-      {hasVersionSnapshot && (
-        <button
-          onClick={handleRevert}
-          disabled={isReverting}
-          className="flex-shrink-0 p-1.5 rounded-md hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
-          title="Revert to this version"
-        >
-          <RotateCcw className={`h-3.5 w-3.5 text-gray-400 group-hover:text-gray-300 ${isReverting ? 'animate-spin' : ''}`} />
-        </button>
+
+      {/* Action buttons for user messages - placed BEFORE message on left side */}
+      {isUser && (
+        <div className="flex items-center gap-1">
+          {/* Revert button - only show if version snapshot exists */}
+          {hasVersionSnapshot && (
+            <button
+              onClick={handleRevert}
+              disabled={isReverting}
+              className="flex-shrink-0 p-1.5 rounded-md hover:bg-gray-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+              title="Revert to this version"
+            >
+              <RotateCcw className={`h-3.5 w-3.5 text-gray-400 group-hover:text-gray-300 ${isReverting ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+
+          {/* Copy button - show for all user messages */}
+          <button
+            onClick={handleCopy}
+            className="flex-shrink-0 p-1.5 rounded-md hover:bg-gray-700/50 transition-colors group"
+            title="Copy prompt"
+          >
+            {isCopied ? (
+              <Check className="h-3.5 w-3.5 text-green-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-300" />
+            )}
+          </button>
+        </div>
       )}
-      
+
       <ChatBubbleMessage
         variant={variant}
         className={

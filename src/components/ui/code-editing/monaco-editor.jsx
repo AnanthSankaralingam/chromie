@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image } from 'lucide-react'
+import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ArtifactClose } from '@/components/ui/artifact/artifact'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
 import HtmlPreviewInfoModal from '@/components/ui/modals/html-preview-info-modal'
 import { loadIcons } from '@/lib/utils/icon-loader'
+import { parseMarkdown } from '@/components/ui/chat/markdown-parser'
+
+// Files that cannot be deleted by users
+const PROTECTED_FILES = ['manifest.json']
 
 export default function MonacoEditor({
   code,
@@ -15,6 +19,7 @@ export default function MonacoEditor({
   className = "",
   onSave,
   onClose,
+  onDelete,
   isFileTreeCollapsed,
   onToggleFileTree,
   readOnly = false,
@@ -27,9 +32,17 @@ export default function MonacoEditor({
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isHtmlPreview, setIsHtmlPreview] = useState(false)
+  const [isMarkdownPreview, setIsMarkdownPreview] = useState(false)
   const [isPreviewInfoOpen, setIsPreviewInfoOpen] = useState(false)
   const [hideActionButtonsUntilSave, setHideActionButtonsUntilSave] = useState(false)
   const [localIcons, setLocalIcons] = useState(new Map()) // Map<path, dataUrl>
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Check if file can be deleted (not a protected file)
+  const canDeleteFile = () => {
+    if (!fileName) return false
+    return !PROTECTED_FILES.includes(fileName.toLowerCase())
+  }
 
   // Check if current file is an image asset
   const isImageAsset = () => {
@@ -97,7 +110,7 @@ export default function MonacoEditor({
 
   const handleSave = async () => {
     if (!onSave || !hasChanges) return
-    
+
     setIsSaving(true)
     try {
       await onSave(content)
@@ -110,6 +123,21 @@ export default function MonacoEditor({
     }
   }
 
+  const handleDelete = async () => {
+    if (!onDelete || !canDeleteFile()) return
+
+    // Confirm deletion
+    if (!window.confirm(`Delete "${fileName}"? This cannot be undone.`)) return
+
+    setIsDeleting(true)
+    try {
+      await onDelete(filePath)
+    } catch (error) {
+      console.error('Error deleting file:', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   // Extract icon paths from HTML content
   const extractIconPaths = (html) => {
@@ -179,6 +207,11 @@ export default function MonacoEditor({
     } catch (e) {
       console.warn('[MonacoEditor] onHtmlPreviewToggle error', e)
     }
+  }
+
+  const handleToggleMarkdownPreview = () => {
+    if (language !== 'markdown') return
+    setIsMarkdownPreview(prev => !prev)
   }
 
   const buildHtmlSrcDoc = (raw) => {
@@ -572,6 +605,17 @@ export default function MonacoEditor({
                 )}
               </Button>
             )}
+            {!isImageAsset() && language === 'markdown' && (
+              <Button
+                onClick={handleToggleMarkdownPreview}
+                size="sm"
+                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"
+                title={isMarkdownPreview ? 'Back to Code' : 'Preview Markdown'}
+              >
+                {isMarkdownPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                {isMarkdownPreview ? 'Code' : 'Preview'}
+              </Button>
+            )}
             {!isImageAsset() && (
               <Button
                 onClick={handleSave}
@@ -581,6 +625,18 @@ export default function MonacoEditor({
               >
                 <Save className="h-3 w-3 mr-1" />
                 {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
+            {onDelete && canDeleteFile() && (
+              <Button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                size="sm"
+                variant="ghost"
+                className="text-red-400 hover:text-red-300 hover:bg-red-900/30 disabled:opacity-50 text-xs px-2 py-1"
+                title={`Delete ${fileName}`}
+              >
+                <Trash2 className="h-3 w-3" />
               </Button>
             )}
             {onClose && (
@@ -616,6 +672,30 @@ export default function MonacoEditor({
               className="bg-white w-full h-full border-0"
               sandbox="allow-same-origin allow-forms allow-scripts allow-pointer-lock allow-popups"
               srcDoc={buildHtmlSrcDoc(content)}
+            />
+          </div>
+        ) : language === 'markdown' && isMarkdownPreview ? (
+          <div className="h-full w-full bg-slate-900 overflow-auto p-8">
+            <div
+              className="prose prose-invert max-w-none"
+              style={{
+                '--tw-prose-body': 'rgb(203 213 225)',
+                '--tw-prose-headings': 'rgb(255 255 255)',
+                '--tw-prose-links': 'rgb(96 165 250)',
+                '--tw-prose-bold': 'rgb(255 255 255)',
+                '--tw-prose-counters': 'rgb(148 163 184)',
+                '--tw-prose-bullets': 'rgb(148 163 184)',
+                '--tw-prose-hr': 'rgb(71 85 105)',
+                '--tw-prose-quotes': 'rgb(148 163 184)',
+                '--tw-prose-quote-borders': 'rgb(71 85 105)',
+                '--tw-prose-captions': 'rgb(148 163 184)',
+                '--tw-prose-code': 'rgb(34 197 94)',
+                '--tw-prose-pre-code': 'rgb(34 197 94)',
+                '--tw-prose-pre-bg': 'rgb(30 41 59)',
+                '--tw-prose-th-borders': 'rgb(71 85 105)',
+                '--tw-prose-td-borders': 'rgb(71 85 105)',
+              }}
+              dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }}
             />
           </div>
         ) : (

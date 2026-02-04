@@ -19,7 +19,7 @@ Focus on getting production ready extensions to the store. we can't directly dep
 ### P1
 1. Add read file tool to coder. stress test scraping with intent in followups.
 2. Allow users to generate icons, or select from shared icons table. 
-3. permission justification: use AI to read extension summary and fill in permissions needed to go to prod in Chrome Store.
+3. ~permission justification: use AI to read extension summary and fill in permissions needed to go to prod in Chrome Store.~
 4. Demo creation: automate demo creation with HB and Veo. We can record AI demoing the extension then make it flashy with video AI. Lowkey a product idea of its own too. Bottleneck is that user needs to post it and get a YT link themselves so we can only let them download .mp4 for foreseeable future.
 
 ---
@@ -31,6 +31,7 @@ Focus on getting production ready extensions to the store. we can't directly dep
 4. Add more featured creations + preview (either render the ext or simply play YT vid demo)
 5. confirm frontend type with user
 6. let followup agent use grep search tool
+7. Allow agent to delete files
 
 ---
 
@@ -39,17 +40,17 @@ Focus on getting production ready extensions to the store. we can't directly dep
 2. Create scraping with intent job for follow up requests
 3. Add more blog posts  
 4. Add more featured creations + preview (either render the ext or simply play YT vid demo)
-5. user should be able to restart a profile. this solves when other extension storage impacts current ext testing.
-6. copy prompt button
-7. remove "heres what i built for you:"
+5. ~user should be able to restart a profile. this solves when other extension storage impacts current ext testing.~
+6. ~copy prompt button~
+7. ~remove "heres what i built for you:"~
 
 ---
 
 ### BUGS
-1. no preview when .md files created
-2. agent and user cannot delete files. user should also be able to manually create files.
-3. does .chromie folder need to be user visible? 
-4. reloading builder page doesnt kill testing session. user should be able to create only one browser session.
+1. ~no preview when .md files created~
+2. ~user cannot delete files. user should also be able to manually create files.~
+3. ~does .chromie folder need to be user visible? ~
+4. ~reloading builder page doesnt kill testing session. user should be able to create only one browser session.~
 
 ---
 

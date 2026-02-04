@@ -46,6 +46,8 @@ export default function ProfilePage() {
   const [privacyPolicies, setPrivacyPolicies] = useState([])
   const [privacyPoliciesLoading, setPrivacyPoliciesLoading] = useState(true)
   const [copiedPolicyId, setCopiedPolicyId] = useState(null)
+  const [resetProfileDialogOpen, setResetProfileDialogOpen] = useState(false)
+  const [isResettingProfile, setIsResettingProfile] = useState(false)
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -293,6 +295,31 @@ export default function ProfilePage() {
       document.body.removeChild(textArea)
       setCopiedPolicyId(policyId)
       setTimeout(() => setCopiedPolicyId(null), 2000)
+    }
+  }
+
+  // Handle browser profile reset
+  const handleResetBrowserProfile = async () => {
+    setIsResettingProfile(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ hyperbrowser_profile_id: null })
+        .eq('id', user.id)
+
+      if (error) {
+        console.error('Failed to reset browser profile:', error)
+        alert('Failed to reset browser profile. Please try again.')
+        return
+      }
+
+      console.log('Browser profile reset successfully')
+      setResetProfileDialogOpen(false)
+    } catch (error) {
+      console.error('Error resetting browser profile:', error)
+      alert('Error resetting browser profile. Please try again.')
+    } finally {
+      setIsResettingProfile(false)
     }
   }
 
@@ -1059,8 +1086,50 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* Sign Out Button */}
-        <div className="flex justify-center pt-4">
+        {/* Reset Browser Profile & Sign Out Buttons */}
+        <div className="flex justify-center gap-4 pt-4">
+          <Dialog open={resetProfileDialogOpen} onOpenChange={setResetProfileDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-slate-500/50 text-slate-400 hover:bg-slate-500/10 hover:border-slate-500">
+                Reset my testing browser profile
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
+              <DialogHeader>
+                <DialogTitle className="text-white">Reset Testing Browser Profile</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="text-slate-300 space-y-4 pt-2">
+                    <p>This will clear:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-400">
+                      <li>Cookies and saved logins</li>
+                      <li>Authentication state from previous sessions</li>
+                      <li>Any cached extension data</li>
+                    </ul>
+                    <p className="text-sm text-slate-400">
+                      Recommended when building multiple extensions to prevent conflicts.
+                    </p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setResetProfileDialogOpen(false)}
+                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleResetBrowserProfile}
+                  disabled={isResettingProfile}
+                  className="bg-slate-600 hover:bg-slate-700 text-white"
+                >
+                  {isResettingProfile ? 'Resetting...' : 'Reset Profile'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500">
