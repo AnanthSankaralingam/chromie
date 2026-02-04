@@ -9,6 +9,7 @@ import Step2Description from "@/components/ui/deployment/step-2-description"
 import Step3Assets from "@/components/ui/deployment/step-3-assets"
 import Step4Permissions from "@/components/ui/deployment/step-4-permissions"
 import Step5Privacy from "@/components/ui/deployment/step-5-privacy"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 export default function DeploymentPage() {
   const searchParams = useSearchParams()
@@ -29,6 +30,7 @@ export default function DeploymentPage() {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isComplete, setIsComplete] = useState(false)
 
   // Verify project ownership and load data
   useEffect(() => {
@@ -86,6 +88,9 @@ export default function DeploymentPage() {
     if (currentStep < 5) {
       setCompletedSteps((prev) => new Set(prev).add(currentStep))
       setCurrentStep(currentStep + 1)
+    } else if (currentStep === 5) {
+      setCompletedSteps((prev) => new Set(prev).add(5))
+      setIsComplete(true)
     }
   }
 
@@ -175,6 +180,57 @@ export default function DeploymentPage() {
         <div className="text-center max-w-md">
           <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
           <p className="text-zinc-400 mb-6">Please sign in to deploy your extension.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isComplete) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center relative">
+        <div className="absolute inset-0 w-full h-full pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="#6366f1"
+            maxOpacity={0.15}
+            flickerChance={0.1}
+          />
+        </div>
+        <div className="text-center max-w-lg relative z-10">
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold mb-4">Submission Ready!</h2>
+          <p className="text-zinc-400 mb-6">
+            You've completed all the steps. Now submit your extension to the Chrome Web Store Developer Dashboard.
+            The review process typically takes a few business days.
+          </p>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-8 text-left">
+            <h3 className="font-semibold mb-2 text-sm">What happens next?</h3>
+            <ul className="text-sm text-zinc-400 space-y-2">
+              <li>• Google will review your extension for policy compliance</li>
+              <li>• You'll receive an email when your extension is approved or if changes are needed</li>
+              <li>• Once approved, your extension will be live on the Chrome Web Store</li>
+            </ul>
+          </div>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => router.push(`/builder?project=${projectId}`)}
+              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              Back to Builder
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+            >
+              Create New Extension
+            </button>
+          </div>
         </div>
       </div>
     )

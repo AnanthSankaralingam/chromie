@@ -174,9 +174,6 @@ export default function Step2Description({
         <h4 className="font-semibold mb-2 text-sm">Tips for a great description:</h4>
         <ul className="text-sm text-zinc-400 space-y-1 list-disc list-inside">
           <li>Start with the main benefit or value proposition</li>
-          <li>Use emojis to make it visually appealing and engaging</li>
-          <li>Use active voice and action verbs</li>
-          <li>Be specific about what the extension does</li>
           <li>Keep it concise but informative (aim for 500-1000 characters)</li>
           <li>Include key features and use cases</li>
           <li>Avoid technical jargon unless necessary</li>

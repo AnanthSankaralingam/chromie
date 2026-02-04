@@ -16,24 +16,22 @@ export default function Step4Permissions({
   const [copiedPermission, setCopiedPermission] = useState(null)
   const [error, setError] = useState(null)
   const [permissions, setPermissions] = useState([])
+  const [hasAnalyzed, setHasAnalyzed] = useState(false)
 
-  // Extract permissions from project data
+  // Initialize from previously generated justifications
   useEffect(() => {
-    if (projectData) {
-      // In real implementation, this would parse manifest.json from project files
-      // For now, we'll simulate with placeholder data
-      const manifestPermissions = ["tabs", "storage", "activeTab"]
-      setPermissions(manifestPermissions)
+    if (generatedJustifications && Array.isArray(generatedJustifications)) {
+      setHasAnalyzed(true)
+      const perms = generatedJustifications.map(j => j.permission)
+      setPermissions(perms)
 
-      // Initialize justifications object with empty strings or existing data
       const initialJustifications = {}
-      manifestPermissions.forEach(perm => {
-        const existing = generatedJustifications?.find(j => j.permission === perm)
-        initialJustifications[perm] = existing?.justification || ""
+      generatedJustifications.forEach(j => {
+        initialJustifications[j.permission] = j.justification || ""
       })
       setJustifications(initialJustifications)
     }
-  }, [projectData, generatedJustifications])
+  }, [generatedJustifications])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -51,7 +49,20 @@ export default function Step4Permissions({
 
       const data = await response.json()
 
-      // Convert array response to object format
+      setHasAnalyzed(true)
+
+      // Handle no permissions case
+      if (!data.justifications || data.justifications.length === 0) {
+        setPermissions([])
+        setJustifications({})
+        onComplete()
+        return
+      }
+
+      // Extract permissions from response and set justifications
+      const perms = data.justifications.map(item => item.permission)
+      setPermissions(perms)
+
       const justificationsObj = {}
       data.justifications.forEach(item => {
         justificationsObj[item.permission] = item.justification
@@ -87,13 +98,51 @@ export default function Step4Permissions({
 
   // No permissions case
   if (permissions.length === 0) {
+    // Already analyzed and found no permissions
+    if (hasAnalyzed) {
+      return (
+        <div className="text-center py-8">
+          <Shield className="w-16 h-16 mx-auto mb-4 text-green-500" />
+          <h3 className="text-xl font-semibold mb-2">No Permissions Required</h3>
+          <p className="text-zinc-400">
+            Your extension doesn't request any special permissions. You can skip this step.
+          </p>
+        </div>
+      )
+    }
+
+    // Not yet analyzed - show generate button
     return (
-      <div className="text-center py-8">
-        <Shield className="w-16 h-16 mx-auto mb-4 text-green-500" />
-        <h3 className="text-xl font-semibold mb-2">No Permissions Required</h3>
-        <p className="text-zinc-400">
-          Your extension doesn't request any special permissions. You can skip this step.
-        </p>
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <Shield className="w-16 h-16 mx-auto mb-4 text-zinc-600" />
+          <h3 className="text-xl font-semibold mb-2">Detect Permissions</h3>
+          <p className="text-zinc-400 mb-6">
+            Click below to analyze your extension and generate justifications for any required permissions.
+          </p>
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Justifications
+              </>
+            )}
+          </Button>
+        </div>
+        {error && (
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
       </div>
     )
   }
