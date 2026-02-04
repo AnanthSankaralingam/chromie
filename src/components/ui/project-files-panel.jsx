@@ -21,6 +21,7 @@ export default function ProjectFilesPanel({
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
+  const [uploadDefaults, setUploadDefaults] = useState({ mode: "upload", fileType: "icon" })
 
   // Handle upload button click with first-time info modal
   const handleUploadClick = () => {
@@ -89,6 +90,19 @@ export default function ProjectFilesPanel({
     if (!window.__chromie_focusManifestBound) {
       window.addEventListener('editor:focusManifest', window.__chromie_focusManifestListener)
       window.__chromie_focusManifestBound = true
+    }
+
+    window.__chromie_openAssetUploadListener ||= (e) => {
+      try {
+        const mode = e?.detail?.mode === 'generate' ? 'generate' : 'upload'
+        const fileType = e?.detail?.fileType === 'asset' ? 'asset' : 'icon'
+        setUploadDefaults({ mode, fileType })
+        setIsUploadModalOpen(true)
+      } catch (_) {}
+    }
+    if (!window.__chromie_openAssetUploadBound) {
+      window.addEventListener('editor:openAssetUpload', window.__chromie_openAssetUploadListener)
+      window.__chromie_openAssetUploadBound = true
     }
   }
   const handleAssetUpload = (asset) => {
@@ -166,6 +180,8 @@ export default function ProjectFilesPanel({
           onClose={() => setIsUploadModalOpen(false)}
           onUpload={handleAssetUpload}
           projectId={projectId}
+          defaultMode={uploadDefaults.mode}
+          defaultFileType={uploadDefaults.fileType}
         />
       )}
     </div>

@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/forms-and-input/label"
 import { Input } from "@/components/ui/forms-and-input/input"
-import { Upload, Image as ImageIcon, FileIcon, X, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Upload, Image as ImageIcon, FileIcon, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/forms-and-input/select"
 import { INPUT_LIMITS } from "@/lib/constants"
+import { Textarea } from "@/components/ui/forms-and-input/textarea"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const CHROME_ICON_SIZES = [16, 32, 48, 64, 128, 256, 512]
+const MAX_PROMPT_LENGTH = 500
 
 const ALLOWED_FILE_TYPES = {
   icon: {
@@ -25,16 +27,58 @@ const ALLOWED_FILE_TYPES = {
   }
 }
 
-export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId }) {
+export default function AssetUploadModal({
+  isOpen,
+  onClose,
+  onUpload,
+  projectId,
+  defaultMode = "upload",
+  defaultFileType = "icon"
+}) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [filePreview, setFilePreview] = useState(null)
   const [fileType, setFileType] = useState("icon")
+  const [sourceMode, setSourceMode] = useState("upload") // upload only (generate/library deprecated)
   const [customPath, setCustomPath] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState(null)
   const [iconDimensions, setIconDimensions] = useState(null)
   const [isPrimaryIcon, setIsPrimaryIcon] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [aiGeneratedImage, setAiGeneratedImage] = useState(null)
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [aiError, setAiError] = useState(null)
   const fileInputRef = useRef(null)
+
+  const resetAiState = () => {
+    setAiPrompt("")
+    setAiGeneratedImage(null)
+    setIsGeneratingAI(false)
+    setAiError(null)
+  }
+
+  const resetUploadState = () => {
+    setSelectedFile(null)
+    setFilePreview(null)
+    setCustomPath("")
+    setError(null)
+    setIconDimensions(null)
+    setIsPrimaryIcon(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    const nextFileType = defaultFileType === "asset" ? "asset" : "icon"
+    // Deprecated: generate and library modes removed, only upload supported
+    const nextMode = "upload"
+    setFileType(nextFileType)
+    setSourceMode("upload")
+    resetUploadState()
+    resetAiState()
+  }, [defaultFileType, defaultMode, isOpen])
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
@@ -42,6 +86,8 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
 
     setError(null)
     setIconDimensions(null)
+    setAiError(null)
+    setAiGeneratedImage(null)
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
@@ -100,9 +146,65 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
     }
   }
 
+  const uploadAsset = async ({ base64Content, mimeType }) => {
+    const response = await fetch(`/api/projects/${projectId}/assets`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        file_path: customPath,
+        content_base64: base64Content,
+        file_type: fileType,
+        mime_type: mimeType,
+        is_primary_icon: fileType === "icon" ? isPrimaryIcon : false,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to upload file")
+    }
+
+    const uploadedAssets = data.assets || (data.asset ? [data.asset] : [])
+
+    if (uploadedAssets.length > 1) {
+      console.log("✅ Files uploaded successfully (auto-resized):", uploadedAssets.map(a => a.file_path).join(", "))
+    } else {
+      console.log("✅ File uploaded successfully:", uploadedAssets[0]?.file_path)
+    }
+
+    if (onUpload) {
+      uploadedAssets.forEach(asset => onUpload(asset))
+    }
+
+    handleClose()
+  }
+
+  const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64Content = e.target.result.split(",")[1]
+      resolve(base64Content)
+    }
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.readAsDataURL(file)
+  })
+
   const handleUpload = async () => {
-    if (!selectedFile || !customPath) {
-      setError("Please select a file and specify a path")
+    if (!customPath) {
+      setError("Please specify a file path")
+      return
+    }
+
+    if (sourceMode === "upload" && !selectedFile) {
+      setError("Please select a file")
+      return
+    }
+
+    if (sourceMode === "generate" && !aiGeneratedImage?.base64) {
+      setError("Generate an icon before uploading")
       return
     }
 
@@ -110,79 +212,44 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
     setError(null)
 
     try {
-      // Convert file to base64
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        const base64Content = e.target.result.split(',')[1] // Remove data URL prefix
-
-        const response = await fetch(`/api/projects/${projectId}/assets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            file_path: customPath,
-            content_base64: base64Content,
-            file_type: fileType,
-            mime_type: selectedFile.type,
-            is_primary_icon: fileType === 'icon' ? isPrimaryIcon : false,
-          }),
+      if (sourceMode === "generate") {
+        await uploadAsset({
+          base64Content: aiGeneratedImage.base64,
+          mimeType: aiGeneratedImage.mimeType || "image/png",
         })
-
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || 'Failed to upload file')
-        }
-
-        const data = await response.json()
-        
-        // Handle both single asset and multiple assets response
-        const uploadedAssets = data.assets || (data.asset ? [data.asset] : [])
-        
-        if (uploadedAssets.length > 1) {
-          console.log('✅ Files uploaded successfully (auto-resized):', uploadedAssets.map(a => a.file_path).join(', '))
-        } else {
-          console.log('✅ File uploaded successfully:', uploadedAssets[0]?.file_path)
-        }
-
-        // Call onUpload callback with the uploaded assets
-        if (onUpload) {
-          uploadedAssets.forEach(asset => onUpload(asset))
-        }
-
-        // Reset form and close
-        handleClose()
+        return
       }
-      reader.readAsDataURL(selectedFile)
+
+      const base64Content = await readFileAsBase64(selectedFile)
+      await uploadAsset({
+        base64Content,
+        mimeType: selectedFile.type,
+      })
     } catch (err) {
-      console.error('Error uploading file:', err)
+      console.error("Error uploading file:", err)
       setError(err.message)
       setIsUploading(false)
     }
   }
 
   const handleClose = () => {
-    setSelectedFile(null)
-    setFilePreview(null)
-    setCustomPath("")
-    setError(null)
-    setIconDimensions(null)
-    setIsPrimaryIcon(false)
+    resetUploadState()
+    resetAiState()
+    setSourceMode("upload")
     setIsUploading(false)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
     onClose()
   }
 
   const handleFileTypeChange = (newType) => {
     setFileType(newType)
+    setSourceMode("upload")
     // Reset file selection when changing type
     setSelectedFile(null)
     setFilePreview(null)
     setError(null)
     setIconDimensions(null)
     setIsPrimaryIcon(false)
+    resetAiState()
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -193,6 +260,7 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
       setCustomPath(newType === "icon" ? `icons/${fileName}` : `assets/${fileName}`)
     }
   }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -248,32 +316,35 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
           </div>
 
           {/* File Upload */}
-          <div className="space-y-2">
-            <Label className="text-white">Select File</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose File
-              </Button>
-              {selectedFile && (
-                <span className="text-sm text-slate-400 truncate">
-                  {selectedFile.name} ({Math.round(selectedFile.size / 1024)}KB)
-                </span>
-              )}
+          {sourceMode === "upload" && (
+            <div className="space-y-2">
+              <Label className="text-white">Select File</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose File
+                </Button>
+                {selectedFile && (
+                  <span className="text-sm text-slate-400 truncate">
+                    {selectedFile.name} ({Math.round(selectedFile.size / 1024)}KB)
+                  </span>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ALLOWED_FILE_TYPES[fileType].accept}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ALLOWED_FILE_TYPES[fileType].accept}
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
+          )}
+
 
           {/* File Path */}
           <div className="space-y-2">
@@ -321,6 +392,12 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
               <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
+          {aiError && (
+            <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-400">{aiError}</p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
@@ -336,7 +413,14 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
             <Button
               type="button"
               onClick={handleUpload}
-              disabled={!selectedFile || !customPath || isUploading || (error && !error.startsWith("⚠️"))}
+              disabled={
+                !customPath ||
+                isUploading ||
+                (sourceMode === "upload" && !selectedFile) ||
+                (sourceMode === "generate" && !aiGeneratedImage) ||
+                (error && !error.startsWith("⚠️")) ||
+                Boolean(aiError)
+              }
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isUploading ? "Uploading..." : "Upload"}
@@ -347,4 +431,3 @@ export default function AssetUploadModal({ isOpen, onClose, onUpload, projectId 
     </Dialog>
   )
 }
-
