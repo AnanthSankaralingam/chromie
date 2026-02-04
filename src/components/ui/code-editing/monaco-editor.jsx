@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image, Trash2 } from 'lucide-react'
+import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image, Trash2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ArtifactClose } from '@/components/ui/artifact/artifact'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
@@ -136,6 +136,20 @@ export default function MonacoEditor({
       console.error('Error deleting file:', error)
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleOpenAssetUpload = (mode = 'generate') => {
+    try {
+      if (typeof window === 'undefined') return
+      window.dispatchEvent(new CustomEvent('editor:openAssetUpload', {
+        detail: {
+          mode,
+          fileType: 'icon'
+        }
+      }))
+    } catch (e) {
+      console.warn('[MonacoEditor] Failed to open asset upload modal', e)
     }
   }
 
@@ -614,6 +628,17 @@ export default function MonacoEditor({
               >
                 {isMarkdownPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
                 {isMarkdownPreview ? 'Code' : 'Preview'}
+              </Button>
+            )}
+            {fileName?.toLowerCase() === 'manifest.json' && (
+              <Button
+                onClick={() => handleOpenAssetUpload('generate')}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1"
+                title="Generate a new extension icon"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                Generate Icon
               </Button>
             )}
             {!isImageAsset() && (
