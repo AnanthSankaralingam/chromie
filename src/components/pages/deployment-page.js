@@ -187,8 +187,18 @@ export default function DeploymentPage() {
 
   if (isComplete) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
-        <div className="text-center max-w-lg">
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center relative">
+        <div className="absolute inset-0 w-full h-full pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="#6366f1"
+            maxOpacity={0.15}
+            flickerChance={0.1}
+          />
+        </div>
+        <div className="text-center max-w-lg relative z-10">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
