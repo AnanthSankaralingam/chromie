@@ -363,9 +363,6 @@ export default function AppBarBuilder({
                   className="object-contain"
                 />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                <Sparkles className="h-2.5 w-2.5 text-white" />
-              </div>
             </div>
             <div className="flex flex-col">
               <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-gray-300 hover:to-gray-400 transition-all duration-300">

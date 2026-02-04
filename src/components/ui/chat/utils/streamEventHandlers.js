@@ -25,10 +25,11 @@ export function createStreamEventHandler(context) {
     setIsActuallyGeneratingCode,
   } = context
 
-  const addNewAssistantMessage = (content) => {
+  const addNewAssistantMessage = (content, options = {}) => {
     const newMessage = {
       role: "assistant",
       content: content,
+      ...options,
     }
     setMessages((prev) => [...prev, newMessage])
   }
@@ -177,7 +178,8 @@ export function createStreamEventHandler(context) {
         // Emit the final explanation once when stream completes
         if (explanationBufferRef.current.trim()) {
           addNewAssistantMessage(
-            "Here's what I've built for you:\n\n" + explanationBufferRef.current.trim()
+            explanationBufferRef.current.trim(),
+            { isFinalExplanation: true }
           )
           explanationBufferRef.current = ""
         }

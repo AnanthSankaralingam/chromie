@@ -1,20 +1,28 @@
 import { useState } from "react"
-import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Copy, Check, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Copy, Check, Trash2, Plus } from "lucide-react"
 import DeleteAssetModal from "@/components/ui/modals/delete-asset-modal"
 
-export default function FileTree({ 
-  fileStructure, 
-  selectedFile, 
-  onFileSelect, 
+// Files that cannot be deleted
+const PROTECTED_FILES = ['manifest.json']
+
+export default function FileTree({
+  fileStructure,
+  selectedFile,
+  onFileSelect,
   isLoadingFiles,
   searchQuery,
-  onDeleteAsset
+  onDeleteAsset,
+  onDeleteFile,
+  onCreateFile
 }) {
   const [expandedFolders, setExpandedFolders] = useState({})
   const [copiedFile, setCopiedFile] = useState(null)
   const [deletingAsset, setDeletingAsset] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [assetToDelete, setAssetToDelete] = useState(null)
+  const [newFileName, setNewFileName] = useState('')
+  const [isCreatingFile, setIsCreatingFile] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   const toggleFolder = (folderPath) => {
     setExpandedFolders((prev) => ({
@@ -25,6 +33,11 @@ export default function FileTree({
 
   const handleFileSelect = (file) => {
     onFileSelect(file)
+  }
+
+  // Check if a file can be deleted
+  const canDeleteFile = (fileName) => {
+    return !PROTECTED_FILES.includes(fileName.toLowerCase())
   }
 
   // Helper function to copy file content
@@ -41,9 +54,9 @@ export default function FileTree({
   // Open delete confirmation modal
   const handleDeleteClick = (file, e) => {
     e.stopPropagation()
-    
-    if (!file.isAsset) return
-    
+
+    if (!canDeleteFile(file.name)) return
+
     setAssetToDelete(file)
     setDeleteModalOpen(true)
   }
@@ -51,20 +64,23 @@ export default function FileTree({
   // Perform the actual deletion
   const handleConfirmDelete = async () => {
     if (!assetToDelete) return
-    
+
     setDeletingAsset(assetToDelete.file_path)
-    
+
     try {
-      if (onDeleteAsset) {
+      // Use appropriate delete handler based on file type
+      if (assetToDelete.isAsset && onDeleteAsset) {
         await onDeleteAsset(assetToDelete)
+      } else if (!assetToDelete.isAsset && onDeleteFile) {
+        await onDeleteFile(assetToDelete)
       }
-      
+
       // Close modal on success
       setDeleteModalOpen(false)
       setAssetToDelete(null)
     } catch (error) {
-      console.error('Failed to delete asset:', error)
-      alert(`Failed to delete asset: ${error.message || 'Unknown error'}`)
+      console.error('Failed to delete file:', error)
+      alert(`Failed to delete file: ${error.message || 'Unknown error'}`)
     } finally {
       setDeletingAsset(null)
     }
@@ -75,6 +91,32 @@ export default function FileTree({
     if (!deletingAsset) {
       setDeleteModalOpen(false)
       setAssetToDelete(null)
+    }
+  }
+
+  // Handle new file creation
+  const handleCreateFile = async (e) => {
+    e?.preventDefault()
+
+    if (!newFileName.trim() || isCreatingFile) return
+
+    const fileName = newFileName.trim()
+    setCreateError('')
+    setIsCreatingFile(true)
+
+    try {
+      if (onCreateFile) {
+        await onCreateFile(fileName)
+      }
+      // Clear input on success
+      setNewFileName('')
+      setCreateError('')
+    } catch (error) {
+      console.error('Failed to create file:', error)
+      // Display the error message from the backend
+      setCreateError(error.message || 'Failed to create file')
+    } finally {
+      setIsCreatingFile(false)
     }
   }
 
@@ -155,6 +197,7 @@ export default function FileTree({
               className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20 file-tree-item"
               style={{ marginLeft: `${level * 20}px` }}
               onClick={() => toggleFolder(item.fullPath || item.name)}
+              data-type="folder"
             >
               <div className="flex items-center flex-1">
                 {expandedFolders[item.fullPath || item.name] ? 
@@ -185,6 +228,7 @@ export default function FileTree({
             }`}
             style={{ marginLeft: `${level * 20}px` }}
             onClick={() => handleFileSelect(item)}
+            data-type="file"
           >
             <div className="flex items-center flex-1">
               {getFileIcon(item.name)}
@@ -209,13 +253,13 @@ export default function FileTree({
                   <Copy className="h-3 w-3 text-slate-400" />
                 )}
               </button>
-              
-              {/* Show delete button for assets only */}
-              {item.isAsset && (
+
+              {/* Show delete button for all deletable files */}
+              {canDeleteFile(item.name) && (
                 <button
                   onClick={(e) => handleDeleteClick(item, e)}
                   className="p-1 hover:bg-red-500/20 rounded transition-colors"
-                  title="Delete asset"
+                  title={`Delete ${item.isAsset ? 'asset' : 'file'}`}
                   disabled={deletingAsset === item.file_path}
                 >
                   {deletingAsset === item.file_path ? (
@@ -256,6 +300,43 @@ export default function FileTree({
 
   return (
     <>
+      {/* Create New File Input */}
+      {onCreateFile && (
+        <div className="mb-3">
+          <form onSubmit={handleCreateFile} className="space-y-2">
+            <div className="relative">
+              <input
+                type="text"
+                value={newFileName}
+                onChange={(e) => {
+                  setNewFileName(e.target.value)
+                  setCreateError('')
+                }}
+                placeholder="new-file.js"
+                disabled={isCreatingFile}
+                className="w-full pl-3 pr-10 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={!newFileName.trim() || isCreatingFile}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:opacity-50 rounded text-white transition-colors"
+                title="Create file"
+              >
+                {isCreatingFile ? (
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {createError && (
+              <p className="text-xs text-red-400 px-1">{createError}</p>
+            )}
+          </form>
+        </div>
+      )}
+
+      {/* File Tree */}
       <div className="space-y-1">
         {renderFileTree(fileStructure)}
       </div>

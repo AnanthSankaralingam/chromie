@@ -75,12 +75,11 @@ export default function ShareDropdown({
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button 
+        <Button
           id={triggerId}
           disabled={isDisabled}
           variant="outline"
-          className={`relative bg-slate-900 text-gray-300 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium hover:bg-slate-800 ${className}`}
-          style={{backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(156 163 175), rgb(209 213 219))', backgroundOrigin: 'border-box'}}
+          className={`relative bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium border-slate-700 ${className}`}
         >
           <Share className="h-4 w-4 mr-2" />
           share
@@ -113,12 +112,12 @@ export default function ShareDropdown({
           </span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handlePublishClick}
           disabled={isDisabled}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          <Upload className="h-4 w-4 mr-3 text-gray-400" />
+          <Upload className="h-4 w-4 mr-3 text-pink-400" />
           <span className="flex-1">Publish to Chrome Web Store</span>
         </DropdownMenuItem>
         
