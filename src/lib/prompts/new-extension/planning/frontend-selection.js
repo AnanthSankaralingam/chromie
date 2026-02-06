@@ -35,11 +35,12 @@ content_script_ui: Injected UI elements. For inline annotations, highlights, flo
 
 <output_schema>
 {
-  "frontend_type": "popup | sidepanel | overlay | new_tab | content_script_ui "
+  "frontend_type": "popup | sidepanel | overlay | new_tab | content_script_ui",
+  "confidence": 0.0 to 1.0
 }
 </output_schema>
 
 Return only valid JSON. No markdown, no explanation.`;
 
 export const FRONTEND_SELECTION_PREFILL = `{
-  "frontend_type":`
+  "frontend_type": `

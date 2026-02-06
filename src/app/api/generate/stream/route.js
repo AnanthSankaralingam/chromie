@@ -153,7 +153,25 @@ export async function POST(request) {
     }
 
     if (userProvidedApis && Array.isArray(userProvidedApis)) {
+      if (userProvidedApis.length > INPUT_LIMITS.MAX_TOTAL_APIS) {
+        return NextResponse.json(
+          { error: `Maximum of ${INPUT_LIMITS.MAX_TOTAL_APIS} APIs allowed` },
+          { status: 400 }
+        )
+      }
       for (const api of userProvidedApis) {
+        if (!api?.name || !api.name.trim()) {
+          return NextResponse.json(
+            { error: "API name is required" },
+            { status: 400 }
+          )
+        }
+        if (api.name.length > INPUT_LIMITS.API_NAME) {
+          return NextResponse.json(
+            { error: `API name must be ${INPUT_LIMITS.API_NAME} characters or less` },
+            { status: 400 }
+          )
+        }
         if (api?.endpoint && api.endpoint.length > INPUT_LIMITS.URL) {
           return NextResponse.json(
             { error: `API endpoint must be ${INPUT_LIMITS.URL.toLocaleString()} characters or less` },
