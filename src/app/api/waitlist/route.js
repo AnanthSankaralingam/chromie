@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request) {
   try {
@@ -21,6 +22,35 @@ export async function POST(request) {
       );
     }
 
+    // Insert into Supabase
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('waitlist')
+      .insert([
+        {
+          name,
+          email,
+          use_case: useCase || null,
+        }
+      ])
+      .select();
+
+    if (error) {
+      // Handle duplicate email
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'This email is already on the waitlist' },
+          { status: 409 }
+        );
+      }
+
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to join waitlist' },
+        { status: 500 }
+      );
+    }
+
     // Log the waitlist request
     console.log('✨ New Waitlist Signup:', {
       name,
@@ -29,16 +59,10 @@ export async function POST(request) {
       timestamp: new Date().toISOString(),
     });
 
-    // In a production environment, you would:
-    // 1. Store this in your database
-    // 2. Send a notification email to your team
-    // 3. Send a confirmation email to the user
-    // 4. Add to email marketing list (Mailchimp, ConvertKit, etc.)
-
-    // For now, we'll just return success
     return NextResponse.json({
       success: true,
       message: 'Successfully joined the waitlist',
+      data: data[0],
     });
 
   } catch (error) {
