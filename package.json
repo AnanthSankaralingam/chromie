@@ -7,7 +7,8 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "test:md": "node ./test/utils/markdown-parser.test.js"
+    "test:md": "node ./test/utils/markdown-parser.test.js",
+    "sync-icons": "cp icons/*.png public/icons/ 2>/dev/null || true"
   },
   "dependencies": {
     "@google/genai": "^1.21.0",

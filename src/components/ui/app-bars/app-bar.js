@@ -92,30 +92,13 @@ export default function AppBar() {
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Link href={user ? "/home" : "/"} className="text-slate-300 hover:text-white transition-colors">
-                  <Image
-                    src="/chromie-logo-1.png"
-                    alt="chromie Logo"
-                    width={40}
-                    height={40}
-                    className="object-contain"
-                  />
-                </Link>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <Link
-                href={user ? "/home" : "/"}
-                className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-purple-300 hover:to-blue-300 transition-all duration-300"
-              >
-                chromie
-              </Link>
-              {/* <span className="text-xs text-slate-400 font-medium tracking-wide">//TODO add tagline</span> */}
-            </div>
-          </div>
+          <Link href={user ? "/home" : "/"} className="flex items-center gap-2 transition-colors [&>span]:hover:opacity-90">
+            <Image src="/chromie-logo-1.png" alt="Chromie" width={32} height={32} className="shrink-0 opacity-90 hover:opacity-100" />
+            <span className="inline-block text-xl">
+              <span className="font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">chromie</span>
+              <span className="font-normal text-gray-500">.dev</span>
+            </span>
+          </Link>
 
           <div className="flex items-center gap-4">
             <nav className="hidden md:flex items-center space-x-6">

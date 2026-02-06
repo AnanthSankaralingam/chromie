@@ -78,8 +78,8 @@ export default function ShareDropdown({
         <Button
           id={triggerId}
           disabled={isDisabled}
-          variant="outline"
-          className={`relative bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium border-slate-700 ${className}`}
+          variant="ghost"
+          className={`rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 ${className}`}
         >
           <Share className="h-4 w-4 mr-2" />
           share
