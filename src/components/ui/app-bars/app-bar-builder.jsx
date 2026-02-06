@@ -348,7 +348,7 @@ export default function AppBarBuilder({
   }
 
   return (
-    <header className="px-6 py-4 bg-gradient-to-r from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] backdrop-blur-md shadow-lg">
+    <header className="px-6 py-4 bg-black backdrop-blur-md shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <Link href="/" className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
