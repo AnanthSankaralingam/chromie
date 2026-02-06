@@ -351,10 +351,10 @@ Note: Stay on simple websites without CAPTCHAs during testing`
       // Continue anyway - don't fail the request
     }
 
-    // Save testing replay to testing_replays table
+    // Save testing replay to session_replays table
     try {
       const { error: replayError } = await supabase
-        .from("testing_replays")
+        .from("session_replays")
         .insert({
           project_id: projectId,
           session_id: session.id,
