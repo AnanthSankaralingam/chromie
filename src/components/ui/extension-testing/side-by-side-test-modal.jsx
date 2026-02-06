@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, Navigation, Info, Eye } from "lucide-react"
+import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, Navigation, Info, Eye, CircleDot, Square, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
@@ -39,11 +39,30 @@ export default function SideBySideTestModal({
   const puppeteerAbortControllerRef = useRef(null)
   const aiAgentAbortControllerRef = useRef(null)
 
+  const [isRecordingDemo, setIsRecordingDemo] = useState(false)
+  const [demoStatus, setDemoStatus] = useState("idle") // idle | recording | saved | error
+  const [demoVideoUrl, setDemoVideoUrl] = useState(null)
+  const [demoRecordingStatus, setDemoRecordingStatus] = useState(null)
+  const [demoError, setDemoError] = useState(null)
+  const [isDemoShareOpen, setIsDemoShareOpen] = useState(false)
+  const [isViewingDemo, setIsViewingDemo] = useState(false)
+  const [isResolvingDemoVideo, setIsResolvingDemoVideo] = useState(false)
+  const demoStartOffsetRef = useRef(null)
+
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
     if (isOpen && sessionData?.sessionId) {
       setSessionExpired(false)
       autoRefreshAttemptedRef.current = false
+      setIsRecordingDemo(false)
+      setDemoStatus("idle")
+      setDemoVideoUrl(null)
+      setDemoRecordingStatus(null)
+      setDemoError(null)
+      setIsDemoShareOpen(false)
+      setIsViewingDemo(false)
+      setIsResolvingDemoVideo(false)
+      demoStartOffsetRef.current = null
 
       const seqId = sessionData?.sequenceId || null
       const isNewSequence = seqId && seqId !== lastSequenceIdRef.current
@@ -481,7 +500,115 @@ export default function SideBySideTestModal({
       }
     }
 
+    setIsViewingDemo(false)
     onClose()
+  }
+
+  const handleToggleDemoRecording = async () => {
+    const canRecordDemo = !isLoading && !sessionExpired && !!sessionData?.sessionId
+    if (!canRecordDemo) {
+      return
+    }
+
+    // Start recording (client-side flag only; Hyperbrowser records entire session)
+    if (!isRecordingDemo && (demoStatus === "idle" || demoStatus === "saved" || demoStatus === "error")) {
+      console.log("[demo-recording] 🎬 Started demo recording", {
+        projectId,
+        sessionId: sessionData?.sessionId,
+      })
+
+      // Capture offset from session start so we can auto-seek later.
+      try {
+        if (sessionData?.startedAt) {
+          const sessionStartMs = new Date(sessionData.startedAt).getTime()
+          const nowMs = Date.now()
+          const offsetSeconds = Math.max(0, (nowMs - sessionStartMs) / 1000)
+          demoStartOffsetRef.current = offsetSeconds
+          console.log("[demo-recording] ⏱️ Demo start offset (s):", offsetSeconds)
+        } else {
+          demoStartOffsetRef.current = null
+        }
+      } catch {
+        demoStartOffsetRef.current = null
+      }
+
+      setIsRecordingDemo(true)
+      setDemoStatus("recording")
+      setDemoError(null)
+      setIsDemoShareOpen(false)
+      return
+    }
+
+    // Stop recording and mark demo as ready to save later
+    if (isRecordingDemo && demoStatus === "recording") {
+      console.log("[demo-recording] ⏹️ Stopping demo recording (will save on view)...")
+      setIsRecordingDemo(false)
+      setDemoStatus("saved")
+      setDemoError(null)
+      setIsDemoShareOpen(false)
+    }
+  }
+
+  const handleViewDemoVideo = async () => {
+    setDemoError(null)
+
+    // If we've already resolved a video URL, just switch to viewing.
+    if (demoVideoUrl) {
+      setIsViewingDemo(true)
+      return
+    }
+
+    if (!projectId || !sessionData?.sessionId) {
+      setDemoError("Missing session information for demo recording")
+      setDemoStatus("error")
+      return
+    }
+
+    try {
+      setIsResolvingDemoVideo(true)
+      console.log("[demo-recording] ▶️ Resolving demo video on view click...", {
+        projectId,
+        sessionId: sessionData.sessionId,
+      })
+
+      const response = await fetch(`/api/projects/${projectId}/testing-replays/demo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: sessionData.sessionId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.error || "Failed to fetch demo recording")
+      }
+
+      setDemoVideoUrl(data.videoUrl || null)
+      setDemoRecordingStatus(data.recordingStatus || null)
+      setDemoStatus("saved")
+
+      console.log("[demo-recording] ✅ Demo replay resolved", {
+        sessionId: sessionData.sessionId,
+        videoUrl: data.videoUrl,
+        recordingStatus: data.recordingStatus,
+      })
+
+      if (data.sessionTerminated) {
+        setSessionExpired(true)
+      }
+
+      setIsViewingDemo(true)
+    } catch (err) {
+      console.error("[demo-recording] ❌ Error resolving demo recording:", err)
+      setDemoError(err?.message || "Failed to load demo recording")
+      setDemoStatus("error")
+    } finally {
+      setIsResolvingDemoVideo(false)
+    }
   }
 
   const handleRunPuppeteerTests = async () => {
@@ -679,13 +806,108 @@ export default function SideBySideTestModal({
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Browser Panel */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center space-x-2 flex-shrink-0">
-                <Monitor className="h-4 w-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">live browser session</span>
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center space-x-2">
+                  <Monitor className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {isViewingDemo && demoVideoUrl ? "demo video recording" : "live browser session"}
+                  </span>
+                </div>
+                {/* Demo recording controls (moved from top bar) */}
+                <div className="flex items-center space-x-2 relative">
+                  <Button
+                    variant={isRecordingDemo ? "destructive" : "outline"}
+                    size="sm"
+                    onClick={handleToggleDemoRecording}
+                    disabled={isLoading || sessionExpired || !sessionData?.sessionId || demoStatus === "processing"}
+                    className={cn(
+                      "flex items-center space-x-1 text-xs",
+                      !isRecordingDemo && "border-red-200 text-red-600",
+                      (isLoading || sessionExpired || !sessionData?.sessionId || demoStatus === "processing") &&
+                        "opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    {isRecordingDemo ? (
+                      <>
+                        <Square className="h-3 w-3 fill-red-600 text-red-600" />
+                        <span className="text-red-600">stop</span>
+                      </>
+                    ) : (
+                      <>
+                        <CircleDot className="h-3 w-3 text-red-600" />
+                        <span className="text-red-600">record demo</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {demoStatus === "saved" && (
+                    isViewingDemo ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsViewingDemo(false)
+                          setSessionExpired(false)
+                          if (typeof onRefresh === "function") {
+                            onRefresh()
+                          }
+                        }}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        back to browser
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleViewDemoVideo}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        view video
+                      </button>
+                    )
+                  )}
+
+                  {demoStatus === "error" && demoError && (
+                    <span className="text-xs text-red-500" title={demoError}>
+                      demo failed
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 relative overflow-hidden">
-                {sessionExpired ? (
+                {isViewingDemo && demoVideoUrl ? (
+                  <div className="absolute inset-0 bg-black flex items-center justify-center">
+                    <div className="w-full h-full bg-black flex items-center justify-center">
+                      {demoVideoUrl.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
+                        <video
+                          src={demoVideoUrl}
+                          controls
+                          className="w-full h-full object-contain bg-black"
+                          onLoadedMetadata={(e) => {
+                            try {
+                              const offset = demoStartOffsetRef.current
+                              if (typeof offset === "number" && offset > 0 && e?.target) {
+                                e.target.currentTime = Math.min(offset, e.target.duration || offset)
+                              }
+                            } catch {
+                              // best-effort; ignore seek errors
+                            }
+                          }}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      ) : (
+                        <iframe
+                          src={demoVideoUrl}
+                          className="w-full h-full border-0 bg-black"
+                          title="Demo Recording Video"
+                          allow="autoplay; encrypted-media"
+                          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : sessionExpired ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-yellow-50">
                     <div className="text-center max-w-md">
                       <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />

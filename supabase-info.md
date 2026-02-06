@@ -343,7 +343,7 @@ Additional indexes and constraints:
 
 ---
 
-### 15. `testing_replays`
+### 15. `session_replays`
 Stores testing replay videos and live URLs for each test run from the simulated browser.
 
 | Column            | Type         | Details                                                     |
@@ -360,8 +360,8 @@ Stores testing replay videos and live URLs for each test run from the simulated 
 | `updated_at`      | timestamptz  | DEFAULT now()                                               |
 
 Additional indexes:
-- `idx_testing_replays_project_id` on `project_id` for fast project queries
-- `idx_testing_replays_created_at` on `created_at DESC` for chronological ordering
+- `idx_session_replays_project_id` on `project_id` for fast project queries
+- `idx_session_replays_created_at` on `created_at DESC` for chronological ordering
 
 RLS policies:
 - Users can SELECT replays only for projects they own
@@ -472,7 +472,7 @@ create policy shared_icons_read_global
 - No INSERT/UPDATE/DELETE policies for users (aggregates are generated automatically by cron jobs).
 - **Note:** Aggregates are read-only for users and managed exclusively by the `daily-metrics-aggregation` cron job.
 
-### 15. `testing_replays`
+### 15. `session_replays`
 - Users can SELECT replays only for projects they own.
 - Users can INSERT replays only for projects they own.
 - Users can DELETE replays only for projects they own.

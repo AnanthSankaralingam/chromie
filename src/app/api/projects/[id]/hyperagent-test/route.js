@@ -273,9 +273,9 @@ export async function POST(request, { params }) {
       recordingStatus = "error"
     }
 
-    // Save testing replay to testing_replays table
+    // Save testing replay to session_replays table
     try {
-      const { error: replayError } = await supabase.from("testing_replays").insert({
+      const { error: replayError } = await supabase.from("session_replays").insert({
         project_id: projectId,
         session_id: sessionId,
         live_url: liveUrl,

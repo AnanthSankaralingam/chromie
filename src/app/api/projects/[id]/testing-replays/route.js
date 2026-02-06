@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
 
     // Fetch testing replays for this project, ordered by most recent first
     const { data: replays, error: replaysError } = await supabase
-      .from("testing_replays")
+      .from("session_replays")
       .select("*")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
