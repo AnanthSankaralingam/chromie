@@ -41,7 +41,6 @@ export default function AppBarBuilder({
   shouldStartTestHighlight = false,
   shouldStartDownloadHighlight = false,
   onCreateAITestAgent,
-  onVersionHistoryClick,
   onAddMetrics,
   tourTestButtonId,
   tourTestWithAIButtonId,
@@ -349,7 +348,7 @@ export default function AppBarBuilder({
   }
 
   return (
-    <header className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-slate-900/95 via-black/20 to-slate-900/95 backdrop-blur-md shadow-lg">
+    <header className="px-6 py-4 bg-gradient-to-r from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] backdrop-blur-md shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
           <Link href="/" className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
@@ -372,28 +371,11 @@ export default function AppBarBuilder({
               </button>
               <div className="hidden sm:flex items-center space-x-3">
                 <Button
-                  onClick={() => {
-                    if (!userIsPaid && !isStillLoading) {
-                      window.location.href = '/pricing'
-                      return
-                    }
-                    onVersionHistoryClick?.()
-                  }}
-                  disabled={isTestDisabled || isGenerating || (!userIsPaid && !isStillLoading)}
-                  variant="outline"
-                  className={!userIsPaid && !isStillLoading ? "relative bg-slate-900 text-slate-500 hover:text-slate-500 hover:bg-slate-800/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2" : "relative bg-slate-900 text-amber-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 enabled:shadow-lg enabled:shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 enabled:scale-100 hover:scale-105"}
-                  style={!userIsPaid && !isStillLoading ? {} : { backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(251 191 36), rgb(245 158 11))', backgroundOrigin: 'border-box' }}
-                  title={!userIsPaid && !isStillLoading ? "Version History (Paid feature — upgrade to unlock)" : "Version History"}
-                >
-                  {!userIsPaid && !isStillLoading ? <Lock className="h-4 w-4" /> : <History className="h-4 w-4" />}
-                </Button>
-                <Button
                   id={tourTestButtonId}
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
-                  variant="outline"
-                  className={`relative bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 font-medium enabled:shadow-lg enabled:shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 enabled:scale-100 hover:scale-105 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-                  style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
+                  variant="ghost"
+                  className={`rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   try it out
@@ -403,9 +385,8 @@ export default function AppBarBuilder({
                     <Button
                       id={tourTestWithAIButtonId}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                      variant="outline"
-                      className="relative bg-slate-900 text-gray-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium text-sm enabled:shadow-lg enabled:shadow-gray-500/20 hover:shadow-xl hover:shadow-gray-500/30 enabled:scale-100 hover:scale-105"
-                      style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(156 163 175), rgb(209 213 219))', backgroundOrigin: 'border-box' }}
+                      variant="ghost"
+                      className="rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 text-sm"
                       title="AI Testing Options"
                     >
                       {isTestingWithAI ? (
@@ -514,9 +495,8 @@ export default function AppBarBuilder({
                 <Button
                   onClick={handleAddMetricsClick}
                   disabled={isTestDisabled || isGenerating}
-                  variant="outline"
-                  className="relative bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2 font-medium enabled:shadow-lg enabled:shadow-slate-500/10 hover:shadow-xl hover:shadow-slate-500/20 enabled:scale-100 hover:scale-105"
-                  style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(100 116 139), rgb(71 85 105))', backgroundOrigin: 'border-box' }}
+                  variant="ghost"
+                  className="rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2"
                   title="Add Metrics"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
@@ -571,31 +551,13 @@ export default function AppBarBuilder({
       {isMobileMenuOpen && (
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
-            <Button
-              onClick={() => {
-                if (!userIsPaid && !isStillLoading) {
-                  window.location.href = '/pricing'
-                  return
-                }
-                onVersionHistoryClick?.()
-                setIsMobileMenuOpen(false)
-              }}
-              disabled={isTestDisabled || isGenerating || (!userIsPaid && !isStillLoading)}
-              variant="outline"
-              className={!userIsPaid && !isStillLoading ? "w-full bg-slate-900 text-slate-500 hover:text-slate-500 hover:bg-slate-800/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" : "w-full bg-slate-900 text-amber-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"}
-              style={!userIsPaid && !isStillLoading ? {} : { backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(251 191 36), rgb(245 158 11))', backgroundOrigin: 'border-box' }}
-            >
-              {!userIsPaid && !isStillLoading ? <Lock className="h-4 w-4 mr-2" /> : <History className="h-4 w-4 mr-2" />}
-              Version History
-            </Button>
             <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
                   id={tourTestWithAIButtonId ? `${tourTestWithAIButtonId}-mobile` : undefined}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI || (!userIsPaid && !isStillLoading)}
-                  variant="outline"
-                  className={!userIsPaid && !isStillLoading ? "w-full text-xs bg-slate-900 text-slate-500 hover:text-slate-500 hover:bg-slate-800/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" : "w-full text-xs bg-slate-900 text-blue-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-blue-500/20"}
-                  style={!userIsPaid && !isStillLoading ? {} : { backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(59 130 246), rgb(14 165 233))', backgroundOrigin: 'border-box' }}
+                  variant="ghost"
+                  className={!userIsPaid && !isStillLoading ? "w-full text-xs rounded-full font-medium bg-slate-900/40 text-slate-500 border border-slate-700/60 hover:bg-slate-800/40 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" : "w-full text-xs rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"}
                 >
                   {isTestingWithAI ? (
                     <>
@@ -712,9 +674,8 @@ export default function AppBarBuilder({
               id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              variant="outline"
-              className={`w-full bg-slate-900 text-green-400 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-green-500/20 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
-              style={{ backgroundClip: 'padding-box', border: '3px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(34 197 94), rgb(20 184 166))', backgroundOrigin: 'border-box' }}
+              variant="ghost"
+              className={`w-full rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
             >
               <Play className="h-4 w-4 mr-2" />
               try it out
@@ -722,9 +683,8 @@ export default function AppBarBuilder({
             <Button
               onClick={() => { handleAddMetricsClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
-              variant="outline"
-              className="w-full bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 enabled:shadow-lg enabled:shadow-slate-500/10"
-              style={{ backgroundClip: 'padding-box', border: '2px solid transparent', backgroundImage: 'linear-gradient(rgb(15 23 42), rgb(15 23 42)), linear-gradient(to right, rgb(100 116 139), rgb(71 85 105))', backgroundOrigin: 'border-box' }}
+              variant="ghost"
+              className="w-full rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               add metrics

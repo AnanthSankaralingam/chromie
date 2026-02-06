@@ -25,6 +25,7 @@ import useDownloadExtension from "@/components/ui/download-extension"
 import { MessageSquare, FolderOpen, FileCode } from "lucide-react"
 import TestingPromptModal from "@/components/ui/modals/testing-prompt-modal"
 import { useNotificationSound } from "@/hooks/use-notification-sound"
+import { usePaidPlan } from "@/hooks/use-paid-plan"
 import { useAutoGenerateParams, useProjectParams } from "@/hooks/use-url-params"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
@@ -80,6 +81,7 @@ function BuilderPageContent() {
   const onboardingModal = useOnboardingModal()
   const { setSteps, startTour, completeStepById, isTourCompleted } = useTour()
   const tourStartedRef = useRef(false)
+  const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
 
   const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
   const downloadExtension = useDownloadExtension(
@@ -625,7 +627,6 @@ function BuilderPageContent() {
             shouldStartTestHighlight={shouldStartTestHighlight}
             shouldStartDownloadHighlight={shouldStartDownloadHighlight}
             onCreateAITestAgent={handleCreateAITestAgent}
-            onVersionHistoryClick={handleVersionHistoryClick}
             tourTestButtonId="tour-test-button"
             tourTestWithAIButtonId="tour-test-with-ai-button"
             tourShareButtonId="tour-share-button"
@@ -739,6 +740,9 @@ function BuilderPageContent() {
                 onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
                 testSessionLogs={testSessionLogs}
                 onClearTestSessionLogs={handleClearTestSessionLogs}
+                onVersionHistoryClick={handleVersionHistoryClick}
+                userIsPaid={!!isPaid}
+                isStillLoadingPaidPlan={isLoadingPaidPlan}
               />
             </div>
           )}
@@ -845,6 +849,9 @@ function BuilderPageContent() {
                   onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
                   testSessionLogs={testSessionLogs}
                   onClearTestSessionLogs={handleClearTestSessionLogs}
+                  onVersionHistoryClick={handleVersionHistoryClick}
+                  userIsPaid={!!isPaid}
+                  isStillLoadingPaidPlan={isLoadingPaidPlan}
                 />
               </div>
             </div>
@@ -916,6 +923,9 @@ function BuilderPageContent() {
                   onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
                   testSessionLogs={testSessionLogs}
                   onClearTestSessionLogs={handleClearTestSessionLogs}
+                  onVersionHistoryClick={handleVersionHistoryClick}
+                  userIsPaid={!!isPaid}
+                  isStillLoadingPaidPlan={isLoadingPaidPlan}
                 />
               </div>
 

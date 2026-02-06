@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { FileCode, ChevronDown, ChevronRight, Trash2 } from "lucide-react"
+import { FileCode, ChevronDown, ChevronRight, Trash2, History, Lock } from "lucide-react"
 import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import ClearChatSuggestionModal from "@/components/ui/modals/clear-chat-suggestion-modal"
@@ -34,6 +34,9 @@ export default function StreamingChat({
   testSessionLogs,
   onClearTestSessionLogs,
   flatFiles,
+  onVersionHistoryClick,
+  userIsPaid = true,
+  isStillLoadingPaidPlan = false,
 }) {
   const chatState = useChatState(projectId, hasGeneratedCodeProp)
   const {
@@ -379,20 +382,38 @@ export default function StreamingChat({
   return (
     <div className="flex flex-col h-full relative">
       {/* Chat Header */}
-      <div className="pt-4 pb-2 px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
-        <p className="text-sm text-gray-200 font-bold">
+      <div className="py-3 px-8 max-w-7xl mx-auto w-full flex items-center justify-between min-h-[44px]">
+        <p className="text-sm text-gray-200 font-bold leading-none">
           {projectName || "describe what you want to add or modify"}
         </p>
-        {messages.length > 1 && !isGenerating && (
-          <button
-            onClick={handleClearConversation}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors"
-            title="Clear conversation (keeps code)"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span>clear chat</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onVersionHistoryClick && (
+            <button
+              onClick={() => {
+                if (!userIsPaid && !isStillLoadingPaidPlan) {
+                  window.location.href = "/pricing"
+                  return
+                }
+                onVersionHistoryClick()
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors leading-none"
+              title={!userIsPaid && !isStillLoadingPaidPlan ? "Version History (Paid feature — upgrade to unlock)" : "Version History"}
+            >
+              {!userIsPaid && !isStillLoadingPaidPlan ? <Lock className="h-3.5 w-3.5 shrink-0" /> : <History className="h-3.5 w-3.5 shrink-0" />}
+              <span>history</span>
+            </button>
+          )}
+          {messages.length > 1 && !isGenerating && (
+            <button
+              onClick={handleClearConversation}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors leading-none"
+              title="Clear conversation (keeps code)"
+            >
+              <Trash2 className="h-3.5 w-3.5 shrink-0" />
+              <span>clear chat</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}

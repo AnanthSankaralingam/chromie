@@ -119,7 +119,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
                     className="object-contain"
                   />
                 </div>
-                <span className="text-2xl font-bold text-white">chromie ai</span>
+                <span className="text-2xl font-bold text-white">chromie.dev</span>
               </div>
               <CardTitle className="text-2xl text-white">
                 {isSignUp ? "Create your account" : "Welcome back"}
