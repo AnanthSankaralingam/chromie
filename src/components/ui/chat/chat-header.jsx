@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { CHROMIE_LOGO_URL } from "@/lib/constants"
 
 export default function ChatHeader() {
   return (
@@ -8,7 +9,7 @@ export default function ChatHeader() {
       <h3 className="text-lg font-semibold mb-1 flex items-center">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md overflow-hidden mr-2">
           <Image 
-            src="/chromie-logo-1.png" 
+            src={CHROMIE_LOGO_URL} 
             alt="chromie Logo" 
             width={32} 
             height={32}

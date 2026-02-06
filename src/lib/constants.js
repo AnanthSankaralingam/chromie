@@ -106,6 +106,9 @@ export const INPUT_LIMITS = {
   MAX_TOTAL_APIS: 5,      // Cap on total APIs (suggested + user-added)
 }
 
+// App logo path (bump ?v=N when you replace the file so Vercel CDN/browsers fetch the new image)
+export const CHROMIE_LOGO_URL = '/chromie-logo-1.png?v=2'
+
 // API Key configuration
 export const API_KEY_CONFIG = {
   // Maximum API keys per user (across all projects)
