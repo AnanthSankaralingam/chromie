@@ -5,6 +5,7 @@ import MarkdownMessage from "./markdown-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 import { UrlInputRequest, ApiInputRequest } from "./input-request-message"
 import { RotateCcw, Copy, Check } from "lucide-react"
+import { CHROMIE_LOGO_URL } from "@/lib/constants"
 
 export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, setMessages, projectId, onRevert }) {
   const [isReverting, setIsReverting] = useState(false)
@@ -14,7 +15,7 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
 
   const variant = message.role === "user" ? "sent" : "received"
   const isUser = message.role === "user"
-  const aiAvatar = "/chromie-logo-1.png"
+  const aiAvatar = CHROMIE_LOGO_URL
 
   // Check if this is an input request message
   const isUrlInputRequest = message.type === "url_input_request"

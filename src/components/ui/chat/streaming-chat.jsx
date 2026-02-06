@@ -13,6 +13,7 @@ import { useStreamProcessor } from "./hooks/useStreamProcessor"
 import { cn } from "@/lib/utils"
 import LogsAppendButton from "@/components/ui/chat/logs-append-button"
 import { formatLogsForContext } from "@/lib/utils/console-logs-context"
+import { CHROMIE_LOGO_URL } from "@/lib/constants"
 
 export default function StreamingChat({
   projectId,
@@ -455,7 +456,7 @@ export default function StreamingChat({
             {/* Typing indicator */}
             {isGenerating && !(planningProgress && currentPlanningPhase) && (
               <ChatBubble variant="received">
-                <ChatBubbleAvatar src="/chromie-logo-1.png" fallback="AI" className="h-8 w-8 shrink-0" />
+                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
                 <ChatBubbleMessage variant="received" isLoading />
               </ChatBubble>
             )}
@@ -463,7 +464,7 @@ export default function StreamingChat({
             {/* Planning progress */}
             {planningProgress && currentPlanningPhase && (
               <ChatBubble variant="received">
-                <ChatBubbleAvatar src="/chromie-logo-1.png" fallback="AI" className="h-8 w-8 shrink-0" />
+                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
                 <ChatBubbleMessage variant="received">
                   <div className="flex items-center space-x-3">
                     <div className="flex space-x-1">
@@ -563,7 +564,7 @@ export default function StreamingChat({
             {/* Open Canvas Button */}
             {effectiveHasGeneratedCode && onOpenCanvas && !isCanvasOpen && (
               <ChatBubble variant="received">
-                <ChatBubbleAvatar src="/chromie-logo-1.png" fallback="AI" className="h-8 w-8 shrink-0" />
+                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
                 <ChatBubbleMessage variant="received">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
