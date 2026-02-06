@@ -352,24 +352,13 @@ export default function AppBarBuilder({
     <header className="border-b border-white/10 px-6 py-4 bg-gradient-to-r from-slate-900/95 via-black/20 to-slate-900/95 backdrop-blur-md shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Image
-                  src="/chromie-logo-1.png"
-                  alt="chromie Logo"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <Link href="/" className="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent hover:from-gray-300 hover:to-gray-400 transition-all duration-300">
-                chromie
-              </Link>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
+            <Image src="/chromie-logo-1.png" alt="Chromie" width={32} height={32} className="shrink-0" />
+            <span className="inline-block text-xl">
+              <span className="font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">chromie</span>
+              <span className="font-normal text-gray-500">.dev</span>
+            </span>
+          </Link>
         </div>
         <div className="flex items-center space-x-3">
           {user && (

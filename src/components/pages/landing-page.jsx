@@ -6,7 +6,7 @@ import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { Chrome } from "lucide-react"
+import Image from "next/image"
 import VideoGallery from "@/components/ui/video-gallery"
 
 export default function LandingPage() {
@@ -95,9 +95,10 @@ export default function LandingPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Chrome className="w-6 h-6 text-gray-500" />
-          <span className="text-lg font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
-            chromie
+          <Image src="/chromie-logo-1.png" alt="Chromie" width={32} height={32} className="shrink-0" />
+          <span className="inline-block text-xl">
+            <span className="font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">chromie</span>
+            <span className="font-normal text-gray-500">.dev</span>
           </span>
         </motion.div>
       </header>
