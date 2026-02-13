@@ -54,12 +54,6 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
       if (response.ok) {
         const data = await response.json()
         if (data.logs && Array.isArray(data.logs)) {
-          // Debug: Log the first log entry to see its structure
-          if (data.logs.length > 0) {
-            console.log('[DEBUG] First log entry:', data.logs[0])
-            console.log('[DEBUG] First log text type:', typeof data.logs[0].text)
-            console.log('[DEBUG] First log text value:', JSON.stringify(data.logs[0].text))
-          }
           setLogs(data.logs)
           previousLogsRef.current = data.logs
         }

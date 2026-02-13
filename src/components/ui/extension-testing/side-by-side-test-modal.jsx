@@ -994,7 +994,7 @@ export default function SideBySideTestModal({
                     sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
                     allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
                     loading="eager"
-                    title="browserbase session"
+                    title="testing session"
                     style={{
                       transform: "translateZ(0)",
                       willChange: "transform",

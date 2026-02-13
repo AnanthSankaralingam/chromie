@@ -87,7 +87,8 @@ function AuthCallbackContent() {
                     builderUrl: builderUrl
                   })
                   
-                  router.push(builderUrl)
+                  // Use full page redirect so session cookies are properly set before builder loads
+                  window.location.href = builderUrl
                   return
                 } else {
                   console.error('AuthCallback: Failed to create project with pending prompt')
@@ -108,7 +109,10 @@ function AuthCallbackContent() {
           sessionStorage.removeItem('auth_redirect_destination') // Clean up
           
           console.log('AuthCallback: Redirecting to:', redirectDestination)
-          router.push(redirectDestination)
+          // Use full page redirect so session cookies are properly set before builder loads.
+          // router.push() causes a race where the builder may fetch /api/projects before
+          // cookies are available, leaving the user stuck on "Setting up your project".
+          window.location.href = redirectDestination
           return
         }
         

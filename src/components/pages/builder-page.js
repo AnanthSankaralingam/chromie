@@ -171,6 +171,39 @@ function BuilderPageContent() {
     }
   }, [isLoading, user])
 
+  // Handle pending_prompt from home page (user signed in via OAuth, route handler redirected here)
+  const hasProcessedPendingPromptRef = useRef(false)
+  useEffect(() => {
+    if (!user || hasProcessedPendingPromptRef.current) return
+    const pendingPromptData = typeof window !== 'undefined' && sessionStorage.getItem('pending_prompt')
+    if (!pendingPromptData) return
+    hasProcessedPendingPromptRef.current = true
+    ;(async () => {
+      try {
+        const { prompt: savedPrompt, timestamp } = JSON.parse(pendingPromptData)
+        if (Date.now() - timestamp >= 60 * 60 * 1000) {
+          sessionStorage.removeItem('pending_prompt')
+          return
+        }
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: savedPrompt.slice(0, 50) + '...', description: savedPrompt })
+        })
+        if (response.ok) {
+          const { project } = await response.json()
+          sessionStorage.removeItem('pending_prompt')
+          window.location.href = `/builder?project=${project.id}&autoGenerate=${encodeURIComponent(savedPrompt)}`
+        } else {
+          sessionStorage.removeItem('pending_prompt')
+        }
+      } catch (e) {
+        console.error('Error processing pending prompt:', e)
+        sessionStorage.removeItem('pending_prompt')
+      }
+    })()
+  }, [user])
+
   // Use the custom hook to manage project URL parameters
   useProjectParams(projectSetup.currentProjectId, projectSetup.isSettingUpProject)
 
@@ -781,12 +814,15 @@ function BuilderPageContent() {
         </div>
 
         {/* Desktop Layout - Hidden on Mobile */}
-        <div className="hidden lg:flex h-[calc(100vh-73px)] relative z-20">
-          {!isCanvasOpen ? (
-            /* Centered Chat View - Initial State */
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-full h-full flex flex-col">
-                <AIChat
+        {/* Single AIChat instance stays mounted when toggling canvas so stream updates are not lost */}
+        <div className="hidden lg:flex h-[calc(100vh-73px)] relative z-20" ref={chatCanvasContainerRef}>
+          {/* Chat container - layout changes but AIChat stays mounted */}
+          <div
+            className={isCanvasOpen ? "flex flex-col bg-black animate-slide-in-left" : "flex-1 flex items-center justify-center"}
+            style={isCanvasOpen ? { width: `${chatCanvasDividerPosition}%` } : undefined}
+          >
+            <div className={isCanvasOpen ? "h-full flex flex-col" : "w-full h-full flex flex-col"}>
+              <AIChat
                   projectId={projectSetup.currentProjectId}
                   projectName={projectSetup.currentProjectName}
                   availableFiles={fileManagement.flatFiles}
@@ -853,87 +889,15 @@ function BuilderPageContent() {
                   userIsPaid={!!isPaid}
                   isStillLoadingPaidPlan={isLoadingPaidPlan}
                 />
-              </div>
             </div>
-          ) : (
-            /* Split View - Chat + Canvas */
-            <div className="flex h-full" ref={chatCanvasContainerRef}>
-              {/* Left Sidebar - AI Assistant */}
-              <div className="flex flex-col bg-black animate-slide-in-left" style={{ width: `${chatCanvasDividerPosition}%` }}>
-                <AIChat
-                  projectId={projectSetup.currentProjectId}
-                  projectName={projectSetup.currentProjectName}
-                  availableFiles={fileManagement.flatFiles}
-                  autoGeneratePrompt={autoGeneratePrompt}
-                  onAutoGenerateComplete={handleAutoGenerateComplete}
-                  onCodeGenerated={async (response) => {
-                    await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
-                    setIsGenerating(false)
-                    setHasGeneratedCode(true)
-                    // Refresh project details (name/description) after generation updates
-                    await projectSetup.refreshCurrentProjectDetails?.()
+          </div>
 
-                    // Clear autoGeneratePrompt now that code generation is complete
-                    if (autoGeneratePrompt) {
-                      handleAutoGenerateComplete()
-                    }
+          {/* Resizable Divider - only when canvas is open */}
+          {isCanvasOpen && <ChatCanvasResizableDivider />}
 
-                    // Play notification sound if user is not on the page
-                    playNotificationSound()
-
-                    // Check if this was first generation and show testing prompt modal
-                    if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
-                      const localStorageKey = `chromie-testing-prompt-shown-${projectSetup.currentProjectName}`
-                      const hasShownPrompt = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
-
-                      if (!hasShownPrompt) {
-                        // Mark as shown immediately
-                        if (typeof window !== 'undefined') {
-                          localStorage.setItem(localStorageKey, 'true')
-                        }
-                        // Show modal after a short delay to ensure page state is updated
-                        setTimeout(() => {
-                          setIsTestingPromptOpen(true)
-                        }, 500)
-                      }
-                    }
-
-                    // Auto-select manifest.json file after code generation
-                    setTimeout(() => {
-                      const manifestFile = fileManagement.findManifestFile()
-                      if (manifestFile) {
-                        setSelectedFile(manifestFile)
-                      }
-                    }, 500) // Small delay to ensure file structure is updated
-                  }}
-                  onGenerationStart={() => {
-                    setIsGenerating(true)
-                    // Track hasGeneratedCode state before generation starts
-                    hasGeneratedCodeBeforeRef.current = hasGeneratedCode
-                  }}
-                  onGenerationEnd={() => {
-                    setIsGenerating(false)
-                  }}
-                  onOpenCanvas={handleOpenCanvas}
-                  hasGeneratedCode={hasGeneratedCode}
-                  isCanvasOpen={isCanvasOpen}
-                  isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
-                  isOnboardingModalOpen={onboardingModal.isModalOpen}
-                  onCodeGenerationStarting={handleCodeGenerationStarting}
-                  onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
-                  testSessionLogs={testSessionLogs}
-                  onClearTestSessionLogs={handleClearTestSessionLogs}
-                  onVersionHistoryClick={handleVersionHistoryClick}
-                  userIsPaid={!!isPaid}
-                  isStillLoadingPaidPlan={isLoadingPaidPlan}
-                />
-              </div>
-
-              {/* Resizable Divider */}
-              <ChatCanvasResizableDivider />
-
-              {/* Canvas Pane - Files + Editor */}
-              <div className="flex flex-col p-2" style={{ width: `${100 - chatCanvasDividerPosition}%`, maxWidth: '100%', maxHeight: '100%' }}>
+          {/* Canvas Pane - Files + Editor - only when canvas is open */}
+          {isCanvasOpen && (
+            <div className="flex flex-col p-2" style={{ width: `${100 - chatCanvasDividerPosition}%`, maxWidth: '100%', maxHeight: '100%' }}>
                 <Artifact className="h-full flex flex-col max-w-full max-h-full">
                   <ArtifactContent className="p-2">
                     {/* Files + Editor */}
@@ -976,8 +940,7 @@ function BuilderPageContent() {
                   </ArtifactContent>
                 </Artifact>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
 
