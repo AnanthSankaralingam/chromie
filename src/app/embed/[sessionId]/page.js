@@ -159,19 +159,17 @@ export default function BrowserEmbed() {
     )
   }
 
-  // If we have real Browserbase session data, show the iframe
+  // If we have real testing session data, show the iframe
   if (sessionData?.iframeUrl && sessionData.iframeUrl.startsWith('http')) {
-    console.log('Displaying real Browserbase iframe:', sessionData.iframeUrl)
     return (
       <div className="h-screen bg-gray-100 flex flex-col">
-        {/* Real Browserbase iframe */}
         <div className="flex-1">
           <iframe
             src={sessionData.iframeUrl}
             className="w-full h-full border-0"
-            title="Browserbase Test Environment - Your Extension is Loaded"
+            title="Test Environment - Your Extension is Loaded"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-            onLoad={() => console.log('Browserbase iframe loaded successfully')}
+            onLoad={() => console.log('testing browser iframe loaded successfully')}
           />
         </div>
       </div>

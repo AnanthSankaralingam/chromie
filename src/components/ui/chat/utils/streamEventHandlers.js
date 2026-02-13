@@ -60,10 +60,8 @@ export function createStreamEventHandler(context) {
       case "thinking":
         if (typeof data.content === "string" && data.content.length > 0) {
           thinkingChunkCountRef.current += 1
-          console.log('[streamEventHandlers] 💭 Received thinking chunk #' + thinkingChunkCountRef.current + ', length:', data.content.length)
           setModelThinkingFull((prev) => {
             const updated = prev + data.content
-            console.log('[streamEventHandlers] 💭 Total thinking length now:', updated.length)
             return updated
           })
         }

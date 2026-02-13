@@ -6,7 +6,6 @@ export default function useResizableChatCanvas() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('chromie_chat_canvas_divider_position')
       const position = saved ? parseFloat(saved) : 40
-      console.log('Initial chat/canvas divider position loaded:', position)
       return position
     }
     return 40
@@ -29,11 +28,9 @@ export default function useResizableChatCanvas() {
 
       // Constrain between 20% and 60% for reasonable split
       const constrainedPosition = Math.min(Math.max(newPosition, 20), 60)
-      console.log('Setting chat/canvas divider position to:', constrainedPosition)
       setDividerPosition(constrainedPosition)
       // Save to localStorage
       localStorage.setItem('chromie_chat_canvas_divider_position', constrainedPosition.toString())
-      console.log('Saved chat/canvas divider to localStorage:', constrainedPosition)
     }
 
     const handleMouseUp = () => {

@@ -60,7 +60,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
       // Use a simple URL without query params to avoid Supabase redirect URL mismatch
       const authCallbackUrl = `${currentOrigin}/auth/callback`
       
-      // Store the redirect destination in sessionStorage for the callback
+      // Store the redirect destination in both cookie (for server callback) and sessionStorage (fallback)
+      document.cookie = `auth_redirect_destination=${encodeURIComponent(finalRedirect)}; path=/; max-age=300; samesite=lax`
       sessionStorage.setItem('auth_redirect_destination', finalRedirect)
       
       // Check if there's a pending prompt and preserve it

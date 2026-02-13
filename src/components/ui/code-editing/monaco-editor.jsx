@@ -37,6 +37,7 @@ export default function MonacoEditor({
   const [hideActionButtonsUntilSave, setHideActionButtonsUntilSave] = useState(false)
   const [localIcons, setLocalIcons] = useState(new Map()) // Map<path, dataUrl>
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isLoadingHtmlPreview, setIsLoadingHtmlPreview] = useState(false)
 
   // Check if file can be deleted (not a protected file)
   const canDeleteFile = () => {
@@ -201,11 +202,27 @@ export default function MonacoEditor({
     }
   }, [content, isHtmlPreview, language])
 
-  const handleToggleHtmlPreview = () => {
+  const handleToggleHtmlPreview = async () => {
     if (!(language === 'html')) return
     const next = !isHtmlPreview
-    setIsHtmlPreview(next)
     if (next) {
+      // Load icons BEFORE showing preview so iframe renders with icons on first paint
+      const iconPaths = extractIconPaths(content)
+      if (iconPaths.length > 0) {
+        setIsLoadingHtmlPreview(true)
+        try {
+          const loadedIcons = await loadIcons(iconPaths)
+          setLocalIcons(prev => {
+            const merged = new Map(prev)
+            for (const [path, dataUrl] of loadedIcons) {
+              merged.set(path, dataUrl)
+            }
+            return merged
+          })
+        } finally {
+          setIsLoadingHtmlPreview(false)
+        }
+      }
       try {
         const seen = typeof window !== 'undefined' && window.localStorage.getItem('html_preview_info_seen') === '1'
         if (!seen) {
@@ -216,6 +233,7 @@ export default function MonacoEditor({
         // non-blocking
       }
     }
+    setIsHtmlPreview(next)
     try {
       onHtmlPreviewToggle?.(next)
     } catch (e) {
@@ -400,32 +418,6 @@ export default function MonacoEditor({
     }
   }
 
-  const handleBumpManifestVersion = () => {
-    const isManifest = (fileName || '').toLowerCase() === 'manifest.json'
-    if (!isManifest) return
-    try {
-      const parsed = JSON.parse(content || '{}')
-      const current = parsed?.version
-      const numeric = typeof current === 'number' ? current : parseFloat(String(current))
-      if (isNaN(numeric)) {
-        console.warn('[MonacoEditor] Could not parse manifest version:', current)
-        return
-      }
-      const bumped = Number((numeric + 0.1).toFixed(1))
-      // Chrome manifest expects version as a string
-      parsed.version = bumped.toFixed(1)
-      const updated = JSON.stringify(parsed, null, 2)
-      setContent(updated)
-      setHasChanges(updated !== code)
-      setHideActionButtonsUntilSave(true)
-      if (editorRef.current) {
-        editorRef.current.focus()
-      }
-    } catch (e) {
-      console.error('[MonacoEditor] Failed to bump manifest version:', e)
-    }
-  }
-
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor
 
@@ -592,27 +584,25 @@ export default function MonacoEditor({
                 Format
               </Button>
             )}
-            {!isImageAsset() && (fileName || '').toLowerCase() === 'manifest.json' && !hideActionButtonsUntilSave && (
-              <Button
-                onClick={handleBumpManifestVersion}
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-xs px-3 py-1"
-                title="Increase manifest version by 0.1"
-              >
-                + Version
-              </Button>
-            )}
             {!isImageAsset() && language === 'html' && (
               <Button
                 id="tour-see-html-button"
                 onClick={handleToggleHtmlPreview}
+                disabled={isLoadingHtmlPreview}
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"
-                title={isHtmlPreview ? 'Back to Code' : 'See HTML'}
+                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1 disabled:opacity-50"
+                title={isHtmlPreview ? 'Back to Code' : isLoadingHtmlPreview ? 'Loading icons...' : 'See HTML'}
               >
-                {isHtmlPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                {isHtmlPreview ? 'Code' : (
+                {isLoadingHtmlPreview ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-teal-400 border-t-transparent" />
+                    Loading
+                  </span>
+                ) : isHtmlPreview ? (
+                  <><Code className="h-3 w-3 mr-1" />Code</>
+                ) : (
                   <span className="inline-flex items-center space-x-1">
+                    <Eye className="h-3 w-3 mr-1" />
                     <span>See</span>
                     <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-teal-800 text-teal-200 border border-teal-700">beta</span>
                   </span>
