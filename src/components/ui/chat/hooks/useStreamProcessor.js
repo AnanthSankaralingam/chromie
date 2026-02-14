@@ -3,6 +3,7 @@ import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import {
   createStreamEventHandler,
   createRequiresUrlHandler,
+  createRequiresFrontendTypeHandler,
   createRequiresApiHandler,
 } from "../utils/streamEventHandlers"
 import { fetchWithErrorHandling, streamResponse, buildGeneratePayload } from "../utils/apiHelpers"
@@ -91,11 +92,14 @@ export function useStreamProcessor({
       }
 
       const handleEvent = createStreamEventHandler(handlerContext)
+      const handleRequiresFrontendType = createRequiresFrontendTypeHandler(handlerContext)
       const handleRequiresUrl = createRequiresUrlHandler(handlerContext)
       const handleRequiresApi = createRequiresApiHandler(handlerContext)
 
       for await (const data of streamResponse(response)) {
-        if (data.type === "requires_url") {
+        if (data.type === "requires_frontend_type") {
+          handleRequiresFrontendType(data, payload.prompt, payload.requestType, payload.projectId)
+        } else if (data.type === "requires_url") {
           handleRequiresUrl(data, payload.prompt, payload.requestType, payload.projectId)
         } else if (data.type === "requires_api") {
           handleRequiresApi(data, payload.prompt, payload.requestType, payload.projectId)
@@ -412,10 +416,60 @@ export function useStreamProcessor({
     ]
   )
 
+  const continueGenerationWithFrontendType = useCallback(
+    async (requestInfo, selectedType) => {
+      setIsGenerating(true)
+      resetStreamState(false) // Don't reset start message flag - this is a continuation
+
+      if (onGenerationStart) onGenerationStart()
+
+      try {
+        // Update the frontend type in analysis data so it propagates
+        if (requestInfo.analysisData?.requirements) {
+          requestInfo.analysisData.requirements.frontend_type = selectedType
+        }
+
+        const payload = buildGeneratePayload({
+          prompt: requestInfo.prompt,
+          projectId: requestInfo.projectId,
+          requestType: requestInfo.requestType,
+          analysisData: requestInfo.analysisData,
+          userSelectedFrontendType: selectedType,
+        })
+
+        await processStream(payload)
+      } catch (error) {
+        console.error("Error in frontend type continuation:", error)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `I encountered an error while continuing generation: ${error.message}\n\nPlease try again.`,
+          },
+        ])
+      } finally {
+        setIsGenerating(false)
+        setTypingCancelSignal((v) => v + 1)
+        if (onGenerationEnd) onGenerationEnd()
+      }
+    },
+    [
+      chatState,
+      onGenerationStart,
+      onGenerationEnd,
+      setIsGenerating,
+      resetStreamState,
+      processStream,
+      setMessages,
+      setTypingCancelSignal,
+    ]
+  )
+
   return {
     startGeneration,
     startGenerationWithUrl,
     continueGenerationWithSkipScraping,
     continueGenerationWithApis,
+    continueGenerationWithFrontendType,
   }
 }

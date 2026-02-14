@@ -122,7 +122,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images, taggedFiles } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images, taggedFiles, userSelectedFrontendType } = await request.json()
 
     console.log('[api/generate/stream] received', {
       conversationTokenTotal_in: conversationTokenTotal ?? null,
@@ -333,7 +333,8 @@ export async function POST(request) {
             initialPlanningTokenUsage: initialPlanningTokenUsage || null,
             images: images || null,
             taggedFiles: taggedFiles || null,
-            supabase: supabase // Pass authenticated supabase client
+            supabase: supabase, // Pass authenticated supabase client
+            userSelectedFrontendType: userSelectedFrontendType || null
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
@@ -355,9 +356,9 @@ export async function POST(request) {
               if (total > 0) accumulatedTokens = total
             }
             
-            // Check if URL is required
-            if (chunk.type === "requires_url") {
-              console.log('[api/generate/stream] 📋 Detected requires_url chunk - will halt after this')
+            // Check if URL is required or frontend type selection is needed
+            if (chunk.type === "requires_url" || chunk.type === "requires_frontend_type") {
+              console.log(`[api/generate/stream] 📋 Detected ${chunk.type} chunk - will halt after this`)
               requiresUrl = true
             }
           }

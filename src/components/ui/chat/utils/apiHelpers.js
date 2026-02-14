@@ -60,6 +60,7 @@ export function buildGeneratePayload({
   skipScraping = false,
   userProvidedApis = null,
   analysisData = null,
+  userSelectedFrontendType = null,
 }) {
   const payload = {
     prompt,
@@ -85,6 +86,10 @@ export function buildGeneratePayload({
   if (analysisData) {
     payload.initialRequirementsAnalysis = analysisData.requirements
     payload.initialPlanningTokenUsage = analysisData.tokenUsage
+  }
+
+  if (userSelectedFrontendType) {
+    payload.userSelectedFrontendType = userSelectedFrontendType
   }
 
   return payload

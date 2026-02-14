@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check, Plus, X } from "lucide-react"
+import { Check, Plus, X, Layout, Monitor, Code } from "lucide-react"
 import externalApisData from '../../../lib/data/external_apis.json'
 import { INPUT_LIMITS } from "@/lib/constants"
 
@@ -599,3 +599,157 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
   )
 }
 
+const FRONTEND_TYPE_OPTIONS = [
+  {
+    id: 'popup',
+    label: 'Popup',
+    description: 'Small window from toolbar icon. For quick actions, settings, and status displays.',
+    image: '/frontend-type-popup.png',
+    Icon: null,
+  },
+  {
+    id: 'sidepanel',
+    label: 'Side Panel',
+    description: 'Persistent panel beside the page. For reference tools, readers, and note-taking.',
+    image: '/frontend-type-sidepanel.png',
+    Icon: null,
+  },
+  {
+    id: 'overlay',
+    label: 'Overlay',
+    description: 'Floating UI on top of web pages. For translation, annotation, and quick tools.',
+    image: '/frontend-type-overlay.png',
+    Icon: null,
+  },
+  {
+    id: 'new_tab',
+    label: 'New Tab',
+    description: 'Full-page tab replacement. For dashboards, extensive content, standalone apps.',
+    image: '/frontend-type-newtab.png',
+    Icon: Monitor,
+  },
+  {
+    id: 'content_script_ui',
+    label: 'Content Injection',
+    description: 'Inline elements injected into web pages. For annotations, highlights, floating buttons.',
+    image: '/frontend-type-content-injection.png',
+    Icon: Code,
+  },
+]
+
+export function FrontendTypeInputRequest({ message, onSubmit, onCancel, setMessages, messageIndex }) {
+  const [selectedType, setSelectedType] = useState(message.suggestedType || 'popup')
+  const [isSubmitted, setIsSubmitted] = useState(message.isSubmitted || false)
+
+  const suggestedType = message.suggestedType
+
+  const handleSubmit = () => {
+    setIsSubmitted(true)
+
+    if (setMessages && messageIndex !== undefined) {
+      setMessages((prev) => {
+        const updated = [...prev]
+        updated[messageIndex] = {
+          ...updated[messageIndex],
+          isSubmitted: true,
+          submittedValue: selectedType,
+        }
+        return updated
+      })
+    }
+
+    onSubmit(selectedType)
+  }
+
+  if (isSubmitted || message.isSubmitted) {
+    const displayType = FRONTEND_TYPE_OPTIONS.find(o => o.id === (message.submittedValue || selectedType))
+    return (
+      <div className="flex items-center gap-2 text-sm text-green-400">
+        <Check className="h-4 w-4" />
+        <span>Frontend type selected: {displayType?.label || message.submittedValue || selectedType}</span>
+      </div>
+    )
+  }
+
+  const selectedOption = FRONTEND_TYPE_OPTIONS.find(o => o.id === selectedType)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+          <Layout className="w-4 h-4 text-gray-400" />
+        </div>
+        <div className="flex-1 space-y-2">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100 mb-1">
+              Select Frontend Type
+            </h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              {message.content || "I'm not fully confident about the best UI type for your extension. Please select the frontend type that best fits your needs."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {FRONTEND_TYPE_OPTIONS.map((option) => {
+          const isSelected = selectedType === option.id
+          const isSuggested = option.id === suggestedType
+          const IconComponent = option.Icon
+
+          return (
+            <button
+              key={option.id}
+              onClick={() => setSelectedType(option.id)}
+              className={`relative flex flex-col rounded-lg border-2 transition-all text-left overflow-hidden ${
+                isSelected
+                  ? 'border-gray-400 bg-gray-500/20'
+                  : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
+              }`}
+            >
+              {/* Preview image or icon placeholder */}
+              <div className="w-full aspect-[4/3] bg-slate-800 overflow-hidden flex items-center justify-center">
+                {option.image ? (
+                  <img
+                    src={option.image}
+                    alt={option.label}
+                    className="w-full h-full object-cover"
+                  />
+                ) : IconComponent ? (
+                  <IconComponent className="w-10 h-10 text-slate-500" />
+                ) : null}
+              </div>
+
+              {/* Label + description */}
+              <div className="p-2.5 space-y-1 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-100">{option.label}</span>
+                  {isSuggested && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-500/30 text-gray-300 border border-gray-500/40 leading-none whitespace-nowrap">
+                      AI pick
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 leading-snug">{option.description}</p>
+              </div>
+
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center shadow">
+                  <Check className="w-3 h-3 text-slate-900" />
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        className="w-full px-5 py-3 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-gray-500 to-gray-400 text-white hover:from-gray-600 hover:to-gray-500 shadow-lg shadow-gray-500/20"
+      >
+        Continue with {selectedOption?.label || selectedType}
+      </button>
+    </div>
+  )
+}

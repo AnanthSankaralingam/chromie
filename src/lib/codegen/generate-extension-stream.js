@@ -28,7 +28,7 @@ import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/plann
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
-import { PLANNING_MODELS } from "@/lib/constants";
+import { PLANNING_MODELS, FRONTEND_CONFIDENCE_THRESHOLD } from "@/lib/constants";
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -56,6 +56,7 @@ export async function* generateChromeExtensionStream({
   images = null, // Image attachments for vision-enabled requests
   taggedFiles = null, // User-tagged files that bypass planner selection
   supabase = null, // Supabase client for authenticated database access
+  userSelectedFrontendType = null, // User-selected frontend type when confidence was low
 }) {
   try {
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
@@ -63,11 +64,34 @@ export async function* generateChromeExtensionStream({
 
     // Step 1: Analyze requirements based on request type
     if (initialRequirementsAnalysis && initialPlanningTokenUsage) {
-      // If initial analysis is provided, we're resuming after a URL prompt
+      // If initial analysis is provided, we're resuming after a URL/frontend-type prompt
       console.log('♻️ [generate-extension-stream] SKIPPING planning orchestrator - reusing previous analysis results')
       console.log('📊 Previous planning tokens:', planningTokenUsage)
       requirementsAnalysis = initialRequirementsAnalysis;
       planningTokenUsage = initialPlanningTokenUsage;
+
+      // If user selected a frontend type (from low-confidence prompt), apply the override
+      if (userSelectedFrontendType) {
+        const originalType = requirementsAnalysis.frontend_type
+        console.log(`🎨 [generate-extension-stream] User selected frontend type: ${userSelectedFrontendType} (was: ${originalType})`)
+        requirementsAnalysis.frontend_type = userSelectedFrontendType
+
+        // If the type changed, invalidate the matched template since it was selected for the old type
+        if (userSelectedFrontendType !== originalType) {
+          console.log('⚠️ [generate-extension-stream] Frontend type changed - invalidating matched template')
+          requirementsAnalysis.matchedTemplate = { name: null, confidence: 0 }
+        }
+
+        // Update the planning result's frontendType to match
+        if (requirementsAnalysis.planningResult) {
+          requirementsAnalysis.planningResult.frontendType = userSelectedFrontendType
+          // Re-format planning outputs with the updated frontend type
+          requirementsAnalysis.planningOutputs = formatPlanningOutputs(
+            requirementsAnalysis.planningResult, null, null, null, featureRequest
+          )
+        }
+      }
+
       yield {
         type: "analyzing",
         content: "resuming_analysis"
@@ -124,6 +148,25 @@ export async function* generateChromeExtensionStream({
       }
 
       planningTokenUsage = planningResult.tokenUsage
+
+      // Check if frontend type confidence is low — prompt user to confirm/override
+      const frontendConfidence = planningResult.frontendConfidence
+      console.log(`🎯 [generate-extension-stream] Frontend confidence: ${frontendConfidence} (threshold: ${FRONTEND_CONFIDENCE_THRESHOLD})`)
+
+      if (frontendConfidence < FRONTEND_CONFIDENCE_THRESHOLD) {
+        console.log('🤔 [generate-extension-stream] Low frontend confidence - requesting user selection')
+        yield {
+          type: "requires_frontend_type",
+          content: "I'm not fully confident about the best UI type for your extension. Please select the frontend type that best fits your needs.",
+          suggestedType: requirementsAnalysis.frontend_type,
+          confidence: frontendConfidence,
+          analysisData: {
+            requirements: requirementsAnalysis,
+            tokenUsage: planningTokenUsage,
+          },
+        }
+        return
+      }
 
       yield {
         type: "analysis_complete",

@@ -36,6 +36,8 @@ Provide the actual API endpoint base URL in endpoint_url field.
 Do NOT suggest API if:
 - Service only offers web scraping (no documented API)
 - Unclear if API exists or is accessible
+- It is a Chrome built-in API (chrome.storage, chrome.tabs, chrome.runtime, etc.) — these are NOT external APIs
+- The endpoint_url would be empty or a chrome.* namespace
 </api_identification>
 
 <common_api_endpoints>

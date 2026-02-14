@@ -61,6 +61,11 @@ export const DEFAULT_MODELS = {
   anthropic: 'claude-haiku-4-5-20251001'
 }
 
+// Frontend type selection confidence threshold
+// When the LLM's confidence in its frontend type selection is below this threshold,
+// the user will be prompted to confirm or override the selection
+export const FRONTEND_CONFIDENCE_THRESHOLD = 0.8
+
 // Planning phase model configuration
 export const PLANNING_MODELS = {
   DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts

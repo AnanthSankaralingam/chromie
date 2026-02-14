@@ -98,6 +98,7 @@ export async function orchestratePlanning(featureRequest) {
       use_case: useCaseResponse.result,
       external_resources: externalResourcesResponse.result,
       frontend_type: frontendSelectionResponse.result.frontend_type,
+      frontend_confidence: frontendSelectionResponse.result.confidence || 1.0,
       template_match: templateMatchingResponse.result,
       workspace_apis: workspaceApis.map(a => a.name),
       workspace_scopes: workspaceScopes,
@@ -113,6 +114,7 @@ export async function orchestratePlanning(featureRequest) {
       useCaseResult: useCaseResponse.result,
       externalResourcesResult: externalResourcesResponse.result,
       frontendType: frontendSelectionResponse.result.frontend_type,
+      frontendConfidence: frontendSelectionResponse.result.confidence || 1.0,
       templateMatchResult: templateMatchingResponse.result,
       codeSnippet: codeSnippet,
       tokenUsage: totalTokenUsage,
@@ -206,19 +208,33 @@ async function callExternalResourcesPrompt(featureRequest) {
 
     const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
 
-    // Filter out Chrome APIs from external_apis (Chrome APIs are notated as chrome.*)
+    // Filter out Chrome APIs and invalid entries from external_apis
     if (result.external_apis && Array.isArray(result.external_apis)) {
       const originalCount = result.external_apis.length
       result.external_apis = result.external_apis.filter(api => {
-        const isChromeApi = api.name && api.endpoint_url.toLowerCase().startsWith('chrome.')
+        const endpointLower = (api.endpoint_url || '').toLowerCase().trim()
+        const nameLower = (api.name || '').toLowerCase()
+
+        // Filter out Chrome built-in APIs (name or endpoint references chrome.*)
+        const isChromeApi = endpointLower.startsWith('chrome.') ||
+          nameLower.includes('chrome storage') ||
+          nameLower.includes('chrome.') ||
+          nameLower.startsWith('chrome ')
+
+        // Filter out entries with empty/missing endpoints (hallucinated)
+        const hasEmptyEndpoint = !endpointLower || !endpointLower.startsWith('http')
+
         if (isChromeApi) {
           console.log(`🔍 [Planning Orchestrator] Filtered out Chrome API from external resources: ${api.name}`)
+        } else if (hasEmptyEndpoint) {
+          console.log(`🔍 [Planning Orchestrator] Filtered out API with empty/invalid endpoint: ${api.name} (endpoint: "${api.endpoint_url}")`)
         }
-        return !isChromeApi
+
+        return !isChromeApi && !hasEmptyEndpoint
       })
 
       if (originalCount !== result.external_apis.length) {
-        console.log(`✅ [Planning Orchestrator] Removed ${originalCount - result.external_apis.length} Chrome API(s) from external resources`)
+        console.log(`✅ [Planning Orchestrator] Removed ${originalCount - result.external_apis.length} invalid/Chrome API(s) from external resources`)
       }
     }
 

@@ -254,6 +254,34 @@ export function createRequiresUrlHandler(context) {
   }
 }
 
+export function createRequiresFrontendTypeHandler(context) {
+  const {
+    setMessages,
+    currentRequestRef,
+  } = context
+
+  return (data, prompt, requestType, projectId) => {
+    // Store the current request info for frontend type continuation
+    currentRequestRef.current = {
+      prompt: prompt,
+      requestType: requestType,
+      projectId: projectId,
+      analysisData: data.analysisData,
+    }
+
+    // Add a chat message with frontend type selection request
+    const frontendTypeMessage = {
+      role: "assistant",
+      type: "frontend_type_input_request",
+      content: data.content || "I'm not fully confident about the best UI type for your extension. Please select the frontend type that best fits your needs.",
+      suggestedType: data.suggestedType,
+      confidence: data.confidence,
+    }
+
+    setMessages((prev) => [...prev, frontendTypeMessage])
+  }
+}
+
 export function createRequiresApiHandler(context) {
   const {
     setMessages,
