@@ -30,8 +30,17 @@ content_script_ui: Injected UI elements. For inline annotations, highlights, flo
 - If needs to modify a specific website → content_script_ui
 - If needs persistent access while browsing → sidepanel
 - If replaces new tab or home page → new_tab
-- If unclear or generic → popup (safest default)
 </selection_guidelines>
+
+<confidence_calibration>
+The confidence score reflects how UNAMBIGUOUS the frontend choice is:
+- 0.9-1.0: User explicitly names a single frontend type ("make a popup", "build a sidepanel")
+- 0.7-0.89: Strong signals point to one type, but user didn't explicitly request it
+- 0.5-0.69: Multiple types could work, or the request is vague/generic ("make me a chrome extension")
+- Below 0.5: User explicitly mentions multiple types ("popup or sidepanel") or request gives no UI hints
+
+IMPORTANT: If the user mentions two or more frontend types as options (e.g. "side panel or pop-up"), confidence MUST be below 0.6 because the choice is genuinely ambiguous.
+</confidence_calibration>
 
 <output_schema>
 {
@@ -43,4 +52,4 @@ content_script_ui: Injected UI elements. For inline annotations, highlights, flo
 Return only valid JSON. No markdown, no explanation.`;
 
 export const FRONTEND_SELECTION_PREFILL = `{
-  "frontend_type": `
+  "frontend_type":`

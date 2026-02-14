@@ -83,7 +83,6 @@ export default function SideBySideTestModal({
       }
 
       lastSequenceIdRef.current = seqId
-      console.log("🔄 New test session detected, resetting expired state")
     }
   }, [isOpen, sessionData?.sessionId, sessionData?.sequenceId])
 
@@ -116,10 +115,6 @@ export default function SideBySideTestModal({
       lastStatus = status
 
       if (ACTIVE_SESSION_STATUSES.has(status)) {
-        console.log(`[session-wait] ✅ Session active for ${label || "action"}`, {
-          sessionId: sessionData?.sessionId,
-          status,
-        })
         return { ok: true, status }
       }
 
@@ -279,7 +274,6 @@ export default function SideBySideTestModal({
     } catch (error) {
       // Don't set error if it was aborted
       if (error.name === 'AbortError') {
-        console.log("[hyperagent-test] Test aborted by user")
         return
       }
       setHyperAgentResult({
@@ -299,8 +293,6 @@ export default function SideBySideTestModal({
       return
     }
 
-    console.log("[hyperagent-test] Stopping AI agent tests...")
-    
     // Abort the fetch request first
     if (aiAgentAbortControllerRef.current) {
       aiAgentAbortControllerRef.current.abort()
@@ -327,7 +319,6 @@ export default function SideBySideTestModal({
       })
 
       if (response.ok) {
-        console.log("[hyperagent-test] ✅ Session terminated, tests stopped")
         setHyperAgentResult({
           success: false,
           error: "Test stopped by user. Session terminated.",
@@ -335,14 +326,12 @@ export default function SideBySideTestModal({
         // Mark session as expired so the UI reflects that the browser is closed
         setSessionExpired(true)
       } else {
-        console.error("[hyperagent-test] Failed to terminate session")
         setHyperAgentResult({
           success: false,
           error: "Failed to stop test - session may still be running",
         })
       }
     } catch (error) {
-      console.error("[hyperagent-test] Error stopping tests:", error)
       setHyperAgentResult({
         success: false,
         error: "Error stopping test",
@@ -374,12 +363,6 @@ export default function SideBySideTestModal({
     if (!pinConfirmed) return
 
     hasAutoKickedRef.current = true
-    console.log("[ai-analysis] ✅ Pinning complete, auto-starting hyperagent_test_script...", {
-      sessionId: sessionData.sessionId,
-      pinned: pin?.pinned,
-      alreadyPinned: pin?.alreadyPinned,
-      sequence: sessionData?.runTestSequence === true,
-    })
     // Small delay to allow the live view to settle before agent starts interacting.
     setTimeout(() => {
       ;(async () => {
@@ -425,10 +408,6 @@ export default function SideBySideTestModal({
     if (!pinConfirmed) return
 
     hasAutoRunPuppeteerRef.current = true
-    console.log("[execute-testing-agent] ▶️ Auto-starting puppeteer tests...", {
-      projectId,
-      sessionId: sessionData.sessionId,
-    })
     setTimeout(() => {
       ;(async () => {
         const waited = await waitForSessionActive({ label: "puppeteer-auto" })
@@ -483,7 +462,6 @@ export default function SideBySideTestModal({
     // Capture logs before closing if session is active
     if (sessionData?.sessionId && projectId && onSessionLogsCapture) {
       try {
-        console.log('[side-by-side-test-modal] Fetching logs before close...')
         const response = await fetch(
           `/api/projects/${projectId}/test-extension/console-logs?sessionId=${encodeURIComponent(sessionData.sessionId)}`
         )
@@ -491,12 +469,10 @@ export default function SideBySideTestModal({
         if (response.ok) {
           const data = await response.json()
           if (data.logs && data.logs.length > 0) {
-            console.log('[side-by-side-test-modal] Captured', data.logs.length, 'logs before close')
             onSessionLogsCapture(data.logs)
           }
         }
       } catch (error) {
-        console.error('[side-by-side-test-modal] Failed to capture logs before close:', error)
       }
     }
 
@@ -512,10 +488,6 @@ export default function SideBySideTestModal({
 
     // Start recording (client-side flag only; Hyperbrowser records entire session)
     if (!isRecordingDemo && (demoStatus === "idle" || demoStatus === "saved" || demoStatus === "error")) {
-      console.log("[demo-recording] 🎬 Started demo recording", {
-        projectId,
-        sessionId: sessionData?.sessionId,
-      })
 
       // Capture offset from session start so we can auto-seek later.
       try {
@@ -524,7 +496,6 @@ export default function SideBySideTestModal({
           const nowMs = Date.now()
           const offsetSeconds = Math.max(0, (nowMs - sessionStartMs) / 1000)
           demoStartOffsetRef.current = offsetSeconds
-          console.log("[demo-recording] ⏱️ Demo start offset (s):", offsetSeconds)
         } else {
           demoStartOffsetRef.current = null
         }
@@ -541,7 +512,6 @@ export default function SideBySideTestModal({
 
     // Stop recording and mark demo as ready to save later
     if (isRecordingDemo && demoStatus === "recording") {
-      console.log("[demo-recording] ⏹️ Stopping demo recording (will save on view)...")
       setIsRecordingDemo(false)
       setDemoStatus("saved")
       setDemoError(null)
@@ -566,10 +536,6 @@ export default function SideBySideTestModal({
 
     try {
       setIsResolvingDemoVideo(true)
-      console.log("[demo-recording] ▶️ Resolving demo video on view click...", {
-        projectId,
-        sessionId: sessionData.sessionId,
-      })
 
       const response = await fetch(`/api/projects/${projectId}/testing-replays/demo`, {
         method: "POST",
@@ -591,19 +557,12 @@ export default function SideBySideTestModal({
       setDemoRecordingStatus(data.recordingStatus || null)
       setDemoStatus("saved")
 
-      console.log("[demo-recording] ✅ Demo replay resolved", {
-        sessionId: sessionData.sessionId,
-        videoUrl: data.videoUrl,
-        recordingStatus: data.recordingStatus,
-      })
-
       if (data.sessionTerminated) {
         setSessionExpired(true)
       }
 
       setIsViewingDemo(true)
     } catch (err) {
-      console.error("[demo-recording] ❌ Error resolving demo recording:", err)
       setDemoError(err?.message || "Failed to load demo recording")
       setDemoStatus("error")
     } finally {
@@ -613,7 +572,6 @@ export default function SideBySideTestModal({
 
   const handleRunPuppeteerTests = async () => {
     if (!sessionData?.sessionId || !projectId) {
-      console.error("[puppeteer-tests] Missing session ID or project ID")
       return
     }
 
@@ -633,7 +591,6 @@ export default function SideBySideTestModal({
         throw new Error("Session not active yet. Please wait a moment and try again.")
       }
 
-      console.log("[puppeteer-tests] Starting run", { projectId, sessionId: sessionData.sessionId })
       const response = await fetch(`/api/projects/${projectId}/puppeteer-tests/run`, {
         method: "POST",
         headers: {
@@ -655,7 +612,6 @@ export default function SideBySideTestModal({
     } catch (error) {
       // Don't set error if it was aborted
       if (error.name === 'AbortError') {
-        console.log("[puppeteer-tests] Test aborted by user")
         return
       }
       setPuppeteerTestResult({
@@ -665,12 +621,7 @@ export default function SideBySideTestModal({
     } finally {
       setIsRunningPuppeteerTests(false)
       puppeteerAbortControllerRef.current = null
-      // We previously forced an iframe reconnect here by incrementing iframeReconnectNonce,
-      // but this was causing "NOT FOUND" errors in the simulated browser.
       // The backend now keeps the CDP connection alive to prevent session disruption.
-      console.log("[puppeteer-tests] ✅ Run complete", {
-        sessionId: sessionData?.sessionId,
-      })
     }
   }
 
@@ -681,7 +632,6 @@ export default function SideBySideTestModal({
       return
     }
 
-    console.log("[puppeteer-tests] Stopping puppeteer tests...")
     
     // Abort the fetch request first
     if (puppeteerAbortControllerRef.current) {
@@ -709,7 +659,6 @@ export default function SideBySideTestModal({
       })
 
       if (response.ok) {
-        console.log("[puppeteer-tests] ✅ Session terminated, tests stopped")
         setPuppeteerTestResult({
           success: false,
           error: "Test stopped by user. Session terminated.",
@@ -717,14 +666,12 @@ export default function SideBySideTestModal({
         // Mark session as expired so the UI reflects that the browser is closed
         setSessionExpired(true)
       } else {
-        console.error("[puppeteer-tests] Failed to terminate session")
         setPuppeteerTestResult({
           success: false,
           error: "Failed to stop test - session may still be running",
         })
       }
     } catch (error) {
-      console.error("[puppeteer-tests] Error stopping tests:", error)
       setPuppeteerTestResult({
         success: false,
         error: "Error stopping test",
