@@ -5,7 +5,7 @@ launch lauch launch
 ---
 
 ## P0 
-1. Enable user to select front end type for new extensions if we're not confident. (ananth)
+1. ~Enable user to select front end type for new extensions if we're not confident. (ananth)~
 2. Add read file tool to coder. (ananth)
 3. Create and stress test scraping with intent in followups. (ananth)
 4. Allow agent to delete files safely
