@@ -95,15 +95,15 @@ export async function orchestratePlanning(featureRequest) {
 
     // Step 7: Log unified JSON output for readability
     const unifiedOutput = {
-      use_case: useCaseResponse.result,
-      external_resources: externalResourcesResponse.result,
-      frontend_type: frontendSelectionResponse.result.frontend_type,
-      frontend_confidence: frontendSelectionResponse.result.confidence || 1.0,
-      template_match: templateMatchingResponse.result,
-      workspace_apis: workspaceApis.map(a => a.name),
-      workspace_scopes: workspaceScopes,
-      code_snippet_preview: codeSnippet ? codeSnippet.substring(0, 200) + '...' : null,
-      token_usage: totalTokenUsage
+      use_case: useCaseResponse.result, // chrome apis contained in this object
+      external_resources: externalResourcesResponse.result, // external apis and scraped content contained in this object
+      frontend_type: frontendSelectionResponse.result.frontend_type, // sidepanel, popup, overlay, new_tab, content_script_ui
+      frontend_confidence: frontendSelectionResponse.result.confidence || 1.0, // confidence score for the frontend type - used for user confirmation
+      template_match: templateMatchingResponse.result, // template match result - we'll use a separate proces if template is found
+      workspace_apis: workspaceApis.map(a => a.name), // google workspace apis detected
+      workspace_scopes: workspaceScopes, // google workspace scopes detected
+      code_snippet_preview: codeSnippet ? codeSnippet.substring(0, 200) + '...' : null, // deprecated - used for user confirmation
+      token_usage: totalTokenUsage 
     }
 
     console.log('📋 [Planning Orchestrator] Unified Planning Output:')
