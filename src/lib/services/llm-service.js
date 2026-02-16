@@ -7,7 +7,7 @@ export class LLMService {
   constructor() {
     this.providerRegistry = new ProviderRegistry()
     this.chatMessages = new ChatMessagesService()
-git     
+     
     // Define fallback provider hierarchy
     this.fallbackHierarchy = {
       'gemini': ['anthropic', 'openai'],
