@@ -3,6 +3,14 @@
 import { AlertTriangle, FileX, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+interface FileDeletionConfirmationProps {
+  filePath: string
+  reason: string
+  safetyReason?: string
+  onConfirm: () => void
+  onCancel: () => void
+}
+
 /**
  * Confirmation dialog for agent file deletion
  * Shows when agent wants to delete a sensitive file
@@ -13,7 +21,7 @@ export function FileDeletionConfirmation({
   safetyReason,
   onConfirm, 
   onCancel 
-}) {
+}: FileDeletionConfirmationProps) {
   return (
     <div className="border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg shadow-sm my-2">
       <div className="flex items-start gap-3">
@@ -69,10 +77,14 @@ export function FileDeletionConfirmation({
   )
 }
 
+interface FileDeletionSuccessProps {
+  filePath: string
+}
+
 /**
  * Inline notification for successful deletion
  */
-export function FileDeletionSuccess({ filePath }) {
+export function FileDeletionSuccess({ filePath }: FileDeletionSuccessProps) {
   return (
     <div className="border-l-4 border-green-500 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg my-2">
       <div className="flex items-center gap-2">
@@ -85,10 +97,15 @@ export function FileDeletionSuccess({ filePath }) {
   )
 }
 
+interface FileDeletionBlockedProps {
+  filePath: string
+  reason: string
+}
+
 /**
  * Inline notification for blocked deletion
  */
-export function FileDeletionBlocked({ filePath, reason }) {
+export function FileDeletionBlocked({ filePath, reason }: FileDeletionBlockedProps) {
   return (
     <div className="border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg my-2">
       <div className="flex items-start gap-2">
@@ -104,10 +121,14 @@ export function FileDeletionBlocked({ filePath, reason }) {
   )
 }
 
+interface FileDeletionDeclinedProps {
+  filePath: string
+}
+
 /**
  * Inline notification for declined deletion
  */
-export function FileDeletionDeclined({ filePath }) {
+export function FileDeletionDeclined({ filePath }: FileDeletionDeclinedProps) {
   return (
     <div className="border-l-4 border-gray-400 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg my-2">
       <div className="flex items-center gap-2">
