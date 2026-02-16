@@ -210,12 +210,22 @@ ${JSON.stringify(result, null, 2)}
  * @param {Object} existingFiles - Existing extension files
  * @param {Function} callLLM - LLM call function
  * @param {Object} options - Additional options
+ * @param {string} options.projectId - Project ID for tool context
+ * @param {Object} options.supabase - Supabase client for tool context
+ * @param {Function} options.onConfirmationRequired - Confirmation callback
  * @returns {AsyncGenerator} - Yields progress events
  */
 export async function* runPatchingWithToolLoop(prompt, existingFiles, callLLM, options = {}) {
   let currentPrompt = prompt;
   let toolResults = [];
   const maxIterations = options.maxIterations || 5;
+  
+  // Extract tool execution context
+  const toolContext = {
+    projectId: options.projectId,
+    supabase: options.supabase,
+    onConfirmationRequired: options.onConfirmationRequired
+  };
 
   console.log('🔄 [followup-orchestrator] Starting patching with tool loop...');
 
@@ -247,7 +257,7 @@ export async function* runPatchingWithToolLoop(prompt, existingFiles, callLLM, o
       yield { type: 'tool_call', tool: toolCall.name, params: toolCall.params };
 
       console.log(`🔧 [followup-orchestrator] Executing tool: ${toolCall.name}`);
-      const result = await executeToolCall(toolCall);
+      const result = await executeToolCall(toolCall, toolContext);
       toolResults.push({ call: toolCall, result });
 
       yield { type: 'tool_result', tool: toolCall.name, result };
