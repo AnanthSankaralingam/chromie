@@ -83,7 +83,7 @@ Return a JSON object with the following structure exactly as shown in the exampl
       "id": "unique_task_id",
       "type": "create_file",
       "file_name": "manifest.json",
-      "description": "Clear description of what this file does and why",
+      "description": "Clear, user-friendly description (1-2 sentences, non-technical)",
       "dependencies": [],
       "context_requirements": {
         "use_case": true,
@@ -159,7 +159,7 @@ Task descriptions should suggest including relevant formatted context without ov
 2. manifest.json must be first task with no dependencies
 3. All dependencies must reference valid task IDs that appear earlier in array
 4. Use correct file names: manifest.json, background.js, popup.html, popup.js, content.js, styles.css
-5. Task descriptions should explain what and why, not how
+5. Task descriptions should be clear, user-friendly, and non-technical (1-2 sentences). Focus on what the file does for the user, not implementation details. Examples: "Extension settings and permissions", "Popup interface for managing your profiles", "Automatically fills in job application forms"
 6. Global plan should be 3-5 high-level strategic steps
 7. Data flow should describe chronological user journey through extension
 8. Suggest context_requirements based on what the planning summary describes; your options are bounded by the summary

@@ -94,11 +94,23 @@ export async function executeTask(task, executionContext) {
     ? `${metaPlan.summary.purpose}\nPrimary action: ${metaPlan.summary.primary_user_action}\nCapabilities: ${(metaPlan.summary.core_capabilities || []).join(', ')}`
     : ''
 
+  // Build comprehensive architecture summary including components and file structure
   const architecture = metaPlan.architecture
-    ? `Frontend: ${metaPlan.architecture.frontend_type}\nData flow:\n${(metaPlan.architecture.data_flow || []).join('\n')}`
+    ? `Frontend: ${metaPlan.architecture.frontend_type}
+Components:
+${metaPlan.architecture.components ? Object.entries(metaPlan.architecture.components).map(([k, v]) => `  - ${k}: ${v}`).join('\n') : '  (none specified)'}
+Data flow:
+${(metaPlan.architecture.data_flow || []).join('\n')}`
     : ''
 
   const globalPlan = (metaPlan.global_plan || []).map((s, i) => `${i + 1}. ${s}`).join('\n')
+
+  // Build file structure list from task graph for manifest.json generation
+  const fileStructure = task.file_name === 'manifest.json' && metaPlan.task_graph
+    ? '\n\n<project_file_structure>\nFiles that will be generated in this extension:\n' +
+      metaPlan.task_graph.map(t => `  - ${t.file_name}`).join('\n') +
+      '\n\nUse these exact file names when referencing files in the manifest (e.g., content_scripts, background.service_worker).\n</project_file_structure>'
+    : ''
 
   // Shared contract to keep cross-file consistency (IDs, messaging, endpoints).
   // Prefer planner-provided contract; otherwise build a small fallback.
@@ -126,6 +138,7 @@ export async function executeTask(task, executionContext) {
     .replace('{{TASK_DESCRIPTION}}', task.description || '')
     .replace('{{CONTEXT_SECTIONS}}', contextSections)
     .replace('{{FRONTEND_MODULE}}', frontendModule)
+    + fileStructure  // Append file structure for manifest.json
 
   const model = modelOverride || DEFAULT_MODEL
 

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import LogsAppendButton from "@/components/ui/chat/logs-append-button"
 import { formatLogsForContext } from "@/lib/utils/console-logs-context"
 import { CHROMIE_LOGO_URL } from "@/lib/constants"
+import { TaskChecklist } from "@/components/ui/chat/task-checklist"
 
 export default function StreamingChat({
   projectId,
@@ -62,6 +63,7 @@ export default function StreamingChat({
     planningProgress,
     currentPlanningPhase,
     isActuallyGeneratingCode,
+    taskList,
     clearConversation,
   } = chatState
 
@@ -503,6 +505,16 @@ export default function StreamingChat({
                       <span className="text-sm text-white font-medium">{planningProgress}</span>
                     </div>
                   </div>
+                </ChatBubbleMessage>
+              </ChatBubble>
+            )}
+
+            {/* Task Checklist */}
+            {taskList && taskList.length > 0 && (
+              <ChatBubble variant="received">
+                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
+                <ChatBubbleMessage variant="received">
+                  <TaskChecklist tasks={taskList} />
                 </ChatBubbleMessage>
               </ChatBubble>
             )}

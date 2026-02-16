@@ -52,6 +52,19 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   // Track when actual code generation (not planning) starts
   const [isActuallyGeneratingCode, setIsActuallyGeneratingCode] = useState(false)
 
+  // Task list for visual progress tracking
+  const [taskList, setTaskList] = useState([])
+
+  // Helper to update task progress
+  const setTaskProgress = (taskIdOrFileName, status, matchByFileName = false) => {
+    setTaskList(prev => prev.map(task => {
+      if (matchByFileName ? task.fileName === taskIdOrFileName : task.id === taskIdOrFileName) {
+        return { ...task, status }
+      }
+      return task
+    }))
+  }
+
   // Load messages from database on mount or project change
   useEffect(() => {
     async function loadMessages() {
@@ -148,6 +161,7 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     setPlanningProgress(null)
     setCurrentPlanningPhase(null)
     setIsActuallyGeneratingCode(false)
+    setTaskList([])
     filesSavedRef.current = false
     doneReceivedRef.current = false
     // Only reset start message flag for new generations, not continuations
@@ -249,6 +263,11 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     // Code generation state
     isActuallyGeneratingCode,
     setIsActuallyGeneratingCode,
+
+    // Task list
+    taskList,
+    setTaskList,
+    setTaskProgress,
 
     // Helpers
     resetStreamState,
