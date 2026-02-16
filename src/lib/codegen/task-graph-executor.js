@@ -1,0 +1,251 @@
+/**
+ * Task Graph Executor
+ * Executes a DAG of file-generation tasks with validation and repair.
+ */
+
+import { executeTask } from '@/lib/prompts/new-extension/executors/index.js'
+import { normalizeGeneratedFileContent } from '@/lib/codegen/output-handlers/json-extractor.js'
+import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.js'
+import { saveFilesToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
+import { llmService } from '@/lib/services/llm-service.js'
+import { DEFAULT_MODEL } from '@/lib/constants.js'
+
+/**
+ * Topologically sorts the task graph by dependencies (DFS).
+ * @param {Array} taskGraph - Array of task objects with id and dependencies
+ * @returns {Array} Tasks in dependency order
+ */
+function topologicalSort(taskGraph) {
+  const taskMap = new Map(taskGraph.map(t => [t.id, t]))
+  const visited = new Set()
+  const sorted = []
+
+  function visit(taskId) {
+    if (visited.has(taskId)) return
+    visited.add(taskId)
+    const task = taskMap.get(taskId)
+    if (!task) return
+    for (const depId of (task.dependencies || [])) {
+      visit(depId)
+    }
+    sorted.push(task)
+  }
+
+  for (const task of taskGraph) {
+    visit(task.id)
+  }
+
+  return sorted
+}
+
+/**
+ * Builds a repair prompt for a file that failed validation.
+ */
+function buildRepairPrompt(fileName, brokenContent, validationErrors, manifestContent) {
+  const errorLines = validationErrors.map(e =>
+    `Line ${e.line}, Col ${e.column}: ${e.message}`
+  ).join('\n')
+
+  let prompt = `You are a Chrome extension expert. The following generated file has syntax errors. Fix them and return ONLY the corrected file content. No explanations, no markdown fences.\n\n`
+  prompt += `File: ${fileName}\n\n`
+  prompt += `<validation_errors>\n${errorLines}\n</validation_errors>\n\n`
+  prompt += `<broken_file>\n${brokenContent}\n</broken_file>\n`
+
+  if (manifestContent && fileName !== 'manifest.json') {
+    prompt += `\n<manifest_json>\n${manifestContent}\n</manifest_json>\n`
+  }
+
+  prompt += `\nReturn ONLY the corrected file content. No markdown fences, no explanations.`
+  return prompt
+}
+
+/**
+ * Strips markdown code fences from LLM output.
+ */
+function stripMarkdownFences(text) {
+  if (!text) return text
+  let out = text.trim()
+  out = out.replace(/^```(?:json|javascript|js|html|css|markdown|md)?\s*\n?/, '')
+  out = out.replace(/\n?```\s*$/, '')
+  return out.trim()
+}
+
+/**
+ * Executes the full task graph: generate files, validate, repair, save.
+ * Yields SSE-compatible events throughout.
+ *
+ * @param {Object} metaPlan - The meta planner output (summary, architecture, task_graph, etc.)
+ * @param {Object} executionContext - Shared context
+ * @param {Object} executionContext.metaPlan
+ * @param {Object} executionContext.formattedPlanningOutputs
+ * @param {string|null} executionContext.scrapedWebpageAnalysis
+ * @param {string} executionContext.frontendType
+ * @param {string} executionContext.featureRequest
+ * @param {string|null} executionContext.modelOverride
+ * @param {string} executionContext.sessionId
+ * @returns {AsyncGenerator}
+ */
+export async function* executeTaskGraph(metaPlan, executionContext) {
+  const { sessionId, modelOverride, featureRequest } = executionContext
+  const sortedTasks = topologicalSort(metaPlan.task_graph)
+  const completedFiles = new Map()
+  const totalTasks = sortedTasks.length
+  let totalTokenUsage = { input_tokens: 0, output_tokens: 0 }
+
+  // Attach completedFiles to context so executeTask can access them
+  const ctx = { ...executionContext, completedFiles }
+
+  // Emit the full task list so the frontend can render a checklist
+  yield {
+    type: 'task_list',
+    content: `Generating ${totalTasks} files...`,
+    tasks: sortedTasks.map(t => ({ id: t.id, fileName: t.file_name, description: t.description }))
+  }
+
+  for (let i = 0; i < sortedTasks.length; i++) {
+    const task = sortedTasks[i]
+    const progress = Math.round(((i + 1) / totalTasks) * 100)
+
+    yield {
+      type: 'task_progress',
+      content: `Generating ${task.file_name}...`,
+      taskId: task.id,
+      fileName: task.file_name,
+      taskIndex: i,
+      totalTasks,
+      progress
+    }
+
+    // Generate the file
+    const result = await executeTask(task, ctx)
+    let content = normalizeGeneratedFileContent(result.content)
+
+    // Track tokens (handle both Gemini and Anthropic field names)
+    if (result.tokenUsage) {
+      totalTokenUsage.input_tokens += result.tokenUsage.prompt_tokens || result.tokenUsage.input_tokens || 0
+      totalTokenUsage.output_tokens += result.tokenUsage.completion_tokens || result.tokenUsage.output_tokens || 0
+    }
+
+    // Validate the generated file
+    const validationResult = validateFiles({ [task.file_name]: content })
+
+    if (!validationResult.allValid) {
+      const errors = validationResult.results[task.file_name]?.errors || []
+      console.log(`⚠️ [task-graph-executor] Validation failed for ${task.file_name}, attempting repair...`)
+
+      yield {
+        type: 'task_repair',
+        content: `Repairing ${task.file_name}...`,
+        fileName: task.file_name
+      }
+
+      // One repair attempt
+      const repairPrompt = buildRepairPrompt(
+        task.file_name,
+        content,
+        errors,
+        completedFiles.get('manifest.json') || null
+      )
+
+      const model = modelOverride || DEFAULT_MODEL
+      const isGemini = !model.startsWith('claude')
+      const repairResponse = await llmService.createResponse({
+        provider: isGemini ? 'gemini' : 'anthropic',
+        model,
+        input: repairPrompt,
+        temperature: 0.1,
+        max_output_tokens: 16000,
+        store: false,
+        thinkingConfig: isGemini ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
+      })
+
+      const repairedContent = stripMarkdownFences(repairResponse?.output_text || '')
+
+      if (repairResponse?.usage) {
+        totalTokenUsage.input_tokens += repairResponse.usage.prompt_tokens || repairResponse.usage.input_tokens || 0
+        totalTokenUsage.output_tokens += repairResponse.usage.completion_tokens || repairResponse.usage.output_tokens || 0
+      }
+
+      // Re-validate
+      const repairValidation = validateFiles({ [task.file_name]: repairedContent })
+      if (repairValidation.allValid) {
+        console.log(`✅ [task-graph-executor] Repair succeeded for ${task.file_name}`)
+        content = normalizeGeneratedFileContent(repairedContent)
+      } else {
+        console.warn(`⚠️ [task-graph-executor] Repair did not fully fix ${task.file_name}, using repaired version anyway`)
+        content = normalizeGeneratedFileContent(repairedContent)
+      }
+    }
+
+    completedFiles.set(task.file_name, content)
+
+    yield {
+      type: 'task_complete',
+      content: `Completed ${task.file_name}`,
+      taskId: task.id,
+      fileName: task.file_name,
+      taskIndex: i,
+      totalTasks,
+      progress
+    }
+  }
+
+  // Build the implementation result object for saving
+  const implementationResult = {}
+  for (const [fileName, content] of completedFiles) {
+    implementationResult[fileName] = content
+  }
+
+  // Build explanation from meta plan
+  const explanationParts = []
+  if (metaPlan.summary?.purpose) {
+    explanationParts.push(`## Overview\n${metaPlan.summary.purpose}`)
+  }
+  if (metaPlan.architecture?.data_flow?.length > 0) {
+    explanationParts.push(`## How It Works\n${metaPlan.architecture.data_flow.map((s, i) => `${i + 1}. ${s}`).join('\n')}`)
+  }
+  if (metaPlan.summary?.core_capabilities?.length > 0) {
+    explanationParts.push(`## Features\n${metaPlan.summary.core_capabilities.map(c => `- ${c}`).join('\n')}`)
+  }
+  const explanation = explanationParts.join('\n\n')
+
+  // Save to database
+  const { savedFiles, errors } = await saveFilesToDatabase(implementationResult, sessionId)
+
+  if (errors.length > 0) {
+    console.error(`❌ [task-graph-executor] ${errors.length} files had save errors`)
+  }
+
+  // Update project metadata from manifest
+  await updateProjectMetadata(sessionId, implementationResult)
+
+  // Store assistant message in conversation history
+  await llmService.chatMessages.addMessage(sessionId, {
+    role: 'assistant',
+    content: explanation
+  })
+
+  // Yield final events
+  yield {
+    type: 'files_saved',
+    content: savedFiles.join(', '),
+    files: savedFiles
+  }
+
+  yield {
+    type: 'explanation',
+    content: explanation
+  }
+
+  yield {
+    type: 'token_usage',
+    content: JSON.stringify(totalTokenUsage),
+    usage: totalTokenUsage
+  }
+
+  yield {
+    type: 'phase',
+    phase: 'complete',
+    content: `Generated ${savedFiles.length} files via task graph.`
+  }
+}

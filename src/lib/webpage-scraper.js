@@ -138,19 +138,26 @@ async function callLambdaScrapingAPI(url) {
     // Debug: Log the actual response structure
     console.log('🔍 Lambda response structure:', JSON.stringify(responseData, null, 2))
 
-    // Lambda returns { statusCode: 200, body: "<json_string>" }
-    if (responseData.statusCode !== 200) {
-      throw new Error(`Lambda API returned non-200 status: ${responseData.statusCode}. Full response: ${JSON.stringify(responseData)}`)
-    }
-    
-    // Parse the body field which is a JSON string
+    // Handle two response formats:
+    // 1. API Gateway Lambda Proxy: returns Lambda's body directly (major_elements, domain, etc.)
+    // 2. Direct Lambda invoke: returns { statusCode: 200, body: "<json_string>" }
     let parsedBody
-    try {
-      parsedBody = typeof responseData.body === 'string' 
-        ? JSON.parse(responseData.body)
-        : responseData.body
-    } catch (parseError) {
-      throw new Error(`Failed to parse Lambda response body: ${parseError.message}`)
+    if (responseData.major_elements) {
+      // Format 1: Direct result from API Gateway proxy - body is the response itself
+      parsedBody = responseData
+    } else if (responseData.statusCode !== undefined && responseData.statusCode !== 200) {
+      throw new Error(`Lambda API returned non-200 status: ${responseData.statusCode}. Full response: ${JSON.stringify(responseData)}`)
+    } else if (responseData.body !== undefined) {
+      // Format 2: Wrapped format with statusCode and body
+      try {
+        parsedBody = typeof responseData.body === 'string'
+          ? JSON.parse(responseData.body)
+          : responseData.body
+      } catch (parseError) {
+        throw new Error(`Failed to parse Lambda response body: ${parseError.message}`)
+      }
+    } else {
+      throw new Error(`Unexpected Lambda response format. Full response: ${JSON.stringify(responseData)}`)
     }
     
     // Validate required fields

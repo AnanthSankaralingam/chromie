@@ -84,7 +84,7 @@ export class GeminiAdapter {
         outputTokens = response.usageMetadata.candidatesTokenCount || 0
         promptTokens = response.usageMetadata.promptTokenCount || 0
         totalTokens = thoughtsTokens + outputTokens + promptTokens
-        console.log(`[gemini-adapter] Exact token usage - ${response.usageMetadata}`)
+        console.log(`[gemini-adapter] Exact token usage - prompt: ${promptTokens}, output: ${outputTokens}, thoughts: ${thoughtsTokens}, total: ${totalTokens}`)
       }
 
       // Extract content from response

@@ -69,7 +69,8 @@ export const FRONTEND_CONFIDENCE_THRESHOLD = 0.8
 // Planning phase model configuration
 export const PLANNING_MODELS = {
   DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts
-  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929' // Used for external-resources prompt
+  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929', // Used for external-resources prompt
+  META_PLANNER: 'claude-sonnet-4-5-20250929' // Used for meta planner task graph generation
 }
 
 // Browser session configuration

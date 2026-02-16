@@ -29,6 +29,8 @@ import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/cod
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
 import { PLANNING_MODELS, FRONTEND_CONFIDENCE_THRESHOLD } from "@/lib/constants";
+import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
+import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -384,12 +386,13 @@ export async function* generateChromeExtensionStream({
     let usePatchingMode = shouldUsePatchingMode(requestType, existingFiles)
     let templateFiles = {}
     let usingTemplate = false
+    let useTaskGraph = false
     
     // Check if template was matched with high confidence (>= 0.7)
     if (requestType === REQUEST_TYPES.NEW_EXTENSION && 
         requirementsAnalysis.matchedTemplate && 
         requirementsAnalysis.matchedTemplate.name &&
-        requirementsAnalysis.matchedTemplate.confidence >= 0.7) {
+        requirementsAnalysis.matchedTemplate.confidence >= 0.8) {
       console.log(`🎯 [generate-extension-stream] Template matched: ${requirementsAnalysis.matchedTemplate.name} (confidence: ${requirementsAnalysis.matchedTemplate.confidence})`)
       
       // Load template files
@@ -421,27 +424,20 @@ export async function* generateChromeExtensionStream({
       // Use template patch prompt
       selectedCodingPrompt = TEMPLATE_PATCH_PROMPT;
     } else {
-      // Standard prompt selection for new extensions
-      const prompts = {
-        UPDATE_EXT_PROMPT: usePatchingMode ? FOLLOW_UP_PATCH_PROMPT : FOLLOW_UP_FILE_REPLACEMENT_PROMPT,
-        NEW_EXT_SIDEPANEL_PROMPT,
-        NEW_EXT_POPUP_PROMPT,
-        NEW_EXT_OVERLAY_PROMPT,
-        NEW_EXT_NEW_TAB_PROMPT,
-        NEW_EXT_CONTENT_SCRIPT_UI_PROMPT,
-        TEMPLATE_PATCH_PROMPT
-      };
-      selectedCodingPrompt = selectPrompt(requestType, requirementsAnalysis.frontend_type, prompts);
+      useTaskGraph = true
+      console.log('🔄 [generate-extension-stream] No template matched - will use task graph approach')
     }
     
-    if (usingTemplate) {
+    if (useTaskGraph) {
+      console.log('🔄 [generate-extension-stream] Using TASK GRAPH mode')
+    } else if (usingTemplate) {
       console.log('🎨 [generate-extension-stream] Using TEMPLATE PATCH mode')
     } else if (usePatchingMode) {
       console.log('🔧 [generate-extension-stream] Using PATCH mode for modifications')
     } else {
       console.log('🔄 [generate-extension-stream] Using REPLACEMENT mode')
     }
-    
+
     yield {
       type: "prompt_selected",
       content: "prompt_selected"
@@ -449,10 +445,46 @@ export async function* generateChromeExtensionStream({
     yield {
       type: "phase",
       phase: "planning",
-      content: requestType === REQUEST_TYPES.ADD_TO_EXISTING 
+      content: requestType === REQUEST_TYPES.ADD_TO_EXISTING
         ? "Selected a generic modification plan based on existing files."
         : `Chose a ${requirementsAnalysis.frontend_type} implementation plan.`,
     };
+
+    // --- Task Graph Branch ---
+    if (useTaskGraph) {
+      // Re-format planning outputs with scraped data and user APIs
+      const updatedPlanningOutputs = await formatPlanningOutputs(
+        requirementsAnalysis.planningResult, scrapedWebpageAnalysis,
+        scrapeStatusCode, userProvidedApis, featureRequest
+      )
+
+      // Format planning summary for meta planner
+      const planningSummary = formatPlanningSummaryForMetaPlanner(
+        requirementsAnalysis.planningResult, scrapedWebpageAnalysis,
+        userProvidedApis, featureRequest, userProvidedUrl
+      )
+
+      // Call meta planner (Haiku)
+      yield { type: 'phase', phase: 'planning', content: 'Building task graph...' }
+      const { metaPlan, tokenUsage: metaPlannerTokenUsage } = await callMetaPlanner(
+        featureRequest, planningSummary
+      )
+
+      // Execute task graph
+      yield { type: 'generation_starting', content: 'generation_starting' }
+      yield { type: 'phase', phase: 'implementing', content: 'Generating extension files from task graph.' }
+
+      for await (const event of executeTaskGraph(metaPlan, {
+        metaPlan, formattedPlanningOutputs: updatedPlanningOutputs,
+        scrapedWebpageAnalysis, frontendType: requirementsAnalysis.frontend_type,
+        featureRequest, modelOverride, sessionId
+      })) {
+        yield event
+      }
+
+      yield { type: 'generation_complete', content: 'generation_complete' }
+      return // Skip one-shot path
+    }
 
     const finalUserPrompt = featureRequest;
 
