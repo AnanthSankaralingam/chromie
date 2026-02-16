@@ -611,6 +611,9 @@ export async function* generateChromeExtensionStream({
     }
     console.log(`📊 [generate-extension-stream] Expected file count for thinking level: ${expectedFileCount}`)
 
+    // Add supabase client to replacements for tool execution
+    replacements.supabase = supabase
+
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(
         selectedCodingPrompt,

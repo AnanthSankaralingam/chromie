@@ -20,6 +20,7 @@ Output your analysis as JSON only.
 <available_tools>
 - **chrome_api_search**: Search Chrome extension API documentation for specific APIs, methods, and permissions. Enable when implementing features with Chrome APIs that may need documentation reference.
 - **web_scraping**: Scrape and extract content from specific web pages. Enable when the request involves extracting data from websites or analyzing target page structures.
+- **delete_file**: Safely delete obsolete or redundant files. Enable when refactoring code, consolidating functionality, or removing unused files per user request.
 
 Most requests won't need any tools. Only enable tools the patching agent will genuinely need during implementation.
 </available_tools>
@@ -29,7 +30,7 @@ Return ONLY valid JSON in this exact format:
 
 {
   "justification": "1-2 sentence explanation of what needs to be done and why these files/tools were selected",
-  "tools": ["chrome_api_search", "web_scraping"],
+  "tools": ["chrome_api_search", "web_scraping", "delete_file"],
   "files": ["path/to/file1.js", "path/to/file2.js"]
 }
 
@@ -44,6 +45,7 @@ Rules:
 - Be conservative - most bug fixes and simple features don't need tools
 - chrome_api_search: Only for Chrome APIs that need documentation reference
 - web_scraping: Only when scraping specific website structures
+- delete_file: Only when explicitly removing/deleting files (refactoring, consolidation, cleanup)
 
 **File Selection:**
 - Select only files that will be modified or are essential for context

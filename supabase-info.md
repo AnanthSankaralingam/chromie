@@ -343,7 +343,31 @@ Additional indexes and constraints:
 
 ---
 
-### 15. `session_replays`
+### 15. `agent_file_operations`
+Audit log for AI agent file operations (create, update, delete).
+
+| Column           | Type         | Details                                                     |
+|------------------|--------------|-------------------------------------------------------------|
+| `id`             | uuid         | PK, DEFAULT gen_random_uuid()                               |
+| `project_id`     | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
+| `operation_type` | text         | NOT NULL; 'delete', 'create', 'update'                     |
+| `file_path`      | text         | NOT NULL; path of the affected file                        |
+| `reason`         | text         | Agent's explanation for the operation                       |
+| `user_confirmed` | boolean      | DEFAULT false; whether user approved the operation          |
+| `created_at`     | timestamptz  | DEFAULT now()                                               |
+
+Additional indexes:
+- `idx_agent_file_ops_project` on `project_id` for project queries
+- `idx_agent_file_ops_created` on `created_at DESC` for chronological ordering
+
+RLS policies:
+- Users can SELECT operations only for projects they own
+- Service role can INSERT operations (bypassing RLS for audit logging)
+- No UPDATE/DELETE policies (audit logs are immutable)
+
+---
+
+### 16. `session_replays`
 Stores testing replay videos and live URLs for each test run from the simulated browser.
 
 | Column            | Type         | Details                                                     |
@@ -472,7 +496,7 @@ create policy shared_icons_read_global
 - No INSERT/UPDATE/DELETE policies for users (aggregates are generated automatically by cron jobs).
 - **Note:** Aggregates are read-only for users and managed exclusively by the `daily-metrics-aggregation` cron job.
 
-### 15. `session_replays`
+### 16. `session_replays`
 - Users can SELECT replays only for projects they own.
 - Users can INSERT replays only for projects they own.
 - Users can DELETE replays only for projects they own.

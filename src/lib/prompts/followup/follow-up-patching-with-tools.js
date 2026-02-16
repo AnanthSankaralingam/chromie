@@ -29,6 +29,31 @@ Tool results will be provided before you generate patches.
 </web_scraping>
 `;
 
+export const FILE_DELETE_TOOL = `
+<file_deletion>
+Use this tool to safely delete obsolete, redundant, or unnecessary files from the project during refactoring or cleanup operations.
+
+To call this tool, output JSON:
+{
+  "tool": "delete_file",
+  "file_path": "path/to/file.js",
+  "reason": "Clear explanation of why this file should be deleted"
+}
+
+Safety notes:
+- Critical files like manifest.json cannot be deleted
+- Sensitive files (background.js, content.js, popup.html) will require user confirmation
+- You must provide a clear reason for each deletion
+- Tool results will be provided before you generate patches
+
+Example use cases:
+- Removing duplicate functionality that has been consolidated
+- Deleting obsolete helper files after refactoring
+- Cleaning up unused CSS/JS files
+- Removing deprecated feature files per user request
+</file_deletion>
+`;
+
 /**
  * Builds conditional tool descriptions based on enabled tools
  * @param {string[]} enabledTools - Array of tool names to enable
@@ -41,7 +66,8 @@ export function buildToolDescriptions(enabledTools = []) {
 
   const toolMap = {
     'chrome_api_search': CHROME_API_SEARCH_TOOL,
-    'web_scraping': WEB_SCRAPING_TOOL
+    'web_scraping': WEB_SCRAPING_TOOL,
+    'delete_file': FILE_DELETE_TOOL
   };
 
   const sections = enabledTools

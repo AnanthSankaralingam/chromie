@@ -79,8 +79,58 @@ function getProviderFromModel(model) {
 /**
  * Handles patching mode output processing
  */
-async function* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, model, sessionId, replacements, originalUserRequest = '') {
+async function* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, model, sessionId, replacements, originalUserRequest = '', supabase = null) {
   console.log('🔧 Processing patch output...')
+  
+  // Import tool utilities
+  const { parseToolCalls, formatToolResults } = await import('@/lib/codegen/followup-handlers/followup-orchestrator')
+  const { executeToolCall } = await import('@/lib/codegen/followup-handlers/tool-executor')
+  
+  // Track files deleted by tools
+  const toolDeletedFiles = []
+  
+  // Check for tool calls in the output
+  const toolCalls = parseToolCalls(outputText)
+  
+  if (toolCalls.length > 0) {
+    console.log(`🔧 [handlePatchingMode] Found ${toolCalls.length} tool calls in output, executing...`)
+    
+    // Execute each tool call
+    for (const toolCall of toolCalls) {
+      yield { type: 'tool_call', tool: toolCall.name, params: toolCall.params }
+      
+      const result = await executeToolCall(toolCall, {
+        projectId: sessionId,
+        supabase: supabase,
+        onConfirmationRequired: async (details) => {
+          // Note: Cannot yield from nested function
+          // For now, auto-decline confirmations
+          // Full confirmation flow should be implemented in the UI layer
+          console.log('⚠️ [handlePatchingMode] File deletion requires confirmation but auto-declining:', details.filePath)
+          return false
+        }
+      })
+      
+      yield { type: 'tool_result', tool: toolCall.name, result }
+      
+      // Emit appropriate events based on deletion result
+      if (toolCall.name === 'delete_file') {
+        if (result.success) {
+          toolDeletedFiles.push(result.filePath)
+          yield { type: 'file_deleted', filePath: result.filePath }
+        } else if (result.blocked) {
+          yield { type: 'file_deletion_blocked', filePath: toolCall.params.file_path, reason: result.error }
+        } else if (result.declined) {
+          yield { type: 'file_deletion_declined', filePath: toolCall.params.file_path }
+        } else if (!result.success) {
+          yield { type: 'file_deletion_failed', filePath: toolCall.params.file_path, error: result.error }
+        }
+      }
+    }
+    
+    // Remove tool call JSON from output text before processing
+    outputText = outputText.replace(/\{\s*"tool"\s*:\s*"[^"]+"\s*[^}]*\}/g, '').trim()
+  }
   
   const patchGen = processPatchModeOutput(outputText, existingFilesForPatch, userRequest, provider, model)
   
@@ -97,21 +147,34 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
   }
   
   if (patchResult?.success) {
-    const explanation = patchResult.explanation || "Implementation complete."
+    let explanation = patchResult.explanation || "Implementation complete."
     console.log(`✅ [patch-mode] Successfully applied patches, extracted explanation (${explanation.length} chars)`)
     
-    // Yield explanation BEFORE other operations so it renders in the UI
-    if (patchResult.explanation) {
-      yield { type: "explanation", content: patchResult.explanation }
+    // Clean up explanation: remove markdown separators and extra whitespace
+    explanation = explanation
+      .replace(/^---+\s*/gm, '')  // Remove --- separators
+      .replace(/^\s*\n/gm, '')    // Remove empty lines at start
+      .trim()
+    
+    // Remove files that were deleted by tools from the files to save
+    const filesToSave = { ...patchResult.files }
+    for (const deletedFile of toolDeletedFiles) {
+      delete filesToSave[deletedFile]
+      console.log(`🗑️ [handlePatchingMode] Excluding tool-deleted file from save: ${deletedFile}`)
     }
     
-    const implementationResult = { ...patchResult.files }
+    // Yield explanation BEFORE other operations so it renders in the UI
+    if (explanation) {
+      yield { type: "explanation", content: explanation }
+    }
+    
+    const implementationResult = { ...filesToSave }
     if (patchResult.explanation) {
       implementationResult.explanation = patchResult.explanation
     }
     
     const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
-    await updateProjectMetadata(sessionId, patchResult.files)
+    await updateProjectMetadata(sessionId, filesToSave)
     
     console.log(`✅ [handlePatchingMode] Saved ${savedFiles.length} files to database`)
     yield { type: "files_saved", content: `Saved ${savedFiles.length} files to project` }
@@ -322,7 +385,7 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
   }
 
   if (usePatchingMode && containsPatch(combinedText)) {
-    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
+    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest, replacements.supabase)
   } else {
     if (usePatchingMode) {
       console.log('⚠️ [Gemini] Patching mode was active but no patch detected in output')
@@ -390,7 +453,7 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
   }
   
   if (usePatchingMode && containsPatch(outputText)) {
-    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest)
+    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest, replacements.supabase)
   } else {
     if (usePatchingMode) {
       console.log('⚠️ [Responses API] Patching mode was active but no patch detected in output')
