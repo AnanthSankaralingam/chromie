@@ -89,6 +89,8 @@ export function useStreamProcessor({
         setTypingCancelSignal,
         currentRequestRef,
         setIsActuallyGeneratingCode,
+        setTaskList: chatState.setTaskList,
+        setTaskProgress: chatState.setTaskProgress,
       }
 
       const handleEvent = createStreamEventHandler(handlerContext)

@@ -86,6 +86,50 @@ export function validateJSON(code, filename = 'file.json') {
 }
 
 /**
+ * Validates Chrome extension manifest.json semantics (lightweight MV3 checks).
+ * This is intentionally conservative: it catches common MV2/MV3 mismatches and invalid shapes.
+ * @param {string} code - manifest.json content
+ * @returns {{ valid: boolean, errors: Array<{ line, column, message, severity }> }}
+ */
+export function validateManifestJSON(code) {
+  const base = validateJSON(code, 'manifest.json')
+  if (!base.valid) return base
+
+  let manifest
+  try {
+    manifest = JSON.parse(code)
+  } catch {
+    return base
+  }
+
+  const errors = []
+  const err = (message) => errors.push({ line: 1, column: 1, message, severity: 'error' })
+
+  if (manifest.manifest_version !== 3) {
+    err(`manifest.json: manifest_version must be 3 (got ${String(manifest.manifest_version)})`)
+  }
+
+  if (manifest.browser_action || manifest.page_action) {
+    err('manifest.json: browser_action/page_action are MV2 keys; use "action" in MV3')
+  }
+
+  if (manifest.background) {
+    if (manifest.background.scripts) {
+      err('manifest.json: background.scripts is MV2; use background.service_worker in MV3')
+    }
+    if (manifest.background.service_worker && typeof manifest.background.service_worker !== 'string') {
+      err('manifest.json: background.service_worker must be a string filename')
+    }
+  }
+
+  if (manifest.action && typeof manifest.action !== 'object') {
+    err('manifest.json: action must be an object when present')
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+/**
  * Validates JavaScript code for syntax errors
  * @param {string} code - JavaScript code to validate
  * @param {string} filename - Optional filename for error messages
@@ -204,7 +248,9 @@ export function validateFiles(files) {
 
     // Validate JSON files
     if (isJSONFile(filePath)) {
-      const result = validateJSON(content, filePath)
+      const result = filePath === 'manifest.json'
+        ? validateManifestJSON(content)
+        : validateJSON(content, filePath)
       results[filePath] = result
 
       if (!result.valid) {

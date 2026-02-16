@@ -138,12 +138,16 @@ export class OpenAIAdapter {
       if (input.images && Array.isArray(input.images)) {
         console.log(`[openai-adapter] Adding ${input.images.length} images to request`)
         for (const image of input.images) {
-          content.push({
-            type: 'image_url',
-            image_url: {
-              url: image.data // Base64 data URL
-            }
-          })
+          if (image.data) {
+            content.push({
+              type: 'image_url',
+              image_url: {
+                url: image.data // Base64 data URL (data:image/jpeg;base64,...)
+              }
+            })
+          } else {
+            console.warn('[openai-adapter] Invalid image format, expected data URL')
+          }
         }
       }
       

@@ -23,6 +23,8 @@ export function createStreamEventHandler(context) {
     thinkingTimerRef,
     setTypingCancelSignal,
     setIsActuallyGeneratingCode,
+    setTaskList,
+    setTaskProgress,
   } = context
 
   const addNewAssistantMessage = (content, options = {}) => {
@@ -117,6 +119,40 @@ export function createStreamEventHandler(context) {
         // Mark that actual code generation (not planning) has started
         if (setIsActuallyGeneratingCode) {
           setIsActuallyGeneratingCode(true)
+        }
+        break
+
+      case "task_list":
+        // Initialize the task list for visual progress tracking
+        if (data.tasks && Array.isArray(data.tasks) && setTaskList) {
+          setTaskList(data.tasks.map(t => ({
+            id: t.id,
+            fileName: t.fileName,
+            description: t.description,
+            status: 'pending'
+          })))
+        }
+        break
+
+      case "task_progress":
+        // Update task status to in-progress
+        if (data.taskId && setTaskProgress) {
+          setTaskProgress(data.taskId, 'in_progress')
+        }
+        break
+
+      case "task_repair":
+        // Update task status to repairing
+        if (data.fileName && setTaskProgress) {
+          // Find task by fileName since repair event doesn't include taskId
+          setTaskProgress(data.fileName, 'repairing', true)
+        }
+        break
+
+      case "task_complete":
+        // Update task status to complete
+        if (data.taskId && setTaskProgress) {
+          setTaskProgress(data.taskId, 'complete')
         }
         break
 
