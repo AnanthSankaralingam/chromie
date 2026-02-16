@@ -351,11 +351,6 @@ export async function* generateChromeExtensionStream({
           phase: "planning",
           content: "Website structure analysis ready for code generation.",
         };
-        yield {
-          type: "planning_progress",
-          phase: "scraping",
-          content: "Website analysis complete - extracted page structure and selectors.",
-        };
       } else {
         // This block is reached if scraping is skipped
         scrapedWebpageAnalysis = '<!-- Website analysis skipped by user -->';
