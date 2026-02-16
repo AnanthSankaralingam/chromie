@@ -8,6 +8,10 @@ export const TASK_EXECUTOR_PROMPT = `You are a Chrome extension development expe
 
 <global_plan>{GLOBAL_PLAN}</global_plan>
 
+<shared_contract>
+{{SHARED_CONTRACT}}
+</shared_contract>
+
 <current_task>
 File: {FILE_NAME}
 Description: {TASK_DESCRIPTION}

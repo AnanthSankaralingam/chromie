@@ -35,25 +35,40 @@ Return a JSON object with the following structure exactly as shown in the exampl
     "primary_user_action": "Main user interaction (e.g., 'clicks popup button', 'views sidepanel')",
     "core_capabilities": ["Cap 1", "Cap 2", "Cap 3"]
   },
+  "shared_contract": {
+    "notes": "A small, cross-file contract to keep generated files consistent.",
+    "ui": {
+      "page_file": "popup.html | sidepanel.html | overlay.html | newtab.html | (omit if not applicable)",
+      "root_element_id": "A single root container id used by HTML/CSS/JS (e.g., 'app')",
+      "primary_text_id": "The id of the main UI element JS updates (e.g., 'timeText')"
+    },
+    "messaging": {
+      "uses_runtime_messaging": "true | false",
+      "request_type": "If messaging is used, a single request type string (e.g., 'GET_TIME')"
+    },
+    "external_apis": {
+      "uses_external_apis": "true | false",
+      "endpoints": ["Only include full origin(s) like 'https://worldtimeapi.org/' if actually used"]
+    }
+  },
   "architecture": {
     "frontend_type": "popup | sidepanel | overlay | new_tab | content_script_ui",
     "components": {
-      "has_background": true,
+      "has_background": false,
       "has_content_script": false,
       "has_options_page": false,
       "has_popup_or_ui_page": true
     },
     "data_flow": [
       "Step 1: User opens popup",
-      "Step 2: Popup sends message to background",
-      "Step 3: Background makes API call",
-      "Step 4: Background returns data to popup",
-      "Step 5: Popup renders results"
+      "Step 2: UI loads and renders",
+      "Step 3: UI performs any required work (local computation or optional messaging/network)",
+      "Step 4: UI updates the display"
     ],
     "state_management": "chrome.storage.local | chrome.storage.sync | none",
     "external_communication": {
-      "uses_external_apis": true,
-      "uses_scraped_webpage": true,
+      "uses_external_apis": false,
+      "uses_scraped_webpage": false,
       "uses_workspace_apis": false,
       "api_details": "Brief description of external API usage"
     }
@@ -83,6 +98,20 @@ Return a JSON object with the following structure exactly as shown in the exampl
 
 **CRITICAL:** Output ONLY the JSON object. No explanatory text before or after.
 
+## Simplicity-First Rules (Critical)
+
+Design the **simplest viable extension** that satisfies the user request.
+
+- Do **NOT** add an external API unless the user request explicitly requires network-fetched data **and** the planning summary includes a usable endpoint (not '(no endpoint)').
+- Do **NOT** add a background service worker unless it is required for:
+  - long-lived event handling (alarms, context menus, lifecycle listeners),
+  - cross-tab orchestration,
+  - privileged APIs that cannot or should not run in the UI page,
+  - or network access that you intentionally centralize in the background.
+  If none apply, set \`has_background: false\` and **do not** create \`background.js\`.
+- Prefer **local computation** in the UI (e.g., \`new Date()\`) over messaging and network.
+- Keep \`host_permissions\` minimal and specific. If \`uses_external_apis\` is false, omit \`host_permissions\` entirely.
+
 ## Task Graph Construction Rules
 
 ### Standard File Order
@@ -90,16 +119,16 @@ Return a JSON object with the following structure exactly as shown in the exampl
 Create tasks in this dependency order:
 
 1. **manifest.json** (id: create_manifest) - No dependencies
-2. **background.js** (id: create_background) - Depends on manifest
-3. **content.js** (id: create_content_script) - Depends on manifest + background (only if needed)
-4. **UI HTML** (id: create_[type]_html) - popup.html, sidepanel.html, newtab.html, overlay.html (only if needed)
-5. **UI JS** (id: create_[type]_js) - popup.js, sidepanel.js, newtab.js, overlay.js (only if needed)
+2. **background.js** (id: create_background) - Depends on manifest (only if \`has_background\` is true)
+3. **content.js** (id: create_content_script) - Depends on manifest (and background only if needed)
+4. **UI HTML** (id: create_[type]_html) - popup.html, sidepanel.html, newtab.html, overlay.html
+5. **UI JS** (id: create_[type]_js) - popup.js, sidepanel.js, newtab.js, overlay.js
 6. **styles.css** (id: create_styles) - Depends on HTML file. Use a separate CSS file for styling; do not embed styles in HTML.
 7. **options.html/js** (id: create_options_page, create_options_js) - Only if settings needed
 
 ### Component Decisions
 
-- **has_background**: Always true
+- **has_background**: true only when required (see Simplicity-First Rules)
 - **has_content_script**: true if extension manipulates DOM, scrapes pages, or injects UI into pages
 - **has_options_page**: true if users need to configure API keys, preferences, or settings
 - **has_popup_or_ui_page**: true unless UI is embedded in content script
@@ -138,10 +167,11 @@ Task descriptions should suggest including relevant formatted context without ov
 
 ## Common Patterns
 
-- Simple popup: manifest → background → popup.html → popup.js → styles.css
-- Content script: manifest → background → content.js → popup.html → popup.js
-- Sidepanel: manifest → background → sidepanel.html → sidepanel.js → styles.css
-- With options: manifest → background → UI files → options.html → options.js`;
+- Simple popup (no background): manifest → popup.html → popup.js → styles.css
+- Simple popup (with background): manifest → background → popup.html → popup.js → styles.css
+- Content script: manifest → (background if needed) → content.js → (optional popup.html/js)
+- Sidepanel: manifest → (background if needed) → sidepanel.html → sidepanel.js → styles.css
+- With options: manifest → (background if needed) → UI files → options.html → options.js`;
 
 /** Placeholders for Meta Planner prompt replacement (single-brace format). */
 export const META_PLANNER_PLACEHOLDERS = {

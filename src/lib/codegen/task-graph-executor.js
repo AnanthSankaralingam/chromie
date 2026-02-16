@@ -74,6 +74,32 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
 
   // Attach completedFiles to context so executeTask can access them
   const ctx = { ...executionContext, completedFiles }
+  const taskIdToFileName = new Map(sortedTasks.map(t => [t.id, t.file_name]))
+  const fileNameSet = new Set(sortedTasks.map(t => t.file_name))
+
+  function unionExistingFiles(existingFiles, additionalFiles) {
+    const set = new Set([...(existingFiles || []), ...(additionalFiles || [])].filter(Boolean))
+    return Array.from(set)
+  }
+
+  function inferSiblingContextFiles(fileName) {
+    const lower = (fileName || '').toLowerCase()
+    const siblings = []
+    // If generating UI JS, include its corresponding HTML when present.
+    if (lower.endsWith('.js')) {
+      const base = lower.replace(/\.js$/, '')
+      const html = `${base}.html`
+      if (fileNameSet.has(html)) siblings.push(html)
+    }
+    // If generating styles, include the UI HTML if present.
+    if (lower.endsWith('styles.css') || lower.endsWith('.css')) {
+      const candidates = ['popup.html', 'sidepanel.html', 'overlay.html', 'newtab.html']
+      for (const c of candidates) {
+        if (fileNameSet.has(c)) siblings.push(c)
+      }
+    }
+    return siblings
+  }
 
   // Emit the full task list so the frontend can render a checklist
   yield {
@@ -96,8 +122,25 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       progress
     }
 
+    // Enrich context_requirements.existing_files to ensure cross-file coherence.
+    // This is a safety net: even if the planner forgets to request existing_files,
+    // we inject dependency artifacts (and key siblings like popup.html for popup.js).
+    const dependencyFiles = (task.dependencies || []).map(depId => taskIdToFileName.get(depId)).filter(Boolean)
+    const siblingFiles = inferSiblingContextFiles(task.file_name)
+    const manifestFile = task.file_name !== 'manifest.json' && fileNameSet.has('manifest.json') ? ['manifest.json'] : []
+    const currentExistingFiles = task.context_requirements?.existing_files || []
+    const enrichedExistingFiles = unionExistingFiles(currentExistingFiles, [...manifestFile, ...dependencyFiles, ...siblingFiles])
+
+    const effectiveTask = {
+      ...task,
+      context_requirements: {
+        ...(task.context_requirements || {}),
+        existing_files: enrichedExistingFiles
+      }
+    }
+
     // Generate the file
-    const result = await executeTask(task, ctx)
+    const result = await executeTask(effectiveTask, ctx)
     let content = normalizeGeneratedFileContent(result.content)
 
     // Track tokens (handle both Gemini and Anthropic field names)

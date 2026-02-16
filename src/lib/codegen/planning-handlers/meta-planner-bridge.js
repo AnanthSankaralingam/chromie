@@ -38,7 +38,9 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
 
   // External APIs (merge planner-detected with user-provided)
   const plannerApis = externalResourcesResult.external_apis || []
-  const allApis = [...plannerApis]
+  // Only include APIs with a usable endpoint/url. Do NOT include "(no endpoint)" entries,
+  // because they bias the Meta Planner into inventing unnecessary network architecture.
+  const allApis = plannerApis.filter(a => Boolean(a?.endpoint || a?.url))
   if (userProvidedApis && Array.isArray(userProvidedApis)) {
     for (const api of userProvidedApis) {
       if (api.endpoint) {
@@ -113,14 +115,18 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
     throw new Error('Meta Planner returned invalid JSON')
   }
 
+  // Normalize brittle plan outputs to prefer simplest viable architecture.
+  // This is a safety net in case the Meta Planner still over-architects.
+  const normalizedMetaPlan = normalizeMetaPlan(metaPlan, planningSummary)
+
   // Validate task_graph exists
-  if (!metaPlan.task_graph || !Array.isArray(metaPlan.task_graph) || metaPlan.task_graph.length === 0) {
+  if (!normalizedMetaPlan.task_graph || !Array.isArray(normalizedMetaPlan.task_graph) || normalizedMetaPlan.task_graph.length === 0) {
     throw new Error('Meta Planner response missing task_graph array')
   }
 
   // Validate dependency IDs reference valid tasks
-  const taskIds = new Set(metaPlan.task_graph.map(t => t.id))
-  for (const task of metaPlan.task_graph) {
+  const taskIds = new Set(normalizedMetaPlan.task_graph.map(t => t.id))
+  for (const task of normalizedMetaPlan.task_graph) {
     if (task.dependencies) {
       for (const depId of task.dependencies) {
         if (!taskIds.has(depId)) {
@@ -130,9 +136,107 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
     }
   }
 
-  console.log(`✅ [meta-planner-bridge] Meta Planner produced ${metaPlan.task_graph.length} tasks`)
-  console.log('🧠 [meta-planner-bridge] Raw meta plan output:\n', JSON.stringify(metaPlan, null, 2))
+  console.log(`✅ [meta-planner-bridge] Meta Planner produced ${normalizedMetaPlan.task_graph.length} tasks`)
+  console.log('🧠 [meta-planner-bridge] Raw meta plan output:\n', JSON.stringify(normalizedMetaPlan, null, 2))
   console.log('🧠 [meta-planner-bridge] tokenUsage:', tokenUsage)
 
-  return { metaPlan, tokenUsage }
+  return { metaPlan: normalizedMetaPlan, tokenUsage }
+}
+
+/**
+ * Normalizes the meta plan to avoid invented architecture:
+ * - Disables external APIs unless the planning summary includes at least one usable endpoint.
+ * - Disables background unless there is a clear reason (external APIs, scraped webpage/content scripts, workspace).
+ * - Removes background.js task if background is disabled.
+ * - Repairs dependencies + context_requirements.existing_files references after removals.
+ */
+function normalizeMetaPlan(metaPlan, planningSummary) {
+  const out = structuredClone(metaPlan)
+
+  const hasExternalApiInSummary = /## External APIs\s*\n[\s\S]*https?:\/\//i.test(planningSummary || '')
+  const hasScrapedWebpage = /## Scraped Webpage Data/i.test(planningSummary || '')
+  const hasWorkspace = /## Workspace Integration/i.test(planningSummary || '')
+
+  // Parse Chrome APIs line (best-effort) to detect "action-only" cases.
+  const chromeApisMatch = (planningSummary || '').match(/## Chrome APIs\s*\nLikely required:\s*([^\n]+)/i)
+  const chromeApis = chromeApisMatch
+    ? chromeApisMatch[1].split(',').map(s => s.trim()).filter(Boolean)
+    : []
+  const isActionOnly = chromeApis.length === 0 || (chromeApis.length === 1 && chromeApis[0].toLowerCase() === 'action')
+
+  // External APIs: only if we have at least one usable endpoint in the summary.
+  if (!hasExternalApiInSummary) {
+    if (out.architecture?.external_communication) {
+      out.architecture.external_communication.uses_external_apis = false
+      out.architecture.external_communication.api_details = out.architecture.external_communication.api_details || ''
+    }
+    if (out.shared_contract?.external_apis) {
+      out.shared_contract.external_apis.uses_external_apis = false
+      out.shared_contract.external_apis.endpoints = []
+    }
+    // Also strip context hints that would encourage network usage.
+    if (Array.isArray(out.task_graph)) {
+      for (const t of out.task_graph) {
+        if (t?.context_requirements) t.context_requirements.external_apis = false
+      }
+    }
+  }
+
+  // Background: disable for simple action-only UI with no external APIs, no scraping, no workspace.
+  const shouldUseBackground = Boolean(
+    out.architecture?.external_communication?.uses_external_apis ||
+    out.architecture?.components?.has_content_script ||
+    hasScrapedWebpage ||
+    hasWorkspace ||
+    !isActionOnly
+  )
+
+  if (out.architecture?.components) {
+    out.architecture.components.has_background = shouldUseBackground
+  }
+  if (out.shared_contract?.messaging) {
+    out.shared_contract.messaging.uses_runtime_messaging = shouldUseBackground ? out.shared_contract.messaging.uses_runtime_messaging : false
+  }
+
+  // If background is disabled, remove background.js tasks and repair graph.
+  if (!shouldUseBackground && Array.isArray(out.task_graph)) {
+    const removedTaskIds = new Set()
+    out.task_graph = out.task_graph.filter(t => {
+      const isBackground = (t?.file_name || '').toLowerCase() === 'background.js' || t?.id === 'create_background'
+      if (isBackground) removedTaskIds.add(t.id)
+      return !isBackground
+    })
+
+    // Remove dependencies pointing to removed tasks.
+    for (const t of out.task_graph) {
+      if (Array.isArray(t.dependencies)) {
+        t.dependencies = t.dependencies.filter(dep => !removedTaskIds.has(dep))
+      }
+      if (t?.context_requirements?.existing_files && Array.isArray(t.context_requirements.existing_files)) {
+        t.context_requirements.existing_files = t.context_requirements.existing_files.filter(f => f !== 'background.js')
+      }
+    }
+
+    // Improve data flow to not assume background messaging.
+    if (out.architecture?.data_flow?.length) {
+      out.architecture.data_flow = out.architecture.data_flow
+        .filter(step => !/background/i.test(step))
+    }
+  }
+
+  // If shared_contract is missing (older planner), add a minimal one so executor can rely on it.
+  if (!out.shared_contract) {
+    out.shared_contract = {
+      notes: 'Auto-added minimal contract (planner did not provide one).',
+      ui: {
+        page_file: null,
+        root_element_id: 'app',
+        primary_text_id: 'primaryText'
+      },
+      messaging: { uses_runtime_messaging: false, request_type: null },
+      external_apis: { uses_external_apis: false, endpoints: [] }
+    }
+  }
+
+  return out
 }

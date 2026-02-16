@@ -100,6 +100,16 @@ export async function executeTask(task, executionContext) {
 
   const globalPlan = (metaPlan.global_plan || []).map((s, i) => `${i + 1}. ${s}`).join('\n')
 
+  // Shared contract to keep cross-file consistency (IDs, messaging, endpoints).
+  // Prefer planner-provided contract; otherwise build a small fallback.
+  const sharedContractObj = metaPlan.shared_contract || {
+    notes: 'Fallback contract (no planner contract provided).',
+    ui: { root_element_id: 'app', primary_text_id: 'primaryText' },
+    messaging: { uses_runtime_messaging: false, request_type: null },
+    external_apis: { uses_external_apis: false, endpoints: [] }
+  }
+  const sharedContract = JSON.stringify(sharedContractObj, null, 2)
+
   // Build context sections
   const contextSections = buildContextSections(task, executionContext)
 
@@ -108,13 +118,14 @@ export async function executeTask(task, executionContext) {
 
   // Assemble final prompt
   const prompt = TASK_EXECUTOR_PROMPT
-    .replace('{SUMMARY}', summary)
-    .replace('{ARCHITECTURE}', architecture)
-    .replace('{GLOBAL_PLAN}', globalPlan)
-    .replace('{FILE_NAME}', task.file_name)
-    .replace('{TASK_DESCRIPTION}', task.description || '')
-    .replace('{CONTEXT_SECTIONS}', contextSections)
-    .replace('{FRONTEND_MODULE}', frontendModule)
+    .replace('{{SUMMARY}}', summary)
+    .replace('{{ARCHITECTURE}}', architecture)
+    .replace('{{GLOBAL_PLAN}}', globalPlan)
+    .replace('{{SHARED_CONTRACT}}', sharedContract)
+    .replace('{{FILE_NAME}}', task.file_name)
+    .replace('{{TASK_DESCRIPTION}}', task.description || '')
+    .replace('{{CONTEXT_SECTIONS}}', contextSections)
+    .replace('{{FRONTEND_MODULE}}', frontendModule)
 
   const model = modelOverride || DEFAULT_MODEL
 
