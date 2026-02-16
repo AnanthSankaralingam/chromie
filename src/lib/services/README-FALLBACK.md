@@ -20,11 +20,13 @@ Each provider has a predefined fallback order:
 
 Automatic fallback is triggered when errors contain:
 
-- HTTP 503 status code
-- "UNAVAILABLE" status
+- HTTP 503 (Service Unavailable) status code
+- HTTP 429 (Too Many Requests) status code
+- "UNAVAILABLE" or "RESOURCE_EXHAUSTED" status
 - "high demand" message
 - "overloaded" message
 - "rate limit" message
+- "quota exceeded" message
 - "temporarily unavailable" message
 
 ### Default Fallback Models

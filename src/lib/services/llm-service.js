@@ -33,15 +33,29 @@ export class LLMService {
     const message = (error?.message || '').toLowerCase()
     const status = error?.status || error?.code
     
-    // Check for 503 status or UNAVAILABLE status
+    // Check for 503 (Service Unavailable) or 429 (Too Many Requests) status codes
     if (status === 503 || status === '503') return true
+    if (status === 429 || status === '429') return true
     if (errorString.includes('503')) return true
+    if (errorString.includes('429')) return true
+    
+    // Check for unavailability messages
     if (errorString.includes('unavailable')) return true
     if (message.includes('unavailable')) return true
+    if (errorString.includes('resource_exhausted')) return true
+    if (message.includes('resource_exhausted')) return true
+    
+    // Check for high demand / overload messages
     if (message.includes('high demand')) return true
     if (message.includes('overloaded')) return true
-    if (message.includes('rate limit')) return true
     if (message.includes('temporarily unavailable')) return true
+    
+    // Check for rate limit / quota messages
+    if (message.includes('rate limit')) return true
+    if (errorString.includes('rate limit')) return true
+    if (message.includes('quota exceeded')) return true
+    if (errorString.includes('quota exceeded')) return true
+    if (message.includes('exceeded your current quota')) return true
     
     return false
   }
