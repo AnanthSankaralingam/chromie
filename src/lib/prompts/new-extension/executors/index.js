@@ -105,11 +105,11 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
 
   const globalPlan = (metaPlan.global_plan || []).map((s, i) => `${i + 1}. ${s}`).join('\n')
 
-  // Build file structure list from task graph for manifest.json generation
-  const fileStructure = task.file_name === 'manifest.json' && metaPlan.task_graph
+  // Build file structure list from task graph for all file generations
+  const fileStructure = metaPlan.task_graph
     ? '\n\n<project_file_structure>\nFiles that will be generated in this extension:\n' +
       metaPlan.task_graph.map(t => `  - ${t.file_name}`).join('\n') +
-      '\n\nUse these exact file names when referencing files in the manifest (e.g., content_scripts, background.service_worker).\n</project_file_structure>'
+      '\n\nUse these exact file names when referencing other files (e.g., in manifest.json, import statements, or messaging).\n</project_file_structure>'
     : ''
 
   // Shared contract to keep cross-file consistency (IDs, messaging, endpoints).

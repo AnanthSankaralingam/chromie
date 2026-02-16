@@ -104,7 +104,6 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
   // Emit the full task list so the frontend can render a checklist
   yield {
     type: 'task_list',
-    content: `Generating ${totalTasks} files...`,
     tasks: sortedTasks.map(t => ({ id: t.id, fileName: t.file_name, description: t.description }))
   }
 
@@ -114,7 +113,6 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
 
     yield {
       type: 'task_progress',
-      content: `Generating ${task.file_name}...`,
       taskId: task.id,
       fileName: task.file_name,
       taskIndex: i,
@@ -158,7 +156,6 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
 
       yield {
         type: 'task_repair',
-        content: `Repairing ${task.file_name}...`,
         fileName: task.file_name
       }
 

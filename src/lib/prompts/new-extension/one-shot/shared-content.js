@@ -23,7 +23,8 @@ export const STYLING_REQUIREMENTS = `
 MANDATORY: Create cutting-edge styles.css with modern, premium aesthetics.
 
 Core Principles:
-- Width: 340-400px | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
+- Width: 340-400px | Min-height: 400px (for popups) | Spacing: 12px, 16px, 20px, 24px | Border-radius: 12px
+- HTML/Body: Set margin: 0; padding: 0; width: 100%; min-height: 100%; to ensure proper container sizing
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
 Color Schemes (choose ONE):
@@ -43,6 +44,26 @@ Premium Effects:
 - Focus: Glowing ring with primary color
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
+
+Popup-Specific CSS Requirements:
+CRITICAL: For popup extensions, always include these base styles to prevent UI cutoff:
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 380px;
+  min-height: 400px;
+  overflow-x: hidden;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
 </styling_requirements>`;
 
 export const CHROME_MESSAGING_API_RULES = `

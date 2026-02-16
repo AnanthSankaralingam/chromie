@@ -139,19 +139,17 @@ export class AnthropicAdapter {
       if (input.images && Array.isArray(input.images)) {
         console.log(`[anthropic-adapter] Adding ${input.images.length} images to request`)
         for (const image of input.images) {
-          // Extract base64 data and mime type for Anthropic format
-          const base64Match = image.data.match(/^data:([^;]+);base64,(.+)$/)
-          if (base64Match) {
+          // Use OpenAI-compatible format since we're using OpenAI SDK
+          // Anthropic's OpenAI compatibility endpoint expects this format
+          if (image.data) {
             content.push({
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: base64Match[1],
-                data: base64Match[2]
+              type: 'image_url',
+              image_url: {
+                url: image.data // Base64 data URL (data:image/jpeg;base64,...)
               }
             })
           } else {
-            console.warn('[anthropic-adapter] Invalid image format, expected base64 data URL')
+            console.warn('[anthropic-adapter] Invalid image format, expected data URL')
           }
         }
       }
