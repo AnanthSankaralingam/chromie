@@ -44,13 +44,8 @@ Safety notes:
 - Critical files like manifest.json cannot be deleted
 - Sensitive files (background.js, content.js, popup.html) will require user confirmation
 - You must provide a clear reason for each deletion
-- Tool results will be provided before you generate patches
 
-Example use cases:
-- Removing duplicate functionality that has been consolidated
-- Deleting obsolete helper files after refactoring
-- Cleaning up unused CSS/JS files
-- Removing deprecated feature files per user request
+Tool results will be provided before you generate patches
 </file_deletion>
 `;
 
