@@ -28,7 +28,7 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
   // Chrome APIs
   const chromeApis = useCaseResult.required_chrome_apis || []
   if (chromeApis.length > 0) {
-    sections.push(`## Chrome APIs\nLikely required: ${chromeApis.join(', ')}`)
+    sections.push(`## Likely needed Chrome APIs\n${chromeApis.join(', ')}`)
   }
 
   // Matched use case
@@ -88,19 +88,17 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
 export async function callMetaPlanner(featureRequest, planningSummary) {
   // Build prompt from template
   const prompt = META_PLANNER_PROMPT
-    .replace('{{USER_REQUEST}}', featureRequest)
-    .replace('{{PLANNING_SUMMARY}}', planningSummary)
+    .replace('{USER_REQUEST}', featureRequest)
+    .replace('{PLANNING_SUMMARY}', planningSummary)
 
-  console.log('🧠 [meta-planner-bridge] Calling Meta Planner...')
-  console.log('🧠 [meta-planner-bridge] Feature request:', featureRequest)
-  console.log('🧠 [meta-planner-bridge] Planning summary:\n', planningSummary)
+  console.log('🧠 [meta-planner-bridge] Meta Planner raw prompt :\n', prompt)
 
   const response = await llmService.createResponse({
     provider: 'anthropic',
     model: PLANNING_MODELS.META_PLANNER,
     input: prompt,
     temperature: 0.2,
-    max_output_tokens: 4000,
+    max_output_tokens: 4096,
     store: false
   })
 
@@ -134,6 +132,7 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
 
   console.log(`✅ [meta-planner-bridge] Meta Planner produced ${metaPlan.task_graph.length} tasks`)
   console.log('🧠 [meta-planner-bridge] Raw meta plan output:\n', JSON.stringify(metaPlan, null, 2))
+  console.log('🧠 [meta-planner-bridge] tokenUsage:', tokenUsage)
 
   return { metaPlan, tokenUsage }
 }

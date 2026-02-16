@@ -95,7 +95,7 @@ export async function executeTask(task, executionContext) {
     : ''
 
   const architecture = metaPlan.architecture
-    ? `Frontend: ${metaPlan.architecture.frontend_type}\nData flow:\n${(metaPlan.architecture.data_flow || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+    ? `Frontend: ${metaPlan.architecture.frontend_type}\nData flow:\n${(metaPlan.architecture.data_flow || []).join('\n')}`
     : ''
 
   const globalPlan = (metaPlan.global_plan || []).map((s, i) => `${i + 1}. ${s}`).join('\n')
@@ -108,17 +108,18 @@ export async function executeTask(task, executionContext) {
 
   // Assemble final prompt
   const prompt = TASK_EXECUTOR_PROMPT
-    .replace('{{SUMMARY}}', summary)
-    .replace('{{ARCHITECTURE}}', architecture)
-    .replace('{{GLOBAL_PLAN}}', globalPlan)
-    .replace('{{FILE_NAME}}', task.file_name)
-    .replace('{{TASK_DESCRIPTION}}', task.description || '')
-    .replace('{{CONTEXT_SECTIONS}}', contextSections)
-    .replace('{{FRONTEND_MODULE}}', frontendModule)
+    .replace('{SUMMARY}', summary)
+    .replace('{ARCHITECTURE}', architecture)
+    .replace('{GLOBAL_PLAN}', globalPlan)
+    .replace('{FILE_NAME}', task.file_name)
+    .replace('{TASK_DESCRIPTION}', task.description || '')
+    .replace('{CONTEXT_SECTIONS}', contextSections)
+    .replace('{FRONTEND_MODULE}', frontendModule)
 
   const model = modelOverride || DEFAULT_MODEL
 
   console.log(`🔨 [task-executor] Generating ${task.file_name} with ${model}`)
+  console.log(`🔨 [task-executor] Raw prompt (after section replacements):\n`, prompt)
 
   const isGemini = !model.startsWith('claude')
   const response = await llmService.createResponse({
@@ -133,6 +134,8 @@ export async function executeTask(task, executionContext) {
 
   let content = response?.output_text || ''
   const tokenUsage = response?.usage || { input_tokens: 0, output_tokens: 0 }
+
+  console.log(`🔨 [task-executor] Raw response for ${task.file_name}:\n`, content)
 
   // Strip markdown fences
   content = stripMarkdownFences(content)

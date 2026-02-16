@@ -18,16 +18,16 @@ The planning output is a **recommendation**—guardrails, not rigid constraints.
 ## Input
 
 <user_request>
-{{USER_REQUEST}}
+{USER_REQUEST}
 </user_request>
 
 <planning_summary>
-{{PLANNING_SUMMARY}}
+{PLANNING_SUMMARY}
 </planning_summary>
 
 ## Output Requirements
 
-Return a JSON object with the following structure exactly as shown:
+Return a JSON object with the following structure exactly as shown in the example:
 
 {
   "summary": {
@@ -92,9 +92,9 @@ Create tasks in this dependency order:
 1. **manifest.json** (id: create_manifest) - No dependencies
 2. **background.js** (id: create_background) - Depends on manifest
 3. **content.js** (id: create_content_script) - Depends on manifest + background (only if needed)
-4. **UI HTML** (id: create_[type]_html) - popup.html, sidepanel.html, newtab.html, overlay.html
-5. **UI JS** (id: create_[type]_js) - popup.js, sidepanel.js, newtab.js, overlay.js
-6. **styles.css** (id: create_styles) - Depends on HTML file
+4. **UI HTML** (id: create_[type]_html) - popup.html, sidepanel.html, newtab.html, overlay.html (only if needed)
+5. **UI JS** (id: create_[type]_js) - popup.js, sidepanel.js, newtab.js, overlay.js (only if needed)
+6. **styles.css** (id: create_styles) - Depends on HTML file. Use a separate CSS file for styling; do not embed styles in HTML.
 7. **options.html/js** (id: create_options_page, create_options_js) - Only if settings needed
 
 ### Component Decisions
@@ -114,7 +114,7 @@ Create tasks in this dependency order:
 
 For each task, suggest which formatted context to include. These are **recommendations**—the execution layer may include additional relevant context if you omit something. Keep suggestions broad rather than overly specific.
 
-**You can only suggest context that was described in the planning summary.** If the summary does not mention scraped webpage content, do not suggest scraped_webpage. If it does not mention external APIs, do not suggest external_apis. Your options are bounded by the summary.
+**You can only suggest context that was described in the planning summary.** If the summary does not mention scraped webpage content, do not suggest scraped_webpage. If it does not mention external APIs, do not suggest external_apis. Your options are bounded by the summary, except for Chrome APIs.
 
 - **use_case**: suggest if task needs to understand the user's request (manifest permissions, background logic, content script behavior)
 - **external_apis**: suggest if task makes HTTP/API calls and the summary mentions external APIs (manifest host_permissions, background API calls)
@@ -134,6 +134,7 @@ Task descriptions should suggest including relevant formatted context without ov
 6. Global plan should be 3-5 high-level strategic steps
 7. Data flow should describe chronological user journey through extension
 8. Suggest context_requirements based on what the planning summary describes; your options are bounded by the summary
+9. Use separate CSS files for styling—never recommend inline styles or <style> blocks in HTML
 
 ## Common Patterns
 
@@ -142,8 +143,8 @@ Task descriptions should suggest including relevant formatted context without ov
 - Sidepanel: manifest → background → sidepanel.html → sidepanel.js → styles.css
 - With options: manifest → background → UI files → options.html → options.js`;
 
-/** Placeholders for Meta Planner prompt replacement. */
+/** Placeholders for Meta Planner prompt replacement (single-brace format). */
 export const META_PLANNER_PLACEHOLDERS = {
-  USER_REQUEST: 'USER_REQUEST',
-  PLANNING_SUMMARY: 'PLANNING_SUMMARY'
+  USER_REQUEST: '{USER_REQUEST}',
+  PLANNING_SUMMARY: '{PLANNING_SUMMARY}'
 };

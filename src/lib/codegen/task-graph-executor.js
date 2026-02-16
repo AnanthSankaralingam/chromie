@@ -4,6 +4,7 @@
  */
 
 import { executeTask } from '@/lib/prompts/new-extension/executors/index.js'
+import { buildRepairPrompt } from '@/lib/prompts/new-extension/executors/repair-executor-prompt.js'
 import { normalizeGeneratedFileContent } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.js'
 import { saveFilesToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
@@ -36,27 +37,6 @@ function topologicalSort(taskGraph) {
   }
 
   return sorted
-}
-
-/**
- * Builds a repair prompt for a file that failed validation.
- */
-function buildRepairPrompt(fileName, brokenContent, validationErrors, manifestContent) {
-  const errorLines = validationErrors.map(e =>
-    `Line ${e.line}, Col ${e.column}: ${e.message}`
-  ).join('\n')
-
-  let prompt = `You are a Chrome extension expert. The following generated file has syntax errors. Fix them and return ONLY the corrected file content. No explanations, no markdown fences.\n\n`
-  prompt += `File: ${fileName}\n\n`
-  prompt += `<validation_errors>\n${errorLines}\n</validation_errors>\n\n`
-  prompt += `<broken_file>\n${brokenContent}\n</broken_file>\n`
-
-  if (manifestContent && fileName !== 'manifest.json') {
-    prompt += `\n<manifest_json>\n${manifestContent}\n</manifest_json>\n`
-  }
-
-  prompt += `\nReturn ONLY the corrected file content. No markdown fences, no explanations.`
-  return prompt
 }
 
 /**
@@ -147,6 +127,8 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
         completedFiles.get('manifest.json') || null
       )
 
+      console.log(`🔧 [task-graph-executor] Repair executor raw prompt (after section replacements):\n`, repairPrompt)
+
       const model = modelOverride || DEFAULT_MODEL
       const isGemini = !model.startsWith('claude')
       const repairResponse = await llmService.createResponse({
@@ -159,7 +141,10 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
         thinkingConfig: isGemini ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
       })
 
-      const repairedContent = stripMarkdownFences(repairResponse?.output_text || '')
+      const repairRawOutput = repairResponse?.output_text || ''
+      console.log(`🔧 [task-graph-executor] Repair executor raw response for ${task.file_name}:\n`, repairRawOutput)
+
+      const repairedContent = stripMarkdownFences(repairRawOutput)
 
       if (repairResponse?.usage) {
         totalTokenUsage.input_tokens += repairResponse.usage.prompt_tokens || repairResponse.usage.input_tokens || 0
@@ -202,7 +187,7 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
     explanationParts.push(`## Overview\n${metaPlan.summary.purpose}`)
   }
   if (metaPlan.architecture?.data_flow?.length > 0) {
-    explanationParts.push(`## How It Works\n${metaPlan.architecture.data_flow.map((s, i) => `${i + 1}. ${s}`).join('\n')}`)
+    explanationParts.push(`## How It Works\n${metaPlan.architecture.data_flow.join('\n')}`)
   }
   if (metaPlan.summary?.core_capabilities?.length > 0) {
     explanationParts.push(`## Features\n${metaPlan.summary.core_capabilities.map(c => `- ${c}`).join('\n')}`)

@@ -44,3 +44,12 @@ Premium Effects:
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>`;
+
+export const CHROME_MESSAGING_API_RULES = `
+<chrome_messaging_api_rules>
+Chrome Messaging Best Practices:
+- In port.onMessage listeners (chrome.runtime.onConnect), do NOT use 'sender'; only (message) is received.
+- To access sender/tab info, pass it in the message or capture it earlier.
+- If you need 'sender', use chrome.runtime.onMessage or chrome.tabs.onMessage (these provide (message, sender, sendResponse)).
+- Never reference 'sender' in port.onMessage.addListener callbacks.
+</chrome_messaging_api_rules>`;

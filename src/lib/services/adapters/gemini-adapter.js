@@ -61,8 +61,11 @@ export class GeminiAdapter {
 
       // Add thinking config for all Gemini models if explicitly provided
       if (thinkingConfig?.includeThoughts) {
-        // Both Gemini 2.5 and 3 use includeThoughts: true for streaming thoughts
-        generationConfig.thinkingConfig = thinkingConfig
+        // Gemini 3 uses thinkingLevel (LOW/HIGH); Gemini 2.5 uses thinkingBudget
+        const isGemini3 = /gemini-3|3-flash|3-pro/i.test(model)
+        generationConfig.thinkingConfig = isGemini3
+          ? { includeThoughts: true, thinkingLevel: thinkingConfig.thinkingLevel || 'LOW' }
+          : { includeThoughts: true, thinkingBudget: thinkingConfig.thinkingBudget ?? -1 }
         console.log('[gemini-adapter] CREATE Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -80,11 +83,15 @@ export class GeminiAdapter {
       let promptTokens = 0
 
       if (response?.usageMetadata) {
-        thoughtsTokens = response.usageMetadata.thoughtsTokenCount || 0
-        outputTokens = response.usageMetadata.candidatesTokenCount || 0
-        promptTokens = response.usageMetadata.promptTokenCount || 0
+        const um = response.usageMetadata
+        thoughtsTokens = um.thoughtsTokenCount ?? 0
+        outputTokens = um.candidatesTokenCount ?? um.responseTokenCount ?? 0
+        promptTokens = um.promptTokenCount ?? 0
         totalTokens = thoughtsTokens + outputTokens + promptTokens
         console.log(`[gemini-adapter] Exact token usage - prompt: ${promptTokens}, output: ${outputTokens}, thoughts: ${thoughtsTokens}, total: ${totalTokens}`)
+        if (thoughtsTokens === 0 && thinkingConfig?.includeThoughts) {
+          console.log('[gemini-adapter] thoughtsTokenCount is 0 despite thinkingConfig - raw usageMetadata:', JSON.stringify(um, null, 2))
+        }
       }
 
       // Extract content from response
@@ -141,8 +148,11 @@ export class GeminiAdapter {
 
       // Add thinking config for all Gemini models if explicitly provided
       if (thinkingConfig?.includeThoughts) {
-        // Both Gemini 2.5 and 3 use includeThoughts: true for streaming thoughts
-        generationConfig.thinkingConfig = thinkingConfig
+        // Gemini 3 uses thinkingLevel (LOW/HIGH); Gemini 2.5 uses thinkingBudget
+        const isGemini3 = /gemini-3|3-flash|3-pro/i.test(model)
+        generationConfig.thinkingConfig = isGemini3
+          ? { includeThoughts: true, thinkingLevel: thinkingConfig.thinkingLevel || 'LOW' }
+          : { includeThoughts: true, thinkingBudget: thinkingConfig.thinkingBudget ?? -1 }
         console.log('[gemini-adapter] STREAM Response Added thinkingConfig for model:', model, generationConfig.thinkingConfig)
       }
 
@@ -181,10 +191,14 @@ export class GeminiAdapter {
         try {
           // Extract token usage from chunk if available
           if (chunk?.usageMetadata) {
-            thoughtsTokens = chunk.usageMetadata.thoughtsTokenCount || 0
-            outputTokens = chunk.usageMetadata.candidatesTokenCount || 0
-            promptTokens = chunk.usageMetadata.promptTokenCount || 0
+            const um = chunk.usageMetadata
+            thoughtsTokens = um.thoughtsTokenCount ?? 0
+            outputTokens = um.candidatesTokenCount ?? um.responseTokenCount ?? 0
+            promptTokens = um.promptTokenCount ?? 0
             totalTokens = thoughtsTokens + outputTokens + promptTokens
+            if (thoughtsTokens === 0 && generationConfig.thinkingConfig?.includeThoughts) {
+              console.log('[gemini-adapter] STREAM thoughtsTokenCount is 0 - raw usageMetadata:', JSON.stringify(um, null, 2))
+            }
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []

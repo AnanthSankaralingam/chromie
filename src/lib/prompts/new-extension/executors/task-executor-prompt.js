@@ -2,20 +2,20 @@ import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS 
 
 export const TASK_EXECUTOR_PROMPT = `You are a Chrome extension development expert. Generate a single file for a Chrome extension.
 
-<extension_summary>{{SUMMARY}}</extension_summary>
+<extension_summary>{SUMMARY}</extension_summary>
 
-<architecture>{{ARCHITECTURE}}</architecture>
+<architecture>{ARCHITECTURE}</architecture>
 
-<global_plan>{{GLOBAL_PLAN}}</global_plan>
+<global_plan>{GLOBAL_PLAN}</global_plan>
 
 <current_task>
-File: {{FILE_NAME}}
-Description: {{TASK_DESCRIPTION}}
+File: {FILE_NAME}
+Description: {TASK_DESCRIPTION}
 </current_task>
 
-{{CONTEXT_SECTIONS}}
+{CONTEXT_SECTIONS}
 
-{{FRONTEND_MODULE}}
+{FRONTEND_MODULE}
 
 ${STYLING_REQUIREMENTS}
 

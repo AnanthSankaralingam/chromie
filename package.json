@@ -11,7 +11,7 @@
     "sync-icons": "cp icons/*.png public/icons/ 2>/dev/null || true"
   },
   "dependencies": {
-    "@google/genai": "^1.21.0",
+    "@google/genai": "^1.41.0",
     "@hyperbrowser/sdk": "^0.60.0",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-avatar": "latest",
