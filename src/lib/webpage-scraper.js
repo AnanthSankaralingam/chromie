@@ -8,7 +8,7 @@
  * 3. Lambda API Fallback: If no cache found, calls AWS Lambda scraping API
  *    - Endpoint: https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod
  *    - Method: POST
- *    - Request body: { "url": "<full_url_with_https>" }
+ *    - Request body: { "url": "<full_url_with_https>", "intent": "<optional>", "profile_id": "<optional Hyperbrowser profile ID>" }
  *    - Response: { statusCode: 200, body: "<json_string>" }
  *    - ONLY if Lambda also fails, then a scraper miss is recorded in 'scraper_misses' table
  * 
@@ -107,10 +107,12 @@ function normalizeUrl(url) {
 /**
  * Call AWS Lambda scraping API to scrape a webpage
  * @param {string} url - Full URL to scrape (will be normalized to include https://)
+ * @param {string} [intent] - Optional 1-2 sentence description of what to look for (element types or extension goal)
+ * @param {string} [profileId] - Optional Hyperbrowser profile ID for the scrape session (e.g., logged-in state)
  * @returns {Promise<Object>} - Parsed response data with major_elements, domain, page_title
  * @throws {Error} - If API call fails or response is invalid
  */
-async function callLambdaScrapingAPI(url) {
+async function callLambdaScrapingAPI(url, intent = null, profileId = null) {
   const LAMBDA_API_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/scrape'
   const normalizedUrl = normalizeUrl(url)
   
@@ -118,7 +120,15 @@ async function callLambdaScrapingAPI(url) {
     throw new Error('Invalid URL provided')
   }
   
-  console.log(`🌐 Calling Lambda API to scrape: ${normalizedUrl}`)
+  const requestBody = { url: normalizedUrl }
+  if (intent && typeof intent === 'string' && intent.trim()) {
+    requestBody.intent = intent.trim()
+  }
+  if (profileId && typeof profileId === 'string' && profileId.trim()) {
+    requestBody.profile_id = profileId.trim()
+  }
+  
+  console.log(`🌐 Calling Lambda API to scrape: ${normalizedUrl}${requestBody.intent ? ` (intent: ${requestBody.intent})` : ''}`)
   
   try {
     const response = await fetch(LAMBDA_API_URL, {
@@ -126,7 +136,7 @@ async function callLambdaScrapingAPI(url) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url: normalizedUrl }),
+      body: JSON.stringify(requestBody),
     })
     
     if (!response.ok) {
@@ -181,7 +191,9 @@ async function callLambdaScrapingAPI(url) {
  * @returns {Promise<Object>} - Scraped data from the database
  */
 export async function scrapeWebPage(url, options = {}) {
-  console.log(`Looking up webpage data for ${url}`)
+  const intent = options.intent && typeof options.intent === 'string' ? options.intent.trim() : null
+  const profileId = options.profile_id && typeof options.profile_id === 'string' ? options.profile_id.trim() : null
+  console.log(`Looking up webpage data for ${url}${intent ? ` (intent: ${intent})` : ''}${profileId ? ` (profile: ${profileId})` : ''}`)
   
   try {
     const supabase = createClient()
@@ -191,11 +203,15 @@ export async function scrapeWebPage(url, options = {}) {
     let genericDomainNameAttempted = null; 
     let specificDomainNameAttempted = null; // Store the specific domain name for scraper_misses
 
-    // 1. Try with the more specific domain name (e.g., youtube.com/watch)
+    // When intent or profile_id is provided, skip cache - these scrapes always go to Lambda
+    const skipCache = !!(intent || profileId)
+    const genericDomainName = extractDomainName(url, false)
     const specificDomainName = extractDomainName(url, true)
+
+    // 1. Try with the more specific domain name (e.g., youtube.com/watch) - skip if intent provided
     specificDomainNameAttempted = specificDomainName; // Store the specific domain name
     console.log(`Attempting lookup with specific domain: ${specificDomainName}`)
-    if (specificDomainName) {
+    if (!skipCache && specificDomainName) {
       ({ data, error } = await supabase
         .from('scraper')
         .select('scraper_output')
@@ -210,10 +226,9 @@ export async function scrapeWebPage(url, options = {}) {
       }
     }
 
-    // 2. If specific lookup failed, fall back to generic domain name (e.g., youtube.com)
-    if (!data || !data.scraper_output) {
-      const genericDomainName = extractDomainName(url, false)
-      genericDomainNameAttempted = genericDomainName; // Store the generic domain name
+    // 2. If specific lookup failed, fall back to generic domain name (e.g., youtube.com) - skip if intent provided
+    genericDomainNameAttempted = genericDomainName
+    if ((!data || !data.scraper_output) && !skipCache) {
       console.log(`Falling back to generic domain lookup: ${genericDomainName}`)
       if (genericDomainName) {
         ({ data, error } = await supabase
@@ -241,7 +256,7 @@ export async function scrapeWebPage(url, options = {}) {
       console.log(`📡 No cache found in Supabase, calling Lambda API for: ${url}`)
       
       try {
-        const lambdaResponse = await callLambdaScrapingAPI(url)
+        const lambdaResponse = await callLambdaScrapingAPI(url, intent, profileId)
         
         // Lambda response contains: major_elements, domain, page_title, token_usage, saved_to_db
         const body = {
