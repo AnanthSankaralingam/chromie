@@ -102,6 +102,7 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
       const result = await executeToolCall(toolCall, {
         projectId: sessionId,
         supabase: supabase,
+        scrapingIntent: replacements?.scrapingIntent || null,
         onConfirmationRequired: async (details) => {
           // Note: Cannot yield from nested function
           // For now, auto-decline confirmations

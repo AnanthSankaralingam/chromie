@@ -40,6 +40,12 @@ Do NOT suggest API if:
 - The endpoint_url would be empty or a chrome.* namespace
 </api_identification>
 
+<scraping_intent>
+Set scraping_intent and scraping_intent_confidence when the extension targets SPECIFIC page elements (not generic structure):
+- High confidence (0.8-1): "Extract comment form and reply buttons", "Find job application fields and submit button", "Identify product price and add-to-cart elements"
+- Low confidence (0-0.5): Generic "analyze page structure", "find interactive elements" — use empty string for scraping_intent and 0 for confidence
+</scraping_intent>
+
 <common_api_endpoints>
 
 OpenAI: https://api.openai.com/v1
@@ -69,7 +75,9 @@ IMPORTANT: When detecting Google Workspace needs:
     }
   ],
   "webpages_to_scrape": ["array of domains"],
-  "no_external_needed": "boolean"
+  "no_external_needed": "boolean",
+  "scraping_intent": "1-2 sentence description of what to extract when scraping is highly niche (e.g., specific form fields, comment sections). Empty string if generic.",
+  "scraping_intent_confidence": "number 0-1: how niche this scraping job is. 1 = requires custom intent, 0 = generic page analysis suffices."
 }
 </output_schema>
 
