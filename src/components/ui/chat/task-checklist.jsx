@@ -58,14 +58,14 @@ function TaskItem({ task }) {
   const getStatusText = () => {
     switch (status) {
       case 'complete':
-        return 'text-gray-700 dark:text-gray-300'
+        return 'text-slate-400'
       case 'in_progress':
-        return 'text-blue-700 dark:text-blue-300 font-medium'
+        return 'text-blue-400 font-medium'
       case 'repairing':
-        return 'text-orange-700 dark:text-orange-300 font-medium'
+        return 'text-orange-400 font-medium'
       case 'pending':
       default:
-        return 'text-gray-500 dark:text-gray-400'
+        return 'text-slate-500'
     }
   }
 
@@ -76,9 +76,9 @@ function TaskItem({ task }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className={`text-sm ${getStatusText()}`}>
-          <code className="font-mono text-xs bg-slate-700/60 px-1.5 py-0.5 rounded">
+          <span className="font-mono text-xs text-inherit">
             {fileName}
-          </code>
+          </span>
           {status === 'repairing' && (
             <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
               (fixing issues...)
@@ -98,24 +98,10 @@ function TaskItem({ task }) {
 function TaskSummary({ tasks }) {
   const completed = tasks.filter(t => t.status === 'complete').length
   const total = tasks.length
-  const percentage = Math.round((completed / total) * 100)
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-slate-400">
-          {completed} of {total} files completed
-        </span>
-        <span className="text-slate-400 font-medium">
-          {percentage}%
-        </span>
-      </div>
-      <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
-        <div
-          className="bg-blue-500 h-full transition-all duration-500 ease-out"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
+    <div className="text-xs text-slate-400">
+      {completed} of {total} files completed
     </div>
   )
 }
