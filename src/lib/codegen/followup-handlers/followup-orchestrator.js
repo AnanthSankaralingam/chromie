@@ -224,6 +224,7 @@ export async function* runPatchingWithToolLoop(prompt, existingFiles, callLLM, o
   const toolContext = {
     projectId: options.projectId,
     supabase: options.supabase,
+    scrapingIntent: options.scrapingIntent || null,
     onConfirmationRequired: options.onConfirmationRequired
   };
 

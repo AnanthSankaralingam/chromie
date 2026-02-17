@@ -208,6 +208,19 @@ async function callExternalResourcesPrompt(featureRequest) {
 
     const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
 
+    // Apply scraping_intent threshold: only use when confidence >= 0.8
+    const SCRAPING_INTENT_THRESHOLD = 0.8
+    const confidence = typeof result.scraping_intent_confidence === 'number'
+      ? result.scraping_intent_confidence
+      : parseFloat(result.scraping_intent_confidence) || 0
+    if (confidence < SCRAPING_INTENT_THRESHOLD || !result.scraping_intent?.trim()) {
+      result.scraping_intent = null
+      console.log(`ℹ️ [Planning Orchestrator] Scraping intent not used (confidence ${confidence} < ${SCRAPING_INTENT_THRESHOLD})`)
+    } else {
+      result.scraping_intent = String(result.scraping_intent).trim()
+      console.log(`✅ [Planning Orchestrator] Using scraping intent (confidence ${confidence}): ${result.scraping_intent.substring(0, 60)}...`)
+    }
+
     // Filter out Chrome APIs and invalid entries from external_apis
     if (result.external_apis && Array.isArray(result.external_apis)) {
       const originalCount = result.external_apis.length
@@ -253,7 +266,9 @@ async function callExternalResourcesPrompt(featureRequest) {
       result: {
         external_apis: [],
         webpages_to_scrape: [],
-        no_external_needed: true
+        no_external_needed: true,
+        scraping_intent: null,
+        scraping_intent_confidence: 0
       },
       tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     }

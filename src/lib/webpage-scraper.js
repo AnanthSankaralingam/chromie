@@ -203,15 +203,15 @@ export async function scrapeWebPage(url, options = {}) {
     let genericDomainNameAttempted = null; 
     let specificDomainNameAttempted = null; // Store the specific domain name for scraper_misses
 
-    // When intent or profile_id is provided, skip cache - these scrapes always go to Lambda
-    const skipCache = !!(intent || profileId)
+    // Only check cache when intent is absent - intent-specific scrapes always go to Lambda. Profile-based scrapes also skip (authenticated view differs from cached generic).
+    const skipCache = !!intent || !!profileId
     const genericDomainName = extractDomainName(url, false)
     const specificDomainName = extractDomainName(url, true)
 
-    // 1. Try with the more specific domain name (e.g., youtube.com/watch) - skip if intent provided
-    specificDomainNameAttempted = specificDomainName; // Store the specific domain name
-    console.log(`Attempting lookup with specific domain: ${specificDomainName}`)
+    // 1. Try with the more specific domain name (e.g., youtube.com/watch) - skip when intent provided
+    specificDomainNameAttempted = specificDomainName
     if (!skipCache && specificDomainName) {
+      console.log(`Attempting lookup with specific domain: ${specificDomainName}`)
       ({ data, error } = await supabase
         .from('scraper')
         .select('scraper_output')
@@ -251,9 +251,11 @@ export async function scrapeWebPage(url, options = {}) {
       throw new Error(`Database lookup failed: ${error.message}`)
     }
     
-    // 3. If no data found in Supabase cache, call Lambda API
+    // 3. If no data found in Supabase cache (or cache skipped due to intent), call Lambda API
     if (!data || !data.scraper_output) {
-      console.log(`📡 No cache found in Supabase, calling Lambda API for: ${url}`)
+      console.log(skipCache
+        ? `📡 Skipping cache (intent-specific scrape), calling Lambda API for: ${url}`
+        : `📡 No cache found in Supabase, calling Lambda API for: ${url}`)
       
       try {
         const lambdaResponse = await callLambdaScrapingAPI(url, intent, profileId)

@@ -105,7 +105,7 @@ export function UrlInputRequest({ message, onSubmit, onCancel, setMessages, mess
               Website URL Required
             </h3>
             <p className="text-sm text-slate-400 leading-relaxed">
-              {message.content || "To build your extension, I need the URL of the website you want to interact with. This helps me understand the page structure and create the right selectors."}
+              {message.content || "To build your extension, I need the URL of the website you want to interact with. This helps me understand the page structure and create the right selectors. Gated or login-required sites can be analyzed if you've already authenticated them in your testing browser."}
             </p>
           </div>
         </div>

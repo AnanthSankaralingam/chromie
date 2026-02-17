@@ -146,7 +146,8 @@ export async function* generateChromeExtensionStream({
         workspaceAPIs: planningResult.workspaceAPIs || [],
         usesWorkspaceAPIs: planningResult.usesWorkspaceAPIs || false,
         workspaceScopes: planningResult.workspaceScopes || [],
-        matchedTemplate: planningResult.templateMatchResult?.matched_template || null
+        matchedTemplate: planningResult.templateMatchResult?.matched_template || null,
+        scrapingIntent: planningResult.externalResourcesResult?.scraping_intent || null
       }
 
       planningTokenUsage = planningResult.tokenUsage
@@ -338,9 +339,38 @@ export async function* generateChromeExtensionStream({
           content: `Scraping web structure for ${userProvidedUrl}...`,
         };
 
+        let scrapeOptions = {};
+        if (sessionId && supabase) {
+          try {
+            const { data: project } = await supabase
+              .from('projects')
+              .select('user_id')
+              .eq('id', sessionId)
+              .maybeSingle();
+            if (project?.user_id) {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('hyperbrowser_profile_id')
+                .eq('id', project.user_id)
+                .maybeSingle();
+              if (profile?.hyperbrowser_profile_id) {
+                scrapeOptions.profile_id = profile.hyperbrowser_profile_id;
+                console.log('🌐 [generate-extension-stream] Using user Hyperbrowser profile for initial scrape');
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️ [generate-extension-stream] Could not fetch profile for scrape:', err?.message);
+          }
+        }
+        if (requirementsAnalysis.scrapingIntent) {
+          scrapeOptions.intent = requirementsAnalysis.scrapingIntent;
+          console.log('🌐 [generate-extension-stream] Using scraping intent for niche use case');
+        }
+
         const scrapeResult = await batchScrapeWebpages(
           requirementsAnalysis.webPageData,
-          userProvidedUrl
+          userProvidedUrl,
+          scrapeOptions
         );
         scrapedWebpageAnalysis = scrapeResult.data;
         scrapeStatusCode = scrapeResult.statusCode;
@@ -641,8 +671,9 @@ export async function* generateChromeExtensionStream({
     }
     console.log(`📊 [generate-extension-stream] Expected file count for thinking level: ${expectedFileCount}`)
 
-    // Add supabase client to replacements for tool execution
+    // Add supabase client and scraping intent to replacements for tool execution
     replacements.supabase = supabase
+    replacements.scrapingIntent = requirementsAnalysis.scrapingIntent || null
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(

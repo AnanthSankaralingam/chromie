@@ -20,7 +20,7 @@ export async function executeToolCall(toolCall, context = {}) {
     case 'chrome_api_search':
       return await executeChromeApiSearch(toolCall.params);
     case 'web_scraping':
-      return await executeWebScraping(toolCall.params);
+      return await executeWebScraping(toolCall.params, context);
     case 'delete_file':
       return await executeFileDelete(toolCall.params, context);
     default:
@@ -53,20 +53,48 @@ async function executeChromeApiSearch(params) {
  * @param {Object} params - Tool parameters
  * @param {string} params.url - URL to scrape
  * @param {string} params.intent - What to extract or analyze
+ * @param {Object} context - Execution context (projectId, supabase)
  * @returns {Promise<Object>} - Scraping results
  */
-async function executeWebScraping(params) {
+async function executeWebScraping(params, context = {}) {
   const { url, intent } = params;
+  const { projectId, supabase, scrapingIntent } = context;
+  // Prefer planning-derived scrapingIntent (niche use case) over LLM-provided intent
+  const effectiveIntent = scrapingIntent || intent;
 
   if (!url) {
     return { error: 'Missing required parameter: url' };
   }
 
-  console.log(`🌐 [tool-executor] Scraping webpage: ${url} (intent: ${intent || 'general'})`);
+  let profileId = null;
+  if (projectId && supabase) {
+    try {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('user_id')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (project?.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('hyperbrowser_profile_id')
+          .eq('id', project.user_id)
+          .maybeSingle();
+        if (profile?.hyperbrowser_profile_id) {
+          profileId = profile.hyperbrowser_profile_id;
+          console.log(`🌐 [tool-executor] Using user's Hyperbrowser profile for authenticated scrape`);
+        }
+      }
+    } catch (err) {
+      console.warn(`⚠️ [tool-executor] Could not fetch profile for scrape:`, err?.message);
+    }
+  }
+
+  console.log(`🌐 [tool-executor] Scraping webpage: ${url} (intent: ${effectiveIntent || 'general'})${profileId ? ' [with profile]' : ''}`);
 
   try {
-    const result = await scrapeWebPage(url);
-    return formatScrapingResults(result, intent);
+    const result = await scrapeWebPage(url, { intent: effectiveIntent, profile_id: profileId });
+    return formatScrapingResults(result, effectiveIntent);
   } catch (error) {
     console.error(`❌ [tool-executor] Scraping failed:`, error);
     return { error: `Failed to scrape webpage: ${error.message}` };
