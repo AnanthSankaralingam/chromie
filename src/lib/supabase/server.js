@@ -1,8 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 export function createClient() {
   const cookieStore = cookies()
+
+  // Fall back to Authorization header for programmatic API access (e.g. eval harness).
+  // Browser sessions use cookies as normal — this only kicks in when there are none.
+  const authHeader = headers().get('authorization') || ''
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,6 +29,9 @@ export function createClient() {
           }
         },
       },
+      ...(bearerToken && {
+        global: { headers: { Authorization: `Bearer ${bearerToken}` } },
+      }),
     }
   )
 }

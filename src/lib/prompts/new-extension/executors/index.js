@@ -205,7 +205,8 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     notes: 'Fallback contract (no planner contract provided).',
     ui: { root_element_id: 'app', primary_text_id: 'primaryText' },
     messaging: { uses_runtime_messaging: false, request_type: null },
-    external_apis: { uses_external_apis: false, endpoints: [] }
+    external_apis: { uses_external_apis: false, endpoints: [] },
+    storage: { namespace: 'none', keys: {} }
   }
   const sharedContract = JSON.stringify(sharedContractObj, null, 2)
 
