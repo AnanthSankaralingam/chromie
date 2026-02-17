@@ -231,7 +231,11 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
     explanationParts.push(`## Overview\n${metaPlan.summary.purpose}`)
   }
   if (metaPlan.architecture?.data_flow?.length > 0) {
-    explanationParts.push(`## How It Works\n${metaPlan.architecture.data_flow.join('\n')}`)
+    const steps = metaPlan.architecture.data_flow.map((step, i) => {
+      const label = step.replace(/^Step \d+:\s*/i, '').trim()
+      return `${i + 1}. ${label}`
+    })
+    explanationParts.push(`## How It Works\n${steps.join('\n')}`)
   }
   if (metaPlan.summary?.core_capabilities?.length > 0) {
     explanationParts.push(`## Features\n${metaPlan.summary.core_capabilities.map(c => `- ${c}`).join('\n')}`)

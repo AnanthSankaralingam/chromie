@@ -292,19 +292,27 @@ export async function* generateChromeExtensionStream({
     
     console.log('✅ No URL required or URL already provided - continuing with code generation');
 
-    // Check if external APIs are suggested but not yet provided
+    // Check if external APIs are suggested but not yet provided — halt for user validation
     const apiRequirement = checkApiRequirement(requirementsAnalysis, userProvidedApis);
     if (apiRequirement) {
-      // Auto-provide the planning-suggested APIs with their default endpoints
-      // instead of halting the flow — the planning result already contains valid endpoints
-      console.log('🔌 External APIs suggested - auto-providing defaults from planning result');
+      console.log('🔌 External APIs suggested - requesting user validation before Meta Planner');
       console.log('📋 Suggested APIs:', apiRequirement.suggestedAPIs);
-      userProvidedApis = apiRequirement.suggestedAPIs.map(api => ({
-        name: api.name,
-        endpoint: api.endpoint_url || api.endpoint || '',
-        doc_link: api.doc_link || null,
-        doc_description: api.doc_description || null,
-      }))
+      yield {
+        type: "requires_api",
+        content: "Your extension needs to connect to external APIs. Please review the suggested APIs below, customize endpoints if needed, or skip to continue without them.",
+        suggestedAPIs: apiRequirement.suggestedAPIs.map(api => ({
+          name: api.name,
+          endpoint: api.endpoint_url || api.endpoint || '',
+          endpoint_url: api.endpoint_url || api.endpoint || '',
+          doc_link: api.doc_link || null,
+          doc_description: api.doc_description || null,
+        })),
+        analysisData: {
+          requirements: requirementsAnalysis,
+          tokenUsage: planningTokenUsage,
+        },
+      };
+      return;
     }
 
     console.log('✅ APIs resolved - continuing with code generation')

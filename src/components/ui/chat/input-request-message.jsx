@@ -170,15 +170,16 @@ export function ApiInputRequest({ message, onSubmit, onCancel, setMessages, mess
   useEffect(() => {
     if (message.suggestedAPIs && Array.isArray(message.suggestedAPIs) && message.suggestedAPIs.length > 0) {
       const initialConfigs = message.suggestedAPIs.map(api => {
-        const defaultEndpoint = getDefaultEndpoint(api.name || '')
+        // Prefer planning-suggested endpoint when provided; fallback to external_apis.json lookup
+        const planningEndpoint = api.endpoint_url || api.endpoint || ''
+        const defaultEndpoint = planningEndpoint || getDefaultEndpoint(api.name || '')
         return {
           name: api.name || 'Unnamed API',
           endpoint: defaultEndpoint,
           defaultEndpoint: defaultEndpoint,
           isSkipped: false,
-          // Optional documentation metadata
-          doc_link: '',
-          doc_description: '',
+          doc_link: api.doc_link || '',
+          doc_description: api.doc_description || '',
         }
       })
       setApiConfigs(initialConfigs)

@@ -36,20 +36,20 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
     sections.push(`## Matched Use Case\n${useCaseResult.matched_use_case.name}`)
   }
 
-  // External APIs (merge planner-detected with user-provided)
+  // External APIs: prefer user-validated APIs when provided; otherwise use planner-detected
   const plannerApis = externalResourcesResult.external_apis || []
-  // Only include APIs with a usable endpoint/url. Do NOT include "(no endpoint)" entries,
-  // because they bias the Meta Planner into inventing unnecessary network architecture.
-  const allApis = plannerApis.filter(a => Boolean(a?.endpoint || a?.url))
-  if (userProvidedApis && Array.isArray(userProvidedApis)) {
-    for (const api of userProvidedApis) {
-      if (api.endpoint) {
-        allApis.push({ name: api.name || 'User API', endpoint: api.endpoint })
-      }
-    }
+  let allApis = []
+  if (userProvidedApis && Array.isArray(userProvidedApis) && userProvidedApis.length > 0) {
+    // User validated/customized — use as sole source (avoids duplicating planner + user)
+    allApis = userProvidedApis
+      .filter(a => a?.endpoint)
+      .map(a => ({ name: a.name || 'User API', endpoint: a.endpoint }))
+  } else {
+    // No user input — use planner-detected APIs with usable endpoints
+    allApis = plannerApis.filter(a => Boolean(a?.endpoint || a?.endpoint_url || a?.url))
   }
   if (allApis.length > 0) {
-    const apiLines = allApis.map(a => `- ${a.name || 'API'}: ${a.endpoint || a.url || '(no endpoint)'}`)
+    const apiLines = allApis.map(a => `- ${a.name || 'API'}: ${a.endpoint || a.endpoint_url || a.url || '(no endpoint)'}`)
     sections.push(`## External APIs\n${apiLines.join('\n')}`)
   }
 
