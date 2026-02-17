@@ -88,7 +88,7 @@ export async function* generateChromeExtensionStream({
         if (requirementsAnalysis.planningResult) {
           requirementsAnalysis.planningResult.frontendType = userSelectedFrontendType
           // Re-format planning outputs with the updated frontend type
-          requirementsAnalysis.planningOutputs = formatPlanningOutputs(
+          requirementsAnalysis.planningOutputs = await formatPlanningOutputs(
             requirementsAnalysis.planningResult, null, null, null, featureRequest
           )
         }
@@ -292,27 +292,22 @@ export async function* generateChromeExtensionStream({
     
     console.log('✅ No URL required or URL already provided - continuing with code generation');
 
-    // Check if external APIs are required but not provided
+    // Check if external APIs are suggested but not yet provided
     const apiRequirement = checkApiRequirement(requirementsAnalysis, userProvidedApis);
     if (apiRequirement) {
-      console.log('🔌 External APIs suggested but not provided - halting code generation (streaming)');
+      // Auto-provide the planning-suggested APIs with their default endpoints
+      // instead of halting the flow — the planning result already contains valid endpoints
+      console.log('🔌 External APIs suggested - auto-providing defaults from planning result');
       console.log('📋 Suggested APIs:', apiRequirement.suggestedAPIs);
-
-      yield {
-        type: "requires_api",
-        content: "This extension can be enhanced with external API endpoints. Please configure them or choose to skip.",
-        ...apiRequirement,
-        analysisData: {
-          requirements: requirementsAnalysis,
-          tokenUsage: planningTokenUsage,
-        },
-      };
-
-      console.log('🛑 Returning from generator - should stop code generation for API input');
-      return;
+      userProvidedApis = apiRequirement.suggestedAPIs.map(api => ({
+        name: api.name,
+        endpoint: api.endpoint_url || api.endpoint || '',
+        doc_link: api.doc_link || null,
+        doc_description: api.doc_description || null,
+      }))
     }
 
-    console.log('✅ No external APIs suggested or APIs already provided - continuing with code generation')
+    console.log('✅ APIs resolved - continuing with code generation')
 
     // Step 2: Scrape webpages for analysis if needed (now with simplified logic)
     let scrapedWebpageAnalysis = null;

@@ -367,9 +367,9 @@ export default function StreamingChat({
 
   const handleApiSubmit = async (userApis) => {
     const requestInfo = currentRequestRef.current
+    currentRequestRef.current = null
     if (requestInfo) {
       await continueGenerationWithApis(requestInfo, userApis)
-      currentRequestRef.current = null
     }
   }
 
@@ -380,9 +380,9 @@ export default function StreamingChat({
 
   const handleFrontendTypeSubmit = async (selectedType) => {
     const requestInfo = currentRequestRef.current
+    currentRequestRef.current = null
     if (requestInfo) {
       await continueGenerationWithFrontendType(requestInfo, selectedType)
-      currentRequestRef.current = null
     }
   }
 
@@ -436,8 +436,9 @@ export default function StreamingChat({
       <div ref={messagesContainerRef} className="flex-1 overflow-hidden pb-4">
         <Conversation>
           <ConversationContent smooth={true} className="custom-scrollbar" data-scroll-container>
+            {/* Render regular messages (everything except the final explanation) */}
             {messages
-              .filter((message) => !message.isThinking)
+              .filter((message) => !message.isThinking && !message.isFinalExplanation)
               .map((message, index, filteredMessages) => {
                 // Show avatar only on first AI message in succession
                 const prevMessage = index > 0 ? filteredMessages[index - 1] : null
@@ -445,7 +446,7 @@ export default function StreamingChat({
                   (!prevMessage || prevMessage.role !== "assistant")
 
                 return (
-                  <div key={index} data-message-role={message.role}>
+                  <div key={`msg-${index}`} data-message-role={message.role}>
                     <ChatMessage
                       message={message}
                       index={index}
@@ -509,7 +510,7 @@ export default function StreamingChat({
               </ChatBubble>
             )}
 
-            {/* Task Checklist */}
+            {/* Task Checklist — rendered before the final explanation */}
             {taskList && taskList.length > 0 && (
               <ChatBubble variant="received">
                 <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
@@ -518,6 +519,33 @@ export default function StreamingChat({
                 </ChatBubbleMessage>
               </ChatBubble>
             )}
+
+            {/* Final explanation message — rendered after the task checklist */}
+            {messages
+              .filter((message) => message.isFinalExplanation)
+              .map((message, index) => (
+                <div key={`final-${index}`} data-message-role={message.role}>
+                  <ChatMessage
+                    message={message}
+                    index={index}
+                    showAvatar={true}
+                    typingCancelSignal={chatState.typingCancelSignal}
+                    onUrlSubmit={handleUrlSubmit}
+                    onApiSubmit={handleApiSubmit}
+                    onUrlCancel={handleUrlCancel}
+                    onApiCancel={handleApiCancel}
+                    onFrontendTypeSubmit={handleFrontendTypeSubmit}
+                    onFrontendTypeCancel={handleFrontendTypeCancel}
+                    setMessages={setMessages}
+                    projectId={projectId}
+                    onRevert={() => {
+                      if (typeof window !== 'undefined') {
+                        window.location.reload()
+                      }
+                    }}
+                  />
+                </div>
+              ))}
 
             {/* Model Thinking Panel */}
             {(() => {

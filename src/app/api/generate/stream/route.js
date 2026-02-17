@@ -356,8 +356,8 @@ export async function POST(request) {
               if (total > 0) accumulatedTokens = total
             }
             
-            // Check if URL is required or frontend type selection is needed
-            if (chunk.type === "requires_url" || chunk.type === "requires_frontend_type") {
+            // Check if user input is required (URL, frontend type, or API keys)
+            if (chunk.type === "requires_url" || chunk.type === "requires_frontend_type" || chunk.type === "requires_api") {
               console.log(`[api/generate/stream] 📋 Detected ${chunk.type} chunk - will halt after this`)
               requiresUrl = true
             }
@@ -381,7 +381,7 @@ export async function POST(request) {
             })
             
           } else {
-            console.log('[api/generate/stream] Skipping done signal and usage upsert - URL required')
+            console.log('[api/generate/stream] Skipping done signal and usage upsert - user input required')
           }
           controller.close()
         } catch (error) {

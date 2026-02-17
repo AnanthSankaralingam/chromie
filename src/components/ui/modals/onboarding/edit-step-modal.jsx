@@ -67,11 +67,6 @@ export default function EditStepModal({
                     <p className="text-slate-300 text-sm leading-relaxed mb-4">
                       While chromie generates code for you, you can manually edit any file through our built-in code editor. Fine-tune the AI's output, customize styling, adjust logic, or add your own features. Click any file in the file tree to view and edit it with syntax highlighting and auto-save.
                     </p>
-                    <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                      <p className="text-slate-400 text-xs">
-                        <strong>Why this matters:</strong> You're not locked into AI-generated code. chromie gives you the best of both worlds - AI-powered speed for the heavy lifting, plus manual control for precise customization. Edit manifest.json to change metadata, tweak content scripts for custom behavior, or modify styles to match your brand.
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
