@@ -234,7 +234,17 @@ function normalizeMetaPlan(metaPlan, planningSummary) {
         primary_text_id: 'primaryText'
       },
       messaging: { uses_runtime_messaging: false, request_type: null },
-      external_apis: { uses_external_apis: false, endpoints: [] }
+      external_apis: { uses_external_apis: false, endpoints: [] },
+      storage: { namespace: 'none', keys: {} }
+    }
+  }
+
+  // Backfill storage section if planner produced a contract without it (older plan).
+  if (!out.shared_contract.storage) {
+    const stateNamespace = out.architecture?.state_management || 'none'
+    out.shared_contract.storage = {
+      namespace: stateNamespace,
+      keys: {}
     }
   }
 

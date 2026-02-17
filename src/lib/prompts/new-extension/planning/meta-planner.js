@@ -49,6 +49,12 @@ Return a JSON object with the following structure exactly as shown in the exampl
     "external_apis": {
       "uses_external_apis": "true | false",
       "endpoints": ["Only include full origin(s) like 'https://worldtimeapi.org/' if actually used"]
+    },
+    "storage": {
+      "namespace": "local | sync | none (match the value from architecture.state_management)",
+      "keys": {
+        "key_name": "exact_storage_key_string (e.g., 'api_key': 'openai_api_key')"
+      }
     }
   },
   "architecture": {
@@ -137,6 +143,10 @@ Create tasks in this dependency order:
 - **chrome.storage.local**: For user data, preferences, cached responses
 - **chrome.storage.sync**: For cross-device synced preferences
 - **none**: No persistent state needed
+
+Whenever state_management is not "none", you MUST populate shared_contract.storage with:
+- namespace: must exactly match state_management (e.g., "local" or "sync"). Every file that touches storage MUST use this same namespace — mixing local and sync is a critical bug.
+- keys: enumerate EVERY key the extension will read or write across ALL files. Think through each file in the task graph (options.js, background.js, popup.js, content.js, etc.) and list every chrome.storage call each one will make. Each entry is "logical_name": "exact_key_string" (e.g., "api_key": "openai_api_key", "model": "openai_model"). The exact_key_string is what gets passed to chrome.storage.get/set — it must be identical across every file. Do not leave this empty or with placeholder values if any file in the extension reads or writes storage.
 
 ### Context Requirements (Suggestions)
 
