@@ -27,10 +27,9 @@ Core Principles:
 - HTML/Body: Set margin: 0; padding: 0; width: 100%; min-height: 100%; to ensure proper container sizing
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
-Color Schemes (choose ONE):
+Color Schemes (choose ONE and adapt to user request as needed):
 - Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
 - Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
-- Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
@@ -44,8 +43,10 @@ Premium Effects:
 - Focus: Glowing ring with primary color
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
+</styling_requirements>`;
 
-Popup-Specific CSS Requirements:
+export const POPUP_STYLING_REQUIREMENTS = `
+<popup_styling_requirements>
 CRITICAL: For popup extensions, always include these base styles to prevent UI cutoff:
 html, body {
   margin: 0;
@@ -64,7 +65,7 @@ body {
   flex-direction: column;
   padding: 20px;
 }
-</styling_requirements>`;
+</popup_styling_requirements>`;
 
 export const CHROME_MESSAGING_API_RULES = `
 <chrome_messaging_api_rules>

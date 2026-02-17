@@ -13,14 +13,14 @@ export function TaskChecklist({ tasks }) {
   const allComplete = tasks.every(task => task.status === 'complete')
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 my-3 border border-gray-200 dark:border-gray-700">
+    <div className="bg-slate-800/40 rounded-lg p-4 my-3 border border-slate-600/40">
       <div className="flex items-center gap-2 mb-3">
         {allComplete ? (
           <CheckCircle2 className="w-4 h-4 text-green-500" />
         ) : (
           <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
         )}
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="text-sm font-semibold text-gray-100">
           {allComplete ? 'Files Generated' : 'Generating Files'}
         </h3>
       </div>
@@ -31,7 +31,7 @@ export function TaskChecklist({ tasks }) {
         ))}
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <div className="mt-3 pt-3 border-t border-slate-600/40">
         <TaskSummary tasks={tasks} />
       </div>
     </div>
@@ -76,7 +76,7 @@ function TaskItem({ task }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className={`text-sm ${getStatusText()}`}>
-          <code className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+          <code className="font-mono text-xs bg-slate-700/60 px-1.5 py-0.5 rounded">
             {fileName}
           </code>
           {status === 'repairing' && (
@@ -103,14 +103,14 @@ function TaskSummary({ tasks }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-600 dark:text-gray-400">
+        <span className="text-slate-400">
           {completed} of {total} files completed
         </span>
-        <span className="text-gray-600 dark:text-gray-400 font-medium">
+        <span className="text-slate-400 font-medium">
           {percentage}%
         </span>
       </div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
         <div
           className="bg-blue-500 h-full transition-all duration-500 ease-out"
           style={{ width: `${percentage}%` }}

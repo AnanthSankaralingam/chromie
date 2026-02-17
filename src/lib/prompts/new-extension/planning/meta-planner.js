@@ -127,8 +127,7 @@ Create tasks in this dependency order:
 7. **options.html/js** (id: create_options_page, create_options_js) - Only if settings needed
 
 ### Component Decisions
-
-- **has_background**: true only when required (see Simplicity-First Rules)
+- **has_background**: true only when required 
 - **has_content_script**: true if extension manipulates DOM, scrapes pages, or injects UI into pages
 - **has_options_page**: true if users need to configure API keys, preferences, or settings
 - **has_popup_or_ui_page**: true unless UI is embedded in content script

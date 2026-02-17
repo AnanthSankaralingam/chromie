@@ -9,6 +9,83 @@ import { formatManifestJson } from "@/lib/utils/json-formatter"
 import { normalizeGeneratedFileContent } from "@/lib/codegen/output-handlers/json-extractor"
 
 /**
+ * Saves a single file to the database (upsert).
+ * @param {string} filePath - The file path/name
+ * @param {string} rawContent - The raw file content
+ * @param {string} sessionId - Session/project identifier
+ * @returns {Object} { filePath, success: boolean, error?: any }
+ */
+export async function saveSingleFileToDatabase(filePath, rawContent, sessionId) {
+  if (rawContent === null || rawContent === undefined) {
+    console.log(`  ⚠️ Skipping ${filePath} - content is null/undefined`)
+    return { filePath, success: false, error: 'content is null/undefined' }
+  }
+
+  let stringContent = rawContent
+  if (typeof rawContent === 'object' && rawContent !== null) {
+    stringContent = filePath === 'manifest.json'
+      ? formatManifestJson(rawContent)
+      : JSON.stringify(rawContent, null, 2)
+  }
+
+  const content = normalizeGeneratedFileContent(stringContent)
+
+  if (!content || (typeof content === 'string' && content.trim().length === 0)) {
+    console.log(`  ⚠️ Skipping ${filePath} - content is empty after normalization`)
+    return { filePath, success: false, error: 'empty after normalization' }
+  }
+
+  console.log(`  → Saving ${filePath} (${content.length} chars)`)
+  const supabase = createClient()
+
+  try {
+    const { data: existingFile } = await supabase
+      .from("code_files")
+      .select("id")
+      .eq("project_id", sessionId)
+      .eq("file_path", filePath)
+      .single()
+
+    if (existingFile) {
+      const { error: updateError } = await supabase
+        .from("code_files")
+        .update({
+          content: content,
+          last_used_at: new Date().toISOString(),
+        })
+        .eq("id", existingFile.id)
+
+      if (updateError) {
+        console.error(`    ❌ Error updating file ${filePath}:`, updateError)
+        return { filePath, success: false, error: updateError }
+      }
+      console.log(`    ✅ Updated ${filePath}`)
+      return { filePath, success: true }
+    } else {
+      const fileId = randomUUID()
+      const { error: insertError } = await supabase
+        .from("code_files")
+        .insert({
+          id: fileId,
+          project_id: sessionId,
+          file_path: filePath,
+          content: content
+        })
+
+      if (insertError) {
+        console.error(`    ❌ Error inserting file ${filePath}:`, insertError)
+        return { filePath, success: false, error: insertError }
+      }
+      console.log(`    ✅ Inserted ${filePath} (id: ${fileId})`)
+      return { filePath, success: true }
+    }
+  } catch (fileError) {
+    console.error(`Exception handling file ${filePath}:`, fileError)
+    return { filePath, success: false, error: fileError }
+  }
+}
+
+/**
  * Saves generated files to the database
  * @param {Object} implementationResult - The parsed implementation result
  * @param {string} sessionId - Session/project identifier

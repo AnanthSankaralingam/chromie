@@ -9,6 +9,7 @@ import { getFrontendModule } from './frontend-modules/index.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES } from '../one-shot/shared-content.js'
 
 /**
  * Files whose tasks should receive the frontend module injection.
@@ -23,6 +24,53 @@ function isUiRelatedFile(fileName) {
 }
 
 /**
+ * Returns the file type based on extension.
+ */
+function getFileType(fileName) {
+  const ext = fileName.split('.').pop().toLowerCase()
+  if (ext === 'json') return 'json'
+  if (ext === 'js') return 'js'
+  if (ext === 'html') return 'html'
+  if (ext === 'css') return 'css'
+  return ext
+}
+
+/**
+ * Returns the output format instruction for a given file type.
+ */
+function getOutputFormat(fileName, fileType) {
+  const formatHints = {
+    json: `- Return a valid JSON object for ${fileName}`,
+    js: '- Return raw JavaScript',
+    html: '- Return raw HTML',
+    css: '- Return raw CSS',
+    md: '- Return raw Markdown'
+  }
+  const hint = formatHints[fileType] || `- Return raw file content for ${fileName}`
+  return `<output_format>
+Return ONLY the raw file content. No explanations, no markdown fences, no wrappers.
+${hint}
+Do NOT wrap output in \`\`\`json or \`\`\` blocks. Return the file content directly.
+</output_format>`
+}
+
+/**
+ * Returns conditional context injections based on file type.
+ */
+function getFileTypeInjections(fileName, frontendType) {
+  const type = getFileType(fileName)
+  const isPopup = frontendType === 'popup'
+  return {
+    STYLING_REQUIREMENTS: (type === 'css' || type === 'html') ? STYLING_REQUIREMENTS : '',
+    POPUP_STYLING_REQUIREMENTS: (type === 'css' || type === 'html') && isPopup ? POPUP_STYLING_REQUIREMENTS : '',
+    ICON_CONFIGURATION: (type === 'json' || type === 'html') ? ICON_CONFIGURATION : '',
+    CONSOLE_LOGGING_REQUIREMENTS: type === 'js' ? CONSOLE_LOGGING_REQUIREMENTS : '',
+    CHROME_MESSAGING_RULES: type === 'js' ? CHROME_MESSAGING_API_RULES : '',
+    OUTPUT_FORMAT: getOutputFormat(fileName, type)
+  }
+}
+
+/**
  * Strips markdown code fences from LLM output.
  */
 function stripMarkdownFences(text) {
@@ -33,6 +81,37 @@ function stripMarkdownFences(text) {
   // Remove closing fence
   out = out.replace(/\n?```\s*$/, '')
   return out.trim()
+}
+
+/**
+ * Summarizes CSS content to just selector names to avoid bloating the context.
+ * Returns a compact representation listing selectors and custom properties.
+ */
+function summarizeCssForContext(cssContent) {
+  const selectors = []
+  const customProps = []
+
+  // Extract selectors (lines that end with '{' and aren't inside a value)
+  for (const line of cssContent.split('\n')) {
+    const trimmed = line.trim()
+    if (trimmed.endsWith('{') && !trimmed.startsWith('/*')) {
+      selectors.push(trimmed.replace(/\s*\{$/, '').trim())
+    }
+    // Capture CSS custom property declarations
+    const propMatch = trimmed.match(/^(--[\w-]+)\s*:/)
+    if (propMatch) {
+      customProps.push(propMatch[1])
+    }
+  }
+
+  const parts = []
+  if (selectors.length > 0) {
+    parts.push(`Selectors:\n${selectors.map(s => `  ${s}`).join('\n')}`)
+  }
+  if (customProps.length > 0) {
+    parts.push(`Custom properties:\n${customProps.map(p => `  ${p}`).join('\n')}`)
+  }
+  return parts.length > 0 ? parts.join('\n') : '(empty stylesheet)'
 }
 
 /**
@@ -59,12 +138,20 @@ function buildContextSections(task, executionContext) {
     parts.push(`<workspace_authentication>\n${formattedPlanningOutputs.WORKSPACE_AUTH}\n</workspace_authentication>`)
   }
 
-  // Inject existing (completed) files this task depends on
+  // Inject existing (completed) files this task depends on.
+  // CSS files are summarized to just selectors to avoid bloating the context.
   const depFiles = ctx.existing_files || []
   if (depFiles.length > 0 && completedFiles) {
     const fileEntries = depFiles
       .filter(f => completedFiles.has(f))
-      .map(f => `<file path="${f}">\n${completedFiles.get(f)}\n</file>`)
+      .map(f => {
+        const content = completedFiles.get(f)
+        if (f.endsWith('.css')) {
+          const summary = summarizeCssForContext(content)
+          return `<file path="${f}" summarized="true">\n${summary}\n</file>`
+        }
+        return `<file path="${f}">\n${content}\n</file>`
+      })
     if (fileEntries.length > 0) {
       parts.push(`<existing_files>\n${fileEntries.join('\n')}\n</existing_files>`)
     }
@@ -107,7 +194,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
 
   // Build file structure list from task graph for all file generations
   const fileStructure = metaPlan.task_graph
-    ? '\n\n<project_file_structure>\nFiles that will be generated in this extension:\n' +
+    ? '<project_file_structure>\nFiles that will be generated in this extension:\n' +
       metaPlan.task_graph.map(t => `  - ${t.file_name}`).join('\n') +
       '\n\nUse these exact file names when referencing other files (e.g., in manifest.json, import statements, or messaging).\n</project_file_structure>'
     : ''
@@ -128,6 +215,9 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
   // Inject frontend module for UI-related files
   const frontendModule = isUiRelatedFile(task.file_name) ? getFrontendModule(frontendType) : ''
 
+  // Build conditional injections based on file type
+  const injections = getFileTypeInjections(task.file_name, frontendType)
+
   // Assemble final prompt
   const prompt = TASK_EXECUTOR_PROMPT
     .replace('{{SUMMARY}}', summary)
@@ -138,7 +228,13 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     .replace('{{TASK_DESCRIPTION}}', task.description || '')
     .replace('{{CONTEXT_SECTIONS}}', contextSections)
     .replace('{{FRONTEND_MODULE}}', frontendModule)
-    + fileStructure  // Append file structure for manifest.json
+    .replace('{{FILE_STRUCTURE}}', fileStructure)
+    .replace('{{STYLING_REQUIREMENTS}}', injections.STYLING_REQUIREMENTS)
+    .replace('{{POPUP_STYLING_REQUIREMENTS}}', injections.POPUP_STYLING_REQUIREMENTS)
+    .replace('{{ICON_CONFIGURATION}}', injections.ICON_CONFIGURATION)
+    .replace('{{CHROME_MESSAGING_RULES}}', injections.CHROME_MESSAGING_RULES)
+    .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
+    .replace('{{OUTPUT_FORMAT}}', injections.OUTPUT_FORMAT)
 
   const model = modelOverride || DEFAULT_MODEL
 
@@ -151,7 +247,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     model,
     input: prompt,
     temperature: 0.2,
-    max_output_tokens: 16000,
+    max_output_tokens: 12000,
     store: false,
     thinkingConfig: isGemini ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
   })

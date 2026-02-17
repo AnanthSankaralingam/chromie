@@ -7,7 +7,7 @@ import { executeTask } from '@/lib/prompts/new-extension/executors/index.js'
 import { buildRepairPrompt } from '@/lib/prompts/new-extension/executors/repair-executor-prompt.js'
 import { normalizeGeneratedFileContent } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.js'
-import { saveFilesToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
+import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
 
@@ -71,6 +71,7 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
   const completedFiles = new Map()
   const totalTasks = sortedTasks.length
   let totalTokenUsage = { input_tokens: 0, output_tokens: 0 }
+  const savePromises = []
 
   // Attach completedFiles to context so executeTask can access them
   const ctx = { ...executionContext, completedFiles }
@@ -204,6 +205,9 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
 
     completedFiles.set(task.file_name, content)
 
+    // Fire off DB save without awaiting — overlaps with next LLM call
+    savePromises.push(saveSingleFileToDatabase(task.file_name, content, sessionId))
+
     yield {
       type: 'task_complete',
       content: `Completed ${task.file_name}`,
@@ -215,7 +219,7 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
     }
   }
 
-  // Build the implementation result object for saving
+  // Build the implementation result object for metadata
   const implementationResult = {}
   for (const [fileName, content] of completedFiles) {
     implementationResult[fileName] = content
@@ -234,8 +238,19 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
   }
   const explanation = explanationParts.join('\n\n')
 
-  // Save to database
-  const { savedFiles, errors } = await saveFilesToDatabase(implementationResult, sessionId)
+  // Wait for all in-flight file saves to settle
+  const saveResults = await Promise.allSettled(savePromises)
+  const savedFiles = []
+  const errors = []
+  for (const result of saveResults) {
+    if (result.status === 'fulfilled' && result.value.success) {
+      savedFiles.push(result.value.filePath)
+    } else if (result.status === 'fulfilled' && !result.value.success) {
+      errors.push({ filePath: result.value.filePath, error: result.value.error })
+    } else {
+      errors.push({ filePath: 'unknown', error: result.reason })
+    }
+  }
 
   if (errors.length > 0) {
     console.error(`❌ [task-graph-executor] ${errors.length} files had save errors`)
