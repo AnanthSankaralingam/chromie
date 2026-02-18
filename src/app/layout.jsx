@@ -45,6 +45,9 @@ export default function RootLayout({ children }) {
             <ToastViewport />
           </ToastProvider>
         </SessionProviderClient>
+        <a href="https://foundrlist.com/product/chromiedev" target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
+          <img src="https://foundrlist.com/api/badge/chromiedev" alt="Live on FoundrList" width="180" height="72" />
+        </a>
       </body>
     </html>
   );
