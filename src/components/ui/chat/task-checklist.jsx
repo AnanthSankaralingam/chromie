@@ -18,7 +18,7 @@ export function TaskChecklist({ tasks }) {
     <div className="bg-slate-800/40 rounded-lg p-4 my-3 border border-slate-600/40">
       <div className="flex items-center gap-2 mb-3">
         {allComplete ? (
-          <CheckCircle2 className="w-4 h-4 text-neutral-400" />
+          <CheckCircle2 className="w-4 h-4 text-green-500" />
         ) : (
           <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
         )}
@@ -46,7 +46,7 @@ function TaskItem({ task }) {
   const getStatusIcon = () => {
     switch (status) {
       case 'complete':
-        return <CheckCircle2 className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+        return <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
       case 'in_progress':
         return <Loader2 className="w-4 h-4 text-neutral-500 animate-spin flex-shrink-0" />
       case 'repairing':
