@@ -227,8 +227,8 @@ export async function POST(request, { params }) {
       apiKey,
     })
 
-    // Wait a moment for logs to be captured
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Brief pause for logs to be captured (reduced from 1s for faster response)
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
     // Analyze extension logs to verify test results
     console.log("[puppeteer-tests/run] 📊 Analyzing extension logs for test verification...")
@@ -273,90 +273,8 @@ export async function POST(request, { params }) {
       }
     }
 
-    // Get session details to extract live URL and attempt to fetch video recording
-    let liveUrl = null
-    let videoUrl = null
-    let recordingStatus = "unknown"
-    try {
-      const hbClient = new Hyperbrowser({ apiKey })
-      const sessionDetails = await hbClient.sessions.get(sessionId)
-      liveUrl =
-        sessionDetails.liveViewUrl ||
-        sessionDetails.liveUrl ||
-        sessionDetails.debuggerUrl ||
-        sessionDetails.debuggerFullscreenUrl ||
-        null
-      console.log("[puppeteer-tests/run] 🖥️  Extracted live URL:", liveUrl ? "Found" : "Not found")
-
-      console.log("[puppeteer-tests/run] 🎥 Fetching video recording URL...")
-      const maxAttempts = 30
-      let attempts = 0
-
-      while (attempts < maxAttempts) {
-        const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
-        recordingStatus = recordingResponse.status
-        videoUrl = recordingResponse.recordingUrl
-
-        console.log(
-          `[puppeteer-tests/run] 📹 Recording status (attempt ${attempts + 1}/${maxAttempts}):`,
-          recordingStatus
-        )
-
-        if (recordingStatus === "completed") {
-          console.log("[puppeteer-tests/run] ✅ Video recording ready:", videoUrl)
-          break
-        } else if (recordingStatus === "failed") {
-          console.error("[puppeteer-tests/run] ❌ Video recording failed:", recordingResponse.error)
-          break
-        } else if (recordingStatus === "not_enabled") {
-          console.warn("[puppeteer-tests/run] ⚠️ Video recording not enabled for this session")
-          break
-        } else if (recordingStatus === "pending" || recordingStatus === "in_progress") {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          attempts++
-        } else {
-          console.warn("[puppeteer-tests/run] ⚠️ Unknown recording status:", recordingStatus)
-          break
-        }
-      }
-    } catch (liveUrlError) {
-      console.warn("[puppeteer-tests/run] ⚠️ Could not fetch live URL or recording:", liveUrlError.message)
-      recordingStatus = recordingStatus === "unknown" ? "error" : recordingStatus
-    }
-
-    // Save testing replay to session_replays table
-    try {
-      const { error: replayError } = await supabase.from("session_replays").insert({
-        project_id: projectId,
-        session_id: sessionId,
-        live_url: liveUrl,
-        video_url: videoUrl,
-        recording_status: recordingStatus,
-        test_type: "puppeteer",
-        test_result: {
-          success: finalPassed,
-          results: run.results,
-          logAnalysis: {
-            hasErrors: logAnalysis.hasErrors,
-            errorCount: logAnalysis.errorCount,
-            warningCount: logAnalysis.warningCount,
-            totalLogs: logAnalysis.totalLogs,
-            logBasedFailure: logBasedFailure,
-          },
-        },
-      })
-
-      if (replayError) {
-        console.error("[puppeteer-tests/run] ⚠️ Failed to save testing replay to database:", replayError)
-        // Continue anyway - don't fail the request
-      } else {
-        console.log("[puppeteer-tests/run] ✅ Testing replay saved to database")
-      }
-    } catch (replayError) {
-      console.error("[puppeteer-tests/run] ⚠️ Error saving testing replay:", replayError)
-      // Continue anyway - don't fail the request
-    }
-
+    // Return test results immediately so UI shows completion without delay.
+    // Video fetch + DB save run in background (don't block user).
     const response = {
       success: finalPassed,
       sessionId,
@@ -378,6 +296,55 @@ export async function POST(request, { params }) {
       testPassed: run.passed,
       logBasedFailure: logBasedFailure !== null,
     })
+
+    // Background: fetch video + save replay (don't block response)
+    void (async () => {
+      try {
+        const hbClient = new Hyperbrowser({ apiKey })
+        const sessionDetails = await hbClient.sessions.get(sessionId)
+        const liveUrl =
+          sessionDetails.liveViewUrl ||
+          sessionDetails.liveUrl ||
+          sessionDetails.debuggerUrl ||
+          sessionDetails.debuggerFullscreenUrl ||
+          null
+        let videoUrl = null
+        let recordingStatus = "unknown"
+        const maxAttempts = 5
+        for (let attempts = 0; attempts < maxAttempts; attempts++) {
+          const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
+          recordingStatus = recordingResponse.status
+          videoUrl = recordingResponse.recordingUrl
+          if (recordingStatus === "completed" || recordingStatus === "failed" || recordingStatus === "not_enabled") break
+          if (recordingStatus === "pending" || recordingStatus === "in_progress") {
+            await new Promise((r) => setTimeout(r, 1000))
+          } else break
+        }
+        const { error: replayError } = await supabase.from("session_replays").insert({
+          project_id: projectId,
+          session_id: sessionId,
+          live_url: liveUrl,
+          video_url: videoUrl,
+          recording_status: recordingStatus,
+          test_type: "puppeteer",
+          test_result: {
+            success: finalPassed,
+            results: run.results,
+            logAnalysis: {
+              hasErrors: logAnalysis.hasErrors,
+              errorCount: logAnalysis.errorCount,
+              warningCount: logAnalysis.warningCount,
+              totalLogs: logAnalysis.totalLogs,
+              logBasedFailure: logBasedFailure,
+            },
+          },
+        })
+        if (replayError) console.error("[puppeteer-tests/run] ⚠️ Background replay save failed:", replayError)
+      } catch (e) {
+        console.warn("[puppeteer-tests/run] ⚠️ Background video/replay error:", e?.message || e)
+      }
+    })()
+
     return NextResponse.json(response, { status: 200 })
   } catch (error) {
     console.error("[puppeteer-tests/run] ❌ Error:", error)

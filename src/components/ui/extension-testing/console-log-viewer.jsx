@@ -14,16 +14,22 @@ const SOURCE_BADGES = {
   'browser:page': { label: 'PAGE', className: 'bg-gray-600 text-white' },
 }
 
-function SourceBadge({ source }) {
+// Condensed: show component when present (more specific), otherwise source. One badge per log.
+// CHROMIE logs use purple; non-CHROMIE use source color.
+function SourceBadge({ source, component, isChromieLog }) {
   const badge = SOURCE_BADGES[source] || { label: source?.split(':')[1]?.toUpperCase() || '?', className: 'bg-gray-500 text-white' }
+  const label = component || badge.label
+  const badgeClass = isChromieLog ? 'bg-purple-600 text-white' : badge.className
   return (
-    <span className={cn("px-1.5 py-0.5 text-xs font-bold rounded flex-shrink-0", badge.className)}>
-      {badge.label}
+    <span className={cn("px-1.5 py-0.5 text-xs font-bold rounded flex-shrink-0", badgeClass)}>
+      {label}
     </span>
   )
 }
 
-export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive, onLogsReady }) {
+// flow=true: no fixed height, no internal scroll — parent container handles scrolling
+// light=true: white background instead of dark terminal
+export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive, onLogsReady, clearLogsTrigger, flow = false, light = false }) {
   const [logs, setLogs] = useState([])
   const [filter, setFilter] = useState('all') // 'all', 'extension'
   const [isPolling, setIsPolling] = useState(false)
@@ -31,12 +37,21 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
   const pollingInterval = useRef(null)
   const previousLogsRef = useRef([])
 
-  // Auto-scroll to bottom when new logs arrive
+  // Auto-scroll to bottom when new logs arrive (only when self-contained, not in flow mode)
   useEffect(() => {
+    if (flow) return
     if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [logs])
+  }, [logs, flow])
+
+  // Clear logs when parent triggers (e.g. starting a new test run)
+  useEffect(() => {
+    if (clearLogsTrigger != null && clearLogsTrigger > 0) {
+      setLogs([])
+      previousLogsRef.current = []
+    }
+  }, [clearLogsTrigger])
 
   // Notify parent when logs are ready
   useEffect(() => {
@@ -99,6 +114,19 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
   }
 
   const getLogTypeColor = (type) => {
+    if (light) {
+      switch (type) {
+        case "error":
+          return "text-red-600"
+        case "warn":
+        case "warning":
+          return "text-yellow-600"
+        case "info":
+          return "text-blue-600"
+        default:
+          return "text-gray-700"
+      }
+    }
     switch (type) {
       case "error":
         return "text-red-400"
@@ -129,18 +157,42 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
   // Filter logs based on selected filter
   const filteredLogs = logs.filter(log => {
     if (filter === 'all') return true
-    if (filter === 'extension') return log.source?.startsWith('extension:')
+    if (filter === 'chromie') return log.isChromieLog
+    if (filter === 'extension-only') return log.source?.startsWith('extension:') && !log.isChromieLog
     return true
   })
 
   // Count by category for filter badges
-  const extensionCount = logs.filter(l => l.source?.startsWith('extension:')).length
+  const chromieCount = logs.filter(l => l.isChromieLog).length
+  const extensionOnlyCount = logs.filter(l => l.source?.startsWith('extension:') && !l.isChromieLog).length
+
+  const headerClasses = light
+    ? "flex items-center justify-between px-2 py-1.5 bg-white border border-gray-200 rounded-t-lg"
+    : "flex items-center justify-between px-2 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg"
+  const headerTextClasses = light ? "text-xs text-gray-600" : "text-xs text-gray-400"
+  const countBadgeClasses = light ? "px-1.5 py-0.5 bg-white border border-gray-200 text-gray-700 rounded text-xs" : "px-1.5 py-0.5 bg-gray-700 rounded text-xs"
+  const selectClasses = light
+    ? "bg-white border border-gray-200 text-gray-700 text-xs rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-gray-300"
+    : "bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-0.5 border-none focus:outline-none focus:ring-1 focus:ring-gray-500"
+  const contentClasses = light
+    ? cn("font-mono text-xs space-y-0.5 bg-white border border-t-0 border-gray-200 p-2 rounded-b-lg overflow-x-auto scroll-area-white", flow ? "" : "flex-1 overflow-y-auto")
+    : cn("font-mono text-xs space-y-0.5 bg-gray-900 p-2 rounded-b-lg overflow-x-auto", flow ? "" : "flex-1 overflow-y-auto")
+  const emptyStateClasses = light ? "text-gray-500 text-center py-8" : "text-gray-500 text-center py-8"
+  const emptyStateSubClasses = light ? "text-xs mt-1 text-gray-500" : "text-xs mt-1 text-gray-600"
+  const getLogRowBg = (log) => {
+    if (light) return "bg-white"
+    if (log.type === "error") return "bg-red-950/40"
+    if (log.type === "warn" || log.type === "warning") return "bg-yellow-950/40"
+    if (log.type === "info") return "bg-blue-950/40"
+    if (log.isChromieLog) return "bg-purple-950/40"
+    return "bg-gray-800/40"
+  }
 
   return (
-    <div className="flex flex-col h-[240px]">
+    <div className={cn("flex flex-col", flow ? "" : "h-[240px]", light && "bg-white")}>
       {/* Header */}
-      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-800 border-b border-gray-700 rounded-t-lg">
-        <div className="flex items-center space-x-2 text-xs text-gray-400">
+      <div className={headerClasses}>
+        <div className={cn("flex items-center space-x-2", headerTextClasses)}>
           <Terminal className="h-3 w-3" />
           <span>console</span>
           {isPolling && (
@@ -149,7 +201,7 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
               <span>live</span>
             </span>
           )}
-          <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs">
+          <span className={countBadgeClasses}>
             {filteredLogs.length}
           </span>
         </div>
@@ -157,14 +209,15 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
         <div className="flex items-center space-x-2">
           {/* Filter Dropdown */}
           <div className="flex items-center space-x-1">
-            <Filter className="h-3 w-3 text-gray-500" />
+            <Filter className={light ? "h-3 w-3 text-gray-500" : "h-3 w-3 text-gray-500"} />
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-gray-700 text-gray-300 text-xs rounded px-1.5 py-0.5 border-none focus:outline-none focus:ring-1 focus:ring-gray-500"
+              className={selectClasses}
             >
               <option value="all">all ({logs.length})</option>
-              <option value="extension">extension ({extensionCount})</option>
+              <option value="chromie">chromie ({chromieCount})</option>
+              <option value="extension-only">extension only ({extensionOnlyCount})</option>
             </select>
           </div>
 
@@ -181,13 +234,13 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
         </div>
       </div>
 
-      {/* Log Content - Fixed height, always visible */}
-      <div className="flex-1 overflow-y-auto font-mono text-xs space-y-0.5 bg-gray-900 p-2 rounded-b-lg">
+      {/* Log Content */}
+      <div className={contentClasses}>
         {filteredLogs.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
+          <div className={emptyStateClasses}>
             <Terminal className="h-6 w-6 mx-auto mb-2 opacity-50" />
             <p>no console logs yet</p>
-            <p className="text-xs mt-1 text-gray-600">
+            <p className={emptyStateSubClasses}>
               extension logs will appear here once the test starts
             </p>
           </div>
@@ -196,12 +249,8 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
             <div
               key={log.id || index}
               className={cn(
-                "px-2 py-1 rounded flex items-start gap-2",
-                log.type === "error" && "bg-red-950/40",
-                log.type === "warn" && "bg-yellow-950/40",
-                log.type === "info" && "bg-blue-950/40",
-                log.isChromieLog && "bg-purple-950/40",
-                !log.type && !log.isChromieLog && "bg-gray-800/40"
+                "px-2 py-1 rounded flex items-start gap-2 min-w-0",
+                getLogRowBg(log)
               )}
             >
               {/* Type indicator */}
@@ -212,37 +261,23 @@ export default function ConsoleLogViewer({ sessionId, projectId, isSessionActive
                 {getLogTypeIcon(log.type)}
               </span>
 
-              {/* Source badge */}
-              <SourceBadge source={log.source} />
-
-              {/* CHROMIE badge if applicable */}
-              {log.isChromieLog && (
-                <span className="px-1.5 py-0.5 bg-purple-600 text-white text-xs font-bold rounded flex-shrink-0">
-                  CHROMIE
-                </span>
-              )}
-
-              {/* Component if applicable */}
-              {log.component && (
-                <span className="text-purple-300 font-semibold flex-shrink-0 text-xs">
-                  {log.component}
-                </span>
-              )}
+              {/* Condensed metadata: single badge + timestamp */}
+              <div className="flex flex-col gap-0.5 flex-shrink-0">
+                <SourceBadge source={log.source} component={log.component} isChromieLog={log.isChromieLog} />
+                {log.timestamp && (
+                  <span className={cn("text-xs", light ? "text-gray-500" : "text-gray-600")}>
+                    {new Date(log.timestamp).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
 
               {/* Log text */}
               <span className={cn(
-                "flex-1",
-                log.isChromieLog ? "text-purple-200" : getLogTypeColor(log.type)
+                "flex-1 min-w-0 break-words",
+                light && log.isChromieLog ? "text-purple-700" : log.isChromieLog ? "text-purple-200" : getLogTypeColor(log.type)
               )}>
                 {String(log.text || '')}
               </span>
-
-              {/* Timestamp */}
-              {log.timestamp && (
-                <span className="text-gray-600 text-xs flex-shrink-0">
-                  {new Date(log.timestamp).toLocaleTimeString()}
-                </span>
-              )}
             </div>
           ))
         )}

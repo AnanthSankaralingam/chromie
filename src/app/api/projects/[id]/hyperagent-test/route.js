@@ -195,8 +195,8 @@ export async function POST(request, { params }) {
 
     console.log("✅ BrowserUse test completed:", result.data?.finalResult)
 
-    // Wait a moment for logs to be captured
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Brief pause for logs to be captured (reduced from 2s for faster response)
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
     // Analyze extension logs to verify test results
     console.log("📊 Analyzing extension logs for test verification...")
@@ -214,112 +214,46 @@ export async function POST(request, { params }) {
     })
 
     // Determine final success status based on both agent result and logs
-    const agentSuccess = result.data?.finalResult && !result.data?.finalResult.toLowerCase().includes("failed")
+    const resultText = (result.data?.finalResult || "").toLowerCase()
     const logBasedFailure = logAnalysis.hasErrors ? formatErrorSummary(logAnalysis.errors) : null
-    const finalSuccess = agentSuccess && !logAnalysis.hasErrors
 
-    // Get session details to extract live URL
-    let liveUrl = null
-    try {
-      const sessionDetails = await hbClient.sessions.get(sessionId)
-      liveUrl =
-        sessionDetails.liveViewUrl ||
-        sessionDetails.liveUrl ||
-        sessionDetails.debuggerUrl ||
-        sessionDetails.debuggerFullscreenUrl ||
-        null
-      console.log("🖥️  Extracted live URL:", liveUrl ? "Found" : "Not found")
-    } catch (liveUrlError) {
-      console.warn("⚠️ Could not fetch live URL:", liveUrlError.message)
+    // Detect partial failure: agent ran but couldn't complete verification (e.g. "button was not visible")
+    const partialFailurePhrases = [
+      "could not be successfully completed",
+      "could not be completed",
+      "couldn't be completed",
+      "was not visible",
+      "not visible",
+      "could not be verified",
+      "could not find",
+      "unable to",
+      "verification steps",
+      "could not successfully",
+    ]
+    const indicatesPartialFailure = partialFailurePhrases.some((p) => resultText.includes(p))
+
+    let status = "success"
+    if (logAnalysis.hasErrors || resultText.includes("failed")) {
+      status = "failed"
+    } else if (logAnalysis.warningCount > 0 || indicatesPartialFailure) {
+      status = "warning"
     }
 
-    // Attempt to fetch video recording URL for this session
-    console.log("🎥 [hyperagent-test] Fetching video recording URL...")
-    let videoUrl = null
-    let recordingStatus = "unknown"
-    try {
-      const maxAttempts = 30
-      let attempts = 0
+    const finalSuccess = status === "success"
 
-      while (attempts < maxAttempts) {
-        const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
-        recordingStatus = recordingResponse.status
-        videoUrl = recordingResponse.recordingUrl
-
-        console.log(
-          `📹 [hyperagent-test] Recording status (attempt ${attempts + 1}/${maxAttempts}):`,
-          recordingStatus
-        )
-
-        if (recordingStatus === "completed") {
-          console.log("✅ [hyperagent-test] Video recording ready:", videoUrl)
-          break
-        } else if (recordingStatus === "failed") {
-          console.error("❌ [hyperagent-test] Video recording failed:", recordingResponse.error)
-          break
-        } else if (recordingStatus === "not_enabled") {
-          console.warn("⚠️ [hyperagent-test] Video recording not enabled for this session")
-          break
-        } else if (recordingStatus === "pending" || recordingStatus === "in_progress") {
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          attempts++
-        } else {
-          console.warn("⚠️ [hyperagent-test] Unknown recording status:", recordingStatus)
-          break
-        }
-      }
-    } catch (recordingError) {
-      console.error("❌ [hyperagent-test] Failed to fetch video recording URL:", recordingError)
-      recordingStatus = "error"
-    }
-
-    // Save testing replay to session_replays table
-    try {
-      const { error: replayError } = await supabase.from("session_replays").insert({
-        project_id: projectId,
-        session_id: sessionId,
-        live_url: liveUrl,
-        video_url: videoUrl,
-        recording_status: recordingStatus,
-        test_type: "hyperagent",
-        test_result: {
-          success: finalSuccess,
-          message: finalSuccess
-            ? "BrowserUse test completed successfully"
-            : logBasedFailure
-            ? `Test completed but extension logs show errors: ${logBasedFailure}`
-            : "BrowserUse test completed with issues",
-          result: result.data?.finalResult || "Test completed",
-          task: testTask,
-          logAnalysis: {
-            hasErrors: logAnalysis.hasErrors,
-            errorCount: logAnalysis.errorCount,
-            warningCount: logAnalysis.warningCount,
-            totalLogs: logAnalysis.totalLogs,
-            logBasedFailure: logBasedFailure,
-          },
-        },
-      })
-
-      if (replayError) {
-        console.error("⚠️ Failed to save testing replay to database:", replayError)
-        // Continue anyway - don't fail the request
-      } else {
-        console.log("✅ Testing replay saved to database")
-      }
-    } catch (replayError) {
-      console.error("⚠️ Error saving testing replay:", replayError)
-      // Continue anyway - don't fail the request
-    }
-
-    // Return the test results
-    return NextResponse.json({
+    // Return test results immediately so UI shows completion without delay.
+    // Video fetch + DB save run in background (don't block user).
+    const responsePayload = {
       success: finalSuccess,
-      message: finalSuccess
-        ? "BrowserUse test completed successfully"
-        : logBasedFailure
-        ? `Test completed but extension logs show errors: ${logBasedFailure}`
-        : "BrowserUse test completed with issues",
+      status,
+      message:
+        status === "success"
+          ? "BrowserUse test completed successfully"
+          : status === "warning"
+          ? "Test completed with warnings — some verification steps could not be completed"
+          : logBasedFailure
+          ? `Test completed but extension logs show errors: ${logBasedFailure}`
+          : "BrowserUse test completed with issues",
       result: result.data?.finalResult || "Test completed",
       task: testTask,
       sessionId: sessionId,
@@ -330,10 +264,52 @@ export async function POST(request, { params }) {
         totalLogs: logAnalysis.totalLogs,
         logBasedFailure: logBasedFailure,
       },
-      videoUrl,
-      recordingStatus,
-    })
+    }
 
+    // Background: fetch video + save replay (don't block response)
+    void (async () => {
+      try {
+        const sessionDetails = await hbClient.sessions.get(sessionId)
+        const liveUrl =
+          sessionDetails.liveViewUrl ||
+          sessionDetails.liveUrl ||
+          sessionDetails.debuggerUrl ||
+          sessionDetails.debuggerFullscreenUrl ||
+          null
+        let videoUrl = null
+        let recordingStatus = "unknown"
+        const maxAttempts = 5
+        for (let attempts = 0; attempts < maxAttempts; attempts++) {
+          const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
+          recordingStatus = recordingResponse.status
+          videoUrl = recordingResponse.recordingUrl
+          if (recordingStatus === "completed" || recordingStatus === "failed" || recordingStatus === "not_enabled") break
+          if (recordingStatus === "pending" || recordingStatus === "in_progress") {
+            await new Promise((r) => setTimeout(r, 1000))
+          } else break
+        }
+        const { error: replayError } = await supabase.from("session_replays").insert({
+          project_id: projectId,
+          session_id: sessionId,
+          live_url: liveUrl,
+          video_url: videoUrl,
+          recording_status: recordingStatus,
+          test_type: "hyperagent",
+          test_result: {
+            success: finalSuccess,
+            message: responsePayload.message,
+            result: responsePayload.result,
+            task: testTask,
+            logAnalysis: responsePayload.logAnalysis,
+          },
+        })
+        if (replayError) console.error("[hyperagent-test] ⚠️ Background replay save failed:", replayError)
+      } catch (e) {
+        console.warn("[hyperagent-test] ⚠️ Background video/replay error:", e?.message || e)
+      }
+    })()
+
+    return NextResponse.json(responsePayload, { status: 200 })
   } catch (error) {
     console.error("❌ BrowserUse test execution failed:", error)
     

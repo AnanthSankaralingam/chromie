@@ -236,7 +236,7 @@ export default function TestingReplaysModal({ isOpen, onClose, projectId }) {
                       {selectedReplay.test_result.result && (
                         <div className="mt-3">
                           <p className="text-xs text-slate-500 mb-1">Result:</p>
-                          <pre className="text-xs text-slate-300 bg-slate-900 p-3 rounded overflow-x-auto">
+                          <pre className="text-xs text-slate-300 bg-slate-900 p-3 rounded whitespace-pre-wrap break-words overflow-y-auto max-h-48">
                             {typeof selectedReplay.test_result.result === 'string' 
                               ? selectedReplay.test_result.result 
                               : JSON.stringify(selectedReplay.test_result.result, null, 2)}

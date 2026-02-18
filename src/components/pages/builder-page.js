@@ -67,6 +67,11 @@ function BuilderPageContent() {
 
   // Reference to the AI chat input setter
   const setInputMessageRef = useRef(null)
+  // Reference to add messages to chat (for test generation status)
+  const addChatMessageRef = useRef(null)
+  // References to task list controls (for TaskChecklist UI during test generation)
+  const setTaskListRef = useRef(null)
+  const setTaskProgressRef = useRef(null)
 
   // Custom hooks for URL and notification management
   const { autoGeneratePrompt, setAutoGeneratePrompt, handleAutoGenerateComplete } = useAutoGenerateParams(hasProcessedAutoGenerate.current)
@@ -292,10 +297,27 @@ function BuilderPageContent() {
     window.location.href = '/'
   }
 
-  const handleCreateAITestAgent = async () => {
+  const handleCreateAITestAgent = async (opts = null) => {
     if (!projectSetup.currentProjectId) {
       console.error('No project ID available')
       return
+    }
+
+    const addMsg = opts?.addMsg ?? addChatMessageRef.current
+    const setTaskList = opts?.setTaskList ?? setTaskListRef.current
+    const setTaskProgress = opts?.setTaskProgress ?? setTaskProgressRef.current
+
+    if (!opts) {
+      setActiveTab('chat')
+      if (addMsg) addMsg({ role: 'user', content: 'Generate AI agent tests' })
+    }
+    if (!opts && setTaskList && setTaskProgress) {
+      setTaskList([{
+        id: 'ai-agent',
+        fileName: 'tests/hyperagent_test_script.js',
+        description: 'AI agent test script for end-to-end simulation',
+        status: 'in_progress',
+      }])
     }
 
     setIsGeneratingTestAgent(true)
@@ -317,15 +339,17 @@ function BuilderPageContent() {
       const result = await response.json()
       console.log('✅ AI test agent generated successfully:', result)
 
-      // Refresh file tree to show new test script
+      if (setTaskProgress) setTaskProgress('ai-agent', 'complete')
       await fileManagement.loadProjectFiles(true)
 
-      // Show success message
-      alert('AI testing agent created successfully! Check your files for tests/hyperagent_test_script.js')
+      if (addMsg) addMsg({ role: 'assistant', content: 'AI agent test script generated! Check **tests/hyperagent_test_script.js** in your file tree.' })
+      else alert('AI testing agent created successfully! Check your files for tests/hyperagent_test_script.js')
 
     } catch (error) {
-      console.error('❌ Error generating AI test agent:', error)
-      alert(`Failed to generate AI test agent: ${error.message}`)
+      console.error('Error generating AI test agent:', error)
+      if (setTaskList) setTaskList([])
+      if (addMsg) addMsg({ role: 'assistant', content: `Failed to generate AI agent tests: ${error.message}` })
+      else alert(`Failed to generate AI test agent: ${error.message}`)
     } finally {
       setIsGeneratingTestAgent(false)
     }
@@ -452,11 +476,26 @@ function BuilderPageContent() {
       return
     }
 
-    // Close the testing modal first
-    console.log("[puppeteer-tests] 🔄 Closing test modal to generate tests")
-    testExtension.handleCloseTestModal()
+    const addMsg = addChatMessageRef.current
+    const setTaskList = setTaskListRef.current
+    const setTaskProgress = setTaskProgressRef.current
 
-    // Then trigger generation
+    if (addMsg) addMsg({ role: 'user', content: 'Generate basic Puppeteer tests' })
+    if (setTaskList && setTaskProgress) {
+      setTaskList([{
+        id: 'puppeteer',
+        fileName: 'tests/puppeteer/index.test.js',
+        description: 'Basic validation smoke tests',
+        status: 'in_progress',
+      }])
+    }
+    setActiveTab('chat')
+
+    if (testExtension.isTestModalOpen) {
+      console.log("[puppeteer-tests] 🔄 Closing test modal to generate tests")
+      testExtension.handleCloseTestModal()
+    }
+
     try {
       console.log("🧪 Generating Puppeteer tests...")
       const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-tests`, {
@@ -469,19 +508,23 @@ function BuilderPageContent() {
       
       if (!response.ok) {
         console.error("[puppeteer-tests] Generate failed:", data?.error)
-        alert(`Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}`)
+        if (setTaskList) setTaskList([])
+        if (addMsg) addMsg({ role: 'assistant', content: `❌ Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}` })
+        else alert(`Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}`)
         return
       }
 
       console.log("[puppeteer-tests] ✅ Tests generated successfully")
-      
-      // Refresh file tree to show new test file
+      if (setTaskProgress) setTaskProgress('puppeteer', 'complete')
       await fileManagement.loadProjectFiles(true)
       
-      alert('Puppeteer tests generated successfully! Check tests/puppeteer/index.test.js')
+      if (addMsg) addMsg({ role: 'assistant', content: 'Basic Puppeteer tests generated! Check **tests/puppeteer/index.test.js** in your file tree.' })
+      else alert('Puppeteer tests generated successfully! Check tests/puppeteer/index.test.js')
     } catch (error) {
-      console.error("[puppeteer-tests] ❌ Error generating tests:", error)
-      alert(`Failed to generate Puppeteer tests: ${error.message}`)
+      console.error("[puppeteer-tests] Error generating tests:", error)
+      if (setTaskList) setTaskList([])
+      if (addMsg) addMsg({ role: 'assistant', content: `Failed to generate Puppeteer tests: ${error.message}` })
+      else alert(`Failed to generate Puppeteer tests: ${error.message}`)
     }
   }
 
@@ -492,12 +535,27 @@ function BuilderPageContent() {
       return
     }
 
-    // Close the testing modal first
-    console.log("[ai-tests] 🔄 Closing test modal to generate tests")
-    testExtension.handleCloseTestModal()
+    const addMsg = addChatMessageRef.current
+    const setTaskList = setTaskListRef.current
+    const setTaskProgress = setTaskProgressRef.current
 
-    // Then trigger generation using the existing function
-    await handleCreateAITestAgent()
+    if (addMsg) addMsg({ role: 'user', content: 'Generate AI agent tests' })
+    if (setTaskList && setTaskProgress) {
+      setTaskList([{
+        id: 'ai-agent',
+        fileName: 'tests/hyperagent_test_script.js',
+        description: 'AI agent test script for end-to-end simulation',
+        status: 'in_progress',
+      }])
+    }
+    setActiveTab('chat')
+
+    if (testExtension.isTestModalOpen) {
+      console.log("[ai-tests] 🔄 Closing test modal to generate tests")
+      testExtension.handleCloseTestModal()
+    }
+
+    await handleCreateAITestAgent({ addMsg, setTaskList, setTaskProgress })
   }
 
   const handleOpenCanvas = () => {
@@ -613,41 +671,7 @@ function BuilderPageContent() {
             onTestWithAI={handleTestWithAI}
             onExecuteTestingAgent={handleExecuteTestingAgent}
             onAddMetrics={handleAddMetrics}
-            onGeneratePuppeteerTests={async () => {
-              if (!projectSetup.currentProjectId) {
-                console.error("[puppeteer-tests] No project ID available")
-                return
-              }
-              try {
-                console.log("🧪 Generating Puppeteer tests...")
-                const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-tests`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                })
-                const data = await response.json()
-                if (!response.ok) {
-                  console.error("[puppeteer-tests] Generate failed details:", {
-                    error: data?.error,
-                    details: data?.details,
-                    preview: data?.preview,
-                  })
-                  const msg = [
-                    data?.error || 'Failed to generate Puppeteer tests',
-                    data?.details ? `\n\nDetails: ${data.details}` : '',
-                    data?.preview ? `\n\nPreview:\n${data.preview}` : '',
-                  ].join('')
-                  throw new Error(msg)
-                }
-                console.log("✅ Puppeteer tests generated:", data)
-                await fileManagement.loadProjectFiles(true)
-                alert('Puppeteer test file generated! Check your files for tests/puppeteer/index.test.js')
-              } catch (e) {
-                console.error("❌ Failed to generate Puppeteer tests:", e)
-                alert(`Failed to generate Puppeteer tests: ${e.message}`)
-              }
-            }}
+            onGeneratePuppeteerTests={handleGeneratePuppeteerTestsFromModal}
             onDownloadZip={downloadExtension.handleDownloadZip}
             onSignOut={handleSignOut}
             projectId={projectSetup.currentProjectId}
@@ -771,6 +795,11 @@ function BuilderPageContent() {
                 isOnboardingModalOpen={onboardingModal.isModalOpen}
                 onCodeGenerationStarting={handleCodeGenerationStarting}
                 onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
+                onSetAddMessageCallback={(fn) => { addChatMessageRef.current = fn }}
+                onSetTaskListCallback={(setTaskList, setTaskProgress) => {
+                  setTaskListRef.current = setTaskList
+                  setTaskProgressRef.current = setTaskProgress
+                }}
                 testSessionLogs={testSessionLogs}
                 onClearTestSessionLogs={handleClearTestSessionLogs}
                 onVersionHistoryClick={handleVersionHistoryClick}
@@ -883,6 +912,11 @@ function BuilderPageContent() {
                   isOnboardingModalOpen={onboardingModal.isModalOpen}
                   onCodeGenerationStarting={handleCodeGenerationStarting}
                   onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
+                  onSetAddMessageCallback={(fn) => { addChatMessageRef.current = fn }}
+                  onSetTaskListCallback={(setTaskList, setTaskProgress) => {
+                    setTaskListRef.current = setTaskList
+                    setTaskProgressRef.current = setTaskProgress
+                  }}
                   testSessionLogs={testSessionLogs}
                   onClearTestSessionLogs={handleClearTestSessionLogs}
                   onVersionHistoryClick={handleVersionHistoryClick}

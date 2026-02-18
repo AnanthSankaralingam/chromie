@@ -33,6 +33,8 @@ export default function StreamingChat({
   modelOverride,
   onCodeGenerationStarting,
   onSetInputMessage,
+  onSetAddMessageCallback,
+  onSetTaskListCallback,
   testSessionLogs,
   onClearTestSessionLogs,
   flatFiles,
@@ -127,6 +129,22 @@ export default function StreamingChat({
       onSetInputMessage(setInputMessage)
     }
   }, [onSetInputMessage, setInputMessage])
+
+  // Expose addMessage callback for programmatic chat updates (e.g. test generation status)
+  useEffect(() => {
+    if (onSetAddMessageCallback) {
+      onSetAddMessageCallback(({ role, content }) => {
+        setMessages((prev) => [...prev, { role, content }])
+      })
+    }
+  }, [onSetAddMessageCallback, setMessages])
+
+  // Expose task list controls for programmatic progress (e.g. test generation)
+  useEffect(() => {
+    if (onSetTaskListCallback) {
+      onSetTaskListCallback(chatState.setTaskList, chatState.setTaskProgress)
+    }
+  }, [onSetTaskListCallback, chatState.setTaskList, chatState.setTaskProgress])
 
   // Reset append state when new logs arrive
   useEffect(() => {
