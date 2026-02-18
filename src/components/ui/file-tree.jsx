@@ -120,37 +120,37 @@ export default function FileTree({
     }
   }
 
-  // Helper function to get file icon based on extension (neutral palette)
+  // Helper function to get file icon based on extension (with distinct colors per type)
   const getFileIcon = (fileName) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
-    const iconClass = "h-4 w-4 text-neutral-400"
+    const baseClass = "h-4 w-4"
     switch (ext) {
       case 'js':
       case 'jsx':
       case 'ts':
       case 'tsx':
-        return <FileCode className={iconClass} />
+        return <FileCode className={`${baseClass} text-amber-400`} />
       case 'json':
-        return <Settings className={iconClass} />
+        return <Settings className={`${baseClass} text-amber-500`} />
       case 'html':
       case 'htm':
-        return <Globe className={iconClass} />
+        return <Globe className={`${baseClass} text-orange-400`} />
       case 'css':
       case 'scss':
       case 'sass':
-        return <Palette className={iconClass} />
+        return <Palette className={`${baseClass} text-sky-400`} />
       case 'png':
       case 'jpg':
       case 'jpeg':
       case 'gif':
       case 'svg':
       case 'webp':
-        return <Image className={iconClass} />
+        return <Image className={`${baseClass} text-emerald-400`} />
       case 'md':
       case 'txt':
-        return <FileText className={iconClass} />
+        return <FileText className={`${baseClass} text-neutral-400`} />
       default:
-        return <File className={iconClass} />
+        return <File className={`${baseClass} text-neutral-400`} />
     }
   }
 
