@@ -38,6 +38,7 @@ export default function SideBySideTestModal({
   const lastSequenceIdRef = useRef(null)
   const puppeteerAbortControllerRef = useRef(null)
   const aiAgentAbortControllerRef = useRef(null)
+  const [clearLogsTrigger, setClearLogsTrigger] = useState(0)
 
   const [isRecordingDemo, setIsRecordingDemo] = useState(false)
   const [demoStatus, setDemoStatus] = useState("idle") // idle | recording | saved | error
@@ -231,12 +232,25 @@ export default function SideBySideTestModal({
   }, [isLoading, loadingStages.length])
 
   // Handle HyperAgent test execution
+  const clearConsoleLogs = async () => {
+    if (!sessionData?.sessionId || !projectId) return
+    try {
+      await fetch(`/api/projects/${projectId}/test-extension/console-logs?sessionId=${sessionData.sessionId}`, {
+        method: "DELETE",
+      })
+      setClearLogsTrigger((prev) => prev + 1)
+    } catch (e) {
+      console.warn("[side-by-side-test-modal] Failed to clear console logs:", e?.message)
+    }
+  }
+
   const handleRunHyperAgentTest = async () => {
     if (!sessionData?.sessionId || !projectId) {
       console.error("Missing session ID or project ID for HyperAgent test")
       return
     }
 
+    await clearConsoleLogs()
     setIsRunningHyperAgent(true)
     setHyperAgentResult(null)
 
@@ -575,6 +589,7 @@ export default function SideBySideTestModal({
       return
     }
 
+    await clearConsoleLogs()
     setIsRunningPuppeteerTests(true)
     setPuppeteerTestResult(null)
 
@@ -748,12 +763,12 @@ export default function SideBySideTestModal({
         </div>
 
         {/* Main Content - Browser (left) + Testing Sidepanel (right) */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden bg-white">
           {/* Left Column */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Browser Panel */}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+              <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">
@@ -926,7 +941,7 @@ export default function SideBySideTestModal({
                     </div>
                   </div>
                 ) : error ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <div className="absolute inset-0 flex items-center justify-center bg-white">
                     <ErrorDisplay
                       error={error}
                       onRetry={onRefresh}
@@ -949,7 +964,7 @@ export default function SideBySideTestModal({
                     }}
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <div className="absolute inset-0 flex items-center justify-center bg-white">
                     <div className="text-center">
                       <Monitor className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -970,6 +985,7 @@ export default function SideBySideTestModal({
             projectId={projectId}
             sessionId={sessionData?.sessionId}
             isSessionActive={!sessionExpired && !isLoading && !!sessionData?.sessionId}
+            clearLogsTrigger={clearLogsTrigger}
             viewportLabel={
               sessionData?.browserInfo?.viewport?.width && sessionData?.browserInfo?.viewport?.height
                 ? `${sessionData.browserInfo.viewport.width}x${sessionData.browserInfo.viewport.height}`
