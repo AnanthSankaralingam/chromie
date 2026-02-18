@@ -127,6 +127,31 @@ export function AIInputWithSearch({
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (!enableImageUpload || disabled) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    const imageFiles: File[] = []
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile()
+        if (file) imageFiles.push(file)
+      }
+    }
+    if (imageFiles.length > 0) {
+      e.preventDefault()
+      setSelectedImages((prev) => [...prev, ...imageFiles])
+      imageFiles.forEach((file) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreviews((prev) => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }
+
   const handleImageUploadClick = () => {
     try {
       const hasSeenInfo = typeof window !== 'undefined' &&
@@ -271,6 +296,7 @@ export function AIInputWithSearch({
             "focus-within:border-sky-500/60 focus-within:shadow-sky-500/30",
             "overflow-hidden"
           )}
+          onPaste={handlePaste}
         >
           {/* Tagged Files Pills */}
           {taggedFiles.length > 0 && (
@@ -426,7 +452,7 @@ export function AIInputWithSearch({
                       : "bg-slate-700/50 text-slate-400 cursor-not-allowed",
                     disabled && "opacity-50"
                   )}
-                  title="Attach images to guide frontend design (not added to extension)"
+                  title="Attach images (click or paste ⌘V)"
                 >
                   <ImagePlus className="w-5 h-5" />
                 </motion.button>

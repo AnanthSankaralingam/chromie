@@ -80,6 +80,23 @@ export default function AssetUploadModal({
     resetAiState()
   }, [defaultFileType, defaultMode, isOpen])
 
+  const handlePaste = (e) => {
+    if (sourceMode !== "upload") return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          handleFileSelect({ target: { files: [file] } })
+          return
+        }
+      }
+    }
+  }
+
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -264,7 +281,7 @@ export default function AssetUploadModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-lg bg-slate-900 border-slate-700" onPaste={handlePaste}>
         <DialogHeader>
           <DialogTitle className="text-white">Upload File</DialogTitle>
           <DialogDescription className="text-slate-400">
@@ -319,21 +336,24 @@ export default function AssetUploadModal({
           {sourceMode === "upload" && (
             <div className="space-y-2">
               <Label className="text-white">Select File</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Choose File
-                </Button>
-                {selectedFile && (
-                  <span className="text-sm text-slate-400 truncate">
-                    {selectedFile.name} ({Math.round(selectedFile.size / 1024)}KB)
-                  </span>
-                )}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Choose File
+                  </Button>
+                  {selectedFile && (
+                    <span className="text-sm text-slate-400 truncate">
+                      {selectedFile.name} ({Math.round(selectedFile.size / 1024)}KB)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">or paste image from clipboard (⌘V)</p>
               </div>
               <input
                 ref={fileInputRef}
