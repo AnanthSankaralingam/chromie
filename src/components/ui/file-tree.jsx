@@ -279,9 +279,8 @@ export default function FileTree({
   if (isLoadingFiles) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-center">
-        <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-gray-500/30 border-t-gray-500 mb-4"></div>
-        <h4 className="text-lg font-medium text-slate-400 mb-2">loading files</h4>
-        <p className="text-sm text-slate-500">fetching your project structure...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500 mb-4" />
+        <p className="text-sm text-neutral-500">Loading files</p>
       </div>
     )
   }

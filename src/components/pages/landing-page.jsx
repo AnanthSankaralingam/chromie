@@ -42,8 +42,8 @@ export default function LandingPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
       </div>
     )
   }

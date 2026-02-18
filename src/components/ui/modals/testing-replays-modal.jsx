@@ -101,15 +101,16 @@ export default function TestingReplaysModal({ isOpen, onClose, projectId }) {
           {/* Left Sidebar - Replay List */}
           <div className="w-80 border-r border-slate-800 overflow-y-auto bg-slate-950/60">
             {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <div className="flex flex-col items-center justify-center h-full gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
+                <p className="text-sm text-neutral-500">Loading</p>
               </div>
             ) : error ? (
               <div className="p-6 text-center">
                 <p className="text-red-400">{error}</p>
                 <button
                   onClick={fetchReplays}
-                  className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                  className="mt-4 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-lg text-sm border border-neutral-600"
                 >
                   Retry
                 </button>

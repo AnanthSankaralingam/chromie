@@ -12,10 +12,16 @@ export default function SessionProviderClient({ children }) {
   const supabase = createClient()
 
   useEffect(() => {
+    const SESSION_TIMEOUT_MS = 10000
+
     const getSession = async () => {
       try {
         console.log('SessionProvider: Getting initial session...')
-        const { data: { session }, error } = await supabase.auth.getSession()
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session load timeout')), SESSION_TIMEOUT_MS)
+        )
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise])
         if (error) {
           console.error('SessionProvider: Session error:', error)
           setUser(null)

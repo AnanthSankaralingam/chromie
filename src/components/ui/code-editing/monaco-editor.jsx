@@ -595,7 +595,7 @@ export default function MonacoEditor({
               >
                 {isLoadingHtmlPreview ? (
                   <span className="inline-flex items-center gap-1">
-                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-teal-400 border-t-transparent" />
+                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-neutral-600 border-t-neutral-500" />
                     Loading
                   </span>
                 ) : isHtmlPreview ? (
@@ -759,10 +759,10 @@ export default function MonacoEditor({
               }
             }}
             loading={
-              <div className="flex items-center justify-center h-full bg-slate-900">
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-500 border-t-transparent"></div>
-                  <span className="text-sm text-slate-400">Loading editor...</span>
+              <div className="flex items-center justify-center h-full bg-[#0a0a0a]">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
+                  <span className="text-sm text-neutral-500">Loading</span>
                 </div>
               </div>
             }

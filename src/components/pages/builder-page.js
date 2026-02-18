@@ -176,13 +176,15 @@ function BuilderPageContent() {
     }
   }, [isLoading, user])
 
-  // Handle pending_prompt from home page (user signed in via OAuth, route handler redirected here)
+  // Handle pending_prompt fallback (e.g. direct /builder visit after OAuth; primary flow now goes via /home)
   const hasProcessedPendingPromptRef = useRef(false)
+  const [isProcessingPendingPrompt, setIsProcessingPendingPrompt] = useState(false)
   useEffect(() => {
     if (!user || hasProcessedPendingPromptRef.current) return
     const pendingPromptData = typeof window !== 'undefined' && sessionStorage.getItem('pending_prompt')
     if (!pendingPromptData) return
     hasProcessedPendingPromptRef.current = true
+    setIsProcessingPendingPrompt(true)
     ;(async () => {
       try {
         const { prompt: savedPrompt, timestamp } = JSON.parse(pendingPromptData)
@@ -198,16 +200,18 @@ function BuilderPageContent() {
         if (response.ok) {
           const { project } = await response.json()
           sessionStorage.removeItem('pending_prompt')
-          window.location.href = `/builder?project=${project.id}&autoGenerate=${encodeURIComponent(savedPrompt)}`
+          router.push(`/builder?project=${project.id}&autoGenerate=${encodeURIComponent(savedPrompt)}`)
         } else {
           sessionStorage.removeItem('pending_prompt')
         }
       } catch (e) {
         console.error('Error processing pending prompt:', e)
         sessionStorage.removeItem('pending_prompt')
+      } finally {
+        setIsProcessingPendingPrompt(false)
       }
     })()
-  }, [user])
+  }, [user, router])
 
   // Use the custom hook to manage project URL parameters
   useProjectParams(projectSetup.currentProjectId, projectSetup.isSettingUpProject)
@@ -644,8 +648,8 @@ function BuilderPageContent() {
   }, [])
 
   // Show loading state
-  if (isLoading || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
-    return <LoadingState isLoading={isLoading} isSettingUpProject={projectSetup.isSettingUpProject} />
+  if (isLoading || isProcessingPendingPrompt || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
+    return <LoadingState isLoading={isLoading || isProcessingPendingPrompt} isSettingUpProject={projectSetup.isSettingUpProject || isProcessingPendingPrompt} />
   }
 
   // Show error state if project setup failed
@@ -655,7 +659,7 @@ function BuilderPageContent() {
         projectSetupError={projectSetup.projectSetupError}
         onRetry={() => {
           projectSetup.setProjectSetupError(null)
-          projectSetup.checkAndSetupProject()
+          projectSetup.checkAndSetupProject(true)
         }}
       />
     )

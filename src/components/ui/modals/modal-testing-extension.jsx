@@ -195,47 +195,47 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
               </div>
             </div>
           ) : isLoading || (isOpen && sessionData && !liveUrl) ? (
-            <div className="absolute inset-0 bg-white flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-[#0a0a0a] flex items-center justify-center p-8">
               <div className="text-center max-w-4xl w-full">
                 {/* Progress Bar */}
                 <div className="mb-6">
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                  <div className="w-full bg-neutral-800 rounded-full h-1 mb-3">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                      className="bg-neutral-600 h-1 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
                     />
                   </div>
-                  <p className="text-sm text-gray-600">
-                    {loadingStage + 1} of {loadingStages.length} steps
+                  <p className="text-xs text-neutral-500">
+                    {loadingStage + 1} of {loadingStages.length}
                   </p>
                 </div>
 
                 {/* Current Stage */}
                 <div className="mb-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {loadingStages[loadingStage]?.title || "Initializing..."}
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500 mx-auto mb-4" />
+                  <h3 className="text-sm font-medium text-neutral-300 mb-2">
+                    {loadingStages[loadingStage]?.title || "Initializing"}
                   </h3>
-                  <p className="text-gray-600 text-sm">
-                    {loadingStages[loadingStage]?.description || "Please wait while we prepare your testing environment"}
+                  <p className="text-neutral-500 text-sm">
+                    {loadingStages[loadingStage]?.description || "Please wait"}
                   </p>
                 </div>
 
                 {/* Dynamic Instructions - Show one box per stage */}
                 <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 text-center">testing tips</h4>
+                  <h4 className="font-medium text-neutral-500 text-center text-xs uppercase tracking-wider">tips</h4>
                   <div className="flex justify-center">
                     {instructionBoxes[loadingStage] && (
-                      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-500 max-w-sm w-full">
+                      <div className="bg-neutral-900/80 border border-neutral-800 rounded-lg p-6 max-w-sm w-full">
                         <div className="flex items-center mb-4">
-                          <div className={`w-10 h-10 bg-${instructionBoxes[loadingStage].iconColor}-100 rounded-lg flex items-center justify-center mr-4`}>
+                          <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mr-4">
                             {React.createElement(instructionBoxes[loadingStage].icon, {
-                              className: `h-5 w-5 text-${instructionBoxes[loadingStage].iconColor}-600`
+                              className: "h-5 w-5 text-neutral-400"
                             })}
                           </div>
-                          <h5 className="font-medium text-gray-900 text-lg">{instructionBoxes[loadingStage].title}</h5>
+                          <h5 className="font-medium text-neutral-300 text-sm">{instructionBoxes[loadingStage].title}</h5>
                         </div>
-                        <ul className="text-base text-gray-600 space-y-2 text-left">
+                        <ul className="text-sm text-neutral-500 space-y-2 text-left">
                           {instructionBoxes[loadingStage].items.map((item, index) => (
                             <li key={index}>{item}</li>
                           ))}
