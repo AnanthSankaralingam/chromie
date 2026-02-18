@@ -216,7 +216,8 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       fileName: task.file_name,
       taskIndex: i,
       totalTasks,
-      progress
+      progress,
+      fileContent: content
     }
   }
 

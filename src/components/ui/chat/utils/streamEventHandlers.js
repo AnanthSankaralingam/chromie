@@ -16,6 +16,7 @@ export function createStreamEventHandler(context) {
     doneReceivedRef,
     hasShownStartMessageRef,
     onCodeGenerated,
+    onFileWritten,
     hasGeneratedCode,
     setHasGeneratedCode,
     modelThinkingFull,
@@ -150,9 +151,23 @@ export function createStreamEventHandler(context) {
         break
 
       case "task_complete":
-        // Update task status to complete
+        // Update task status to complete, store file content for diff preview
         if (data.taskId && setTaskProgress) {
-          setTaskProgress(data.taskId, 'complete')
+          const extra = data.fileContent != null ? { content: data.fileContent } : {}
+          setTaskProgress(data.taskId, 'complete', false, extra)
+        }
+        // Stream file to editor so user can see code as it's generated
+        if (data.fileName && data.fileContent != null && onFileWritten) {
+          onFileWritten(data.fileName, data.fileContent)
+          // Defer select so file tree has updated before we try to select
+          if (typeof window !== "undefined") {
+            setTimeout(() => {
+              const evt = new CustomEvent("editor:selectFile", {
+                detail: { file_path: String(data.fileName) },
+              })
+              window.dispatchEvent(evt)
+            }, 0)
+          }
         }
         break
 
