@@ -94,9 +94,12 @@ export class GeminiAdapter {
         }
       }
 
-      // Extract content from response
-      const content = response?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-      const thoughts = response?.candidates?.[0]?.content?.parts?.find(part => part.thought)?.text || ''
+      // Extract content from response — filter out thought parts to avoid leaking reasoning into output_text
+      const allParts = response?.candidates?.[0]?.content?.parts || []
+      const answerParts = allParts.filter(part => !part.thought)
+      const thoughtParts = allParts.filter(part => part.thought)
+      const content = answerParts.map(p => p.text || '').join('')
+      const thoughts = thoughtParts.map(p => p.text || '').join('')
 
       // Return normalized response with exact token usage
       return {
