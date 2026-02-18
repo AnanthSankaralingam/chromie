@@ -94,12 +94,10 @@ async function handleCheckoutSessionCompleted(session) {
   
   // Map Stripe price IDs to plans (get actual IDs from Stripe dashboard)
   const PRICE_ID_MAP = {
-    'price_XXXSTARTER': 'starter',  // Replace with actual price IDs
-    'price_XXXPRO': 'pro',
-    'price_XXXLEGEND': 'legend'
+    'price_XXXPRO': 'pro'
   }
   
-  const plan = PRICE_ID_MAP[priceId] || 'starter'
+  const plan = PRICE_ID_MAP[priceId] || 'pro'
   
   if (isOneTime) {
     await handleOneTimePurchase(customer, plan, paymentIntent)
@@ -163,7 +161,7 @@ async function handleSubscriptionCreated(subscription) {
   console.log('Subscription created:', subscription.id)
   
   const priceId = subscription.items.data[0].price.id
-  const plan = 'legend' // Only Legend is subscription
+  const plan = 'pro' // Pro is the only subscription plan
   
   const customer = await stripe.customers.retrieve(subscription.customer)
   const { data: profile } = await supabase
@@ -177,7 +175,7 @@ async function handleSubscriptionCreated(subscription) {
     return
   }
   
-  const limits = PLAN_LIMITS.legend
+  const limits = PLAN_LIMITS.pro
   
   // Create purchase record for subscription
   // For paid plans, projects and browser minutes are unlimited (set to 0 to indicate unlimited)
@@ -187,7 +185,7 @@ async function handleSubscriptionCreated(subscription) {
       user_id: profile.id,
       stripe_subscription_id: subscription.id,
       stripe_payment_intent_id: null,
-      plan: 'legend',
+      plan: 'pro',
       purchase_type: 'subscription',
       status: 'active',
       credits_purchased: limits.monthly_credits,
@@ -218,12 +216,12 @@ async function handleSubscriptionCreated(subscription) {
       user_id: profile.id,
       stripe_customer_id: subscription.customer,
       stripe_subscription_id: subscription.id,
-      plan: 'legend',
+      plan: 'pro',
       status: 'active',
       valid_until: new Date(subscription.current_period_end * 1000).toISOString()
     })
   
-  console.log('Legend subscription created for user:', profile.id)
+  console.log('Pro subscription created for user:', profile.id)
 }
 
 async function handleSubscriptionUpdated(subscription) {
@@ -305,7 +303,7 @@ async function handlePaymentSucceeded(invoice) {
       })
       .eq('stripe_subscription_id', invoice.subscription)
     
-    console.log('Reset usage for Legend renewal:', purchase.user_id)
+    console.log('Reset usage for Pro renewal:', purchase.user_id)
   }
 }
 

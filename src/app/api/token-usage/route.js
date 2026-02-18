@@ -20,12 +20,12 @@ export async function GET() {
     
     return NextResponse.json({
       plan: userLimits.plan,
-      planNames: userLimits.planNames, // For one-time bundles: ['starter', 'pro']
+      planNames: userLimits.planNames, // For one-time bundles: e.g. ['pro']
       purchaseType: userLimits.purchaseType,
       purchaseCount: userLimits.purchaseCount,
       resetType: userLimits.resetType,
       resetDate: userLimits.resetDate,
-      hasActiveLegend: userLimits.hasActiveLegend,
+      hasActivePro: userLimits.hasActivePro,
       
       limits: userLimits.limits,
       usage: userLimits.usage,

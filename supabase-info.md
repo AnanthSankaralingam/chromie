@@ -129,7 +129,7 @@ Tracks all purchases (one-time and subscriptions) as a ledger.
 | `user_id`                 | uuid         | FK → `profiles.id`, ON DELETE CASCADE        |
 | `stripe_payment_intent_id`| text         | Stripe payment intent ID (one-time purchases) |
 | `stripe_subscription_id`  | text         | Stripe subscription ID (subscriptions)       |
-| `plan`                    | text         | 'starter', 'pro', 'legend'                   |
+| `plan`                    | text         | 'pro' (subscription or one-time)              |
 | `purchase_type`           | text         | 'one_time' or 'subscription'                 |
 | `status`                  | text         | 'active', 'refunded', 'expired', 'canceled'  |
 | `credits_purchased`        | bigint       | Credits included in this purchase             |
@@ -399,10 +399,8 @@ RLS policies:
 
 | Plan    | Max Projects | Credits | Browser Minutes | Reset Type | Description                    |
 |---------|--------------|---------|-----------------|------------|--------------------------------|
-| free    | 1            | 5       | 15              | monthly    | Basic tier with limited projects |
-| starter | 2            | 20      | 30              | one-time   | One-time purchase package       |
-| pro     | 10           | 100     | 120             | one-time   | One-time purchase package       |
-| legend  | 300          | 1000    | 240             | monthly    | Monthly subscription            |
+| free    | 1            | 10      | 15              | monthly    | Basic tier with limited projects |
+| pro     | 300          | 1000    | 240             | monthly    | Monthly subscription (only paid plan) |
 
 ## Credit Costs
 

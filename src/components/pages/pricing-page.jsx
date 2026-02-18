@@ -102,25 +102,29 @@ export default function PricingPage() {
             </div>
 
             {/* Pricing Cards */}
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Starter Plan */}
+            <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+              {/* Free Plan */}
               <Card className="bg-gray-800/30 backdrop-blur-sm border-gray-500/30 hover:border-gray-400/50 transition-all">
                 <CardHeader className="text-center">
-                  <CardTitle className="text-2xl text-gray-300">starter</CardTitle>
-                  <div className="text-4xl font-bold text-white">$4.99<span className="text-lg text-gray-300"> one-time</span></div>
+                  <CardTitle className="text-2xl text-gray-300">free</CardTitle>
+                  <div className="text-4xl font-bold text-white">$0</div>
                   <CardDescription className="text-gray-300">
-                    build up to 2 chrome extensions
+                    no credit card needed
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">2 chrome extensions</span>
+                      <span className="text-gray-300">10 credits</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span className="text-gray-300">simulated browser testing</span>
                     </div>
                   </div>
                   <Button
-                    onClick={() => window.open('https://buy.stripe.com/28EbJ0105e8o4xF6dM7kc02', '_blank')}
+                    onClick={() => window.location.href = '/builder'}
                     className="w-full bg-gray-600 hover:bg-gray-700 text-white"
                   >
                     get started
@@ -138,50 +142,25 @@ export default function PricingPage() {
                 </div>
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-blue-300">pro</CardTitle>
-                  <div className="text-4xl font-bold text-white">$9.99<span className="text-lg text-gray-300"> one-time</span></div>
-                  <CardDescription className="text-gray-300">
-                    build up to 10 chrome extensions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">500 credits</span>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => window.open('https://buy.stripe.com/6oU4gydMRc0g8NVeKi7kc04', '_blank')}
-                    className="w-full bg-gray-600 hover:bg-gray-700 text-white"
-                  >
-                    get started
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Legend Plan */}
-              <Card className="bg-green-800/30 backdrop-blur-sm border-green-500/30 hover:border-green-400/50 transition-all">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl text-green-300">legend</CardTitle>
                   <div className="text-4xl font-bold text-white">$14.99<span className="text-lg text-gray-300">/month</span></div>
                   <CardDescription className="text-gray-300">
-                    unlimited builds for agencies or frequent creators
+                    cancel anytime
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">unlimited builds</span>
+                      <span className="text-gray-300">1,000 credits/month</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">cancel anytime</span>
+                      <span className="text-gray-300">all pro features</span>
                     </div>
                   </div>
                   <Button
                     onClick={() => window.open('https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05', '_blank')}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     get started
                   </Button>
