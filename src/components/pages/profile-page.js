@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload, FileText, Shield } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
+import PaywallModal from "@/components/ui/modals/modal-paywall"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
@@ -42,6 +44,7 @@ export default function ProfilePage() {
   const [isGithubConnected, setIsGithubConnected] = useState(false)
   const [githubUsername, setGithubUsername] = useState(null)
   const [isImportingExtension, setIsImportingExtension] = useState(false)
+  const [isPaywallModalOpen, setIsPaywallModalOpen] = useState(false)
   const importInputRef = useRef(null)
   const [privacyPolicies, setPrivacyPolicies] = useState([])
   const [privacyPoliciesLoading, setPrivacyPoliciesLoading] = useState(true)
@@ -404,6 +407,10 @@ export default function ProfilePage() {
       router.push('/')
       return
     }
+    if (!billing) {
+      setIsPaywallModalOpen(true)
+      return
+    }
     if (importInputRef.current) {
       importInputRef.current.value = ''
       importInputRef.current.click()
@@ -414,12 +421,6 @@ export default function ProfilePage() {
     try {
       const files = Array.from(event.target.files || [])
       if (!files.length) {
-        return
-      }
-
-      // Check if user has a paid plan
-      if (!billing) {
-        alert('Extension upload is only available for paid users. Please purchase a Starter or Pro package to upload extensions.')
         return
       }
 
@@ -515,6 +516,14 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
         {/* Static Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+          <FlickeringGrid
+            className="absolute inset-0 z-0"
+            squareSize={4}
+            gridGap={6}
+            color="rgb(156, 163, 175)"
+            maxOpacity={0.08}
+            flickerChance={1.5}
+          />
           <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
           <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
         </div>
@@ -758,12 +767,9 @@ export default function ProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={handleImportExtensionClick}
-                disabled={isImportingExtension || !billing}
-                title={!billing ? "Extension upload is only available for paid users" : "Upload an existing Chrome extension"}
-                className={cn(
-                  "border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800",
-                  !billing && "opacity-50 cursor-not-allowed"
-                )}
+                disabled={isImportingExtension}
+                title="Upload an existing Chrome extension"
+                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">
@@ -1260,6 +1266,12 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PaywallModal
+        isOpen={isPaywallModalOpen}
+        onClose={() => setIsPaywallModalOpen(false)}
+        featureName="Uploading an extension"
+      />
     </div>
   )
 }

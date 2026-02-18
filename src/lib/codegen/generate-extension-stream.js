@@ -9,7 +9,7 @@ import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patchin
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from "@/lib/prompts/followup/follow-up-patching-with-tools";
 import { TEMPLATE_PATCH_PROMPT } from "@/lib/prompts/new-extension/template/template-patch";
 import { batchScrapeWebpages } from "@/lib/webpage-scraper";
-import { orchestratePlanning, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
+import { orchestratePlanning, orchestratePlanningStream, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
 import { generateExtensionCodeStream } from "@/lib/codegen/generate-extension-code-stream";
 import {
   createExistingExtensionRequirements,
@@ -128,9 +128,16 @@ export async function* generateChromeExtensionStream({
         content: "Understanding your requirements and constraints to scope the extension.",
       };
 
-      // Use new planning orchestrator (non-streaming)
+      // Use new planning orchestrator (streaming — forwards planning_progress events in real time)
       console.log('🎯 [generate-extension-stream] CALLING planning orchestrator (fresh analysis)...')
-      const planningResult = await orchestratePlanning(featureRequest)
+      let planningResult
+      for await (const event of orchestratePlanningStream(featureRequest)) {
+        if (event.type === '__planning_result__') {
+          planningResult = event.result
+        } else {
+          yield event // forward planning_progress events to the SSE stream
+        }
+      }
 
       // Map planning result to requirementsAnalysis structure
       requirementsAnalysis = {
@@ -492,8 +499,10 @@ export async function* generateChromeExtensionStream({
         userProvidedApis, featureRequest, userProvidedUrl
       )
 
+      // Signal that all user inputs are confirmed and we're about to build the task graph
+      yield { type: 'planning_progress', phase: 'analysis', content: 'Finalizing extension plan...' }
+
       // Call meta planner (Haiku)
-      yield { type: 'phase', phase: 'planning', content: 'Building task graph...' }
       const { metaPlan, tokenUsage: metaPlannerTokenUsage } = await callMetaPlanner(
         featureRequest, planningSummary
       )

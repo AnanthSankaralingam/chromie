@@ -1,468 +1,362 @@
 /**
- * Webpage scraping functionality for Chrome extension builder
- * 
- * WORKFLOW:
- * This module implements a three-step scraping workflow:
- * 1. Cache Check (Specific): First checks Supabase 'scraper' table for specific domain (e.g., 'youtube.com/watch')
- * 2. Cache Check (Generic): If no specific match, falls back to generic domain (e.g., 'youtube.com')
- * 3. Lambda API Fallback: If no cache found, calls AWS Lambda scraping API
- *    - Endpoint: https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod
- *    - Method: POST
- *    - Request body: { "url": "<full_url_with_https>", "intent": "<optional>", "profile_id": "<optional Hyperbrowser profile ID>" }
- *    - Response: { statusCode: 200, body: "<json_string>" }
- *    - ONLY if Lambda also fails, then a scraper miss is recorded in 'scraper_misses' table
- * 
- * LAMBDA API INTEGRATION:
- * The Lambda function (AWS Lambda) performs the following:
- * - Scrapes webpage using Hyperbrowser (headless browser)
- * - Analyzes HTML with Gemini AI to identify major UI elements
- * - Returns structured data with major_elements, domain, page_title
- * - Automatically saves results to Supabase 'scraper' table for future cache hits
- * 
- * RESPONSE FORMAT:
- * Lambda returns: {
- *   statusCode: 200,
- *   body: "{\"major_elements\": {...}, \"domain\": \"...\", \"page_title\": \"...\", \"token_usage\": {...}, \"saved_to_db\": true}"
- * }
- * 
- * The 'body' field is a JSON string that must be parsed to extract:
- * - major_elements: Object mapping element keys to {description, selector}
- * - domain: Extracted domain name
- * - page_title: Page title from the scraped webpage
- * - token_usage: LLM token usage statistics
- * - saved_to_db: Boolean indicating if data was saved to Supabase
- * 
- * ERROR HANDLING:
- * - Scraper misses are ONLY recorded when BOTH database lookup AND Lambda API fail
- * - Lambda API failures return graceful error responses (not thrown)
- * - Network errors, timeouts, and invalid responses are handled gracefully
+ * Webpage scraping for Chrome extension builder.
+ * Workflow: Supabase cache (specific domain → generic domain) → Lambda API fallback.
+ * Scraper misses are only recorded when both cache and Lambda fail.
  */
 
 import { createClient } from './supabase/server'
 
+const LAMBDA_API_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/scrape'
+
+// --- Helpers ---
+
 /**
- * Extract domain name from a URL, prioritizing a more specific path if available.
- * @param {string} url - Full URL
- * @param {boolean} specific - If true, tries to include the first path segment.
- * @returns {string} - Domain name (e.g., 'youtube.com' or 'youtube.com/watch')
+ * Extract domain name from a URL.
+ * @param {string} url
+ * @param {boolean} specific - If true, appends the first path segment (e.g. 'youtube.com/watch')
+ * @returns {string|null}
  */
 function extractDomainName(url, specific = false) {
   if (!url) return null
-  
-  try {
-    const urlObj = new URL(url)
-    let domain = urlObj.hostname.replace(/^www\./, '')
 
-    if (specific && urlObj.pathname && urlObj.pathname !== '/') {
-      // Get the first path segment and append it to the domain
-      const firstPathSegment = urlObj.pathname.split('/')[1]
-      if (firstPathSegment) {
-        domain += `/${firstPathSegment}`
-      }
+  // Normalize protocol so URL() can always parse the input
+  const normalized = url.match(/^https?:\/\//) ? url : `https://${url}`
+
+  try {
+    const { hostname, pathname } = new URL(normalized)
+    let domain = hostname.replace(/^www\./, '')
+    if (specific && pathname && pathname !== '/') {
+      const firstSegment = pathname.split('/')[1]
+      if (firstSegment) domain += `/${firstSegment}`
     }
     return domain
-  } catch (error) {
-    // Fallback for malformed URLs
-    try {
-      let urlWithProtocol = url
-      if (!url.match(/^https?:\/\//)) {
-        urlWithProtocol = 'https://' + url
-      }
-      const urlObj = new URL(urlWithProtocol)
-      let domain = urlObj.hostname.replace(/^www\./, '')
-      if (specific && urlObj.pathname && urlObj.pathname !== '/') {
-        const firstPathSegment = urlObj.pathname.split('/')[1]
-        if (firstPathSegment) {
-          domain += `/${firstPathSegment}`
-        }
-      }
-      return domain
-    } catch (secondError) {
-      const match = url.match(/(?:https?:\/\/)?(?:www\.)?([^/:#?]+)/)
-      let domain = match?.[1] || url.replace(/^www\./, '').split('/')[0]
-      if (specific && url.split('/').length > 1) {
-        const pathSegments = url.split('/').slice(3); // Get path segments after domain
-        if (pathSegments.length > 0) {
-            domain += `/${pathSegments[0]}`;
-        }
-      }
-      return domain
+  } catch {
+    // Last-resort regex fallback for badly malformed URLs
+    const match = url.match(/(?:https?:\/\/)?(?:www\.)?([^/:#?]+)/)
+    let domain = match?.[1] || url.replace(/^www\./, '').split('/')[0]
+    if (specific) {
+      const segment = url.split('/').slice(3)[0]
+      if (segment) domain += `/${segment}`
     }
+    return domain
   }
 }
 
-/**
- * Normalize URL to ensure it has https:// prefix
- * @param {string} url - URL to normalize
- * @returns {string} - URL with https:// prefix
- */
 function normalizeUrl(url) {
   if (!url) return null
-  if (url.startsWith('https://') || url.startsWith('http://')) {
-    return url
-  }
-  return `https://${url}`
+  return url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`
+}
+
+/** Convert a major_elements object into a flat array for easier consumption. */
+function majorElementsToArray(majorElements) {
+  if (!majorElements) return []
+  return Object.entries(majorElements).map(([key, value]) => ({
+    key,
+    description: value.description,
+    selector: value.selector,
+  }))
 }
 
 /**
- * Call AWS Lambda scraping API to scrape a webpage
- * @param {string} url - Full URL to scrape (will be normalized to include https://)
- * @param {string} [intent] - Optional 1-2 sentence description of what to look for (element types or extension goal)
- * @param {string} [profileId] - Optional Hyperbrowser profile ID for the scrape session (e.g., logged-in state)
- * @returns {Promise<Object>} - Parsed response data with major_elements, domain, page_title
- * @throws {Error} - If API call fails or response is invalid
+ * Increment the scraper_misses counter for a domain.
+ * Called only after both cache lookup and Lambda both fail.
+ */
+async function recordScraperMiss(supabase, domain) {
+  console.log(`📝 Recording scraper miss for: ${domain}`)
+  try {
+    const { error } = await supabase
+      .from('scraper_misses')
+      .insert({ domain_name: domain, count: 1 })
+
+    if (!error) {
+      console.log(`✅ Recorded new scraper miss for: ${domain}`)
+      return
+    }
+
+    if (error.code !== '23505') { // not a unique-violation
+      console.error(`❌ Error inserting into scraper_misses:`, error)
+      return
+    }
+
+    // Domain already exists — increment the count
+    const { data: existing, error: selectError } = await supabase
+      .from('scraper_misses')
+      .select('count')
+      .eq('domain_name', domain)
+      .single()
+
+    if (selectError) {
+      console.error('Error fetching existing scraper miss:', selectError)
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('scraper_misses')
+      .update({ count: existing.count + 1 })
+      .eq('domain_name', domain)
+
+    if (updateError) {
+      console.error('Error incrementing scraper miss count:', updateError)
+    } else {
+      console.log(`✅ Incremented scraper miss count for: ${domain}`)
+    }
+  } catch (err) {
+    console.error(`⚠️ Failed to record scraper miss: ${err.message}`)
+  }
+}
+
+// --- Lambda API ---
+
+/**
+ * Call the AWS Lambda scraping API.
+ * Handles two response shapes:
+ *   Shape A (API Gateway proxy): { major_elements, domain, page_title, ... }
+ *   Shape B (wrapped):           { statusCode, body: "<json string>" }
  */
 async function callLambdaScrapingAPI(url, intent = null, profileId = null) {
-  const LAMBDA_API_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/scrape'
   const normalizedUrl = normalizeUrl(url)
-  
-  if (!normalizedUrl) {
-    throw new Error('Invalid URL provided')
-  }
-  
-  const requestBody = { url: normalizedUrl }
-  if (intent && typeof intent === 'string' && intent.trim()) {
-    requestBody.intent = intent.trim()
-  }
-  if (profileId && typeof profileId === 'string' && profileId.trim()) {
-    requestBody.profile_id = profileId.trim()
-  }
-  
-  console.log(`🌐 Calling Lambda API to scrape: ${normalizedUrl}${requestBody.intent ? ` (intent: ${requestBody.intent})` : ''}`)
-  
-  try {
-    const response = await fetch(LAMBDA_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Lambda API returned status ${response.status}: ${response.statusText}`)
-    }
-    
-    const responseData = await response.json()
+  if (!normalizedUrl) throw new Error('Invalid URL provided')
 
-    // Debug: Log the actual response structure
-    console.log('🔍 Lambda response structure:', JSON.stringify(responseData, null, 2))
+  const body = { url: normalizedUrl }
+  if (intent?.trim()) body.intent = intent.trim()
+  if (profileId?.trim()) body.profile_id = profileId.trim()
 
-    // Handle two response formats:
-    // 1. API Gateway Lambda Proxy: returns Lambda's body directly (major_elements, domain, etc.)
-    // 2. Direct Lambda invoke: returns { statusCode: 200, body: "<json_string>" }
-    let parsedBody
-    if (responseData.major_elements) {
-      // Format 1: Direct result from API Gateway proxy - body is the response itself
-      parsedBody = responseData
-    } else if (responseData.statusCode !== undefined && responseData.statusCode !== 200) {
-      throw new Error(`Lambda API returned non-200 status: ${responseData.statusCode}. Full response: ${JSON.stringify(responseData)}`)
-    } else if (responseData.body !== undefined) {
-      // Format 2: Wrapped format with statusCode and body
-      try {
-        parsedBody = typeof responseData.body === 'string'
-          ? JSON.parse(responseData.body)
-          : responseData.body
-      } catch (parseError) {
-        throw new Error(`Failed to parse Lambda response body: ${parseError.message}`)
-      }
-    } else {
-      throw new Error(`Unexpected Lambda response format. Full response: ${JSON.stringify(responseData)}`)
-    }
-    
-    // Validate required fields
-    if (!parsedBody.major_elements) {
-      throw new Error('Lambda response missing required field: major_elements')
-    }
-    
-    console.log(`✅ Lambda API scrape successful for ${normalizedUrl}`)
-    return parsedBody
-    
-  } catch (error) {
-    console.error(`❌ Lambda API call failed for ${normalizedUrl}:`, error)
-    throw error
+  console.log(`🌐 Calling Lambda API to scrape: ${normalizedUrl}${body.intent ? ` (intent: ${body.intent})` : ''}`)
+
+  const response = await fetch(LAMBDA_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Lambda API returned status ${response.status}: ${response.statusText}`)
   }
+
+  const data = await response.json()
+
+  let parsed
+  if (data.major_elements) {
+    parsed = data // Shape A
+  } else if (data.statusCode !== undefined && data.statusCode !== 200) {
+    throw new Error(`Lambda returned non-200 status: ${data.statusCode}`)
+  } else if (data.body !== undefined) {
+    parsed = typeof data.body === 'string' ? JSON.parse(data.body) : data.body // Shape B
+  } else {
+    throw new Error(`Unexpected Lambda response format: ${JSON.stringify(data)}`)
+  }
+
+  if (!parsed.major_elements) {
+    throw new Error('Lambda response missing required field: major_elements')
+  }
+
+  console.log(`✅ Lambda API scrape successful for ${normalizedUrl}`)
+  return parsed
 }
 
+// --- Public API ---
+
 /**
- * Query webpage data from Supabase scraper table
- * @param {string} url - URL to get scraper data for
- * @param {Object} options - Optional parameters (kept for compatibility)
- * @returns {Promise<Object>} - Scraped data from the database
+ * Scrape a single URL.
+ * Cache is checked first (specific domain, then generic) unless intent is provided,
+ * which always forces a fresh Lambda scrape. Profile ID only affects the Lambda
+ * browser session and does not bypass the cache.
  */
 export async function scrapeWebPage(url, options = {}) {
-  const intent = options.intent && typeof options.intent === 'string' ? options.intent.trim() : null
-  const profileId = options.profile_id && typeof options.profile_id === 'string' ? options.profile_id.trim() : null
+  const intent = typeof options.intent === 'string' ? options.intent.trim() || null : null
+  const profileId = typeof options.profile_id === 'string' ? options.profile_id.trim() || null : null
   console.log(`Looking up webpage data for ${url}${intent ? ` (intent: ${intent})` : ''}${profileId ? ` (profile: ${profileId})` : ''}`)
-  
+
   try {
     const supabase = createClient()
-    let data = null
-    let error = null
-    let domainNameUsed = null;
-    let genericDomainNameAttempted = null; 
-    let specificDomainNameAttempted = null; // Store the specific domain name for scraper_misses
+    const specificDomain = extractDomainName(url, true)
+    const genericDomain = extractDomainName(url, false)
 
-    // Only check cache when intent is absent - intent-specific scrapes always go to Lambda. Profile-based scrapes also skip (authenticated view differs from cached generic).
-    const skipCache = !!intent || !!profileId
-    const genericDomainName = extractDomainName(url, false)
-    const specificDomainName = extractDomainName(url, true)
+    // Intent-specific scrapes bypass the cache — the user wants a fresh, focused analysis.
+    const skipCache = !!intent
 
-    // 1. Try with the more specific domain name (e.g., youtube.com/watch) - skip when intent provided
-    specificDomainNameAttempted = specificDomainName
-    if (!skipCache && specificDomainName) {
-      console.log(`Attempting lookup with specific domain: ${specificDomainName}`)
-      ({ data, error } = await supabase
-        .from('scraper')
-        .select('scraper_output')
-        .eq('domain_name', specificDomainName)
-        .maybeSingle())
-      
-      if (!error && data && data.scraper_output) {
-        domainNameUsed = specificDomainName;
-        console.log(`✅ Found scraper data for specific domain: ${specificDomainName}`)
-      } else {
-        console.warn(`⚠️ No specific scraper data found for: ${specificDomainName}. Error: ${error ? error.message : 'No data.'}`)
-      }
-    }
+    let cachedOutput = null
+    let domainNameUsed = null
 
-    // 2. If specific lookup failed, fall back to generic domain name (e.g., youtube.com) - skip if intent provided
-    genericDomainNameAttempted = genericDomainName
-    if ((!data || !data.scraper_output) && !skipCache) {
-      console.log(`Falling back to generic domain lookup: ${genericDomainName}`)
-      if (genericDomainName) {
-        ({ data, error } = await supabase
+    if (!skipCache) {
+      // Check specific domain first (e.g. youtube.com/watch), then generic (youtube.com)
+      for (const domain of [specificDomain, genericDomain]) {
+        if (!domain) continue
+        console.log(`Attempting cache lookup for: ${domain}`)
+        const { data, error } = await supabase
           .from('scraper')
           .select('scraper_output')
-          .eq('domain_name', genericDomainName)
-          .maybeSingle())
+          .eq('domain_name', domain)
+          .maybeSingle()
 
-        if (!error && data && data.scraper_output) {
-            domainNameUsed = genericDomainName;
-            console.log(`✅ Found scraper data for generic domain: ${genericDomainName}`)
-        } else {
-          console.warn(`⚠️ No scraper data found for generic domain: ${genericDomainName}. Error: ${error ? error.message : 'No data.'}`)
+        if (error) throw new Error(`Database lookup failed: ${error.message}`)
+
+        if (data?.scraper_output) {
+          cachedOutput = typeof data.scraper_output === 'string'
+            ? JSON.parse(data.scraper_output)
+            : data.scraper_output
+          domainNameUsed = domain
+          console.log(`✅ Cache hit for: ${domain}`)
+          break
         }
+        console.warn(`⚠️ No cache entry for: ${domain}`)
       }
     }
-    
-    if (error) {
-      console.error(`❌ Database error querying scraper table:`, error)
-      throw new Error(`Database lookup failed: ${error.message}`)
+
+    if (cachedOutput) {
+      const elements = majorElementsToArray(cachedOutput.major_elements)
+      console.log('Retrieved scraper data from database:', JSON.stringify(cachedOutput, null, 2))
+      return {
+        url,
+        title: `Analysis for ${domainNameUsed}`,
+        content: `Found ${elements.length} major elements for ${domainNameUsed}.`,
+        elements,
+        timestamp: new Date().toISOString(),
+        statusCode: 200,
+        majorElementsData: cachedOutput.major_elements || {},
+      }
     }
-    
-    // 3. If no data found in Supabase cache (or cache skipped due to intent), call Lambda API
-    if (!data || !data.scraper_output) {
-      console.log(skipCache
-        ? `📡 Skipping cache (intent-specific scrape), calling Lambda API for: ${url}`
-        : `📡 No cache found in Supabase, calling Lambda API for: ${url}`)
-      
-      try {
-        const lambdaResponse = await callLambdaScrapingAPI(url, intent, profileId)
-        
-        // Lambda response contains: major_elements, domain, page_title, token_usage, saved_to_db
-        const body = {
-          major_elements: lambdaResponse.major_elements,
-          domain: lambdaResponse.domain,
-          page_title: lambdaResponse.page_title,
-        }
-        
-        // Use domain from Lambda response for tracking
-        domainNameUsed = lambdaResponse.domain || extractDomainName(url, false)
-        
-        console.log('Retrieved scraper data from Lambda API:', JSON.stringify(body, null, 2))
-        
-        // Format elements array from major_elements
-        const elements = []
-        if (body.major_elements) {
-          for (const [key, value] of Object.entries(body.major_elements)) {
-            elements.push({
-              key: key,
-              description: value.description,
-              selector: value.selector,
-            })
-          }
-        }
-        
-        // Use page_title from Lambda response if available
-        const title = body.page_title || `Analysis for ${domainNameUsed || 'unknown domain'}`
-        
-        return {
-          url: url,
-          title: title,
-          content: `Found ${elements.length} major elements for ${domainNameUsed || 'unknown domain'}.`,
-          elements: elements,
-          timestamp: new Date().toISOString(),
-          statusCode: 200,
-          majorElementsData: body.major_elements || {},
-        }
-      } catch (lambdaError) {
-        // Lambda API failed - record scraper miss now that ALL methods have failed
-        console.error(`❌ Lambda API call failed for ${url}:`, lambdaError)
 
-        // Record scraper miss for the generic domain (or specific if generic unavailable)
-        const domainToRecord = genericDomainNameAttempted || specificDomainNameAttempted
-        if (domainToRecord) {
-          console.log(`📝 Recording scraper miss for domain: ${domainToRecord} (all methods failed)`)
+    // No cache — call Lambda
+    console.log(skipCache
+      ? `📡 Skipping cache (intent-specific scrape), calling Lambda API for: ${url}`
+      : `📡 No cache found in Supabase, calling Lambda API for: ${url}`)
 
-          try {
-            const { error: insertError } = await supabase
-              .from('scraper_misses')
-              .insert({ domain_name: domainToRecord, count: 1 })
+    try {
+      const lambdaData = await callLambdaScrapingAPI(url, intent, profileId)
+      domainNameUsed = lambdaData.domain || genericDomain
+      const elements = majorElementsToArray(lambdaData.major_elements)
+      const title = lambdaData.page_title || `Analysis for ${domainNameUsed}`
+      console.log('Retrieved scraper data from Lambda API:', JSON.stringify({
+        major_elements: lambdaData.major_elements,
+        domain: lambdaData.domain,
+        page_title: lambdaData.page_title,
+      }, null, 2))
 
-            if (insertError) {
-              if (insertError.code === '23505') { // Unique violation - domain already exists
-                console.log(`Domain already exists in scraper_misses. Incrementing count for ${domainToRecord}`)
-                const { data: existingMiss, error: selectError } = await supabase
-                  .from('scraper_misses')
-                  .select('count')
-                  .eq('domain_name', domainToRecord)
-                  .single()
+      return {
+        url,
+        title,
+        content: `Found ${elements.length} major elements for ${domainNameUsed}.`,
+        elements,
+        timestamp: new Date().toISOString(),
+        statusCode: 200,
+        majorElementsData: lambdaData.major_elements || {},
+      }
+    } catch (lambdaError) {
+      console.error(`❌ Lambda API call failed for ${url}:`, lambdaError)
 
-                if (selectError) {
-                  console.error('Error fetching existing scraper miss to update count:', selectError)
-                } else if (existingMiss) {
-                  const { error: updateError } = await supabase
-                    .from('scraper_misses')
-                    .update({ count: existingMiss.count + 1 })
-                    .eq('domain_name', domainToRecord)
+      // Lambda failed — try cache as fallback before giving up
+      console.log(`🔄 Lambda failed — attempting cache fallback for ${url}`)
+      for (const domain of [specificDomain, genericDomain]) {
+        if (!domain) continue
+        console.log(`Attempting cache fallback lookup for: ${domain}`)
+        try {
+          const { data, error } = await supabase
+            .from('scraper')
+            .select('scraper_output')
+            .eq('domain_name', domain)
+            .maybeSingle()
 
-                  if (updateError) {
-                    console.error('Error incrementing scraper miss count:', updateError)
-                  } else {
-                    console.log(`✅ Incremented scraper miss count for: ${domainToRecord}`)
-                  }
-                }
-              } else {
-                console.error(`❌ Error inserting into scraper_misses:`, insertError)
-              }
-            } else {
-              console.log(`✅ Recorded new scraper miss for: ${domainToRecord}`)
+          if (!error && data?.scraper_output) {
+            const fallbackOutput = typeof data.scraper_output === 'string'
+              ? JSON.parse(data.scraper_output)
+              : data.scraper_output
+            const elements = majorElementsToArray(fallbackOutput.major_elements)
+            console.log(`✅ Cache fallback hit for: ${domain}`)
+            return {
+              url,
+              title: `Analysis for ${domain}`,
+              content: `Found ${elements.length} major elements for ${domain}.`,
+              elements,
+              timestamp: new Date().toISOString(),
+              statusCode: 200,
+              majorElementsData: fallbackOutput.major_elements || {},
             }
-          } catch (missRecordError) {
-            console.error(`⚠️ Failed to record scraper miss: ${missRecordError.message}`)
           }
+        } catch (cacheError) {
+          console.warn(`⚠️ Cache fallback lookup failed for ${domain}:`, cacheError.message)
         }
+        console.warn(`⚠️ No cache fallback entry for: ${domain}`)
+      }
 
-        throw new Error(`Failed to scrape webpage via Lambda API: ${lambdaError.message}`)
-      }
-    }
-    
-    // Data found in Supabase cache
-    const body = typeof data.scraper_output === 'string'
-      ? JSON.parse(data.scraper_output)
-      : data.scraper_output
-    
-    console.log('Retrieved scraper data from database:', JSON.stringify(body, null, 2))
-    
-    // **MODIFIED LOGIC: Handle the new `major_elements` format**
-    const elements = []
-    if (body.major_elements) {
-      for (const [key, value] of Object.entries(body.major_elements)) {
-        elements.push({
-          key: key,
-          description: value.description,
-          selector: value.selector,
-        })
-      }
-    }
-    
-    return {
-      url: url,
-      title: `Analysis for ${domainNameUsed || 'unknown domain'}`,
-      content: `Found ${elements.length} major elements for ${domainNameUsed || 'unknown domain'}.`,
-      elements: elements,
-      timestamp: new Date().toISOString(),
-      statusCode: 200,
-      majorElementsData: body.major_elements || {},
+      // Both Lambda and cache failed — record miss
+      const domainToRecord = genericDomain || specificDomain
+      if (domainToRecord) await recordScraperMiss(supabase, domainToRecord)
+      throw new Error(`Failed to scrape webpage via Lambda API: ${lambdaError.message}`)
     }
   } catch (error) {
     console.error(`Error getting scraper data for ${url}:`, error)
-    
     return {
-      url: url,
+      url,
       title: `Error accessing ${url}`,
       content: `Unable to get scraper data for ${url}: ${error.message}`,
       elements: [],
       timestamp: new Date().toISOString(),
-      error: error.message
+      error: error.message,
     }
   }
 }
 
 /**
- * Batch scrape multiple webpages for analysis
- * @param {string[]} domains - Array of domains to scrape
- * @param {string} userProvidedUrl - Optional specific URL to use instead of domain
- * @param {Object} options - Optional scraping parameters to pass to scrapeWebPage
- * @returns {Promise<Object>} - Object with { data: string, statusCode: number }
- *   statusCode: 200 = success, 404 = no data found, 500 = error occurred
+ * Scrape one or more domains and return a combined analysis string.
+ * If userProvidedUrl is given it is scraped once (not once per detected domain).
+ * Returns { data: string, statusCode: 200 | 404 | 500 }.
  */
 export async function batchScrapeWebpages(domains, userProvidedUrl = null, options = {}) {
-  if (!domains || domains.length === 0) {
-    console.log("📝 No specific websites targeted - skipping scraping")
+  if (!domains?.length) {
+    console.log('📝 No specific websites targeted - skipping scraping')
     return { data: '', statusCode: 404 }
   }
 
-  console.log("🌐 Starting webpage data lookup for:", domains)
-  const webpageData = []
+  console.log('🌐 Starting webpage data lookup for:', domains)
+
+  // When the user provides a URL, scrape it once rather than once per detected domain.
+  const targets = userProvidedUrl
+    ? [{ domain: domains[0], url: userProvidedUrl }]
+    : domains.map(domain => ({ domain, url: `https://${domain}` }))
+
+  const results = []
   let hasErrors = false
-  
-  for (const domain of domains) {
-    const urlToScrape = userProvidedUrl || `https://${domain}`
-    console.log(`🔍 Looking up domain: ${domain} with URL: ${urlToScrape}`)
-    const scrapedData = await scrapeWebPage(urlToScrape, options)
-    
-    // Skip error results - only include successful scrapes with actual data
-    if (scrapedData.error) {
-      console.warn(`⚠️ Skipping error result for ${domain}: ${scrapedData.error}`)
+
+  for (const { domain, url } of targets) {
+    console.log(`🔍 Looking up domain: ${domain} with URL: ${url}`)
+    const scraped = await scrapeWebPage(url, options)
+
+    if (scraped.error) {
+      console.warn(`⚠️ Skipping error result for ${domain}: ${scraped.error}`)
       hasErrors = true
       continue
     }
-    
-    // Only include if we have actual element data
-    const hasMajorElements = scrapedData.majorElementsData && Object.keys(scrapedData.majorElementsData).length > 0
-    const hasElements = scrapedData.elements && scrapedData.elements.length > 0
-    
-    if (!hasMajorElements && !hasElements) {
+
+    const hasMajorElements = scraped.majorElementsData && Object.keys(scraped.majorElementsData).length > 0
+
+    if (!hasMajorElements && !scraped.elements?.length) {
       console.warn(`⚠️ Skipping ${domain}: No element data found`)
       continue
     }
 
-    let detailedAnalysis = `## ${scrapedData.title.replace('Analysis for ', '')} Analysis
-URL: ${scrapedData.url}
-Title: ${scrapedData.title}`
+    let analysis = `## ${scraped.title.replace('Analysis for ', '')} Analysis\nURL: ${scraped.url}\nTitle: ${scraped.title}`
 
-    // **MODIFIED LOGIC: Generate report from the new `major_elements` format**
     if (hasMajorElements) {
-      detailedAnalysis += `\n\n## Major Element Analysis`
-      detailedAnalysis += `\nThis analysis identifies the most important structural and interactive elements on the page, which are ideal targets for a Chrome extension.`
-      
-      for (const [key, element] of Object.entries(scrapedData.majorElementsData)) {
-        detailedAnalysis += `\n\nElement: \`${key}\``
-        detailedAnalysis += `\n\t- Description: ${element.description}`
-        detailedAnalysis += `\n\t- CSS Selector: \`${element.selector}\``
+      analysis += '\n\n## Major Element Analysis'
+      analysis += '\nThis analysis identifies the most important structural and interactive elements on the page, which are ideal targets for a Chrome extension.'
+      for (const [key, el] of Object.entries(scraped.majorElementsData)) {
+        analysis += `\n\nElement: \`${key}\``
+        analysis += `\n\t- Description: ${el.description}`
+        analysis += `\n\t- CSS Selector: \`${el.selector}\``
       }
-      
-    } else if (hasElements) {
-      // Fallback for any other structure that might exist
-      detailedAnalysis += `\n\n**Key Elements:** ${scrapedData.elements.map(e => e.key).join(', ')}`
+    } else {
+      analysis += `\n\n**Key Elements:** ${scraped.elements.map(e => e.key).join(', ')}`
     }
 
-    webpageData.push(detailedAnalysis)
+    results.push(analysis)
   }
-  
-  if (webpageData.length === 0) {
-    console.warn("⚠️ No successful webpage analysis data collected")
-    return { 
-      data: '', 
-      statusCode: hasErrors ? 500 : 404 
-    }
+
+  if (!results.length) {
+    console.warn('⚠️ No successful webpage analysis data collected')
+    return { data: '', statusCode: hasErrors ? 500 : 404 }
   }
-  
-  console.log(`✅ Webpage analysis completed successfully (${webpageData.length} successful scrape(s))`)
-  return { 
-    data: webpageData.join('\n\n'), 
-    statusCode: 200 
-  }
+
+  console.log(`✅ Webpage analysis completed successfully (${results.length} successful scrape(s))`)
+  return { data: results.join('\n\n'), statusCode: 200 }
 }

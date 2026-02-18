@@ -21,7 +21,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata = {
-  title: "chromie - Chrome Extension Builder",
+  title: "chromie.dev - Chrome Extension Builder",
   description: "Build Chrome extensions with AI - no coding required",
   icons: {
     icon: '/chromie-logo-1.png',

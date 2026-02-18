@@ -106,7 +106,6 @@ export function createStreamEventHandler(context) {
 
       // Ignore intermediate status noise
       case "analyzing":
-      case "analysis_complete":
       case "fetching_apis":
       case "apis_ready":
       case "scraping":
@@ -116,11 +115,21 @@ export function createStreamEventHandler(context) {
       case "phase":
         break
 
+      case "analysis_complete":
+        // Planning phase finished — clear the planning progress bubble so the
+        // typing indicator shows during the subsequent scraping / prompt-building phase.
+        setPlanningProgress(null)
+        setCurrentPlanningPhase(null)
+        break
+
       case "generation_starting":
         // Mark that actual code generation (not planning) has started
         if (setIsActuallyGeneratingCode) {
           setIsActuallyGeneratingCode(true)
         }
+        // Clear planning progress bubble so it doesn't overlap with the task checklist
+        setPlanningProgress(null)
+        setCurrentPlanningPhase(null)
         break
 
       case "task_list":
