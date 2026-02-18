@@ -117,7 +117,7 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
 
   // Normalize brittle plan outputs to prefer simplest viable architecture.
   // This is a safety net in case the Meta Planner still over-architects.
-  const normalizedMetaPlan = normalizeMetaPlan(metaPlan, planningSummary)
+  const normalizedMetaPlan = normalizeMetaPlan(metaPlan, planningSummary, featureRequest)
 
   // Validate task_graph exists
   if (!normalizedMetaPlan.task_graph || !Array.isArray(normalizedMetaPlan.task_graph) || normalizedMetaPlan.task_graph.length === 0) {
@@ -150,18 +150,21 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
  * - Removes background.js task if background is disabled.
  * - Repairs dependencies + context_requirements.existing_files references after removals.
  */
-function normalizeMetaPlan(metaPlan, planningSummary) {
+function normalizeMetaPlan(metaPlan, planningSummary, featureRequest = '') {
   const out = structuredClone(metaPlan)
 
   const hasExternalApiInSummary = /## External APIs\s*\n[\s\S]*https?:\/\//i.test(planningSummary || '')
   const hasScrapedWebpage = /## Scraped Webpage Data/i.test(planningSummary || '')
   const hasWorkspace = /## Workspace Integration/i.test(planningSummary || '')
 
-  // Parse Chrome APIs line (best-effort) to detect "action-only" cases.
-  const chromeApisMatch = (planningSummary || '').match(/## Chrome APIs\s*\nLikely required:\s*([^\n]+)/i)
+  // Parse Chrome APIs line - matches format from formatPlanningSummaryForMetaPlanner: "## Likely needed Chrome APIs\n..."
+  const chromeApisMatch = (planningSummary || '').match(/## (?:Likely needed )?Chrome APIs\s*\n([^\n]+)/i)
   const chromeApis = chromeApisMatch
     ? chromeApisMatch[1].split(',').map(s => s.trim()).filter(Boolean)
     : []
+  const chromeApisLower = chromeApis.map(a => a.toLowerCase())
+  const hasCommandsApi = chromeApisLower.includes('commands')
+  const hasKeyboardShortcutInRequest = /keyboard\s+shortcut|keyboard shortcut|shortcut\s+to\s+(close|open|trigger)/i.test(featureRequest || '')
   const isActionOnly = chromeApis.length === 0 || (chromeApis.length === 1 && chromeApis[0].toLowerCase() === 'action')
 
   // External APIs: only if we have at least one usable endpoint in the summary.
@@ -183,11 +186,14 @@ function normalizeMetaPlan(metaPlan, planningSummary) {
   }
 
   // Background: disable for simple action-only UI with no external APIs, no scraping, no workspace.
+  // chrome.commands (keyboard shortcuts) REQUIRES a background script to handle onCommand events.
   const shouldUseBackground = Boolean(
     out.architecture?.external_communication?.uses_external_apis ||
     out.architecture?.components?.has_content_script ||
     hasScrapedWebpage ||
     hasWorkspace ||
+    hasCommandsApi ||
+    hasKeyboardShortcutInRequest ||
     !isActionOnly
   )
 

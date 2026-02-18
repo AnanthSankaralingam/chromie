@@ -8,6 +8,7 @@ import { buildRepairPrompt } from '@/lib/prompts/new-extension/executors/repair-
 import { normalizeGeneratedFileContent } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.js'
 import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
+import { ensureRequiredFiles } from '@/lib/utils/hyperbrowser-utils.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
 
@@ -218,6 +219,17 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       totalTasks,
       progress,
       fileContent: content
+    }
+  }
+
+  // Safety net: if manifest references background.js (e.g. for commands) but it wasn't generated, create it
+  const filesArray = Array.from(completedFiles.entries()).map(([fp, c]) => ({ file_path: fp, content: c }))
+  const ensuredFiles = ensureRequiredFiles(filesArray)
+  for (const f of ensuredFiles) {
+    if (!completedFiles.has(f.file_path)) {
+      console.log(`🔧 [task-graph-executor] Adding missing file required by manifest: ${f.file_path}`)
+      completedFiles.set(f.file_path, f.content)
+      savePromises.push(saveSingleFileToDatabase(f.file_path, f.content, sessionId))
     }
   }
 
