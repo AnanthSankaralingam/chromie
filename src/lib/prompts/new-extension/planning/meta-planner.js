@@ -111,6 +111,7 @@ Design the **simplest viable extension** that satisfies the user request.
 - Do **NOT** add an external API unless the user request explicitly requires network-fetched data **and** the planning summary includes a usable endpoint (not '(no endpoint)').
 - Do **NOT** add a background service worker unless it is required for:
   - long-lived event handling (alarms, context menus, lifecycle listeners),
+  - keyboard shortcuts (chrome.commands) — \`chrome.commands.onCommand\` MUST run in the background,
   - cross-tab orchestration,
   - privileged APIs that cannot or should not run in the UI page,
   - or network access that you intentionally centralize in the background.
