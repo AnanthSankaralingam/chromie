@@ -30,10 +30,18 @@ export default function ModalUrlPrompt({
     modal.className = 'url-prompt-modal';
     modal.id = `url-modal-${Date.now()}`; // Unique ID
     
-    // Get suggested URL from detected sites or URLs
-    const suggestedUrl = data.detectedUrls?.[0] || 
-                        (data.detectedSites?.[0] ? `https://${data.detectedSites[0]}` : null);
-    
+    // Collect all detected URLs to show as suggestions
+    const detectedUrls = data.detectedUrls?.length > 0
+      ? data.detectedUrls
+      : (data.detectedSites || []).map(s => `https://${s}`);
+    const firstSuggestedUrl = detectedUrls[0] || null;
+
+    const suggestedButtonsHtml = detectedUrls.map(url => {
+      let hostname = url;
+      try { hostname = new URL(url).hostname; } catch (e) { /* use raw */ }
+      return `<button class="suggested-url-btn" data-url="${url}" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #9ca3af, #6b7280); color: white; border: 1px solid #9ca3af; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 8px; font-weight: 500;"><span style="opacity:.9;">Suggested:</span><strong style="font-weight:600;">${hostname}</strong></button>`;
+    }).join('');
+
     modal.innerHTML = `
       <div class="url-prompt-overlay" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; backdrop-blur-sm;">
         <div class="url-prompt-container" style="background: #1e293b; color: #f1f5f9; border: 1px solid #475569; border-radius: 12px; padding: 20px; width: 92%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
@@ -44,15 +52,10 @@ export default function ModalUrlPrompt({
 
           <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">${data.message || 'Optionally provide a page to analyze for better results.'}</p>
 
-          ${suggestedUrl ? `
-            <button id="useSuggestedUrl" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:8px; background: linear-gradient(90deg, #9ca3af, #6b7280); color: white; border: 1px solid #9ca3af; border-radius: 8px; padding: 12px 16px; font-size: 13px; cursor: pointer; margin-bottom: 12px; font-weight: 500;">
-              <span style="opacity:.9;">Suggested:</span>
-              <strong style="font-weight:600;">${new URL(suggestedUrl).hostname}</strong>
-            </button>
-          ` : ''}
+          ${suggestedButtonsHtml}
 
           <div class="option-group" style="margin-bottom: 16px;">
-            <input type="url" id="userUrl" placeholder="https://example.com" value="${suggestedUrl || ''}" maxlength="2000" style="width: 100%; padding: 12px 16px; background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
+            <input type="url" id="userUrl" placeholder="https://example.com" value="${firstSuggestedUrl || ''}" maxlength="2000" style="width: 100%; padding: 12px 16px; background: #334155; color: #f1f5f9; border: 1px solid #475569; border-radius: 8px; font-size: 13px; outline: none; transition: border-color 0.2s;" />
           </div>
 
           <div style="display:flex; gap:12px; align-items:center; justify-content: space-between;">
@@ -68,18 +71,20 @@ export default function ModalUrlPrompt({
     
     // Add event listeners
     const urlInput = modal.querySelector('#userUrl');
-    const useSuggestedBtn = modal.querySelector('#useSuggestedUrl');
+    const suggestedBtns = modal.querySelectorAll('.suggested-url-btn');
     const useCustomBtn = modal.querySelector('#useCustomUrl');
     const noScrapingBtn = modal.querySelector('#noScraping');
     const cancelBtn = modal.querySelector('#cancelUrlPrompt');
-    
-    // Use suggested URL (one-click)
-    if (useSuggestedBtn) {
-      useSuggestedBtn.addEventListener('click', () => {
-        console.log('🎯 User selected suggested URL:', suggestedUrl);
-        handleUrlSubmit(suggestedUrl);
+
+    // Use a suggested URL (one-click) — one button per detected site
+    suggestedBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const url = btn.dataset.url;
+        console.log('🎯 User selected suggested URL:', url);
+        urlInput.value = url;
+        handleUrlSubmit(url);
       });
-    }
+    });
     
     // Continue with custom URL
     useCustomBtn.addEventListener('click', () => {
@@ -135,7 +140,7 @@ export default function ModalUrlPrompt({
     // Handle URL submission
     const handleUrlSubmit = (url) => {
       // Disable all buttons to prevent double-clicks
-      [useSuggestedBtn, useCustomBtn, noScrapingBtn].forEach(btn => {
+      [...suggestedBtns, useCustomBtn, noScrapingBtn].forEach(btn => {
         if (btn) btn.disabled = true;
       });
       

@@ -489,8 +489,8 @@ export default function StreamingChat({
                 )
               })}
 
-            {/* Typing indicator */}
-            {isGenerating && !(planningProgress && currentPlanningPhase) && (
+            {/* Typing indicator — hidden during planning progress and when the task list is active */}
+            {isGenerating && !(planningProgress && currentPlanningPhase) && !(taskList && taskList.length > 0) && (
               <ChatBubble variant="received">
                 <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
                 <ChatBubbleMessage variant="received" isLoading />
