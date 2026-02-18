@@ -27,20 +27,21 @@ Core Principles:
 - HTML/Body: Set margin: 0; padding: 0; width: 100%; min-height: 100%; to ensure proper container sizing
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
-Color Schemes (choose ONE and adapt to user request as needed):
-- Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-- Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+Color Schemes (choose ONE and adapt to user request as needed). Use white/gray/black palettes—avoid blue, purple, or other saturated accent colors:
+- Light: BG #ffffff, Surface #f5f5f5, Surface-alt #e5e5e5, Primary #171717, Text #171717/#525252
+- Dark: BG #0a0a0a, Surface #262626, Surface-alt #404040, Primary #fafafa, Text #fafafa/#a3a3a3
+- Glass Light: BG #ffffff, Surface rgba(0,0,0,0.04) + blur(12px), Primary #262626, Text #171717/#737373
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
+- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: solid black/white or gray gradient | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
+- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px gray/black border or ring (0 0 0 3px rgba(0,0,0,0.08))
 - Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
 
 Premium Effects:
 - Hover: scale(1.02) or translateY(-2px) + enhanced shadow
 - Backdrop-filter: blur(12px) for overlays/glass
-- Focus: Glowing ring with primary color
+- Focus: Subtle gray/black ring (avoid colored glows)
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>`;

@@ -70,10 +70,11 @@ async function* yieldExplanation(implementationResult, context) {
 function getProviderFromModel(model) {
   if (typeof model === 'string') {
     if (model.toLowerCase().includes('gemini')) return 'gemini'
+    if (model.toLowerCase().includes('kimi') || model.toLowerCase().includes('fireworks')) return 'fireworks'
     if (model.toLowerCase().includes('claude')) return 'anthropic'
     if (model.toLowerCase().includes('gpt')) return 'openai'
   }
-  return 'gemini'
+  return 'fireworks'
 }
 
 /**

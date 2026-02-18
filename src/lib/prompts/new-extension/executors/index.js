@@ -238,19 +238,20 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     .replace('{{OUTPUT_FORMAT}}', injections.OUTPUT_FORMAT)
 
   const model = modelOverride || DEFAULT_MODEL
+  const provider = llmService.getProviderFromModel(model)
+  const supportsThinking = provider === 'gemini' || provider === 'anthropic'
 
   console.log(`🔨 [task-executor] Generating ${task.file_name} with ${model}`)
   console.log(`🔨 [task-executor] Raw prompt (after section replacements):\n`, prompt)
 
-  const isGemini = !model.startsWith('claude')
   const response = await llmService.createResponse({
-    provider: isGemini ? 'gemini' : 'anthropic',
+    provider,
     model,
     input: prompt,
     temperature: 0.2,
     max_output_tokens: 12000,
     store: false,
-    thinkingConfig: isGemini ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
+    thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
   })
 
   let content = response?.output_text || ''

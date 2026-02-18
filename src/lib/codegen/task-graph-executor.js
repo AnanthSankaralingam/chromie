@@ -171,15 +171,16 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       console.log(`🔧 [task-graph-executor] Repair executor raw prompt (after section replacements):\n`, repairPrompt)
 
       const model = modelOverride || DEFAULT_MODEL
-      const isGemini = !model.startsWith('claude')
+      const provider = llmService.getProviderFromModel(model)
+      const supportsThinking = provider === 'gemini' || provider === 'anthropic'
       const repairResponse = await llmService.createResponse({
-        provider: isGemini ? 'gemini' : 'anthropic',
+        provider,
         model,
         input: repairPrompt,
         temperature: 0.1,
         max_output_tokens: 16000,
         store: false,
-        thinkingConfig: isGemini ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
+        thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
       })
 
       const repairRawOutput = repairResponse?.output_text || ''
