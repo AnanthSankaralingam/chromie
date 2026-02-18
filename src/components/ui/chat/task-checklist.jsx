@@ -18,9 +18,9 @@ export function TaskChecklist({ tasks }) {
     <div className="bg-slate-800/40 rounded-lg p-4 my-3 border border-slate-600/40">
       <div className="flex items-center gap-2 mb-3">
         {allComplete ? (
-          <CheckCircle2 className="w-4 h-4 text-green-500" />
+          <CheckCircle2 className="w-4 h-4 text-neutral-400" />
         ) : (
-          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+          <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
         )}
         <h3 className="text-sm font-semibold text-gray-100">
           {allComplete ? 'Files Generated' : 'Generating Files'}
@@ -46,14 +46,14 @@ function TaskItem({ task }) {
   const getStatusIcon = () => {
     switch (status) {
       case 'complete':
-        return <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+        return <CheckCircle2 className="w-4 h-4 text-neutral-400 flex-shrink-0" />
       case 'in_progress':
-        return <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+        return <Loader2 className="w-4 h-4 text-neutral-500 animate-spin flex-shrink-0" />
       case 'repairing':
-        return <Wrench className="w-4 h-4 text-orange-500 animate-pulse flex-shrink-0" />
+        return <Wrench className="w-4 h-4 text-neutral-500 animate-pulse flex-shrink-0" />
       case 'pending':
       default:
-        return <Circle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        return <Circle className="w-4 h-4 text-neutral-600 flex-shrink-0" />
     }
   }
 

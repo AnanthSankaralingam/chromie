@@ -61,7 +61,6 @@ export default function AppBarBuilder({
   const [isMetricsComingSoonOpen, setIsMetricsComingSoonOpen] = useState(false)
   const [isTestingReplaysModalOpen, setIsTestingReplaysModalOpen] = useState(false)
   const {
-    isTestButtonHighlighted,
     isDownloadButtonHighlighted,
     startTestButtonHighlight,
     startDownloadButtonHighlight,
@@ -375,7 +374,7 @@ export default function AppBarBuilder({
                   onClick={handleTestClick}
                   disabled={isTestDisabled || isGenerating}
                   variant="ghost"
-                  className={`rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+                  className="rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   try it out
@@ -675,7 +674,7 @@ export default function AppBarBuilder({
               onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
               disabled={isTestDisabled || isGenerating}
               variant="ghost"
-              className={`w-full rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 ${isTestButtonHighlighted ? 'onboarding-pulse' : ''}`}
+              className="w-full rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
             >
               <Play className="h-4 w-4 mr-2" />
               try it out

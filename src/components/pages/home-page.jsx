@@ -38,6 +38,7 @@ export default function HomePage() {
   const router = useRouter()
   const textareaRef = useRef(null)
   const { toast } = useToast()
+  const hasProcessedPostAuthPromptRef = useRef(false)
 
   // Typing suggestions for placeholder - extracted from extension suggestions data
   // Descriptions already have no prefix, "An extension that " is added during typing
@@ -338,8 +339,59 @@ export default function HomePage() {
     }
 
     restorePrompt()
+  }, [])
 
-    // Handle hash navigation (e.g., from /home#blog, /home#pricing, or /home#contact)
+  // When user returns from OAuth with pending_prompt, create project and redirect to builder
+  useEffect(() => {
+    if (!user || isLoading || hasProcessedPostAuthPromptRef.current) return
+    const pendingPromptData = typeof window !== 'undefined' && sessionStorage.getItem('pending_prompt')
+    if (!pendingPromptData) return
+
+    hasProcessedPostAuthPromptRef.current = true
+    ;(async () => {
+      try {
+        const { prompt: savedPrompt, timestamp } = JSON.parse(pendingPromptData)
+        if (Date.now() - timestamp >= 60 * 60 * 1000) {
+          sessionStorage.removeItem('pending_prompt')
+          return
+        }
+        setPrompt(savedPrompt)
+        setIsGenerating(true)
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: savedPrompt.slice(0, 50) + '...', description: savedPrompt })
+        })
+        if (response.ok) {
+          const { project } = await response.json()
+          sessionStorage.removeItem('pending_prompt')
+          const builderUrl = `/builder?project=${project.id}&autoGenerate=${encodeURIComponent(savedPrompt)}`
+          router.push(builderUrl)
+        } else {
+          sessionStorage.removeItem('pending_prompt')
+          const errorData = await response.json()
+          toast({
+            variant: 'destructive',
+            title: 'Could not create project',
+            description: errorData.error || 'Please try again.',
+          })
+        }
+      } catch (e) {
+        console.error('Error processing post-auth prompt:', e)
+        sessionStorage.removeItem('pending_prompt')
+        toast({
+          variant: 'destructive',
+          title: 'Something went wrong',
+          description: 'Please try again.',
+        })
+      } finally {
+        setIsGenerating(false)
+      }
+    })()
+  }, [user, isLoading, router, toast])
+
+  // Handle hash navigation (e.g., from /home#blog, /home#pricing, or /home#contact)
+  useEffect(() => {
     const handleHashScroll = () => {
       const hash = window.location.hash
       const supportedHashes = ['#blog', '#pricing', '#contact', '#featured-creations']
@@ -355,8 +407,6 @@ export default function HomePage() {
     }
 
     handleHashScroll()
-    
-    // Also listen for hash changes
     window.addEventListener('hashchange', handleHashScroll)
     return () => window.removeEventListener('hashchange', handleHashScroll)
   }, [])
@@ -379,8 +429,8 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-900 to-slate-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-500 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
       </div>
     )
   }
@@ -617,6 +667,7 @@ export default function HomePage() {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
+        redirectUrl="/home"
       />
 
       {/* Project Limit Modal */}
