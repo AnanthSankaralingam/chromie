@@ -305,6 +305,7 @@ export default function MonacoEditor({
 
         // Replace src/href attributes pointing to icons/*.png
         // Handles both relative paths and paths with leading slash
+        // Add data-chromie-icon so icon sizing CSS applies (data URLs don't match img[src*="icons/"])
         html = html.replace(/(src|href)=(["'])([^"']*icons\/[A-Za-z0-9-_]+\.png)\2/gi, (m, attr, quote, path) => {
           // Normalize path: remove leading slash if present
           const normalized = path.startsWith('/') ? path.slice(1) : path
@@ -313,7 +314,7 @@ export default function MonacoEditor({
           const url = iconMap.get(iconPath)
           if (url) {
             replacedCount++
-            return `${attr}=${quote}${url}${quote}`
+            return `${attr}=${quote}${url}${quote} data-chromie-icon`
           } else {
             console.warn('[MonacoEditor] Icon not found in map:', iconPath, 'Original:', path, 'Available:', Array.from(iconMap.keys()))
           }
@@ -373,12 +374,14 @@ export default function MonacoEditor({
         return html
       }
     }
+    const iconSizingCss = '<style>img.icon, img[src*="icons/"], img[src*="chrome-extension://"], img[data-chromie-icon] { max-width: 24px; max-height: 24px; width: auto; height: auto; object-fit: contain; }</style>'
+    const injectIconSizing = (html) => /<\/head>/i.test(html) ? html.replace(/<\/head>/i, iconSizingCss + '\n</head>') : html
     const hasFullHtml = /<html[\s>]/i.test(raw) || /<body[\s>]/i.test(raw)
     const iconMap = buildIconDataUrlMap()
     if (hasFullHtml) {
       const doc = `<!doctype html>` + raw
       const withStyles = inlineLinkedStyles(doc)
-      return rewriteIconUrls(withStyles, iconMap)
+      return rewriteIconUrls(injectIconSizing(withStyles), iconMap)
     }
     const scaffold = `<!doctype html><html><head><meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -387,13 +390,14 @@ export default function MonacoEditor({
       html, body { height: 100%; }
       body { margin: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; line-height: 1.5; }
       img, video, canvas, svg { max-width: 100%; height: auto; }
+      img.icon, img[src*="icons/"], img[src*="chrome-extension://"], img[data-chromie-icon] { max-width: 24px; max-height: 24px; width: auto; height: auto; object-fit: contain; }
       * { box-sizing: border-box; }
     </style>
     </head><body>
       <div id="app">${raw}</div>
     </body></html>`
     const withStyles = inlineLinkedStyles(scaffold)
-    return rewriteIconUrls(withStyles, iconMap)
+    return rewriteIconUrls(injectIconSizing(withStyles), iconMap)
   }
 
   const handleFormat = () => {
