@@ -212,7 +212,7 @@ export default function LandingPage() {
               Privacy Policy
             </a>
             <a
-              href="https://linkedin.com/company/chromiedev"
+              href="https://linkedin.com/company/chromie-dev"
               target="_blank"
               rel="noopener noreferrer"
               className="text-slate-400 hover:text-white transition-colors"
