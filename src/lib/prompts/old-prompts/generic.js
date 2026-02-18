@@ -31,22 +31,22 @@ Core Principles:
 - Use gradients, glassmorphism, shadows for depth
 - Transitions: cubic-bezier(0.4, 0, 0.2, 1) 0.2s
 
-Color Schemes (choose ONE):
-1. Vibrant: Gradient primary (#6366f1→#8b5cf6), BG #fafafa, Text #0f172a/#64748b
-2. Glass Dark: BG #0f172a, Surface rgba(255,255,255,0.1) + blur(12px), Primary #818cf8, Text #f1f5f9/#94a3b8
-3. Sophisticated: Accent #0ea5e9/#8b5cf6, BG #18181b/#ffffff, Surface #27272a/#f4f4f5
+Color Schemes (choose ONE). Use white/gray/black palettes—avoid blue, purple, or other saturated accent colors:
+1. Light: BG #ffffff, Surface #f5f5f5, Primary #171717, Text #171717/#525252
+2. Dark: BG #0a0a0a, Surface #262626, Primary #fafafa, Text #fafafa/#a3a3a3
+3. Glass: BG #ffffff or #0a0a0a, Surface rgba(0,0,0,0.04) or rgba(255,255,255,0.08) + blur(12px), Primary #262626 or #fafafa
 
 Components:
 - Typography: system-ui, -apple-system | 13px body, 18px heading, 22px hero | Weights 600+ for headings | letter-spacing: -0.02em (headings)
-- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: gradient + white text | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
-- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px primary border or ring (0 0 0 3px rgba(primary, 0.1))
+- Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: solid black/white or gray | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
+- Inputs: Padding 10px 14px | Radius 12px | Focus: 2px gray/black border or ring (0 0 0 3px rgba(0,0,0,0.08))
 - Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
 
 Premium Effects (MUST include):
-- Gradients on buttons/headers
+- Subtle gray gradients on buttons/headers (avoid blue/purple)
 - Hover: scale(1.02) or translateY(-2px) + enhanced shadow
 - Backdrop-filter: blur(12px) for overlays/glass
-- Focus: Glowing ring with primary color
+- Focus: Subtle gray/black ring (avoid colored glows)
 - Layered shadows for realistic depth
 - Custom scrollbar styling (webkit-scrollbar)
 </styling_requirements>

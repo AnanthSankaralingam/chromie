@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
@@ -8,10 +8,12 @@ import { motion } from "framer-motion"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import Image from "next/image"
 import VideoGallery from "@/components/ui/video-gallery"
+import AuthModal from "@/components/ui/modals/modal-auth"
 
 export default function LandingPage() {
   const { user, isLoading } = useSession()
   const router = useRouter()
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
   // YouTube video URLs for the gallery
   const demoVideos = [
@@ -30,9 +32,8 @@ export default function LandingPage() {
     }
   }, [user, isLoading, router])
 
-  const handleGetStarted = () => {
-    // Redirect to waitlist page
-    router.push('/waitlist')
+  const handleTryItOut = () => {
+    setIsAuthModalOpen(true)
   }
 
   const handleBookDemo = () => {
@@ -137,12 +138,12 @@ export default function LandingPage() {
             >
               <div className="flex flex-col items-center gap-2">
                 <Button
-                  onClick={handleGetStarted}
+                  onClick={handleTryItOut}
                   size="lg"
                   variant="ghost"
                   className="text-xs md:text-sm px-6 py-3 rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white shadow-lg shadow-slate-500/30 hover:shadow-slate-500/40 transition-all duration-300"
                 >
-                  join the waitlist
+                  try it out
                 </Button>
                 <span className="text-sm text-slate-400 font-medium">for individuals</span>
               </div>
@@ -221,6 +222,12 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        redirectUrl="/home"
+      />
     </div>
   )
 }
