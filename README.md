@@ -37,6 +37,7 @@ launch lauch launch
 1. Offline job for scraping API docs (handle timeouts, caching).
 2. Add more blog posts and featured creations (gallery + preview).
 3. Security audit feature for users before exporting extensions.
+4. Google docs-like project collaborator feature
 
 ---
 
