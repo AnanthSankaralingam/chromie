@@ -10,14 +10,16 @@ export class LLMService {
     
     // Define fallback provider hierarchy
     this.fallbackHierarchy = {
-      'gemini': ['anthropic', 'openai'],
-      'anthropic': ['gemini', 'openai'],
-      'openai': ['gemini', 'anthropic']
+      'gemini': ['fireworks', 'anthropic', 'openai'],
+      'fireworks': ['anthropic', 'openai'],
+      'anthropic': ['gemini', 'fireworks', 'openai'],
+      'openai': ['gemini', 'fireworks', 'anthropic']
     }
     
     // Define default models for fallback providers
     this.defaultModels = {
       'gemini': 'gemini-2.5-flash',
+      'fireworks': 'accounts/fireworks/models/kimi-k2p5',
       'anthropic': 'claude-haiku-4-5-20251001',
       'openai': 'gpt-4o-mini'
     }
@@ -150,13 +152,13 @@ export class LLMService {
         lastError = error
         console.error(`[llm-service] ${currentProvider} error:`, error)
         
-        // Check if this is a retryable error and we have more providers to try
-        if (this.isRetryableError(error) && providers.indexOf(currentProvider) < providers.length - 1) {
-          console.log(`[llm-service] ${currentProvider} unavailable, attempting fallback to next provider`)
+        // Always try the next provider if one is available
+        if (providers.indexOf(currentProvider) < providers.length - 1) {
+          console.log(`[llm-service] ${currentProvider} failed (status: ${error?.status ?? error?.code ?? 'unknown'}), falling back to next provider`)
           continue
         }
         
-        // If not retryable or no more providers, throw the error
+        // No more providers to try
         throw error
       }
     }
@@ -242,13 +244,13 @@ export class LLMService {
         lastError = error
         console.error(`[llm-service] ${currentProvider} streamResponse error:`, error)
         
-        // Check if this is a retryable error and we have more providers to try
-        if (this.isRetryableError(error) && providers.indexOf(currentProvider) < providers.length - 1) {
-          console.log(`[llm-service] ${currentProvider} unavailable, attempting fallback to next provider`)
+        // Always try the next provider if one is available
+        if (providers.indexOf(currentProvider) < providers.length - 1) {
+          console.log(`[llm-service] ${currentProvider} failed (status: ${error?.status ?? error?.code ?? 'unknown'}), falling back to next provider`)
           continue
         }
         
-        // If not retryable or no more providers, throw the error
+        // No more providers to try
         throw error
       }
     }

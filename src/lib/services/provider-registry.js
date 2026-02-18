@@ -3,6 +3,7 @@
 import { OpenAIAdapter } from './adapters/openai-adapter.js'
 import { AnthropicAdapter } from './adapters/anthropic-adapter.js'
 import { GeminiAdapter } from './adapters/gemini-adapter.js'
+import { FireworksAdapter } from './adapters/fireworks-adapter.js'
 
 export class ProviderRegistry {
   constructor() {
@@ -45,6 +46,16 @@ export class ProviderRegistry {
       supportsStreaming: true,
       supportsJsonSchema: true,
       maxContextWindow: 1000000
+    })
+
+    // Register Fireworks adapter (Kimi K2.5 and other Fireworks models)
+    this.registerProvider('fireworks', new FireworksAdapter(), {
+      name: 'Fireworks AI',
+      baseURL: 'https://api.fireworks.ai/inference/v1',
+      apiKeyEnv: 'FIREWORKS_API_KEY',
+      supportsStreaming: true,
+      supportsJsonSchema: false,
+      maxContextWindow: 256000
     })
   }
 
@@ -102,6 +113,9 @@ export class ProviderRegistry {
         'gemini-1.5-pro',
         'gemini-1.5-flash',
         'gemini-1.0-pro'
+      ],
+      fireworks: [
+        'accounts/fireworks/models/kimi-k2p5'
       ]
     }
     
@@ -147,6 +161,9 @@ export class ProviderRegistry {
         'gemini-1.5-pro': { maxTokens: 8192, temperature: 0.2 },
         'gemini-1.5-flash': { maxTokens: 8192, temperature: 0.2 },
         'gemini-1.0-pro': { maxTokens: 4096, temperature: 0.2 }
+      },
+      fireworks: {
+        'accounts/fireworks/models/kimi-k2p5': { maxTokens: 32768, temperature: 0.6 }
       }
     }
 
