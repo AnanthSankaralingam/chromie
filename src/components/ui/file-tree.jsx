@@ -120,36 +120,37 @@ export default function FileTree({
     }
   }
 
-  // Helper function to get file icon based on extension
+  // Helper function to get file icon based on extension (neutral palette)
   const getFileIcon = (fileName) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
+    const iconClass = "h-4 w-4 text-neutral-400"
     switch (ext) {
       case 'js':
       case 'jsx':
       case 'ts':
       case 'tsx':
-        return <FileCode className="h-4 w-4 text-yellow-400" />
+        return <FileCode className={iconClass} />
       case 'json':
-        return <Settings className="h-4 w-4 text-orange-400" />
+        return <Settings className={iconClass} />
       case 'html':
       case 'htm':
-        return <Globe className="h-4 w-4 text-red-400" />
+        return <Globe className={iconClass} />
       case 'css':
       case 'scss':
       case 'sass':
-        return <Palette className="h-4 w-4 text-blue-400" />
+        return <Palette className={iconClass} />
       case 'png':
       case 'jpg':
       case 'jpeg':
       case 'gif':
       case 'svg':
       case 'webp':
-        return <Image className="h-4 w-4 text-green-400" />
+        return <Image className={iconClass} />
       case 'md':
       case 'txt':
-        return <FileText className="h-4 w-4 text-slate-400" />
+        return <FileText className={iconClass} />
       default:
-        return <File className="h-4 w-4 text-slate-400" />
+        return <File className={iconClass} />
     }
   }
 
@@ -194,25 +195,25 @@ export default function FileTree({
         {item.type === "folder" ? (
           <div>
             <div
-              className="group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-blue-500/10 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-purple-500/20 file-tree-item"
+              className="group flex items-center py-2 px-3 hover:bg-neutral-800/80 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-neutral-700 file-tree-item"
               style={{ marginLeft: `${level * 20}px` }}
               onClick={() => toggleFolder(item.fullPath || item.name)}
               data-type="folder"
             >
               <div className="flex items-center flex-1">
                 {expandedFolders[item.fullPath || item.name] ? 
-                  <ChevronDown className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" /> : 
-                  <ChevronRight className="h-4 w-4 mr-2 text-slate-400 group-hover:text-purple-400 transition-colors" />
+                  <ChevronDown className="h-4 w-4 mr-2 text-neutral-400 group-hover:text-neutral-300 transition-colors" /> : 
+                  <ChevronRight className="h-4 w-4 mr-2 text-neutral-400 group-hover:text-neutral-300 transition-colors" />
                 }
                 {expandedFolders[item.fullPath || item.name] ? (
-                  <FolderOpen className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
+                  <FolderOpen className="h-4 w-4 mr-3 text-neutral-400 group-hover:text-neutral-300" />
                 ) : (
-                  <Folder className="h-4 w-4 mr-3 text-blue-400 group-hover:text-blue-300" />
+                  <Folder className="h-4 w-4 mr-3 text-neutral-400 group-hover:text-neutral-300" />
                 )}
-                <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{item.name}</span>
+                <span className="text-sm font-medium text-neutral-300 group-hover:text-neutral-200 transition-colors">{item.name}</span>
               </div>
               {item.children && (
-                <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded-full">
                   {item.children.length}
                 </span>
               )}
@@ -223,8 +224,8 @@ export default function FileTree({
           </div>
         ) : (
           <div
-            className={`group flex items-center py-2 px-3 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-slate-500/30 file-tree-item ${
-              selectedFile?.name === item.name ? "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/40" : ""
+            className={`group flex items-center py-2 px-3 hover:bg-neutral-800/80 cursor-pointer rounded-lg transition-all duration-200 border border-transparent hover:border-neutral-700 file-tree-item ${
+              selectedFile?.name === item.name ? "bg-neutral-800 border-neutral-600" : ""
             }`}
             style={{ marginLeft: `${level * 20}px` }}
             onClick={() => handleFileSelect(item)}
@@ -233,7 +234,7 @@ export default function FileTree({
             <div className="flex items-center flex-1">
               {getFileIcon(item.name)}
               <span className={`text-sm ml-3 transition-colors ${
-                selectedFile?.name === item.name ? "text-white font-medium" : "text-slate-300 group-hover:text-white"
+                selectedFile?.name === item.name ? "text-neutral-100 font-medium" : "text-neutral-300 group-hover:text-neutral-200"
               }`}>
                 {item.name}
               </span>
@@ -248,9 +249,9 @@ export default function FileTree({
                 title="Copy file content"
               >
                 {copiedFile === item.name ? (
-                  <Check className="h-3 w-3 text-green-400" />
+                  <Check className="h-3 w-3 text-neutral-400" />
                 ) : (
-                  <Copy className="h-3 w-3 text-slate-400" />
+                  <Copy className="h-3 w-3 text-neutral-500" />
                 )}
               </button>
 
@@ -258,14 +259,14 @@ export default function FileTree({
               {canDeleteFile(item.name) && (
                 <button
                   onClick={(e) => handleDeleteClick(item, e)}
-                  className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                  className="p-1 hover:bg-neutral-700 rounded transition-colors"
                   title={`Delete ${item.isAsset ? 'asset' : 'file'}`}
                   disabled={deletingAsset === item.file_path}
                 >
                   {deletingAsset === item.file_path ? (
-                    <div className="h-3 w-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="h-3 w-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Trash2 className="h-3 w-3 text-red-400 hover:text-red-300" />
+                    <Trash2 className="h-3 w-3 text-neutral-400 hover:text-neutral-300" />
                   )}
                 </button>
               )}
@@ -279,9 +280,9 @@ export default function FileTree({
   if (isLoadingFiles) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-center">
-        <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-gray-500/30 border-t-gray-500 mb-4"></div>
-        <h4 className="text-lg font-medium text-slate-400 mb-2">loading files</h4>
-        <p className="text-sm text-slate-500">fetching your project structure...</p>
+        <div className="animate-spin-slow rounded-full h-12 w-12 border-4 border-neutral-600/30 border-t-neutral-500 mb-4"></div>
+        <h4 className="text-lg font-medium text-neutral-400 mb-2">loading files</h4>
+        <p className="text-sm text-neutral-500">fetching your project structure...</p>
       </div>
     )
   }
@@ -289,11 +290,11 @@ export default function FileTree({
   if (fileStructure.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-center animate-fade-in-up">
-        <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 animate-pulse-glow">
-          <Package className="h-8 w-8 text-purple-400" />
+        <div className="w-16 h-16 bg-neutral-800 rounded-2xl flex items-center justify-center mb-6 border border-neutral-700">
+          <Package className="h-8 w-8 text-neutral-400" />
         </div>
-        <h4 className="text-lg font-medium gradient-text-secondary mb-2">no files yet</h4>
-        <p className="text-sm text-slate-500 max-w-48 leading-relaxed">start by asking the ai assistant to generate your chrome extension</p>
+        <h4 className="text-lg font-medium text-neutral-300 mb-2">no files yet</h4>
+        <p className="text-sm text-neutral-500 max-w-48 leading-relaxed">start by asking the ai assistant to generate your chrome extension</p>
       </div>
     )
   }
@@ -314,12 +315,12 @@ export default function FileTree({
                 }}
                 placeholder="new-file.js"
                 disabled={isCreatingFile}
-                className="w-full pl-3 pr-10 py-2 bg-slate-800/50 border border-slate-600/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all disabled:opacity-50"
+                className="w-full pl-3 pr-10 py-2 bg-neutral-800/80 border border-neutral-700 rounded-lg text-sm text-neutral-300 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!newFileName.trim() || isCreatingFile}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:opacity-50 rounded text-white transition-colors"
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 disabled:opacity-50 rounded text-neutral-200 transition-colors"
                 title="Create file"
               >
                 {isCreatingFile ? (
@@ -330,7 +331,7 @@ export default function FileTree({
               </button>
             </div>
             {createError && (
-              <p className="text-xs text-red-400 px-1">{createError}</p>
+              <p className="text-xs text-neutral-400 px-1">{createError}</p>
             )}
           </form>
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@monaco-editor/react'
-import { Save, Edit3, Settings, Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Image, Trash2, Sparkles } from 'lucide-react'
+import { Code2, Eye, Code, PanelLeftOpen, PanelLeftClose, Trash2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ArtifactClose } from '@/components/ui/artifact/artifact'
 import { formatJsonFile, isJsonFile } from '@/lib/utils/client-json-formatter'
@@ -430,7 +430,7 @@ export default function MonacoEditor({
       lineHeight: 20,
       fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
       fontLigatures: true,
-      minimap: { enabled: true },
+      minimap: { enabled: false },
       scrollBeyondLastLine: false,
       automaticLayout: true,
       wordWrap: 'on',
@@ -476,7 +476,6 @@ export default function MonacoEditor({
       }
     })
 
-    // Set minimalistic dark theme
     monaco.editor.setTheme('vs-dark')
 
     // Configure language-specific settings
@@ -532,130 +531,96 @@ export default function MonacoEditor({
         isOpen={isPreviewInfoOpen} 
         onClose={() => setIsPreviewInfoOpen(false)} 
       />
-      {/* Editor Header */}
+      {/* Editor Header - compact toolbar */}
       {!readOnly && (
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-700/50">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-[#0a0a0a] border-b border-neutral-800/80 min-h-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {onToggleFileTree && (
-              <Button
+              <button
                 onClick={onToggleFileTree}
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                className="shrink-0 p-1 rounded text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/80 transition-colors"
                 title={isFileTreeCollapsed ? 'Show file tree' : 'Hide file tree'}
               >
-                {isFileTreeCollapsed ? (
-                  <PanelLeftOpen className="h-4 w-4" />
-                ) : (
-                  <PanelLeftClose className="h-4 w-4" />
-                )}
-              </Button>
+                {isFileTreeCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+              </button>
             )}
-            {isImageAsset() ? (
-              <Image className="h-4 w-4 text-blue-400" />
-            ) : (
-              <Edit3 className="h-4 w-4 text-purple-400" />
-            )}
-            <span className="text-sm text-slate-300 font-medium">{fileName || 'Untitled'}</span>
-            {isImageAsset() && (
-              <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">Preview</span>
-            )}
+            <span className="text-xs font-medium text-neutral-300 truncate">{fileName || 'Untitled'}</span>
             {hasChanges && !isImageAsset() && (
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-orange-300">Unsaved</span>
-              </div>
+              <span className="shrink-0 w-1.5 h-1.5 bg-neutral-500 rounded-full animate-pulse" title="Unsaved" />
+            )}
+            {isImageAsset() && (
+              <span className="shrink-0 text-[10px] text-neutral-500 uppercase tracking-wider">Preview</span>
             )}
           </div>
-          <div className="flex items-center space-x-2">
-            {!isImageAsset() && (
-              <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded">
-                {language}
-              </span>
-            )}
+          <div className="flex items-center gap-1 shrink-0">
             {!isImageAsset() && isJsonFile(fileName) && !hideActionButtonsUntilSave && (
-              <Button
+              <button
                 onClick={handleFormat}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-neutral-400 hover:text-neutral-300 hover:bg-neutral-800/80 transition-colors"
                 title="Format JSON"
               >
-                <Code2 className="h-3 w-3 mr-1" />
-                Format
-              </Button>
+                <Code2 className="h-3.5 w-3.5 shrink-0" />
+                <span>Format</span>
+              </button>
             )}
             {!isImageAsset() && language === 'html' && (
-              <Button
+              <button
                 id="tour-see-html-button"
                 onClick={handleToggleHtmlPreview}
                 disabled={isLoadingHtmlPreview}
-                size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1 disabled:opacity-50"
-                title={isHtmlPreview ? 'Back to Code' : isLoadingHtmlPreview ? 'Loading icons...' : 'See HTML'}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-neutral-400 hover:text-neutral-300 hover:bg-neutral-800/80 disabled:opacity-50 transition-colors"
+                title={isHtmlPreview ? 'Back to Code' : isLoadingHtmlPreview ? 'Loading...' : 'Preview HTML'}
               >
                 {isLoadingHtmlPreview ? (
-                  <span className="inline-flex items-center gap-1">
-                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-teal-400 border-t-transparent" />
-                    Loading
-                  </span>
+                  <span className="block h-3.5 w-3.5 border border-neutral-500 border-t-transparent rounded-full animate-spin shrink-0" />
                 ) : isHtmlPreview ? (
-                  <><Code className="h-3 w-3 mr-1" />Code</>
+                  <><Code className="h-3.5 w-3.5 shrink-0" /><span>Code</span></>
                 ) : (
-                  <span className="inline-flex items-center space-x-1">
-                    <Eye className="h-3 w-3 mr-1" />
-                    <span>See</span>
-                    <span className="uppercase text-[9px] leading-none px-1 py-[2px] rounded bg-teal-800 text-teal-200 border border-teal-700">beta</span>
-                  </span>
+                  <><Eye className="h-3.5 w-3.5 shrink-0" /><span>Preview</span></>
                 )}
-              </Button>
+              </button>
             )}
             {!isImageAsset() && language === 'markdown' && (
-              <Button
+              <button
                 onClick={handleToggleMarkdownPreview}
-                size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-xs px-3 py-1"
-                title={isMarkdownPreview ? 'Back to Code' : 'Preview Markdown'}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-neutral-400 hover:text-neutral-300 hover:bg-neutral-800/80 transition-colors"
+                title={isMarkdownPreview ? 'Back to Code' : 'Preview'}
               >
-                {isMarkdownPreview ? <Code className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                {isMarkdownPreview ? 'Code' : 'Preview'}
-              </Button>
+                {isMarkdownPreview ? <><Code className="h-3.5 w-3.5 shrink-0" /><span>Code</span></> : <><Eye className="h-3.5 w-3.5 shrink-0" /><span>Preview</span></>}
+              </button>
             )}
             {fileName?.toLowerCase() === 'manifest.json' && (
-              <Button
+              <button
                 onClick={() => handleOpenAssetUpload('generate')}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1"
-                title="Generate a new extension icon"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-neutral-400 hover:text-neutral-300 hover:bg-neutral-800/80 transition-colors"
+                title="Generate extension icon"
               >
-                <Sparkles className="h-3 w-3 mr-1" />
-                Generate Icon
-              </Button>
+                <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                <span>Icon</span>
+              </button>
             )}
             {!isImageAsset() && (
-              <Button
+              <button
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
-                size="sm"
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-xs px-3 py-1"
+                className="ml-1 px-2 py-1 rounded text-xs font-medium bg-white text-neutral-900 hover:bg-neutral-200 disabled:opacity-40 disabled:bg-neutral-800 disabled:text-neutral-600 disabled:cursor-default transition-colors"
               >
-                <Save className="h-3 w-3 mr-1" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
+                {isSaving ? '…' : 'Save'}
+              </button>
             )}
             {onDelete && canDeleteFile() && (
-              <Button
+              <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                size="sm"
-                variant="ghost"
-                className="text-red-400 hover:text-red-300 hover:bg-red-900/30 disabled:opacity-50 text-xs px-2 py-1"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-neutral-400 hover:text-neutral-300 hover:bg-neutral-800/80 disabled:opacity-50 transition-colors"
                 title={`Delete ${fileName}`}
               >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+                <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                <span>Delete</span>
+              </button>
             )}
             {onClose && (
-              <ArtifactClose onClick={onClose} />
+              <ArtifactClose onClick={onClose} className="!h-6 !w-6 !p-1 text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/80" />
             )}
           </div>
         </div>
@@ -725,7 +690,7 @@ export default function MonacoEditor({
               readOnly: readOnly,
               automaticLayout: true,
               scrollBeyondLastLine: false,
-              minimap: { enabled: true },
+              minimap: { enabled: false },
               fontSize: 14,
               lineHeight: 20,
               fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
