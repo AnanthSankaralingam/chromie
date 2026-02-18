@@ -41,6 +41,7 @@ Components:
 - Buttons: Padding 10-12px 18-24px | Radius 12px or pill (999px) | Primary: solid black/white or gray | Hover: translateY(-1px) + shadow | Transition with cubic-bezier
 - Inputs: Padding 10px 14px | Radius 12px | Focus: 2px gray/black border or ring (0 0 0 3px rgba(0,0,0,0.08))
 - Cards: Padding 20-24px | Radius 12px | Shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06) | Glass option: border 1px rgba(255,255,255,0.18) + backdrop-filter
+- Icons: MANDATORY - include in styles.css: img.icon, img[src*="icons/"], img[src*="chrome-extension://"] { max-width: 24px; max-height: 24px; width: auto; height: auto; object-fit: contain; } (PNG icons are 128-512px native; without this they render huge)
 
 Premium Effects (MUST include):
 - Subtle gray gradients on buttons/headers (avoid blue/purple)
