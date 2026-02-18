@@ -178,33 +178,25 @@ export class HyperbrowserService {
         throw new ExtensionError("Testing Browser is not configured. Please contact support.", ERROR_CODES.MISSING_API_KEY)
       }
 
-      // If extension files were provided, zip and upload them to get an extensionId
-      let extensionId = null
       const filesArray = Array.isArray(extensionFiles)
         ? extensionFiles
         : typeof extensionFiles === "object" && Object.keys(extensionFiles).length > 0
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
 
-      if (filesArray.length > 0) {
-        extensionId = await this.uploadExtensionFromFiles(filesArray)
-        console.log("[HYPERBROWSER-SERVICE] ✅ Extension uploaded, ID:", extensionId)
-      } else {
-        console.log("[HYPERBROWSER-SERVICE] ⚠️  No extension files to upload")
-      }
+      // Run extension upload and profile lookup in PARALLEL - no reason to wait for one before the other
+      console.log("[HYPERBROWSER-SERVICE] ⚡ Starting parallel extension upload + profile lookup...")
+      const [extensionId, profileResult] = await Promise.all([
+        filesArray.length > 0
+          ? this.uploadExtensionFromFiles(filesArray)
+          : Promise.resolve(null),
+        (userId && supabaseClient)
+          ? this.getOrCreateProfileId(userId, supabaseClient)
+          : Promise.resolve({ profileId: null, isNew: false }),
+      ])
+      console.log("[HYPERBROWSER-SERVICE] ✅ Parallel tasks complete", { extensionId, profileId: profileResult?.profileId })
 
-      // Get or create profile ID for user (if userId and supabaseClient provided)
-      let profileId = null
-      let isNewProfile = false
-      if (userId && supabaseClient) {
-        console.log("[HYPERBROWSER-SERVICE] 👤 Getting or creating profile for user:", userId)
-        const profileResult = await this.getOrCreateProfileId(userId, supabaseClient)
-        profileId = profileResult.profileId
-        isNewProfile = profileResult.isNew
-        console.log("[HYPERBROWSER-SERVICE] Profile result:", { profileId, isNewProfile })
-      } else {
-        console.log("[HYPERBROWSER-SERVICE] ℹ️  No user/supabase client provided, skipping profile")
-      }
+      const profileId = profileResult?.profileId || null
       
       const sessionCreatePayload = {
         // Hyperbrowser session configuration
@@ -219,7 +211,6 @@ export class HyperbrowserService {
         enableVideoWebRecording: true,
       }
 
-      // Add extension if available
       if (extensionId) {
         sessionCreatePayload.extensionIds = [extensionId]
         console.log("[HYPERBROWSER-SERVICE] ✅ Added extensionId to session payload")
@@ -227,11 +218,11 @@ export class HyperbrowserService {
         console.log("[HYPERBROWSER-SERVICE] ⚠️  No extensionId to add to session")
       }
 
-      // Add profile if available (only persist changes on first session)
+      // Add profile if available (always persist changes to remember history/cookies)
       if (profileId) {
         sessionCreatePayload.profile = {
           id: profileId,
-          persistChanges: true // always remember history/cookies
+          persistChanges: true
         }
         console.log("[HYPERBROWSER-SERVICE] ✅ Added profile to session payload")
       }
@@ -253,7 +244,6 @@ export class HyperbrowserService {
       
       console.log("[HYPERBROWSER-SERVICE] 🖥️  Extracted liveViewUrl:", liveViewUrl ? "Found" : "Not found")
       
-      // If no live view URL is found, provide a fallback or error indication
       if (!liveViewUrl) {
         console.warn("[HYPERBROWSER-SERVICE] ⚠️  No live view URL found in session response")
       }
@@ -284,44 +274,38 @@ export class HyperbrowserService {
           extractedLiveViewUrl: liveViewUrl
         }
       }
-      
-      // Wait for session to be fully ready before attempting navigation
-      await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // IMPORTANT: Set up log capture FIRST, before pin-extension
-      // This ensures the connection that receives CDP events is the same one used for log capture.
-      // If we create the connection in pin-extension first, that connection "claims" CDP events
-      // and any subsequent connection (for log capture) won't receive them.
-      if (extensionId) {
-        try {
-          console.log("[HYPERBROWSER-SERVICE] 📋 Setting up log capture BEFORE pin-extension...")
-          const { browser, page } = await getPuppeteerContextUtil(session.id, this.apiKey)
-          const { setupLogCapture } = await import('@/lib/utils/extension-log-capture')
-          await setupLogCapture(browser, page, session.id)
-          console.log("[HYPERBROWSER-SERVICE] ✅ Log capture set up successfully")
-        } catch (logCaptureErr) {
-          console.error("[HYPERBROWSER-SERVICE] ❌ Failed to set up log capture:", logCaptureErr.message)
-          // Non-fatal - continue with session creation
+      // Post-session setup: log capture + pin extension.
+      // IMPORTANT: log capture MUST run before pin extension — the first Puppeteer connection
+      // "claims" CDP events, so log capture needs to get there first.
+      const runPostSessionSetup = async () => {
+        // Give the session a moment to be fully ready before connecting via Puppeteer
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        // Step 1: set up log capture
+        if (extensionId) {
+          try {
+            console.log("[HYPERBROWSER-SERVICE] 📋 Setting up log capture BEFORE pin-extension...")
+            const { browser, page } = await getPuppeteerContextUtil(session.id, this.apiKey)
+            const { setupLogCapture } = await import('@/lib/utils/extension-log-capture')
+            await setupLogCapture(browser, page, session.id)
+            console.log("[HYPERBROWSER-SERVICE] ✅ Log capture set up successfully")
+          } catch (logCaptureErr) {
+            console.error("[HYPERBROWSER-SERVICE] ❌ Failed to set up log capture:", logCaptureErr.message)
+            // Non-fatal - continue
+          }
         }
-      }
 
-      // Automatically pin the extension to toolbar and capture the Chrome extension ID
-      // Default behavior: fire-and-forget so the user can see the session quickly.
-      // For AI analysis flow: allow awaiting pinning so we can kick off tests immediately after pin completes.
-      if (autoPinExtension && extensionId) {
-        console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...", { awaitPinExtension })
-        if (awaitPinExtension) {
+        // Step 2: pin extension (after log capture so CDP event ownership is correct)
+        if (autoPinExtension && extensionId) {
+          console.log("[HYPERBROWSER-SERVICE] 📌 Starting automatic pin extension process...")
           try {
             const pinResult = await runPinExtension(session.id)
             result.pinExtension = pinResult
-            
-            // Capture Chrome extension ID from pin result
+
             if (pinResult?.chromeExtensionId) {
               console.log("[HYPERBROWSER-SERVICE] ✅ Captured Chrome extension ID from pinning:", pinResult.chromeExtensionId)
               result.chromeExtensionId = pinResult.chromeExtensionId
-
-              // Persist immediately so downstream flows (puppeteer-tests/run, generate-puppeteer-tests)
-              // always read the latest pinned Chrome extension id (and don't fall back to target scanning).
               await this.persistChromeExtensionId({
                 supabaseClient,
                 projectId,
@@ -330,10 +314,10 @@ export class HyperbrowserService {
                 source: "pin-extension",
               })
             }
-            
+
             if (pinResult?.success) {
               if (pinResult.sessionClosed) {
-                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
+                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation")
               } else if (pinResult.alreadyPinned) {
                 console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
               } else if (pinResult.pinned) {
@@ -349,43 +333,22 @@ export class HyperbrowserService {
             result.pinExtension = { success: false, error: pinErr?.message || "Pin extension failed" }
           }
         } else {
-          result.pinExtension = { started: true }
-          runPinExtension(session.id)
-            .then((pinResult) => {
-              // Capture Chrome extension ID from pin result
-              if (pinResult?.chromeExtensionId) {
-                console.log("[HYPERBROWSER-SERVICE] ✅ Captured Chrome extension ID from pinning:", pinResult.chromeExtensionId)
-                // Persist even in fire-and-forget mode so puppeteer-tests/run reads the correct ID.
-                return this.persistChromeExtensionId({
-                  supabaseClient,
-                  projectId,
-                  chromeExtensionId: pinResult.chromeExtensionId,
-                  hyperbrowserExtensionId: extensionId,
-                  source: "pin-extension-fire-and-forget",
-                })
-              }
-              
-              if (pinResult.success) {
-                if (pinResult.sessionClosed) {
-                  console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation (expected if user stopped quickly)")
-                } else if (pinResult.alreadyPinned) {
-                  console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
-                } else if (pinResult.pinned) {
-                  console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: successfully pinned to toolbar")
-                } else {
-                  console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
-                }
-              } else {
-                console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult.error)
-              }
-            })
-            .catch((pinErr) => {
-              console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension error:", pinErr.message)
-              // Don't throw - this is a non-critical operation
-            })
+          console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension", { autoPinExtension, hasExtension: !!extensionId })
         }
+      }
+
+      if (awaitPinExtension) {
+        // Synchronous path: block until log capture + pinning are done (used by AI test flows
+        // that need the Chrome extension ID before kicking off automated tests).
+        console.log("[HYPERBROWSER-SERVICE] ⏳ Awaiting post-session setup (awaitPinExtension=true)...")
+        await runPostSessionSetup()
       } else {
-        console.log("[HYPERBROWSER-SERVICE] ℹ️  Skipping pin extension", { autoPinExtension, hasExtension: !!extensionId })
+        // Fast path: return the live view URL immediately and run setup in background.
+        // This is the default for "Try It Out" — the user sees the browser right away.
+        result.pinExtension = { started: true }
+        runPostSessionSetup().catch(e =>
+          console.error("[HYPERBROWSER-SERVICE] ❌ Background post-session setup error:", e?.message || e)
+        )
       }
 
       console.log("[HYPERBROWSER-SERVICE] 🎉 createTestSession complete, returning result")
