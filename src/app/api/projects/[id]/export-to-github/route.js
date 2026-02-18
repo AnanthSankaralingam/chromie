@@ -8,6 +8,7 @@ import {
   isSuspiciousUserAgent,
   checkPaidPlan,
 } from "@/lib/validation"
+import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
 
 // Helper to base64-encode UTF-8 text
 function toBase64(str) {
@@ -466,7 +467,7 @@ export async function POST(request, { params }) {
         ? `Update ${file.file_path} from chromie project`
         : `Add ${file.file_path} from chromie project`
 
-      const contentBase64 = toBase64(String(file.content))
+      const contentBase64 = toBase64(String(getContentWithIconSizing(file, files)))
 
       await upsertGithubFile({
         githubToken,

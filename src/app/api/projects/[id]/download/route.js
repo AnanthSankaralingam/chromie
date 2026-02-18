@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import JSZip from "jszip"
+import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
 
 export async function GET(request, { params }) {
   const supabase = createClient()
@@ -51,7 +52,7 @@ export async function GET(request, { params }) {
     // Add all non-icon files
     for (const file of files) {
       if (file.file_path.startsWith('icons/')) continue
-      zip.file(file.file_path, file.content)
+      zip.file(file.file_path, getContentWithIconSizing(file, files))
     }
 
     // Parse manifest for required icon paths
