@@ -16,6 +16,7 @@ export function useStreamProcessor({
   onGenerationStart,
   onGenerationEnd,
   onCodeGenerated,
+  onFileWritten,
   onAutoGenerateComplete,
   autoGeneratePrompt,
 }) {
@@ -81,6 +82,7 @@ export function useStreamProcessor({
         doneReceivedRef,
         hasShownStartMessageRef,
         onCodeGenerated,
+        onFileWritten,
         hasGeneratedCode,
         setHasGeneratedCode,
         modelThinkingFull,
@@ -117,6 +119,7 @@ export function useStreamProcessor({
     [
       chatState,
       onCodeGenerated,
+      onFileWritten,
       onGenerationEnd,
       setShowTokenLimitModal,
       setIsGenerating,

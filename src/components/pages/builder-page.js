@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/artifact/artifact"
 import { TourProvider, useTour, TOUR_STEP_IDS } from "@/components/ui/tour"
 import VersionHistoryPanel from "@/components/ui/version-history-panel"
+import AssetUploadModal from "@/components/ui/file-upload/asset-upload-modal"
 
 function BuilderPageContent() {
   const { isLoading, session, user, supabase } = useSession()
@@ -61,6 +62,20 @@ function BuilderPageContent() {
   const [hasSavedAITestResults, setHasSavedAITestResults] = useState(false)
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false)
   const [testSessionLogs, setTestSessionLogs] = useState(null)
+  const [isAssetUploadModalOpen, setIsAssetUploadModalOpen] = useState(false)
+  const [assetUploadDefaults, setAssetUploadDefaults] = useState({ mode: "upload", fileType: "icon" })
+
+  // Listen for editor:openAssetUpload (e.g. Icon button in manifest.json) - must be at builder level so it works when file tree is collapsed
+  useEffect(() => {
+    const handler = (e) => {
+      const mode = e?.detail?.mode === 'generate' ? 'generate' : 'upload'
+      const fileType = e?.detail?.fileType === 'asset' ? 'asset' : 'icon'
+      setAssetUploadDefaults({ mode, fileType })
+      setIsAssetUploadModalOpen(true)
+    }
+    window.addEventListener('editor:openAssetUpload', handler)
+    return () => window.removeEventListener('editor:openAssetUpload', handler)
+  }, [])
 
   // Track hasGeneratedCode before generation starts to detect first generation
   const hasGeneratedCodeBeforeRef = useRef(false)
@@ -784,6 +799,7 @@ function BuilderPageContent() {
                     setActiveTab('files') // Switch to files tab after code generation
                   }, 500) // Small delay to ensure file structure is updated
                 }}
+                onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
                 onGenerationStart={() => {
                   setIsGenerating(true)
                   // Track hasGeneratedCode state before generation starts
@@ -901,6 +917,7 @@ function BuilderPageContent() {
                       }
                     }, 500) // Small delay to ensure file structure is updated
                   }}
+                  onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
                   onGenerationStart={() => {
                     setIsGenerating(true)
                     // Track hasGeneratedCode state before generation starts
@@ -987,6 +1004,18 @@ function BuilderPageContent() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
+
+      {/* Asset Upload Modal - at builder level so Icon button works when file tree is collapsed */}
+      {projectSetup.currentProjectId && (
+        <AssetUploadModal
+          isOpen={isAssetUploadModalOpen}
+          onClose={() => setIsAssetUploadModalOpen(false)}
+          onUpload={() => fileManagement.loadProjectFiles(true)}
+          projectId={projectSetup.currentProjectId}
+          defaultMode={assetUploadDefaults.mode}
+          defaultFileType={assetUploadDefaults.fileType}
+        />
+      )}
 
       {/* Test Modal */}
       <SideBySideTestModal

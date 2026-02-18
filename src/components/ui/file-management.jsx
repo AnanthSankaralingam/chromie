@@ -353,6 +353,19 @@ export default function useFileManagement(currentProjectId, user) {
     }
   }
 
+  // Inject a file from the stream (real-time update as code is generated)
+  const injectStreamedFile = useCallback((filePath, content) => {
+    setFlatFiles(prev => {
+      const existing = prev.find(f => f.file_path === filePath)
+      const next = existing
+        ? prev.map(f => (f.file_path === filePath ? { ...f, content } : f))
+        : [...prev, { file_path: filePath, content }]
+      const visible = next.filter(f => !f.file_path.startsWith('.chromie/'))
+      setFileStructure(transformFilesToTree(visible))
+      return next
+    })
+  }, [])
+
   // Function to find and return the manifest.json file
   const findManifestFile = () => {
     
@@ -386,6 +399,7 @@ export default function useFileManagement(currentProjectId, user) {
     flatFiles,
     isLoadingFiles,
     loadProjectFiles,
+    injectStreamedFile,
     handleFileSave,
     handleAssetDelete,
     handleFileDelete,
