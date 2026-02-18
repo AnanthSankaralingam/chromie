@@ -19,7 +19,7 @@ launch lauch launch
 ---
 
 ## P1
-1. Improve testing UX: unify test results, logs, and explanations within testing browser view.
+1. ~Improve testing UX: unify test results, logs, and explanations within testing browser view.~
 2. Improve demo generation flow (record AI demo, provide downloadable `.mp4`).
 3. Let followup agent use `grep` search tool.
 4. Debug patch handler - it doesnt always save everything but still saves everything despite no new changes.
