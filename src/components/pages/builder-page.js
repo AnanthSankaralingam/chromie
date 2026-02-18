@@ -795,6 +795,7 @@ function BuilderPageContent() {
                     setActiveTab('files') // Switch to files tab after code generation
                   }, 500) // Small delay to ensure file structure is updated
                 }}
+                onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
                 onGenerationStart={() => {
                   setIsGenerating(true)
                   // Track hasGeneratedCode state before generation starts
@@ -912,6 +913,7 @@ function BuilderPageContent() {
                       }
                     }, 500) // Small delay to ensure file structure is updated
                   }}
+                  onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
                   onGenerationStart={() => {
                     setIsGenerating(true)
                     // Track hasGeneratedCode state before generation starts

@@ -55,11 +55,11 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   // Task list for visual progress tracking
   const [taskList, setTaskList] = useState([])
 
-  // Helper to update task progress
-  const setTaskProgress = (taskIdOrFileName, status, matchByFileName = false) => {
+  // Helper to update task progress (extra = optional { content } for completed tasks)
+  const setTaskProgress = (taskIdOrFileName, status, matchByFileName = false, extra = {}) => {
     setTaskList(prev => prev.map(task => {
       if (matchByFileName ? task.fileName === taskIdOrFileName : task.id === taskIdOrFileName) {
-        return { ...task, status }
+        return { ...task, status, ...extra }
       }
       return task
     }))

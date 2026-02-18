@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import StreamingChat from "@/components/ui/chat/streaming-chat"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 
-export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting, onSetInputMessage, onSetAddMessageCallback, onSetTaskListCallback, testSessionLogs, onClearTestSessionLogs, availableFiles, onVersionHistoryClick, userIsPaid = true, isStillLoadingPaidPlan = false }) {
+export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onFileWritten, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting, onSetInputMessage, onSetAddMessageCallback, onSetTaskListCallback, testSessionLogs, onClearTestSessionLogs, availableFiles, onVersionHistoryClick, userIsPaid = true, isStillLoadingPaidPlan = false }) {
   const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
   const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
 
@@ -22,6 +22,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
         autoGeneratePrompt={autoGeneratePrompt}
         onAutoGenerateComplete={onAutoGenerateComplete}
         onCodeGenerated={onCodeGenerated}
+        onFileWritten={onFileWritten}
         onGenerationStart={onGenerationStart}
         onGenerationEnd={onGenerationEnd}
         onOpenCanvas={onOpenCanvas}

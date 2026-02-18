@@ -1,9 +1,11 @@
 /**
  * Task Checklist Component
- * Displays a visual checklist of code generation tasks with status indicators
+ * Displays a visual checklist of code generation tasks with status indicators.
+ * Completed tasks show an expandable diff-style code preview.
  */
 
 import { CheckCircle2, Circle, Loader2, Wrench } from 'lucide-react'
+import { FileDiffPreview } from './file-diff-preview'
 
 export function TaskChecklist({ tasks }) {
   if (!tasks || tasks.length === 0) {
@@ -39,7 +41,7 @@ export function TaskChecklist({ tasks }) {
 }
 
 function TaskItem({ task }) {
-  const { status, fileName, description } = task
+  const { status, fileName, description, content } = task
 
   const getStatusIcon = () => {
     switch (status) {
@@ -89,6 +91,9 @@ function TaskItem({ task }) {
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {description}
           </div>
+        )}
+        {status === 'complete' && content && (
+          <FileDiffPreview fileName={fileName} content={content} defaultExpanded={false} />
         )}
       </div>
     </div>

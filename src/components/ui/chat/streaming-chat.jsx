@@ -22,6 +22,7 @@ export default function StreamingChat({
   autoGeneratePrompt,
   onAutoGenerateComplete,
   onCodeGenerated,
+  onFileWritten,
   onGenerationStart,
   onGenerationEnd,
   onOpenCanvas,
@@ -91,6 +92,7 @@ export default function StreamingChat({
       onGenerationStart,
       onGenerationEnd,
       onCodeGenerated,
+      onFileWritten,
       onAutoGenerateComplete,
       autoGeneratePrompt,
     })
