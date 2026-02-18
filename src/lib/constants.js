@@ -7,21 +7,7 @@ export const PLAN_LIMITS = {
     max_privacy_policies: 0,
     reset_type: 'monthly'
   },
-  starter: {
-    monthly_credits: 20,
-    max_projects: 2,
-    monthly_browser_minutes: 30,
-    max_privacy_policies: 1,
-    reset_type: 'one_time'
-  },
   pro: {
-    monthly_credits: 500,
-    max_projects: 10,
-    monthly_browser_minutes: 120,
-    max_privacy_policies: 3,
-    reset_type: 'one_time'
-  },
-  legend: {
     monthly_credits: 1000,
     max_projects: 300,
     monthly_browser_minutes: 240,
@@ -93,9 +79,8 @@ export const SHARE_RATE_LIMITS = {
   MAX_SHARE_EXPIRY_DAYS: 365
 }
 
-// One-time purchase configuration
-export const ONE_TIME_PURCHASE_PLANS = ['starter', 'pro']
-export const SUBSCRIPTION_PLANS = ['free', 'legend']
+// Subscription plans
+export const SUBSCRIPTION_PLANS = ['free', 'pro']
 
 // Plan reset types
 export const PLAN_RESET_TYPES = {

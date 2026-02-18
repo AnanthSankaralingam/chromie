@@ -12,8 +12,8 @@ const features = [
   { label: "private extension sharing", key: "privateSharing" }, // pro+
   { label: "GitHub export", key: "githubExport" },               // pro+
   { label: "version history", key: "versionHistory" },           // pro+
-  { label: "automated AI testing", key: "advancedTesting" },     // legend+
-  { label: "metrics platform", key: "metricsPlatform" },         // legend+
+  { label: "automated AI testing", key: "advancedTesting" },     // pro+
+  { label: "metrics platform", key: "metricsPlatform" },         // pro+
   { label: "dedicated support", key: "dedicatedSupport" },       // enterprise only
 ]
 
@@ -41,26 +41,6 @@ const plans = [
   {
     id: "pro",
     title: "pro",
-    price: "$9.99",
-    period: "one-time",
-    note: null,
-    cta: "get started",
-    href: "https://buy.stripe.com/6oU4gydMRc0g8NVeKi7kc04",
-    featured: false,
-    features: {
-      credits: "500 credits",
-      browserTesting: true,
-      privateSharing: true,
-      githubExport: true,
-      versionHistory: true,
-      advancedTesting: false,
-      metricsPlatform: false,
-      dedicatedSupport: false,
-    },
-  },
-  {
-    id: "legend",
-    title: "legend",
     price: "$14.99",
     period: "/month",
     note: "cancel anytime",
@@ -206,7 +186,7 @@ export default function PricingSection() {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-20">
           {plans.map((plan, index) => (
             <PricingCard key={plan.id} plan={plan} index={index} />
           ))}

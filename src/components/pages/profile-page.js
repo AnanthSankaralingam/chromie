@@ -521,8 +521,8 @@ export default function ProfilePage() {
             squareSize={4}
             gridGap={6}
             color="rgb(156, 163, 175)"
-            maxOpacity={0.08}
-            flickerChance={1.5}
+            maxOpacity={0.2}
+            flickerChance={2.0}
           />
           <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
           <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
@@ -561,6 +561,14 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
       {/* Static Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+        <FlickeringGrid
+          className="absolute inset-0 z-0"
+          squareSize={4}
+          gridGap={6}
+          color="rgb(156, 163, 175)"
+          maxOpacity={0.2}
+          flickerChance={2.0}
+        />
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
         <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
       </div>

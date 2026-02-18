@@ -2,7 +2,7 @@ import { PLAN_LIMITS, DEFAULT_PLAN } from '@/lib/constants'
 
 /**
  * Get user's total purchased limits and current usage
- * Priority: Active Legend subscription > One-time purchases > Free tier
+ * Priority: Active Pro subscription > One-time purchases > Free tier
  */
 export async function getUserLimits(userId, supabase) {
   // Get all active purchases
@@ -37,15 +37,15 @@ export async function getUserLimits(userId, supabase) {
 
   const now = new Date()
   
-  // Check for active Legend subscription
-  const legendSub = purchases?.find(p => 
-    p.plan === 'legend' && 
+  // Check for active Pro subscription
+  const proSub = purchases?.find(p => 
+    p.plan === 'pro' && 
     p.purchase_type === 'subscription' &&
     (!p.expires_at || new Date(p.expires_at) > now)
   )
   
-  if (legendSub) {
-    // Active Legend subscription - use Legend limits with monthly reset
+  if (proSub) {
+    // Active Pro subscription - use Pro limits with monthly reset
     // No limits on projects or browser minutes for paid plans (only credits)
     const monthlyResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
     let resetDatePlusOneMonth = null
@@ -56,10 +56,10 @@ export async function getUserLimits(userId, supabase) {
     const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
     
     return {
-      plan: 'legend',
+      plan: 'pro',
       purchaseType: 'subscription',
       limits: {
-        credits: PLAN_LIMITS.legend.monthly_credits,
+        credits: PLAN_LIMITS.pro.monthly_credits,
         browserMinutes: Infinity, // Unlimited for paid plans
         projects: Infinity // Unlimited for paid plans
       },
@@ -68,8 +68,8 @@ export async function getUserLimits(userId, supabase) {
         browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
         projects: profile?.project_count || 0
       },
-      hasActiveLegend: true,
-      resetDate: legendSub.expires_at,
+      hasActivePro: true,
+      resetDate: proSub.expires_at,
       resetType: 'monthly'
     }
   }
@@ -87,7 +87,7 @@ export async function getUserLimits(userId, supabase) {
     
     return {
       plan: 'one_time_bundle',
-      planNames: [...new Set(oneTimePurchases.map(p => p.plan))], // ['starter', 'pro']
+      planNames: [...new Set(oneTimePurchases.map(p => p.plan))], // e.g. ['pro']
       purchaseType: 'one_time',
       purchaseCount: oneTimePurchases.length,
       limits: totalLimits,
@@ -96,7 +96,7 @@ export async function getUserLimits(userId, supabase) {
         browserMinutes: usage?.browser_minutes || 0,
         projects: profile?.project_count || 0
       },
-      hasActiveLegend: false,
+      hasActivePro: false,
       resetDate: null,
       resetType: 'never',
       exhausted: {
@@ -129,7 +129,7 @@ export async function getUserLimits(userId, supabase) {
       browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
       projects: profile?.project_count || 0
     },
-    hasActiveLegend: false,
+    hasActivePro: false,
     resetDate: monthlyResetDate,
     resetType: 'monthly'
   }
@@ -189,9 +189,9 @@ export function formatLimitError(checkResult, resourceType) {
   }
   
   const suggestion = checkResult.purchaseType === 'one_time'
-    ? 'Buy another package or subscribe to Legend for more'
+    ? 'Buy another package or subscribe to Pro for more'
     : checkResult.purchaseType === 'free'
-    ? 'Purchase a Starter or Pro package to continue'
+    ? 'Subscribe to Pro to continue'
     : 'Your limit will reset on your next billing cycle'
   
   return {
