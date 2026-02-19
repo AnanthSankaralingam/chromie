@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/forms-and-input/dropdown-menu"
-import { Share, Download, Link, Upload, ChevronDown, Github, GitFork, Lock, Shield } from "lucide-react"
+import { Share, Download, Link, Upload, ChevronDown, Github, GitFork, Shield } from "lucide-react"
 
 export default function ShareDropdown({
   projectId,
@@ -27,14 +27,8 @@ export default function ShareDropdown({
   hasGithubRepo = false,
   className = "",
   triggerId,
-  isPaid = false,
-  isLoadingPaidPlan = true,
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  
-  // Ensure boolean values
-  const userIsPaid = Boolean(isPaid)
-  const isStillLoading = Boolean(isLoadingPaidPlan)
 
   const handleDownloadClick = () => {
     setIsOpen(false)
@@ -86,11 +80,11 @@ export default function ShareDropdown({
           <ChevronDown className="h-4 w-4 ml-1" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
       >
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handleDownloadClick}
           disabled={isDownloading}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
@@ -101,12 +95,12 @@ export default function ShareDropdown({
           </span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handleForkClick}
           disabled={isDisabled || isForkLoading}
           className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          <GitFork className="h-4 w-4 mr-3 text-gray-400" />
+          <GitFork className="h-4 w-4 mr-3 text-sky-400" />
           <span className="flex-1">
             {isForkLoading ? "Forking..." : "Fork Project"}
           </span>
@@ -120,68 +114,34 @@ export default function ShareDropdown({
           <Upload className="h-4 w-4 mr-3 text-pink-400" />
           <span className="flex-1">Publish to Chrome Web Store</span>
         </DropdownMenuItem>
-        
-        <DropdownMenuItem 
-          onClick={() => {
-            if (!userIsPaid && !isStillLoading) {
-              window.location.href = '/pricing'
-              return
-            }
-            handleShareClick()
-          }}
-          disabled={isSharing || (!userIsPaid && !isStillLoading)}
-          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+
+        <DropdownMenuItem
+          onClick={handleShareClick}
+          disabled={isSharing}
+          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          {!userIsPaid && !isStillLoading ? (
-            <Lock className="h-4 w-4 mr-3 text-slate-500" />
-          ) : (
-            <Link className="h-4 w-4 mr-3 text-green-400" />
-          )}
+          <Link className="h-4 w-4 mr-3 text-green-400" />
           <span className="flex-1">
-            {isSharing ? "Generating..." : !userIsPaid && !isStillLoading ? "Get Shareable Link (Paid)" : "Get Shareable Link"}
+            {isSharing ? "Generating..." : "Get Shareable Link"}
           </span>
         </DropdownMenuItem>
 
         <DropdownMenuItem
-          onClick={() => {
-            if (!userIsPaid && !isStillLoading) {
-              window.location.href = '/pricing'
-              return
-            }
-            handleExportToGithubClick()
-          }}
-          disabled={isDisabled || isExportingToGithub || (!userIsPaid && !isStillLoading)}
-          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+          onClick={handleExportToGithubClick}
+          disabled={isDisabled || isExportingToGithub}
+          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          {!userIsPaid && !isStillLoading ? (
-            <Lock className="h-4 w-4 mr-3 text-slate-500" />
-          ) : (
-            <Github className="h-4 w-4 mr-3 text-slate-200" />
-          )}
-          <span className="flex-1">
-            {!userIsPaid && !isStillLoading ? `${githubLabel} (Paid)` : githubLabel}
-          </span>
+          <Github className="h-4 w-4 mr-3 text-indigo-400" />
+          <span className="flex-1">{githubLabel}</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem
-          onClick={() => {
-            if (!userIsPaid && !isStillLoading) {
-              window.location.href = '/pricing'
-              return
-            }
-            handlePrivacyPolicyClick()
-          }}
-          disabled={isDisabled || (!userIsPaid && !isStillLoading)}
-          className={!userIsPaid && !isStillLoading ? "cursor-not-allowed text-slate-500 hover:bg-slate-800/30 hover:text-slate-500 focus:bg-slate-800/30 focus:text-slate-500" : "cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"}
+          onClick={handlePrivacyPolicyClick}
+          disabled={isDisabled}
+          className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
         >
-          {!userIsPaid && !isStillLoading ? (
-            <Lock className="h-4 w-4 mr-3 text-slate-500" />
-          ) : (
-            <Shield className="h-4 w-4 mr-3 text-purple-400" />
-          )}
-          <span className="flex-1">
-            {!userIsPaid && !isStillLoading ? "Privacy Policy (Paid)" : "Privacy Policy"}
-          </span>
+          <Shield className="h-4 w-4 mr-3 text-purple-400" />
+          <span className="flex-1">Privacy Policy</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

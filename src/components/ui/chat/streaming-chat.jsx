@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { FileCode, ChevronDown, ChevronRight, Trash2, History, Lock } from "lucide-react"
+import { FileCode, ChevronDown, ChevronRight, Trash2, History } from "lucide-react"
 import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import ClearChatSuggestionModal from "@/components/ui/modals/clear-chat-suggestion-modal"
@@ -15,6 +15,7 @@ import LogsAppendButton from "@/components/ui/chat/logs-append-button"
 import { formatLogsForContext } from "@/lib/utils/console-logs-context"
 import { CHROMIE_LOGO_URL } from "@/lib/constants"
 import { TaskChecklist } from "@/components/ui/chat/task-checklist"
+import PaywallModal from "@/components/ui/modals/modal-paywall"
 
 export default function StreamingChat({
   projectId,
@@ -75,6 +76,9 @@ export default function StreamingChat({
 
   // State for clear chat suggestion modal
   const [showClearChatSuggestion, setShowClearChatSuggestion] = useState(false)
+
+  // Paywall modal state
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false)
 
   // State to track if logs have been appended
   const [logsAppended, setLogsAppended] = useState(false)
@@ -427,15 +431,15 @@ export default function StreamingChat({
             <button
               onClick={() => {
                 if (!userIsPaid && !isStillLoadingPaidPlan) {
-                  window.location.href = "/pricing"
+                  setIsPaywallOpen(true)
                   return
                 }
                 onVersionHistoryClick()
               }}
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-colors leading-none"
-              title={!userIsPaid && !isStillLoadingPaidPlan ? "Version History (Paid feature — upgrade to unlock)" : "Version History"}
+              title="Version History"
             >
-              {!userIsPaid && !isStillLoadingPaidPlan ? <Lock className="h-3.5 w-3.5 shrink-0" /> : <History className="h-3.5 w-3.5 shrink-0" />}
+              <History className="h-3.5 w-3.5 shrink-0" />
               <span>history</span>
             </button>
           )}
@@ -720,6 +724,13 @@ export default function StreamingChat({
           </div>
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        featureName="Version History"
+      />
 
       {/* Token Usage Alert Modal */}
       <TokenUsageAlert isOpen={showTokenLimitModal} onClose={() => setShowTokenLimitModal(false)} />

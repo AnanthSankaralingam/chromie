@@ -156,51 +156,52 @@ export default function SideBySideTestModal({
   // Define loading stages for browser initialization
   const loadingStages = [
     {
-      title: "setting up browser",
-      description: "creating a new browser session for testing your extension"
+      title: "launching cloud browser",
+      description: "spinning up a secure hyperbrowser session — this takes 15–30 seconds"
     },
     {
-      title: "installing extension",
-      description: "preparing and uploading your extension files to the browser"
+      title: "installing your extension",
+      description: "bundling your extension files and injecting them into the browser"
     },
     {
-      title: "ready for testing",
-      description: "your extension is loaded and ready to test!"
+      title: "opening live view",
+      description: "connecting the interactive browser stream — almost ready"
     }
   ]
 
   // Define instruction boxes for each stage
   const instructionBoxes = [
     {
-      icon: Navigation,
+      icon: Monitor,
       iconColor: "blue",
-      title: "navigation & testing",
+      title: "what's happening",
       items: [
-        "• use url input to navigate",
-        "• click and interact naturally",
-        "• test on different websites",
-        "• use keyboard shortcuts"
+        "a real cloud browser is spinning up for you",
+        "this is a full chromium instance, not a simulation",
+        "your extension will be auto-installed — no manual steps",
+        "hang tight, this usually takes under 30 seconds"
+      ]
+    },
+    {
+      icon: Navigation,
+      iconColor: "green",
+      title: "extension setup",
+      items: [
+        "your extension files are being bundled and injected",
+        "all permissions are pre-configured from your manifest",
+        "background scripts, popups, and content scripts are loaded",
+        "no manual install or chrome://extensions needed"
       ]
     },
     {
       icon: Eye,
-      iconColor: "green",
-      title: "extension features",
-      items: [
-        "• extension is automatically loaded",
-        "• test popups and content scripts",
-        "• check behavior on different pages",
-        "• verify permissions work"
-      ]
-    },
-    {
-      icon: Info,
       iconColor: "purple",
-      title: "session info",
+      title: "once it loads",
       items: [
-        "• 3-minute session limit",
-        "• use \"test extension\" button for automated ai-agent testing",
-        "• close when done"
+        "navigate to any site to test your extension in action",
+        "click the puzzle icon in the toolbar to open the popup",
+        "check the console log panel on the right for errors",
+        "use the AI agent tab to run automated tests"
       ]
     }
   ]
@@ -887,55 +888,52 @@ export default function SideBySideTestModal({
                   </div>
                 ) : isLoading ? (
                   <div className="absolute inset-0 bg-[#0a0a0a] flex items-center justify-center p-8">
-                    <div className="text-center max-w-4xl w-full">
+                    <div className="text-center max-w-md w-full">
                       {/* Progress Bar */}
-                      <div className="mb-6">
-                        <div className="w-full bg-neutral-800 rounded-full h-1 mb-3">
+                      <div className="mb-8">
+                        <div className="w-full bg-neutral-800 rounded-full h-1.5 mb-3">
                           <div
-                            className="bg-neutral-600 h-1 rounded-full transition-all duration-500 ease-out"
+                            className="bg-white h-1.5 rounded-full transition-all duration-700 ease-out"
                             style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
                           />
                         </div>
                         <p className="text-xs text-neutral-500">
-                          {loadingStage + 1} of {loadingStages.length}
+                          step {loadingStage + 1} of {loadingStages.length}
                         </p>
                       </div>
 
                       {/* Current Stage */}
                       <div className="mb-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500 mx-auto mb-4" />
-                        <h3 className="text-sm font-medium text-neutral-300 mb-2">
-                          {loadingStages[loadingStage]?.title ? loadingStages[loadingStage].title.toLowerCase() : "initializing"}
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-white mx-auto mb-5" />
+                        <h3 className="text-base font-semibold text-white mb-2">
+                          {loadingStages[loadingStage]?.title ?? "initializing"}
                         </h3>
-                        <p className="text-neutral-500 text-sm">
-                          {loadingStages[loadingStage]?.description ? loadingStages[loadingStage].description.toLowerCase() :
-                            "please wait"}
+                        <p className="text-neutral-400 text-sm leading-relaxed">
+                          {loadingStages[loadingStage]?.description ?? "please wait"}
                         </p>
                       </div>
 
-                      {/* Dynamic Instructions - Show one box per stage */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-neutral-500 text-center text-xs uppercase tracking-wider">tips</h4>
-                        <div className="flex justify-center">
-                          {instructionBoxes[loadingStage] && (
-                            <div className="bg-neutral-900/80 border border-neutral-800 rounded-lg p-6 max-w-sm w-full">
-                              <div className="flex items-center mb-4">
-                                <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center mr-4">
-                                  {React.createElement(instructionBoxes[loadingStage].icon, {
-                                    className: "h-5 w-5 text-neutral-400",
-                                  })}
-                                </div>
-                                <h5 className="font-medium text-neutral-300 text-sm">{instructionBoxes[loadingStage].title.toLowerCase()}</h5>
-                              </div>
-                              <ul className="text-sm text-neutral-500 space-y-2 text-left">
-                                {instructionBoxes[loadingStage].items.map((item, index) => (
-                                  <li key={index}>{item}</li>
-                                ))}
-                              </ul>
+                      {/* Dynamic tip box per stage */}
+                      {instructionBoxes[loadingStage] && (
+                        <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-5 text-left">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                              {React.createElement(instructionBoxes[loadingStage].icon, {
+                                className: "h-4 w-4 text-neutral-300",
+                              })}
                             </div>
-                          )}
+                            <h5 className="font-medium text-neutral-200 text-sm">{instructionBoxes[loadingStage].title}</h5>
+                          </div>
+                          <ul className="space-y-2">
+                            {instructionBoxes[loadingStage].items.map((item, index) => (
+                              <li key={index} className="text-sm text-neutral-400 flex items-start gap-2">
+                                <span className="text-neutral-600 mt-0.5">—</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ) : error ? (

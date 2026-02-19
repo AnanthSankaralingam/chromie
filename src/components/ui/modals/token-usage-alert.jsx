@@ -34,7 +34,7 @@ export default function TokenUsageAlert({ isOpen, onClose }) {
               <p className="text-sm font-medium text-white">Upgrade your plan</p>
               <p className="text-xs text-slate-400">Get more credits and features</p>
             </div>
-            <Link href="/pricing">
+            <Link href="/#pricing">
               <Button 
                 variant="default" 
                 size="sm"

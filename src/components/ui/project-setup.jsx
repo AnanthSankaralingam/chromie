@@ -238,7 +238,7 @@ export default function useProjectSetup(user, isLoading) {
 
   const handleUpgradePlan = () => {
     setIsProjectLimitModalOpen(false)
-    router.push('/pricing')
+    router.push('/#pricing')
   }
 
   const handleManageProjects = () => {

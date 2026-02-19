@@ -33,20 +33,20 @@ export default function AppBar() {
   // Handle "Featured creations" click - scroll if on home page, navigate otherwise
   const handleFeaturedCreationsClick = (e) => {
     e.preventDefault()
-    if (pathname === '/home') {
+    if (pathname === '/') {
       const section = document.getElementById('featured-creations')
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' })
       }
     } else {
-      router.push('/home#featured-creations')
+      router.push('/#featured-creations')
     }
   }
 
   // Handle "Pricing" click - scroll if on home page, navigate otherwise
   const handlePricingClick = (e) => {
     e.preventDefault()
-    if (pathname === '/home') {
+    if (pathname === '/') {
       // On home page - scroll to section
       const section = document.getElementById('pricing')
       if (section) {
@@ -54,14 +54,14 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/home#pricing')
+      router.push('/#pricing')
     }
   }
 
   // Handle "Blog" click - scroll if on home page, navigate otherwise
   const handleBlogClick = (e) => {
     e.preventDefault()
-    if (pathname === '/home') {
+    if (pathname === '/') {
       // On home page - scroll to section
       const section = document.getElementById('blog')
       if (section) {
@@ -69,14 +69,14 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/home#blog')
+      router.push('/#blog')
     }
   }
 
   // Handle "Contact" click - scroll if on home page, navigate otherwise
   const handleContactClick = (e) => {
     e.preventDefault()
-    if (pathname === '/home') {
+    if (pathname === '/') {
       // On home page - scroll to section
       const section = document.getElementById('contact')
       if (section) {
@@ -84,7 +84,7 @@ export default function AppBar() {
       }
     } else {
       // On other page - navigate to home page with hash
-      router.push('/home#contact')
+      router.push('/#contact')
     }
   }
 
@@ -92,7 +92,7 @@ export default function AppBar() {
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href={user ? "/home" : "/"} className="flex items-center gap-2 transition-colors [&>span]:hover:opacity-90">
+          <Link href="/" className="flex items-center gap-2 transition-colors [&>span]:hover:opacity-90">
             <Image src="/chromie-logo-1.png" alt="Chromie" width={32} height={32} className="shrink-0 opacity-90 hover:opacity-100" />
             <span className="inline-block text-xl">
               <span className="font-bold bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">chromie</span>

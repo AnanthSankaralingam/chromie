@@ -101,6 +101,7 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
 
   // Reset conversation state on project change
   useEffect(() => {
+    setMessages([INITIAL_GREETING])
     setConversationTokenTotal(0)
     setMessagesLoaded(false) // Reset loaded flag when project changes
   }, [projectId])

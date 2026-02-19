@@ -21,10 +21,29 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata = {
-  title: "chromie.dev - Chrome Extension Builder",
-  description: "Build Chrome extensions with AI - no coding required",
+  metadataBase: new URL('https://chromie.dev'),
+  title: {
+    default: "chromie.dev — AI Chrome Extension Builder",
+    template: "%s | chromie.dev",
+  },
+  description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
+  keywords: ["chrome extension builder", "AI chrome extension", "no-code chrome extension", "build chrome extension", "browser extension generator"],
   icons: {
     icon: '/chromie-logo-1.png',
+  },
+  openGraph: {
+    type: "website",
+    siteName: "chromie.dev",
+    title: "chromie.dev — AI Chrome Extension Builder",
+    description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
+    url: "https://chromie.dev",
+    images: [{ url: "/chromie-logo-1.png" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "chromie.dev — AI Chrome Extension Builder",
+    description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
+    images: ["/chromie-logo-1.png"],
   },
   verification: {
     google: 'nAEDWE-ZXwUBJzvqb0DlBWsdtOX5-2xbPODlfoadkPc',
