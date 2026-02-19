@@ -18,7 +18,7 @@ export default function PricingPage() {
   const router = useRouter()
   const [billingModalOpen, setBillingModalOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(null)
-  const [faqOpen, setFaqOpen] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | null
 
   if (isLoading) {
     return (
@@ -91,6 +91,14 @@ export default function PricingPage() {
         {/* Main Content */}
         <div className="container mx-auto px-4 py-16 relative z-10">
           <div className="max-w-6xl mx-auto">
+            {/* Limited time sale banner */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
+                <span>limited time sale</span>
+                <span className="text-amber-400">— Pro $9.99/mo</span>
+              </div>
+            </div>
+
             {/* Title */}
             <div className="text-center mb-16 overflow-visible">
               <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent leading-normal pb-2 overflow-visible">
@@ -133,8 +141,14 @@ export default function PricingPage() {
               </Card>
 
               {/* Pro Plan */}
-              <Card className="bg-blue-800/30 backdrop-blur-sm border-blue-500/30 hover:border-blue-400/50 transition-all relative">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <Card className="bg-blue-800/30 backdrop-blur-sm border-blue-500/30 hover:border-blue-400/50 transition-all relative overflow-hidden">
+                {/* Diagonal sale banner - top right */}
+                <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden pointer-events-none">
+                  <div className="absolute top-0 right-0 transform rotate-45 translate-x-10 translate-y-6 bg-amber-500 text-slate-900 text-xs font-bold py-1 px-10 shadow-lg">
+                    sale
+                  </div>
+                </div>
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-1">
                   <div className="bg-gradient-to-r from-gray-500 to-gray-400 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center space-x-1">
                     <Star className="w-4 h-4" />
                     <span>most popular</span>
@@ -142,7 +156,11 @@ export default function PricingPage() {
                 </div>
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-blue-300">pro</CardTitle>
-                  <div className="text-4xl font-bold text-white">$14.99<span className="text-lg text-gray-300">/month</span></div>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-4xl font-bold text-slate-500 line-through">$14.99</span>
+                    <span className="text-4xl font-bold text-white">$9.99</span>
+                    <span className="text-lg text-gray-300">/month</span>
+                  </div>
                   <CardDescription className="text-gray-300">
                     cancel anytime
                   </CardDescription>
@@ -151,7 +169,7 @@ export default function PricingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
-                      <span className="text-gray-300">1,000 credits/month</span>
+                      <span className="text-gray-300">500 credits/month</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Check className="w-5 h-5 text-green-400" />
@@ -178,18 +196,18 @@ export default function PricingPage() {
                 {/* What is a credit? FAQ */}
                 <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
                   <button
-                    onClick={() => setFaqOpen(!faqOpen)}
+                    onClick={() => setFaqOpen(faqOpen === 'credit' ? null : 'credit')}
                     className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
                   >
                     <span className="text-xl font-semibold text-white">what is a credit?</span>
-                    {faqOpen ? (
+                    {faqOpen === 'credit' ? (
                       <ChevronUp className="w-5 h-5 text-gray-400" />
                     ) : (
                       <ChevronDown className="w-5 h-5 text-gray-400" />
                     )}
                   </button>
                   
-                  {faqOpen && (
+                  {faqOpen === 'credit' && (
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -245,6 +263,37 @@ export default function PricingPage() {
                           </table>
                         </div>
                       </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* What is simulated browser testing? FAQ */}
+                <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
+                  <button
+                    onClick={() => setFaqOpen(faqOpen === 'browser' ? null : 'browser')}
+                    className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+                  >
+                    <span className="text-xl font-semibold text-white">what is simulated browser testing?</span>
+                    {faqOpen === 'browser' ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {faqOpen === 'browser' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-6 pb-6 text-gray-300 space-y-4"
+                    >
+                      <p>
+                        simulated browser testing lets you run Chrome right inside chromie. we host Chrome through our website — you get a full browser with your extension loaded and pinned, so you can test instantly.
+                      </p>
+                      <p>
+                        no more manually loading unpacked extensions or hitting reload every time you make a change. it&apos;s all handled in the website.
+                      </p>
                     </motion.div>
                   )}
                 </div>

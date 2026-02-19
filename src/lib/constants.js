@@ -8,7 +8,7 @@ export const PLAN_LIMITS = {
     reset_type: 'monthly'
   },
   pro: {
-    monthly_credits: 1000,
+    monthly_credits: 500,
     max_projects: 300,
     monthly_browser_minutes: 240,
     max_privacy_policies: Infinity,

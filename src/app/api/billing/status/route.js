@@ -40,8 +40,27 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch billing' }, { status: 500 })
   }
 
+  // If no billing record, derive from purchases (e.g. manual Pro grants)
+  let effectiveBilling = billing
+  if (!effectiveBilling && purchases?.length > 0) {
+    const now = new Date()
+    const activeProSub = purchases.find(p =>
+      p.plan === 'pro' &&
+      p.purchase_type === 'subscription' &&
+      p.status === 'active' &&
+      (!p.expires_at || new Date(p.expires_at) > now)
+    )
+    if (activeProSub) {
+      effectiveBilling = {
+        plan: 'pro',
+        status: 'active',
+        valid_until: activeProSub.expires_at
+      }
+    }
+  }
+
   return NextResponse.json({ 
-    billing: billing || null,
+    billing: effectiveBilling || null,
     purchases: purchases || [],
     user_id: user.id
   })

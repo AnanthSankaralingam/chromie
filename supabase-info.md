@@ -400,7 +400,7 @@ RLS policies:
 | Plan    | Max Projects | Credits | Browser Minutes | Reset Type | Description                    |
 |---------|--------------|---------|-----------------|------------|--------------------------------|
 | free    | 1            | 10      | 15              | monthly    | Basic tier with limited projects |
-| pro     | 300          | 1000    | 240             | monthly    | Monthly subscription (only paid plan) |
+| pro     | 300          | 500     | 240             | monthly    | Monthly subscription (only paid plan) |
 
 ## Credit Costs
 

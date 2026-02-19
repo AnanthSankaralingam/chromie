@@ -41,14 +41,16 @@ const plans = [
   {
     id: "pro",
     title: "pro",
-    price: "$14.99",
+    price: "$9.99",
+    originalPrice: "$14.99",
     period: "/month",
     note: "cancel anytime",
+    saleBanner: "limited time sale",
     cta: "get started",
     href: "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05",
     featured: true,
     features: {
-      credits: "1,000 credits/month",
+      credits: "500 credits/month",
       browserTesting: true,
       privateSharing: true,
       githubExport: true,
@@ -103,11 +105,19 @@ function PricingCard({ plan, index }) {
 
       <div
         className={cn(
-          "relative flex flex-col rounded-2xl border backdrop-blur-xl p-6 h-full transition-all",
+          "relative flex flex-col rounded-2xl border backdrop-blur-xl p-6 h-full transition-all overflow-hidden",
           "bg-slate-900/60 border-slate-700/50 hover:border-slate-600/70 shadow-xl shadow-slate-900/50",
           plan.featured && "ring-2 ring-blue-400/50 shadow-2xl shadow-blue-500/30 border-blue-400/40"
         )}
       >
+        {/* Diagonal sale banner - top right */}
+        {plan.saleBanner && (
+          <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-0 transform rotate-45 translate-x-10 translate-y-6 bg-amber-500 text-slate-900 text-xs font-bold py-1 px-10 shadow-lg">
+              sale
+            </div>
+          </div>
+        )}
         {/* Plan title + badge */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <h3 className="text-xl font-bold text-white">{plan.title}</h3>
@@ -121,9 +131,21 @@ function PricingCard({ plan, index }) {
 
         {/* Price */}
         <div className="mb-1">
-          <span className="text-3xl font-bold text-slate-100">{plan.price}</span>
-          {plan.period && (
-            <span className="text-base text-slate-400 ml-1.5">{plan.period}</span>
+          {plan.originalPrice ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-slate-500 line-through">{plan.originalPrice}</span>
+              <span className="text-3xl font-bold text-slate-100">{plan.price}</span>
+              {plan.period && (
+                <span className="text-base text-slate-400 ml-1.5">{plan.period}</span>
+              )}
+            </div>
+          ) : (
+            <>
+              <span className="text-3xl font-bold text-slate-100">{plan.price}</span>
+              {plan.period && (
+                <span className="text-base text-slate-400 ml-1.5">{plan.period}</span>
+              )}
+            </>
           )}
         </div>
         <p className="text-xs text-slate-500 mb-5 min-h-[16px]">{plan.note ?? ""}</p>
@@ -164,11 +186,25 @@ function PricingCard({ plan, index }) {
 }
 
 export default function PricingSection() {
-  const [faqOpen, setFaqOpen] = useState(false)
+  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | null
 
   return (
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="container mx-auto max-w-7xl">
+
+        {/* Limited time sale banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-6"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
+            <span>limited time sale</span>
+            <span className="text-amber-400">— Pro $9.99/mo</span>
+          </div>
+        </motion.div>
 
         {/* Header */}
         <motion.div
@@ -207,18 +243,18 @@ export default function PricingSection() {
           <div className="space-y-4">
             <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
               <button
-                onClick={() => setFaqOpen(!faqOpen)}
+                onClick={() => setFaqOpen(faqOpen === 'credit' ? null : 'credit')}
                 className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
               >
                 <span className="text-xl font-semibold text-white">what is a credit?</span>
-                {faqOpen ? (
+                {faqOpen === 'credit' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
                   <ChevronDown className="w-5 h-5 text-gray-400" />
                 )}
               </button>
 
-              {faqOpen && (
+              {faqOpen === 'credit' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -280,6 +316,36 @@ export default function PricingSection() {
                       </table>
                     </div>
                   </div>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
+              <button
+                onClick={() => setFaqOpen(faqOpen === 'browser' ? null : 'browser')}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+              >
+                <span className="text-xl font-semibold text-white">what is simulated browser testing?</span>
+                {faqOpen === 'browser' ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {faqOpen === 'browser' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="px-6 pb-6 text-gray-300 space-y-4"
+                >
+                  <p>
+                    simulated browser testing lets you run Chrome right inside chromie. we host Chrome through our website — you get a full browser with your extension loaded and pinned, so you can test instantly.
+                  </p>
+                  <p>
+                    no more manually loading unpacked extensions or hitting reload every time you make a change. it&apos;s all handled in the website.
+                  </p>
                 </motion.div>
               )}
             </div>

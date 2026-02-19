@@ -62,7 +62,7 @@ export default function PaywallModal({ isOpen, onClose, featureName = "This feat
             className="w-full bg-white hover:bg-slate-100 text-slate-900 font-semibold py-5 shadow-lg transition-all duration-200"
             onClick={() => window.location.href = PRO_STRIPE_URL}
           >
-            upgrade to Pro — $9.99/mo
+            upgrade to Pro — $9.99/mo (limited time sale)
           </Button>
           <p className="text-center text-xs text-slate-500">cancel anytime</p>
         </div>
