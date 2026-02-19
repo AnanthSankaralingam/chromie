@@ -200,9 +200,16 @@ export default function PricingSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-6"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
-            <span>limited time sale</span>
-            <span className="text-amber-400">— Pro $9.99/mo</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
+              <span>limited time sale</span>
+              <span className="text-amber-400">— Pro $9.99/mo</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-slate-600/50 text-slate-300 text-xs">
+              <span>use code</span>
+              <span className="font-mono font-bold text-white tracking-widest bg-slate-700/70 px-2 py-0.5 rounded">LAUNCH11</span>
+              <span>at checkout for an extra discount — expires soon</span>
+            </div>
           </div>
         </motion.div>
 

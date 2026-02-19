@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
-const PRO_STRIPE_URL = "https://buy.stripe.com/7sY28q5gl0hyaW3gSq7kc01"
+const PRO_STRIPE_URL = "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05"
 
 const PRO_FEATURES = [
   "Import & edit your own Chrome extensions",
@@ -64,6 +64,11 @@ export default function PaywallModal({ isOpen, onClose, featureName = "This feat
           >
             upgrade to Pro — $9.99/mo (limited time sale)
           </Button>
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+            <span>use code</span>
+            <span className="font-mono font-bold text-white tracking-widest bg-slate-800 border border-slate-600 px-2 py-0.5 rounded">LAUNCH11</span>
+            <span>for an extra discount — limited time</span>
+          </div>
           <p className="text-center text-xs text-slate-500">cancel anytime</p>
         </div>
 
