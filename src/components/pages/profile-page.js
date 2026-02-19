@@ -13,7 +13,6 @@ import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRigh
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import PaywallModal from "@/components/ui/modals/modal-paywall"
-import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { navigateToBuilderWithProject, cn } from "@/lib/utils"
 import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
@@ -388,7 +387,8 @@ export default function ProfilePage() {
       },
       pro: {
         name: 'Pro',
-        price: '$25/month',
+        price: '$9.99/month',
+        originalPrice: '$14.99/month',
         color: 'bg-gray-500',
         icon: Crown
       },
@@ -516,14 +516,6 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
         {/* Static Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <FlickeringGrid
-            className="absolute inset-0 z-0"
-            squareSize={4}
-            gridGap={6}
-            color="rgb(156, 163, 175)"
-            maxOpacity={0.2}
-            flickerChance={2.0}
-          />
           <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
           <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
         </div>
@@ -561,14 +553,6 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
       {/* Static Background */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <FlickeringGrid
-          className="absolute inset-0 z-0"
-          squareSize={4}
-          gridGap={6}
-          color="rgb(156, 163, 175)"
-          maxOpacity={0.2}
-          flickerChance={2.0}
-        />
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
         <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
       </div>
@@ -678,7 +662,17 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
-                      <p className="text-slate-400 text-sm">{getPlanInfo(billing.plan).price}</p>
+                      <p className="text-slate-400 text-sm">
+                        {getPlanInfo(billing.plan).originalPrice ? (
+                          <>
+                            <span className="line-through">{getPlanInfo(billing.plan).originalPrice}</span>
+                            <span className="ml-1 text-amber-400">{getPlanInfo(billing.plan).price}</span>
+                            <span className="text-amber-500/80 text-xs ml-1">(sale)</span>
+                          </>
+                        ) : (
+                          getPlanInfo(billing.plan).price
+                        )}
+                      </p>
                     </div>
                   </div>
                   <Badge

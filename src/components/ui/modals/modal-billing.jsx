@@ -26,7 +26,8 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
     },
     pro: {
       name: "Pro", 
-      price: "$25/month",
+      price: "$9.99/month",
+      originalPrice: "$14.99/month",
       description: "Ideal for solo founders and indie businesses",
       features: ["100 builds per month", "50,000 tokens per month", "Priority support", "Advanced analytics"]
     },
@@ -107,7 +108,17 @@ export default function BillingModal({ isOpen, onClose, selectedPlan }) {
                 <CardDescription className="text-gray-300">{currentPlan.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white mb-4">{currentPlan.price}</div>
+                <div className="text-2xl font-bold text-white mb-4">
+                  {currentPlan.originalPrice ? (
+                    <span>
+                      <span className="line-through text-slate-500 text-lg mr-2">{currentPlan.originalPrice}</span>
+                      <span>{currentPlan.price}</span>
+                      <span className="text-amber-400 text-sm font-normal ml-1">(limited time sale)</span>
+                    </span>
+                  ) : (
+                    currentPlan.price
+                  )}
+                </div>
                 <div className="space-y-2">
                   {currentPlan.features.map((feature, index) => (
                     <div key={index} className="flex items-center space-x-2">

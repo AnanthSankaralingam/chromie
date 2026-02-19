@@ -50,7 +50,11 @@ export class FireworksAdapter {
       }
 
       const response = await this.client.chat.completions.create(payload)
-      return this.normalizeResponse(response)
+      const normalized = this.normalizeResponse(response)
+      if (normalized.usage) {
+        console.log('[fireworks-adapter] createResponse token usage:', normalized.usage)
+      }
+      return normalized
     } catch (error) {
       console.error('[fireworks-adapter] createResponse error:', error)
       throw error
@@ -66,7 +70,7 @@ export class FireworksAdapter {
     model = 'accounts/fireworks/models/kimi-k2p5',
     input,
     response_format,
-    temperature = 0.6,
+    temperature = 0.4,
     max_output_tokens = this.max_output_tokens,
     conversation_history = [],
     thinkingConfig = null
@@ -100,8 +104,8 @@ export class FireworksAdapter {
       for await (const chunk of stream) {
         // Capture usage if provided in the final chunk
         if (chunk.usage) {
-          promptTokens = chunk.usage.prompt_tokens || 0
-          completionTokens = chunk.usage.completion_tokens || 0
+          promptTokens = chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0
+          completionTokens = chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0
         }
 
         if (chunk.choices && chunk.choices.length > 0) {
@@ -112,17 +116,18 @@ export class FireworksAdapter {
         }
       }
 
-      // Yield token usage summary if available
-      const totalTokens = promptTokens + completionTokens
-      if (totalTokens > 0) {
+      // Yield token usage summary and log when stream completes
+      const usage = {
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: promptTokens + completionTokens,
+        total: promptTokens + completionTokens
+      }
+      if (usage.total_tokens > 0) {
+        console.log('[fireworks-adapter] streamResponse token usage:', usage)
         yield {
           type: 'token_usage',
-          usage: {
-            prompt_tokens: promptTokens,
-            completion_tokens: completionTokens,
-            total_tokens: totalTokens,
-            total: totalTokens
-          }
+          usage
         }
       }
     } catch (error) {
@@ -200,16 +205,25 @@ export class FireworksAdapter {
   normalizeResponse(response) {
     const choice = response.choices?.[0]
     const content = choice?.message?.content || ''
+    const rawUsage = response.usage
+
+    const usage = rawUsage ? {
+      prompt_tokens: rawUsage.prompt_tokens ?? rawUsage.input_tokens ?? 0,
+      completion_tokens: rawUsage.completion_tokens ?? rawUsage.output_tokens ?? 0,
+      total_tokens: rawUsage.total_tokens ?? 0,
+      total: rawUsage.total_tokens ?? 0
+    } : null
+
+    // Ensure total_tokens is computed if missing
+    if (usage && usage.total_tokens === 0 && (usage.prompt_tokens > 0 || usage.completion_tokens > 0)) {
+      usage.total_tokens = usage.prompt_tokens + usage.completion_tokens
+      usage.total = usage.total_tokens
+    }
 
     return {
       id: response.id,
       output_text: content,
-      usage: response.usage ? {
-        prompt_tokens: response.usage.prompt_tokens,
-        completion_tokens: response.usage.completion_tokens,
-        total_tokens: response.usage.total_tokens,
-        total: response.usage.total_tokens
-      } : null,
+      usage,
       choices: response.choices
     }
   }
