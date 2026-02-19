@@ -13,7 +13,7 @@ launch lauch launch
 ---
 ## Bugs
 1. ~landing page -> builder page isn't smooth transition for users needing to sign in~
-2. mismatch of extension output schemas. make everything optional other than manifest?
+2. ~mismatch of extension output schemas. make everything optional other than manifest?~
 3. ~messages only populate after everything is done and user can't see changes. update editor and maybe stream changes to files, similar to orchids~
 4. ~testing browser setup is slow, usually 15s before done. probably can speed up the pinning action, and sometimes logging extension is unnecessarily pinned too.~
 ---
