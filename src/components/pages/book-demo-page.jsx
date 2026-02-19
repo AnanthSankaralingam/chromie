@@ -124,7 +124,7 @@ export default function BookDemoPage() {
                 Back to Home
               </Button>
               <Button
-                onClick={() => router.push('/home')}
+                onClick={() => router.push('/')}
                 size="lg"
                 variant="outline"
                 className="border-slate-600 hover:border-gray-500/50 hover:bg-slate-800/50"

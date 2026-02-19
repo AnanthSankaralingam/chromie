@@ -63,7 +63,7 @@ export default async function PublicPrivacyPolicyPage({ params }) {
               </Link>
             </div>
             <Link
-              href="/pricing"
+              href="/#pricing"
               className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
             >
               Create your own privacy policy →

@@ -1,50 +1,42 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, Rss } from "lucide-react"
+// import { useState, useEffect } from "react"
+// import { Search, Rss } from "lucide-react"
 import { motion } from "framer-motion"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import BlogPostCard from "@/components/ui/blog-post-card"
 import blogPostsData from "@/lib/data/blog-posts.json"
 
-const categories = [
-  "All Posts",
-  "Engineering",
-  "Community",
-  "Company News",
-  "Updates",
-  "Changelog",
-]
+// const categories = [
+//   "All Posts",
+//   "Engineering",
+//   "Community",
+//   "Company News",
+//   "Updates",
+//   "Changelog",
+// ]
 
 export default function BlogPage() {
-  const [selectedCategory, setSelectedCategory] = useState("All Posts")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filteredPosts, setFilteredPosts] = useState(blogPostsData)
+  // const [selectedCategory, setSelectedCategory] = useState("All Posts")
+  // const [searchQuery, setSearchQuery] = useState("")
+  // const [filteredPosts, setFilteredPosts] = useState(blogPostsData)
 
-  useEffect(() => {
-    let posts = blogPostsData
-
-    // Filter by category
-    if (selectedCategory !== "All Posts") {
-      posts = posts.filter((post) => post.category === selectedCategory)
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      posts = posts.filter(
-        (post) =>
-          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.tags.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-      )
-    }
-
-    setFilteredPosts(posts)
-    console.log('[blog] filtered posts:', posts.length)
-  }, [selectedCategory, searchQuery])
+  // useEffect(() => {
+  //   let posts = blogPostsData
+  //   if (selectedCategory !== "All Posts") {
+  //     posts = posts.filter((post) => post.category === selectedCategory)
+  //   }
+  //   if (searchQuery) {
+  //     posts = posts.filter(
+  //       (post) =>
+  //         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //         post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //         post.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  //     )
+  //   }
+  //   setFilteredPosts(posts)
+  // }, [selectedCategory, searchQuery])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
@@ -101,9 +93,8 @@ export default function BlogPage() {
           </p>
         </div>
 
-        {/* Category Tabs and Search */}
-        <div className="max-w-6xl mx-auto mb-12">
-          {/* Category Tabs */}
+        {/* Category Tabs and Search — temporarily hidden until more posts */}
+        {/* <div className="max-w-6xl mx-auto mb-12">
           <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
             {categories.map((category) => (
               <button
@@ -119,8 +110,6 @@ export default function BlogPage() {
               </button>
             ))}
           </div>
-
-          {/* Search Bar */}
           <div className="flex items-center justify-center gap-4">
             <div className="relative w-full max-w-lg">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -136,27 +125,15 @@ export default function BlogPage() {
               <Rss className="w-5 h-5 text-gray-400" />
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Blog Posts Grid */}
         <div className="max-w-7xl mx-auto">
-          {filteredPosts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPosts.map((post, index) => (
-                <BlogPostCard key={post.id} post={post} index={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-semibold text-gray-300 mb-2">
-                No posts found
-              </h3>
-              <p className="text-gray-400">
-                Try adjusting your search or filters
-              </p>
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {blogPostsData.map((post, index) => (
+              <BlogPostCard key={post.id} post={post} index={index} />
+            ))}
+          </div>
         </div>
 
         {/* Newsletter Section */}

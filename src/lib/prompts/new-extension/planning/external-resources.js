@@ -60,9 +60,9 @@ Google Drive API: https://www.googleapis.com/drive/v3
 Google Calendar API: https://www.googleapis.com/calendar/v3
 
 IMPORTANT: When detecting Google Workspace needs:
+- Only render when user explicitly mentions Google Services like Gmail, Drive, Calendar, etc.
 - Use "Gmail API" not "Gmail"
 - Use "Google Drive API" not "Drive"
-- Use "Google Calendar API" not "Calendar"
 </common_api_endpoints>
 
 <output_schema>

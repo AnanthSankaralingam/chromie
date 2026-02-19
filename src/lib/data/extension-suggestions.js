@@ -3,44 +3,37 @@ export const extensionSuggestions = [
   {
     id: "rewards-tracker",
     title: "Loyalty rewards tracker",
-    description: "helps users track and manage their loyalty points and rewards.",
+    description: "an extension that helps users track and manage their loyalty points and rewards.",
     category: "Travel",
     keywords: ["rewards", "loyalty", "points", "cashback", "membership", "travel", "tracking"]
   },
   {
     id: "data-extractor",
     title: "Web data extraction tool",
-    description: "notifies employees when they have redeemable rewards.",
+    description: "an extension that notifies employees when they have redeemable rewards.",
     category: "HR",
     keywords: ["data", "extraction", "scraping", "business", "intelligence", "export", "analysis"]
   },
   {
-    id: "media-authenticity-checker",
-    title: "Visual media authenticity verifier",
-    description: "analyzes webpage audio for AI deepfakes.",
-    category: "Deepfake Detection",
-    keywords: ["deepfake", "detection", "ai", "authenticity", "media", "verification", "manipulation"]
-  },
-  {
-    id: "grammar-assistant",
-    title: "Advanced grammar and style checker",
-    description: "provides real-time AI editing and rewriting of text.",
-    category: "Writing",
-    keywords: ["grammar", "writing", "style", "checker", "proofreading", "editing", "tone"]
+    id: "note-taker",
+    title: "Quick note taker",
+    description: "an extension that lets you save notes and highlights from any webpage.",
+    category: "Productivity",
+    keywords: ["notes", "highlight", "save", "bookmark", "writing", "research", "clipboard"]
   },
   {
     id: "meeting-scheduler",
     title: "Smart meeting scheduler",
-    description: "integrates with calendar platforms to allow users to schedule meetings.",
+    description: "an extension that integrates with calendar platforms to allow users to schedule meetings.",
     category: "Productivity",
     keywords: ["scheduling", "meetings", "calendar", "availability", "timezone", "appointments", "coordination"]
   },
   {
-    id: "lead-manager",
-    title: "Lead capture and management tool",
-    description: "surfaces CRM data from any website.",
-    category: "Sales",
-    keywords: ["leads", "sales", "crm", "prospects", "business", "contact", "management"]
+    id: "ad-blocker",
+    title: "Ad and tracker blocker",
+    description: "an extension that blocks ads, pop-ups, and tracking scripts while you browse.",
+    category: "Privacy",
+    keywords: ["ad blocker", "ads", "privacy", "tracker", "popup", "blocking", "security"]
   }
 ];
 

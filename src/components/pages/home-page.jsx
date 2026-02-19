@@ -9,7 +9,6 @@ import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
-import TabCompleteSuggestions from "@/components/ui/tab-complete-suggestions"
 // import HowItWorksSection from "@/components/ui/sections/how-it-works-section" // COMMENTED OUT: Videos taking up too many resources on Vercel
 import BlogSection from "@/components/ui/sections/blog-section"
 import PricingSection from "@/components/ui/sections/pricing-section"
@@ -31,8 +30,7 @@ export default function HomePage() {
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [inputFocused, setInputFocused] = useState(false)
+const [inputFocused, setInputFocused] = useState(false)
   const [placeholderText, setPlaceholderText] = useState("")
   const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
   const router = useRouter()
@@ -67,30 +65,10 @@ export default function HomePage() {
     setPrompt(value)
     adjustHeight()
 
-    // Show suggestions when user starts typing
-    if (value.trim().length >= 2) {
-      setShowSuggestions(true)
-    } else {
-      setShowSuggestions(false)
-    }
-  }
-
-  const handleSuggestionSelect = (suggestionText) => {
-    setPrompt(suggestionText)
-    setShowSuggestions(false)
-    // Focus back to textarea after selection
-    if (textareaRef.current) {
-      textareaRef.current.focus()
-    }
   }
 
   const handleTextareaFocus = () => {
     setInputFocused(true)
-
-    // Show suggestions if there's existing text
-    if (prompt.trim().length >= 2) {
-      setShowSuggestions(true)
-    }
   }
 
   const handleTextareaBlur = () => {
@@ -227,27 +205,9 @@ export default function HomePage() {
   }
 
   const handleKeyDown = (e) => {
-    // Let tab-complete component handle navigation keys (but not Enter or Escape)
-    if (showSuggestions && (e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-      // Let the tab-complete component handle these keys
-      return
-    }
-
-    // Handle Enter key for form submission (Shift+Enter for new line)
     if (e.key === 'Enter' && !e.shiftKey) {
-      // Only submit if event wasn't already handled by tab-complete component
-      if (!e.defaultPrevented) {
-        e.preventDefault()
-        setShowSuggestions(false) // Hide suggestions when submitting
-        handleSubmit(e)
-      }
-      return
-    }
-
-    // Handle Escape key
-    if (e.key === 'Escape' && showSuggestions) {
-      setShowSuggestions(false)
-      return
+      e.preventDefault()
+      handleSubmit(e)
     }
   }
 
@@ -390,7 +350,7 @@ export default function HomePage() {
     })()
   }, [user, isLoading, router, toast])
 
-  // Handle hash navigation (e.g., from /home#blog, /home#pricing, or /home#contact)
+  // Handle hash navigation (e.g., from /#blog, /#pricing, or /#contact)
   useEffect(() => {
     const handleHashScroll = () => {
       const hash = window.location.hash
@@ -416,9 +376,8 @@ export default function HomePage() {
   }, [prompt, adjustHeight])
 
   const handleUpgradePlan = () => {
-    // Close the modal and redirect to pricing page
     setIsProjectLimitModalOpen(false)
-    router.push('/pricing')
+    router.push('/#pricing')
   }
 
   const handleManageProjects = () => {
@@ -522,15 +481,6 @@ export default function HomePage() {
                     ? "border-gray-500/60 shadow-gray-500/20" 
                     : "border-slate-700/40 hover:border-slate-600/60"
                 )}>
-                  {/* Tab Complete Suggestions */}
-                  <TabCompleteSuggestions
-                    query={prompt}
-                    onSuggestionSelect={handleSuggestionSelect}
-                    isVisible={showSuggestions}
-                    onVisibilityChange={setShowSuggestions}
-                    inputRef={textareaRef}
-                  />
-
                   <div className="p-6">
                     <textarea
                       ref={textareaRef}
@@ -667,7 +617,7 @@ export default function HomePage() {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        redirectUrl="/home"
+        redirectUrl="/"
       />
 
       {/* Project Limit Modal */}

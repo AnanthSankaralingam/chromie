@@ -255,7 +255,7 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
             <button
               onClick={() => {
                 if (!userIsPaid && !isStillLoading) {
-                  window.location.href = '/pricing'
+                  window.location.href = '/#pricing'
                   return
                 }
                 setShowCreateForm(true)
