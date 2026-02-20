@@ -203,12 +203,9 @@ export default function PricingSection() {
           <div className="flex flex-col items-center gap-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
               <span>limited time sale</span>
-              <span className="text-amber-400">— Pro $9.99/mo</span>
-            </div>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-slate-600/50 text-slate-300 text-xs">
-              <span>use code</span>
-              <span className="font-mono font-bold text-white tracking-widest bg-slate-700/70 px-2 py-0.5 rounded">LAUNCH11</span>
-              <span>at checkout for an extra discount — expires soon</span>
+              <span className="text-amber-400">— Pro $9.99/mo — use code</span>
+              <span className="font-mono font-bold text-white tracking-widest bg-amber-500/30 px-2 py-0.5 rounded">LAUNCH11</span>
+              <span className="text-amber-200">at checkout</span>
             </div>
           </div>
         </motion.div>
@@ -309,11 +306,6 @@ export default function PricingSection() {
                             <td className="py-3 px-4">updates styles</td>
                             <td className="py-3 px-4 font-semibold">1.00</td>
                           </tr>
-                          <tr className="border-b border-slate-700/50">
-                            <td className="py-3 px-4">add authentication with sign up and login</td>
-                            <td className="py-3 px-4">adds authentication pages and logic, updates routes</td>
-                            <td className="py-3 px-4 font-semibold">1.00</td>
-                          </tr>
                           <tr>
                             <td className="py-3 px-4">try it out (simulated browser)</td>
                             <td className="py-3 px-4">opens a simulated browser session to test your extension</td>
@@ -332,7 +324,7 @@ export default function PricingSection() {
                 onClick={() => setFaqOpen(faqOpen === 'why' ? null : 'why')}
                 className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
               >
-                <span className="text-xl font-semibold text-white">why chromie?</span>
+                <span className="text-xl font-semibold text-white">why chromie.dev?</span>
                 {faqOpen === 'why' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -348,24 +340,17 @@ export default function PricingSection() {
                   className="px-6 pb-6 text-gray-300 space-y-4"
                 >
                   <p>
-                    chromie is purpose-built for Chrome extension development — not a general-purpose AI tool with extension support bolted on. that focus means better code, fewer hallucinations around Chrome APIs, and a faster path from idea to working extension.
-                  </p>
-                  <p>
-                    in our testing, chromie consistently outperforms other AI coding tools on Chrome extension tasks, because every part of the product was designed around how extensions actually work.
+                    chromie.dev is purpose-built for Chrome extension development — not a general-purpose AI tool with extension support bolted on. that focus means better code, fewer hallucinations around Chrome APIs, and a faster path from idea to working extension.
                   </p>
                   <div className="space-y-2">
                     <p className="font-semibold text-white">built-in features you won&apos;t find elsewhere:</p>
                     <ul className="list-disc list-inside space-y-1 ml-4">
                       <li>simulated browser testing — test your extension instantly without any manual setup</li>
                       <li>asset upload — bring in your own icons and images directly into the builder</li>
-                      <li>generation & resizing metrics — track how your extension performs as it evolves</li>
-                      <li>automated AI testing — chromie can test your own extension and catch issues for you</li>
-                      <li>and more being added regularly</li>
+                      <li>automated AI testing — chromie.dev can test your extension and catch issues for you</li>
+                      <li>private extension sharing — share a working version with teammates or clients without going through the Chrome Web Store, perfect for internal tools or beta testing</li>
                     </ul>
                   </div>
-                  <p>
-                    pro users also get <span className="text-white font-semibold">private extension sharing</span> — share a working version of your extension with teammates or clients without going through the Chrome Web Store review process. perfect for internal tools, beta testing, or anything you just want to keep private.
-                  </p>
                 </motion.div>
               )}
             </div>

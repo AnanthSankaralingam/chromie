@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -10,6 +10,74 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+
+function getYouTubeEmbedUrl(url, controls = false) {
+  let videoId = null
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes("youtu.be")) {
+      videoId = parsed.pathname.replace("/", "")
+    } else {
+      videoId = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop()
+    }
+  } catch {}
+  const base = videoId ? `https://www.youtube.com/embed/${videoId}` : url
+  const loop = videoId ? `&loop=1&playlist=${videoId}` : "&loop=1"
+  return `${base}?autoplay=1&mute=1&rel=0&controls=${controls ? 1 : 0}&playsinline=1${loop}`
+}
+
+function LazyVideoHero({ project }) {
+  const containerRef = useRef(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "100px" }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const url = String(project.demoVideoUrl || "").trim()
+  const isYouTube = url.includes("youtube.com") || url.includes("youtu.be")
+
+  return (
+    <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+      {isVisible ? (
+        isYouTube ? (
+          <iframe
+            title={`${project.name || "featured project"} demo`}
+            src={getYouTubeEmbedUrl(url)}
+            className="h-full w-full object-cover"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen={false}
+          />
+        ) : (
+          <video
+            src={url}
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="none"
+          />
+        )
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+      )}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
+    </div>
+  )
+}
 
 const INITIAL_STATE = {
   loading: true,
@@ -149,60 +217,7 @@ export default function FeaturedCreationsSection() {
                   {/* Hero area */}
                   <div className="relative h-52 bg-slate-900">
                     {project.demoVideoUrl ? (
-                      <div className="absolute inset-0 overflow-hidden">
-                        {(() => {
-                          const url = String(project.demoVideoUrl || "").trim()
-                          const isYouTube =
-                            url.includes("youtube.com") || url.includes("youtu.be")
-
-                          if (isYouTube) {
-                            // Basic YouTube watch → embed transform
-                            let videoId = null
-                            try {
-                              const parsed = new URL(url)
-                              if (parsed.hostname.includes("youtu.be")) {
-                                videoId = parsed.pathname.replace("/", "")
-                              } else {
-                                videoId =
-                                  parsed.searchParams.get("v") ||
-                                  parsed.pathname.split("/").filter(Boolean).pop()
-                              }
-                            } catch {
-                              // Fallback to original URL if parsing fails
-                            }
-
-                            const embedUrl = videoId
-                              ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&rel=0&controls=0&playsinline=1&loop=1&playlist=${videoId}`
-                              : `${url}?autoplay=1&mute=1&rel=0&controls=0&playsinline=1&loop=1`
-
-                            return (
-                              <iframe
-                                title={`${project.name || "featured project"} demo`}
-                                src={embedUrl}
-                                className="h-full w-full object-cover"
-                                allow="autoplay; encrypted-media; picture-in-picture"
-                                allowFullScreen={false}
-                                loading="lazy"
-                              />
-                            )
-                          }
-
-                          // Default: treat as direct video URL (mp4, webm, etc.)
-                          return (
-                            <video
-                              src={url}
-                              className="h-full w-full object-cover"
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                            />
-                          )
-                        })()}
-
-                        {/* Gradient overlay for legible text */}
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
-                      </div>
+                      <LazyVideoHero project={project} />
                     ) : (
                       <>
                         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
@@ -274,40 +289,18 @@ export default function FeaturedCreationsSection() {
                     <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
                       {(() => {
                         const url = String(project.demoVideoUrl || "").trim()
-                        const isYouTube =
-                          url.includes("youtube.com") || url.includes("youtu.be")
-
+                        const isYouTube = url.includes("youtube.com") || url.includes("youtu.be")
                         if (isYouTube) {
-                          let videoId = null
-                          try {
-                            const parsed = new URL(url)
-                            if (parsed.hostname.includes("youtu.be")) {
-                              videoId = parsed.pathname.replace("/", "")
-                            } else {
-                              videoId =
-                                parsed.searchParams.get("v") ||
-                                parsed.pathname.split("/").filter(Boolean).pop()
-                            }
-                          } catch {
-                            // ignore
-                          }
-
-                          const embedUrl = videoId
-                            ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&rel=0&controls=1&playsinline=1&loop=1&playlist=${videoId}`
-                            : `${url}?autoplay=1&mute=1&rel=0&controls=1&playsinline=1&loop=1`
-
                           return (
                             <iframe
                               title={`${project.name || "featured project"} demo (large)`}
-                              src={embedUrl}
+                              src={getYouTubeEmbedUrl(url, true)}
                               className="h-full w-full object-cover"
                               allow="autoplay; encrypted-media; picture-in-picture"
                               allowFullScreen
-                              loading="lazy"
                             />
                           )
                         }
-
                         return (
                           <video
                             src={url}
