@@ -186,7 +186,7 @@ function PricingCard({ plan, index }) {
 }
 
 export default function PricingSection() {
-  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | null
+  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | 'why' | null
 
   return (
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
@@ -200,9 +200,16 @@ export default function PricingSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-6"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
-            <span>limited time sale</span>
-            <span className="text-amber-400">— Pro $9.99/mo</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
+              <span>limited time sale</span>
+              <span className="text-amber-400">— Pro $9.99/mo</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-slate-600/50 text-slate-300 text-xs">
+              <span>use code</span>
+              <span className="font-mono font-bold text-white tracking-widest bg-slate-700/70 px-2 py-0.5 rounded">LAUNCH11</span>
+              <span>at checkout for an extra discount — expires soon</span>
+            </div>
           </div>
         </motion.div>
 
@@ -316,6 +323,49 @@ export default function PricingSection() {
                       </table>
                     </div>
                   </div>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
+              <button
+                onClick={() => setFaqOpen(faqOpen === 'why' ? null : 'why')}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+              >
+                <span className="text-xl font-semibold text-white">why chromie?</span>
+                {faqOpen === 'why' ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {faqOpen === 'why' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="px-6 pb-6 text-gray-300 space-y-4"
+                >
+                  <p>
+                    chromie is purpose-built for Chrome extension development — not a general-purpose AI tool with extension support bolted on. that focus means better code, fewer hallucinations around Chrome APIs, and a faster path from idea to working extension.
+                  </p>
+                  <p>
+                    in our testing, chromie consistently outperforms other AI coding tools on Chrome extension tasks, because every part of the product was designed around how extensions actually work.
+                  </p>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-white">built-in features you won&apos;t find elsewhere:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>simulated browser testing — test your extension instantly without any manual setup</li>
+                      <li>asset upload — bring in your own icons and images directly into the builder</li>
+                      <li>generation & resizing metrics — track how your extension performs as it evolves</li>
+                      <li>automated AI testing — chromie can test your own extension and catch issues for you</li>
+                      <li>and more being added regularly</li>
+                    </ul>
+                  </div>
+                  <p>
+                    pro users also get <span className="text-white font-semibold">private extension sharing</span> — share a working version of your extension with teammates or clients without going through the Chrome Web Store review process. perfect for internal tools, beta testing, or anything you just want to keep private.
+                  </p>
                 </motion.div>
               )}
             </div>
