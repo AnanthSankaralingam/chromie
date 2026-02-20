@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ArrowDownRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload, FileText, Shield } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload, FileText, Shield } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import PaywallModal from "@/components/ui/modals/modal-paywall"
@@ -711,12 +711,11 @@ export default function ProfilePage() {
 
                   {billing.plan === 'pro' && (
                     <Button
-                      onClick={() => handleBillingAction('downgrade', 'starter')}
+                      onClick={() => handleBillingAction('cancel')}
                       variant="outline"
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
                     >
-                      <ArrowDownRight className="h-4 w-4 mr-2" />
-                      Downgrade to Starter
+                      Cancel Subscription
                     </Button>
                   )}
                 </div>
