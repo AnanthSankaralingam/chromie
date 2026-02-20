@@ -440,7 +440,7 @@ const [inputFocused, setInputFocused] = useState(false)
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 flex items-center justify-center px-6 pt-12 pb-20 relative z-10">
+        <main className="flex-1 flex items-center justify-center px-4 sm:px-6 pt-8 sm:pt-12 pb-16 sm:pb-20 relative z-10">
           <div className="w-full max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -448,7 +448,7 @@ const [inputFocused, setInputFocused] = useState(false)
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               {/* Title Section with consistent styling */}
-              <div className="text-center mb-12">
+              <div className="text-center mb-8 sm:mb-12">
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -510,7 +510,7 @@ const [inputFocused, setInputFocused] = useState(false)
                   </div>
 
                   <div className="px-6 pb-6 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
                       <kbd className="px-2 py-1.5 bg-slate-700/60 rounded-md border border-slate-600/50 font-mono">Enter</kbd>
                       <span>to send</span>
                     </div>
