@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
+import { checkPaidPlan } from "@/lib/validation"
+import { PLAN_LIMITS } from "@/lib/constants"
 
 export async function POST(request, { params }) {
   const supabase = createClient()
@@ -34,6 +36,30 @@ export async function POST(request, { params }) {
 
     if (projectError || !project) {
       return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
+    }
+
+    // Check plan — free users get one lifetime demo trial
+    const { isPaid } = await checkPaidPlan(supabase, user.id)
+    if (!isPaid) {
+      const { data: userProjects } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("user_id", user.id)
+
+      const projectIds = userProjects?.map((p) => p.id) ?? []
+
+      const { count: demoCount } = await supabase
+        .from("session_replays")
+        .select("id", { count: "exact", head: true })
+        .in("project_id", projectIds)
+        .eq("test_type", "demo")
+
+      if ((demoCount ?? 0) >= PLAN_LIMITS.free.max_demo_replays) {
+        return NextResponse.json(
+          { error: "Demo creator is a Pro feature. You've used your free trial — please upgrade to continue." },
+          { status: 403 }
+        )
+      }
     }
 
     const apiKey = process.env.HYPERBROWSER_API_KEY
