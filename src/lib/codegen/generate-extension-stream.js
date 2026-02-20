@@ -28,7 +28,7 @@ import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/plann
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
-import { PLANNING_MODELS, FRONTEND_CONFIDENCE_THRESHOLD } from "@/lib/constants";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD } from "@/lib/constants";
 import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
 import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
 
@@ -214,11 +214,13 @@ export async function* generateChromeExtensionStream({
       const fileSummaries = formatFileSummariesForPlanning(fileAnalysis);
       console.log("📊 [File Analysis]:", fileSummaries);
 
-      // Create callLLM wrapper for follow-up planning
+      // Create callLLM wrapper for follow-up planning (same default model and fallback as new extension gen)
+      const planningModel = modelOverride || DEFAULT_MODEL;
+      const planningProvider = llmService.getProviderFromModel(planningModel);
       const callLLM = async (prompt) => {
         const response = await llmService.createResponse({
-          provider: 'anthropic',
-          model: PLANNING_MODELS.DEFAULT,
+          provider: planningProvider,
+          model: planningModel,
           input: prompt,
           temperature: 0.2,
           max_output_tokens: 500,
@@ -256,7 +258,7 @@ export async function* generateChromeExtensionStream({
         prompt_tokens: 0, // TODO: Track actual tokens from planning call
         completion_tokens: 0,
         total_tokens: 0,
-        model: PLANNING_MODELS.DEFAULT
+        model: planningModel
       };
 
       yield {
