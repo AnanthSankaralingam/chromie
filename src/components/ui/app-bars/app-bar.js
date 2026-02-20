@@ -157,13 +157,13 @@ export default function AppBar() {
                 <>
                   <Button
                     variant="outline"
-                    className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
+                    className="hidden md:inline-flex border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
                     onClick={() => setIsAuthModalOpen(true)}
                   >
                     sign in
                   </Button>
                   <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => setIsAuthModalOpen(true)}
                   >
                     get started

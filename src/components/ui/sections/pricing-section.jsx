@@ -14,6 +14,9 @@ const features = [
   { label: "version history", key: "versionHistory" },           // pro+
   { label: "automated AI testing", key: "advancedTesting" },     // pro+
   { label: "metrics platform", key: "metricsPlatform" },         // pro+
+  { label: "privacy policy hosting", key: "privacyPolicyHosting" }, // pro+
+  { label: "deployment wizard", key: "deploymentWizard" },       // pro+
+  { label: "demo creator", key: "demoCreator" },                 // pro+
   { label: "dedicated support", key: "dedicatedSupport" },       // enterprise only
 ]
 
@@ -35,6 +38,9 @@ const plans = [
       versionHistory: false,
       advancedTesting: false,
       metricsPlatform: false,
+      privacyPolicyHosting: false,
+      deploymentWizard: true,
+      demoCreator: false,
       dedicatedSupport: false,
     },
   },
@@ -57,6 +63,9 @@ const plans = [
       versionHistory: true,
       advancedTesting: true,
       metricsPlatform: true,
+      privacyPolicyHosting: true,
+      deploymentWizard: true,
+      demoCreator: true,
       dedicatedSupport: false,
     },
   },
@@ -77,6 +86,9 @@ const plans = [
       versionHistory: true,
       advancedTesting: true,
       metricsPlatform: true,
+      privacyPolicyHosting: true,
+      deploymentWizard: true,
+      demoCreator: true,
       dedicatedSupport: true,
     },
   },
@@ -186,7 +198,7 @@ function PricingCard({ plan, index }) {
 }
 
 export default function PricingSection() {
-  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | 'why' | null
+  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | 'why' | 'privacyPolicy' | null
 
   return (
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
@@ -201,9 +213,8 @@ export default function PricingSection() {
           className="text-center mb-6"
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold">
-              <span>limited time sale</span>
-              <span className="text-amber-400">— Pro $9.99/mo — use code</span>
+            <div className="inline-flex flex-wrap justify-center items-center gap-x-2 gap-y-1 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold">
+              <span>limited time sale — Pro $9.99/mo — use code</span>
               <span className="font-mono font-bold text-white tracking-widest bg-amber-500/30 px-2 py-0.5 rounded">LAUNCH11</span>
               <span className="text-amber-200">at checkout</span>
             </div>
@@ -248,9 +259,9 @@ export default function PricingSection() {
             <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
               <button
                 onClick={() => setFaqOpen(faqOpen === 'credit' ? null : 'credit')}
-                className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-slate-700/50 transition-colors"
               >
-                <span className="text-xl font-semibold text-white">what is a credit?</span>
+                <span className="text-base sm:text-xl font-semibold text-white">what is a credit?</span>
                 {faqOpen === 'credit' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -264,7 +275,7 @@ export default function PricingSection() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="px-6 pb-6 text-gray-300 space-y-4"
+                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-gray-300 space-y-4"
                 >
                   <p>
                     credits are used when sending messages in chromie and using the simulated browser. pricing varies by request type:
@@ -322,9 +333,9 @@ export default function PricingSection() {
             <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
               <button
                 onClick={() => setFaqOpen(faqOpen === 'why' ? null : 'why')}
-                className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-slate-700/50 transition-colors"
               >
-                <span className="text-xl font-semibold text-white">why chromie.dev?</span>
+                <span className="text-base sm:text-xl font-semibold text-white">why chromie.dev?</span>
                 {faqOpen === 'why' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -337,7 +348,7 @@ export default function PricingSection() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="px-6 pb-6 text-gray-300 space-y-4"
+                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-gray-300 space-y-4"
                 >
                   <p>
                     chromie.dev is purpose-built for Chrome extension development — not a general-purpose AI tool with extension support bolted on. that focus means better code, fewer hallucinations around Chrome APIs, and a faster path from idea to working extension.
@@ -358,9 +369,9 @@ export default function PricingSection() {
             <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
               <button
                 onClick={() => setFaqOpen(faqOpen === 'browser' ? null : 'browser')}
-                className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-700/50 transition-colors"
+                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-slate-700/50 transition-colors"
               >
-                <span className="text-xl font-semibold text-white">what is simulated browser testing?</span>
+                <span className="text-base sm:text-xl font-semibold text-white">what is simulated browser testing?</span>
                 {faqOpen === 'browser' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -373,13 +384,43 @@ export default function PricingSection() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="px-6 pb-6 text-gray-300 space-y-4"
+                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-gray-300 space-y-4"
                 >
                   <p>
                     simulated browser testing lets you run Chrome right inside chromie. we host Chrome through our website — you get a full browser with your extension loaded and pinned, so you can test instantly.
                   </p>
                   <p>
                     no more manually loading unpacked extensions or hitting reload every time you make a change. it&apos;s all handled in the website.
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-slate-800/70 backdrop-blur-sm border-2 border-slate-600/50 rounded-lg overflow-hidden shadow-xl">
+              <button
+                onClick={() => setFaqOpen(faqOpen === 'privacyPolicy' ? null : 'privacyPolicy')}
+                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-slate-700/50 transition-colors"
+              >
+                <span className="text-base sm:text-xl font-semibold text-white">what is privacy policy hosting?</span>
+                {faqOpen === 'privacyPolicy' ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {faqOpen === 'privacyPolicy' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-gray-300 space-y-4"
+                >
+                  <p>
+                    every Chrome extension published to the Chrome Web Store requires a publicly hosted privacy policy. traditionally, this meant spinning up a separate website or page just to host that document — and repeating that process for every extension you build.
+                  </p>
+                  <p>
+                    chromie handles this automatically. when you build an extension, chromie generates a privacy policy tailored to what your extension actually does, then hosts it for you at a dedicated URL — no separate website needed. every extension gets its own hosted policy, ready to paste straight into the Chrome Web Store submission form.
                   </p>
                 </motion.div>
               )}
