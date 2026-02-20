@@ -455,7 +455,7 @@ const [inputFocused, setInputFocused] = useState(false)
                   transition={{ delay: 0.1, duration: 0.6 }}
                   className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-50 mb-3 leading-tight max-w-3xl mx-auto"
                 >
-                  <i>extend</i> reach. not roadmaps.
+                  build the extension you always wanted.
                 </motion.h1>
                 <motion.p
                   className="text-sm md:text-base text-slate-400 max-w-xl mx-auto"
@@ -463,7 +463,7 @@ const [inputFocused, setInputFocused] = useState(false)
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
                 >
-                  augment your product suite with a browser extension in seconds.
+                  automate tasks, extend your product, or build something new.
                 </motion.p>
               </div>
 
