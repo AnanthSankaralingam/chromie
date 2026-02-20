@@ -24,7 +24,10 @@ export const parseMarkdown = (text) => {
     .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-300">$1</em>')
     .replace(/```([\s\S]*?)```/g, '<pre class="bg-slate-800 border border-slate-600 rounded-lg p-3 my-3 overflow-x-auto"><code class="text-sm text-green-400 font-mono">$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-2 py-1 rounded text-sm text-green-400 font-mono border border-slate-600">$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-300 underline transition-colors">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const safeUrl = /^https?:\/\//i.test(url) ? url : '#'
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-300 underline transition-colors">${text}</a>`
+    })
     .replace(/^> (.*)$/gim, '<blockquote class="border-l-4 border-gray-500 pl-4 py-2 my-3 bg-gray-500/10 italic text-slate-300">$1</blockquote>')
     .replace(/^\* (.*)$/gim, '<li class="ml-4 mb-1">• $1</li>')
     .replace(/^- (.*)$/gim, '<li class="ml-4 mb-1">• $1</li>')

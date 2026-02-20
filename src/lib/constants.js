@@ -5,6 +5,7 @@ export const PLAN_LIMITS = {
     max_projects: 1,
     monthly_browser_minutes: 15,
     max_privacy_policies: 0,
+    max_demo_replays: 1,
     reset_type: 'monthly'
   },
   pro: {
@@ -12,6 +13,7 @@ export const PLAN_LIMITS = {
     max_projects: 300,
     monthly_browser_minutes: 240,
     max_privacy_policies: Infinity,
+    max_demo_replays: Infinity,
     reset_type: 'monthly'
   }
 }

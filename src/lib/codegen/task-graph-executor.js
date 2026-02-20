@@ -11,6 +11,9 @@ import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/o
 import { ensureRequiredFiles } from '@/lib/utils/hyperbrowser-utils.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
+import { runExtensionHarness } from '@/lib/codegen/extension-harness.js'
+import { buildHarnessRepairPrompt } from '@/lib/prompts/new-extension/executors/harness-repair-prompt.js'
+import { applyAllPatches } from '@/lib/codegen/patching-handlers/patch-applier.js'
 
 /**
  * Topologically sorts the task graph by dependencies (DFS).
@@ -232,6 +235,45 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       savePromises.push(saveSingleFileToDatabase(f.file_path, f.content, sessionId))
     }
   }
+
+  // --- Extension Harness Validation ---
+  const { errors: harnessErrors, hasErrors } = runExtensionHarness(completedFiles)
+  if (hasErrors) {
+    console.log(`🔍 [task-graph-executor] Extension harness found ${harnessErrors.length} structural error(s)`)
+    yield { type: 'harness_validation', errors: harnessErrors }
+
+    const harnessPrompt = buildHarnessRepairPrompt(completedFiles, harnessErrors)
+    const model = modelOverride || DEFAULT_MODEL
+    const provider = llmService.getProviderFromModel(model)
+    const supportsThinking = provider === 'gemini' || provider === 'anthropic'
+
+    const harnessResponse = await llmService.createResponse({
+      provider,
+      model,
+      input: harnessPrompt,
+      temperature: 0.1,
+      max_output_tokens: 12000,
+      store: false,
+      thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
+    })
+
+    if (harnessResponse?.usage) {
+      totalTokenUsage.input_tokens += harnessResponse.usage.prompt_tokens || harnessResponse.usage.input_tokens || 0
+      totalTokenUsage.output_tokens += harnessResponse.usage.completion_tokens || harnessResponse.usage.output_tokens || 0
+    }
+
+    // Apply V4A patches using existing patch-applier infrastructure
+    const existingFilesObj = Object.fromEntries(completedFiles)
+    const patchResult = applyAllPatches(existingFilesObj, harnessResponse?.output_text || '')
+
+    for (const [fileName, content] of Object.entries(patchResult.updatedFiles)) {
+      const normalized = normalizeGeneratedFileContent(content)
+      completedFiles.set(fileName, normalized)
+      savePromises.push(saveSingleFileToDatabase(fileName, normalized, sessionId))
+      console.log(`✅ [task-graph-executor] Harness repair patched: ${fileName}`)
+    }
+  }
+  // --- End Extension Harness ---
 
   // Build the implementation result object for metadata
   const implementationResult = {}
