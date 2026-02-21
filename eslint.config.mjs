@@ -1,6 +1,23 @@
 import globals from "globals";
-import { defineConfig } from "eslint/config";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
-export default defineConfig([
-  { files: ["**/*.{js,mjs,cjs}"], languageOptions: { globals: globals.browser } },
-]);
+export default [
+  {
+    files: ["**/*.{js,mjs,cjs,jsx}"],
+    plugins: {
+      "react-hooks": reactHooksPlugin,
+    },
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
+];
