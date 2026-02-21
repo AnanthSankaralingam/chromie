@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { navigateToUrl } from "@/lib/utils/browser-actions"
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

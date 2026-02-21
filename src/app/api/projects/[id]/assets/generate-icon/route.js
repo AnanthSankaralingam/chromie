@@ -25,8 +25,8 @@ const buildIconGenerationPrompt = (project, userPrompt) => {
  * POST - Generate an extension icon for a project using AI
  */
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

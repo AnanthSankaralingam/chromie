@@ -11,8 +11,8 @@ import {
 // GET: Get project details for a share token (public access)
 export async function GET(request, { params }) {
   const startTime = Date.now()
-  const supabase = createClient()
-  const { token } = params
+  const supabase = await createClient()
+  const { token } = await params
 
   // Security logging
   const userAgent = request.headers.get('user-agent') || 'unknown'
@@ -204,8 +204,8 @@ export async function GET(request, { params }) {
 // POST: Download extension zip for a share token (requires auth)
 export async function POST(request, { params }) {
   const startTime = Date.now()
-  const supabase = createClient()
-  const { token } = params
+  const supabase = await createClient()
+  const { token } = await params
 
   // Security logging
   const userAgent = request.headers.get('user-agent') || 'unknown'

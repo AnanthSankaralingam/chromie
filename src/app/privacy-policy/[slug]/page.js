@@ -6,8 +6,8 @@ import Image from "next/image"
 import Link from "next/link"
 
 export default async function PublicPrivacyPolicyPage({ params }) {
-  const { slug } = params
-  const supabase = createClient()
+  const { slug } = await params
+  const supabase = await createClient()
 
   // Fetch privacy policy data
   const { data: project, error } = await supabase

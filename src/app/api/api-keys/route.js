@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 // GET - Get all API keys for the current user (across all projects)
 export async function GET(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

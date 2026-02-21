@@ -23,7 +23,7 @@ export async function POST(request) {
     }
 
     // Insert into Supabase
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from('waitlist')
       .insert([

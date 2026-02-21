@@ -11,8 +11,8 @@ const MAX_EDIT_PROMPT_LENGTH = 500
  * Sends current image + edit instruction; returns updated image.
  */
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

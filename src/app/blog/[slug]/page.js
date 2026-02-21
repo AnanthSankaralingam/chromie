@@ -2,7 +2,8 @@ import BlogPostPage from "@/components/pages/blog-post-page"
 import blogPostsData from "@/lib/data/blog-posts.json"
 
 export async function generateMetadata({ params }) {
-  const post = blogPostsData.find((p) => p.slug === params.slug)
+  const { slug } = await params
+  const post = blogPostsData.find((p) => p.slug === slug)
 
   if (!post) {
     return {
@@ -28,6 +29,7 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default function BlogPost({ params }) {
-  return <BlogPostPage slug={params.slug} />
+export default async function BlogPost({ params }) {
+  const { slug } = await params
+  return <BlogPostPage slug={slug} />
 }

@@ -4,8 +4,8 @@ import { Hyperbrowser } from "@hyperbrowser/sdk"
 import { analyzeLogsForTestVerification, formatErrorSummary } from "@/lib/utils/test-log-verification"
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const projectId = params.id
+  const supabase = await createClient()
+  const projectId = (await params).id
 
   const {
     data: { user },

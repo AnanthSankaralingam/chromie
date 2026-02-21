@@ -4,8 +4,8 @@ import { checkPaidPlan } from "@/lib/validation"
 
 // POST - Revert project to a specific version
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id, versionId } = params
+  const supabase = await createClient()
+  const { id, versionId } = await params
 
   const {
     data: { user },

@@ -151,6 +151,7 @@ export function ensureRequiredFiles(files) {
 
   const manifest = JSON.parse(manifestFile.content)
 
+  //TODO: use repair workflow for this
   if (manifest.action && manifest.action.default_popup) {
     const popupFile = files.find(f => f.file_path === manifest.action.default_popup)
     if (!popupFile) {

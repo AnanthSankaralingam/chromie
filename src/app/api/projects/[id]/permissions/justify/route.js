@@ -10,8 +10,8 @@ import chromeApiDocs from "@/lib/data/chrome_extension_apis.json"
 
 // POST: Generate permission justifications using AI
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const projectValidation = validateProjectId(projectId)
   if (!projectValidation.isValid) {

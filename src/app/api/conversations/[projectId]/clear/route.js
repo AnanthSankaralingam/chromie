@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 
 // DELETE - Clear conversation history for a project (keeps code files intact)
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { projectId } = params
+  const supabase = await createClient()
+  const { projectId } = await params
 
   const {
     data: { user },

@@ -682,7 +682,7 @@ function BuilderPageContent() {
 
   return (
     <>
-      <div className={`h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
+      <div className={`h-screen bg-black text-white overflow-hidden ${!user ? 'blur-sm pointer-events-none' : ''}`}>
         {/* Header */}
         <div>
           <AppBarBuilder

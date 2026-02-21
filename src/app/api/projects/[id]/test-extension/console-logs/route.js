@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get("sessionId")
-    const projectId = params.id
+    const projectId = (await params).id
 
     if (!sessionId) {
       return NextResponse.json(

@@ -5,7 +5,7 @@ import { INPUT_LIMITS } from "@/lib/constants"
 import { ONE_SHOT_OPTIMIZER_PROMPT, ONE_SHOT_OPTIMIZER_PROMPT_PREFILL } from "@/lib/prompts/new-extension/optimizer/optimize-prompt"
 
 export async function POST(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

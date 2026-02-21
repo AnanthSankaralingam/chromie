@@ -111,7 +111,7 @@ async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThi
 }
 
 export async function POST(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

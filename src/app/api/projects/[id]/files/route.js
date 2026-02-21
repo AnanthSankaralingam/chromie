@@ -17,8 +17,8 @@ function hasAllowedExtension(filePath) {
 }
 
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -61,8 +61,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -145,8 +145,8 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

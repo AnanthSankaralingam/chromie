@@ -9,8 +9,8 @@ import {
 
 // GET: Retrieve project's privacy policy
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const projectValidation = validateProjectId(projectId)
   if (!projectValidation.isValid) {
@@ -54,8 +54,8 @@ export async function GET(request, { params }) {
 
 // POST: Create or update privacy policy
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const projectValidation = validateProjectId(projectId)
   if (!projectValidation.isValid) {
@@ -146,8 +146,8 @@ export async function POST(request, { params }) {
 
 // DELETE: Remove privacy policy
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },

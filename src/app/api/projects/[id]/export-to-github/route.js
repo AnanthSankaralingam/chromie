@@ -90,8 +90,8 @@ async function upsertGithubFile({
 
 export async function POST(request, { params }) {
   const startTime = Date.now()
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const userAgent = request.headers.get("user-agent") || "unknown"
   const clientIP =

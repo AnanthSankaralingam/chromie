@@ -4,8 +4,8 @@ import { API_KEY_CONFIG } from "@/lib/constants"
 
 // GET - Get API key info for a project (does not return the full key)
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -58,8 +58,8 @@ export async function GET(request, { params }) {
 
 // POST - Generate a new API key for a project
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },
@@ -147,8 +147,8 @@ export async function POST(request, { params }) {
 
 // DELETE - Delete the API key for a project
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },

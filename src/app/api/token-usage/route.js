@@ -4,7 +4,7 @@ import { getUserLimits } from "@/lib/limit-checker"
 import { randomUUID } from "crypto"
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -69,7 +69,7 @@ export async function GET() {
 } 
 
 export async function POST(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

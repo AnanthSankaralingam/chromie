@@ -4,7 +4,7 @@ import { securityLog } from "@/lib/validation"
 
 // GET: Get all shares for the authenticated user
 export async function GET(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

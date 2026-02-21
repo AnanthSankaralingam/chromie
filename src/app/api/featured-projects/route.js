@@ -6,7 +6,7 @@ const CACHE_HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-reval
 // GET /api/featured-projects
 // Returns a list of featured projects, based on project IDs stored in the `featured_projects` table.
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     const { data: featuredRows, error } = await supabase

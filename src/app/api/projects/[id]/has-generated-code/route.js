@@ -3,13 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request, { params }) {
   try {
-    const { id: projectId } = params
+    const { id: projectId } = await params
     
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Check if user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser()

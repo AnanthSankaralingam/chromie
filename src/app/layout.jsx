@@ -7,6 +7,7 @@ import AuthHandler from "@/components/AuthHandler";
 import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
 import { ToastProvider, ToastViewport } from "@/components/ui/feedback/toast";
 import { Toaster } from "@/lib/hooks/use-toast";
+import PostHogProvider from "@/components/PostHogProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 const instrumentSerif = Instrument_Serif({ 
@@ -55,15 +56,17 @@ export default function RootLayout({ children }) {
     <html lang="en">
       {/* Apply Inter globally, while still exposing serif/grotesk variables for selective use */}
       <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
-        <SessionProviderClient>
-          <AuthHandler />
-          <ToastProvider>
-            {children}
-            <FloatingFeedbackButton />
-            <Toaster />
-            <ToastViewport />
-          </ToastProvider>
-        </SessionProviderClient>
+        <PostHogProvider>
+          <SessionProviderClient>
+            <AuthHandler />
+            <ToastProvider>
+              {children}
+              <FloatingFeedbackButton />
+              <Toaster />
+              <ToastViewport />
+            </ToastProvider>
+          </SessionProviderClient>
+        </PostHogProvider>
         <a href="https://foundrlist.com/product/chromiedev" target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
           <img src="https://foundrlist.com/api/badge/chromiedev" alt="Live on FoundrList" width="180" height="72" />
         </a>

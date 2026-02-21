@@ -6,8 +6,8 @@ import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 import { classifyError } from "@/lib/utils/error-classifier"
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -244,8 +244,8 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

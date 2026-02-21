@@ -537,7 +537,7 @@ export default function MonacoEditor({
       />
       {/* Editor Header - compact toolbar */}
       {!readOnly && (
-        <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-[#0a0a0a] border-b border-neutral-800/80 min-h-0">
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-[#1e1e1e] border-b border-[#2d2d2d] min-h-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {onToggleFileTree && (
               <button
@@ -731,7 +731,7 @@ export default function MonacoEditor({
               }
             }}
             loading={
-              <div className="flex items-center justify-center h-full bg-[#0a0a0a]">
+              <div className="flex items-center justify-center h-full bg-[#1e1e1e]">
                 <div className="flex flex-col items-center gap-3">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
                   <span className="text-sm text-neutral-500">Loading</span>

@@ -101,6 +101,23 @@ export default function StreamingChat({
       autoGeneratePrompt,
     })
 
+  // Sync taskList into the messages array so it renders in correct order (before final AI message)
+  useEffect(() => {
+    if (!taskList || taskList.length === 0) return
+    setMessages(prev => {
+      let existingIdx = -1
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].type === 'task_checklist') { existingIdx = i; break }
+      }
+      if (existingIdx !== -1) {
+        const updated = [...prev]
+        updated[existingIdx] = { ...updated[existingIdx], tasks: taskList }
+        return updated
+      }
+      return [...prev, { role: 'assistant', type: 'task_checklist', tasks: taskList }]
+    })
+  }, [taskList, setMessages])
+
   // Auto-generation effect
   useEffect(() => {
     if (
@@ -464,10 +481,24 @@ export default function StreamingChat({
             {messages
               .filter((message) => !message.isThinking)
               .map((message, index, filteredMessages) => {
+                // Render task checklist messages inline for correct ordering
+                if (message.type === 'task_checklist') {
+                  return (
+                    <div key={`msg-${index}`} data-message-role="assistant">
+                      <ChatBubble variant="received">
+                        <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
+                        <ChatBubbleMessage variant="received">
+                          <TaskChecklist tasks={message.tasks} />
+                        </ChatBubbleMessage>
+                      </ChatBubble>
+                    </div>
+                  )
+                }
+
                 // Show avatar only on first AI message in succession
                 const prevMessage = index > 0 ? filteredMessages[index - 1] : null
                 const showAvatar = message.role === "assistant" &&
-                  (!prevMessage || prevMessage.role !== "assistant")
+                  (!prevMessage || prevMessage.role !== "assistant" || prevMessage.type === 'task_checklist')
 
                 return (
                   <div key={`msg-${index}`} data-message-role={message.role}>
@@ -530,16 +561,6 @@ export default function StreamingChat({
                       <span className="text-sm text-white font-medium">{planningProgress}</span>
                     </div>
                   </div>
-                </ChatBubbleMessage>
-              </ChatBubble>
-            )}
-
-            {/* Task Checklist — shown during generation */}
-            {taskList && taskList.length > 0 && (
-              <ChatBubble variant="received">
-                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
-                <ChatBubbleMessage variant="received">
-                  <TaskChecklist tasks={taskList} />
                 </ChatBubbleMessage>
               </ChatBubble>
             )}

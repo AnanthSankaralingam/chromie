@@ -4,11 +4,11 @@ import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
 
 export async function POST(request, { params }) {
-  const { token } = params
+  const { token } = await params
 
   try {
     // Get shared project details (check if not expired)
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: sharedProject, error: shareError } = await supabase
       .from("shared_links")
       .select(`
@@ -35,7 +35,7 @@ export async function POST(request, { params }) {
     }
 
     // Get project files (using service role to bypass RLS)
-    const serviceSupabase = createClient()
+    const serviceSupabase = await createClient()
     const { data: files, error: filesError } = await serviceSupabase
       .from("code_files")
       .select("file_path, content")
@@ -88,7 +88,7 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const { token } = params
+  const { token } = await params
 
   try {
     const { sessionId, startedAt } = await request.json()
@@ -97,7 +97,7 @@ export async function DELETE(request, { params }) {
     }
 
     // Verify the share token is still valid
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: sharedProject, error: shareError } = await supabase
       .from("shared_links")
       .select("id")

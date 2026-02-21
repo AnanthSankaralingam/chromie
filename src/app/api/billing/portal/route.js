@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Billing not configured" }, { status: 503 })
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

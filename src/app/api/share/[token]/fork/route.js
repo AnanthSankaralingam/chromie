@@ -11,8 +11,8 @@ import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 
 export async function POST(request, { params }) {
   const startTime = Date.now()
-  const supabase = createClient()
-  const { token } = params
+  const supabase = await createClient()
+  const { token } = await params
 
   // Security logging
   const userAgent = request.headers.get('user-agent') || 'unknown'
