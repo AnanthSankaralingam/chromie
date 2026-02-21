@@ -279,8 +279,9 @@ export class HyperbrowserService {
       // IMPORTANT: log capture MUST run before pin extension — the first Puppeteer connection
       // "claims" CDP events, so log capture needs to get there first.
       const runPostSessionSetup = async () => {
-        // Give the session a moment to be fully ready before connecting via Puppeteer
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // Give the session time to be fully ready before connecting via Puppeteer.
+        // In production (Vercel), the CDP WebSocket often returns 404 until the browser is spun up.
+        await new Promise(resolve => setTimeout(resolve, 5000))
 
         // Step 1: set up log capture
         if (extensionId) {

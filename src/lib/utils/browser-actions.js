@@ -55,6 +55,21 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     throw sessionError
   }
 
+  // Poll for session readiness (status === 'active') before connecting.
+  // In production (e.g. Vercel), the CDP WebSocket may return 404 until the browser is fully spun up.
+  const maxWaitMs = 20000
+  const pollIntervalMs = 2000
+  let waited = 0
+  while (sessionInfo.status !== 'active' && waited < maxWaitMs) {
+    console.log("[BROWSER-ACTIONS] ⏳ Session not ready (status:", sessionInfo.status, "), waiting...")
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+    waited += pollIntervalMs
+    sessionInfo = await client.sessions.get(sessionId)
+  }
+  if (sessionInfo.status !== 'active') {
+    console.warn("[BROWSER-ACTIONS] ⚠️  Session status is", sessionInfo.status, "after", maxWaitMs, "ms - attempting connection anyway")
+  }
+
   // Hyperbrowser sometimes returns multiple endpoints:
   // - connectUrl: intended for automation (CDP)
   // - wsEndpoint: can be used for CDP, but in some setups it appears coupled to the live viewer
@@ -73,51 +88,66 @@ export async function getPuppeteerSessionContext(sessionId, apiKey) {
     throw new Error(`wsEndpoint must be a string, got ${typeof wsEndpoint}: ${wsEndpoint}`)
   }
 
-  // Switch to Puppeteer connection per Hyperbrowser docs
+  // Log host for debugging (avoid logging full URL which may contain tokens)
   try {
-    console.log("[BROWSER-ACTIONS] 🔌 Loading Puppeteer...")
-    const puppeteerConnect = await getPuppeteerConnect()
-    console.log("[BROWSER-ACTIONS] ✅ Puppeteer loaded successfully")
-    console.log("[BROWSER-ACTIONS] 🌐 About to connect to browser via WebSocket...")
-
-    // Try to parse the WebSocket URL to ensure it's valid
-    try {
-      const url = new URL(wsEndpoint)
-    } catch (urlError) {
-      console.warn("[BROWSER-ACTIONS] ⚠️  Could not parse wsEndpoint as URL:", urlError.message)
-      console.warn("[BROWSER-ACTIONS] Proceeding anyway...")
-    }
-
-    console.log("[BROWSER-ACTIONS] 🔄 Calling puppeteer.connect()...")
-    const browser = await puppeteerConnect({ browserWSEndpoint: wsEndpoint })
-    console.log("[BROWSER-ACTIONS] ✅ Puppeteer connected to browser successfully")
-
-    console.log("[BROWSER-ACTIONS] 📄 Getting browser pages...")
-    const pages = await browser.pages()
-    console.log("[BROWSER-ACTIONS] Found pages count:", pages.length)
-
-    const page = pages[0] || (await browser.newPage())
-    console.log("[BROWSER-ACTIONS] ✅ Page ready:", !!page)
-
-    // Cache this connection for reuse
-    setCachedConnection(sessionId, browser, page)
-
-    // Set up auto-cleanup when browser disconnects
-    browser.on('disconnected', () => {
-      console.log("[BROWSER-ACTIONS] 🔌 Browser disconnected, releasing cached connection for session", sessionId)
-      releaseConnection(sessionId)
-    })
-
-    console.log("[BROWSER-ACTIONS] 🎉 getPuppeteerSessionContext complete (new connection cached)")
-
-    return { browser, page }
-  } catch (puppeteerError) {
-    console.error("[BROWSER-ACTIONS] ❌ Puppeteer connection failed")
-    console.error("[BROWSER-ACTIONS] Error message:", puppeteerError.message)
-    console.error("[BROWSER-ACTIONS] Error stack:", puppeteerError.stack)
-    console.error("[BROWSER-ACTIONS] Full error:", puppeteerError)
-    throw new Error(`Failed to connect to browser session: ${puppeteerError.message}`)
+    const url = new URL(wsEndpoint)
+    console.log("[BROWSER-ACTIONS] 🌐 CDP endpoint host:", url.hostname)
+  } catch {
+    // ignore
   }
+
+  // Switch to Puppeteer connection per Hyperbrowser docs
+  // Retry with backoff: production (Vercel) often sees 404 until CDP is ready
+  const maxRetries = 4
+  const baseDelayMs = 2000
+  let lastError
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log("[BROWSER-ACTIONS] 🔌 Loading Puppeteer...")
+      const puppeteerConnect = await getPuppeteerConnect()
+      console.log("[BROWSER-ACTIONS] ✅ Puppeteer loaded successfully")
+      console.log("[BROWSER-ACTIONS] 🌐 Connecting to browser via WebSocket (attempt", attempt, "/", maxRetries, ")...")
+
+      const browser = await puppeteerConnect({ browserWSEndpoint: wsEndpoint })
+      console.log("[BROWSER-ACTIONS] ✅ Puppeteer connected to browser successfully")
+
+      console.log("[BROWSER-ACTIONS] 📄 Getting browser pages...")
+      const pages = await browser.pages()
+      console.log("[BROWSER-ACTIONS] Found pages count:", pages.length)
+
+      const page = pages[0] || (await browser.newPage())
+      console.log("[BROWSER-ACTIONS] ✅ Page ready:", !!page)
+
+      // Cache this connection for reuse
+      setCachedConnection(sessionId, browser, page)
+
+      // Set up auto-cleanup when browser disconnects
+      browser.on('disconnected', () => {
+        console.log("[BROWSER-ACTIONS] 🔌 Browser disconnected, releasing cached connection for session", sessionId)
+        releaseConnection(sessionId)
+      })
+
+      console.log("[BROWSER-ACTIONS] 🎉 getPuppeteerSessionContext complete (new connection cached)")
+
+      return { browser, page }
+    } catch (puppeteerError) {
+      lastError = puppeteerError
+      const is404 = puppeteerError?.message?.includes('404') || puppeteerError?.message?.includes('Unexpected server response')
+      if (attempt < maxRetries && is404) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1)
+        console.warn("[BROWSER-ACTIONS] ⚠️  Connection failed (attempt", attempt, "):", puppeteerError.message)
+        console.log("[BROWSER-ACTIONS] ⏳ Retrying in", delay, "ms...")
+        await new Promise(resolve => setTimeout(resolve, delay))
+      } else {
+        break
+      }
+    }
+  }
+
+  console.error("[BROWSER-ACTIONS] ❌ Puppeteer connection failed after", maxRetries, "attempts")
+  console.error("[BROWSER-ACTIONS] Error message:", lastError?.message)
+  console.error("[BROWSER-ACTIONS] Error stack:", lastError?.stack)
+  throw new Error(`Failed to connect to browser session: ${lastError?.message}`)
 }
 
 /**
