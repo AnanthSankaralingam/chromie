@@ -71,11 +71,9 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
       if (!projectId || messagesLoaded) return
 
       try {
-        console.log('[useChatState] Loading messages for project:', projectId)
         const response = await fetch(`/api/conversations/${projectId}/messages`)
         
         if (!response.ok) {
-          console.log('[useChatState] No saved messages found, using initial greeting')
           setMessagesLoaded(true)
           return
         }
@@ -84,14 +82,12 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
         const savedMessages = data.messages || []
         
         if (savedMessages.length > 0) {
-          console.log('[useChatState] Loaded', savedMessages.length, 'messages from database')
           // Include initial greeting, then saved messages
           setMessages([INITIAL_GREETING, ...savedMessages])
         }
         
         setMessagesLoaded(true)
       } catch (error) {
-        console.error('[useChatState] Error loading messages:', error)
         setMessagesLoaded(true)
       }
     }
@@ -173,7 +169,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
 
   const clearConversation = async () => {
     if (!projectId) {
-      console.warn('[useChatState] No project ID for clearing conversation')
       return false
     }
 
@@ -182,7 +177,6 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     }
 
     try {
-      console.log('[useChatState] Clearing conversation for project:', projectId)
       const response = await fetch(`/api/conversations/${projectId}/clear`, {
         method: 'DELETE'
       })
@@ -196,11 +190,8 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
       setMessages([INITIAL_GREETING])
       setConversationTokenTotal(0)
       resetStreamState(true)
-      
-      console.log('[useChatState] Conversation cleared successfully')
       return true
     } catch (error) {
-      console.error('[useChatState] Error clearing conversation:', error)
       alert(`Failed to clear conversation: ${error.message}`)
       return false
     }

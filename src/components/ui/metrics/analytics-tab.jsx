@@ -27,13 +27,10 @@ export default function AnalyticsTab({ selectedProjectId, timeRange }) {
         if (response.ok) {
           const data = await response.json()
           setAnalyticsData(data)
-          console.log('Fetched analytics data for project', selectedProjectId, ':', data)
         } else {
-          console.error('Failed to fetch analytics')
           setAnalyticsData(null)
         }
       } catch (error) {
-        console.error('Error fetching analytics:', error)
         setAnalyticsData(null)
       } finally {
         setLoading(false)

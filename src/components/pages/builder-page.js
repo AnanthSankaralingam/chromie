@@ -177,7 +177,6 @@ function BuilderPageContent() {
       requestAnimationFrame(() => {
         startTour()
         tourStartedRef.current = true
-        console.log("[tour] builder tour started", { steps: steps.map((s) => s.id) })
       })
     }
   }, [buildTourSteps, fileManagement.flatFiles.length, hasGeneratedCode, isCanvasOpen, isTourCompleted, setSteps, startTour])
@@ -220,7 +219,6 @@ function BuilderPageContent() {
           sessionStorage.removeItem('pending_prompt')
         }
       } catch (e) {
-        console.error('Error processing pending prompt:', e)
         sessionStorage.removeItem('pending_prompt')
       } finally {
         setIsProcessingPendingPrompt(false)
@@ -318,7 +316,6 @@ function BuilderPageContent() {
 
   const handleCreateAITestAgent = async (opts = null) => {
     if (!projectSetup.currentProjectId) {
-      console.error('No project ID available')
       return
     }
 
@@ -340,7 +337,6 @@ function BuilderPageContent() {
     }
 
     setIsGeneratingTestAgent(true)
-    console.log('🤖 Starting AI test agent generation...')
 
     try {
       const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-hyperagent-script`, {
@@ -356,8 +352,6 @@ function BuilderPageContent() {
       }
 
       const result = await response.json()
-      console.log('✅ AI test agent generated successfully:', result)
-
       if (setTaskProgress) setTaskProgress('ai-agent', 'complete')
       await fileManagement.loadProjectFiles(true)
 
@@ -365,7 +359,6 @@ function BuilderPageContent() {
       else alert('AI testing agent created successfully! Check your files for tests/hyperagent_test_script.js')
 
     } catch (error) {
-      console.error('Error generating AI test agent:', error)
       if (setTaskList) setTaskList([])
       if (addMsg) addMsg({ role: 'assistant', content: `Failed to generate AI agent tests: ${error.message}` })
       else alert(`Failed to generate AI test agent: ${error.message}`)
@@ -399,7 +392,6 @@ function BuilderPageContent() {
           setHasSavedAITestResults(data.exists === true)
         }
       } catch (error) {
-        console.error('Error checking for saved test results:', error)
         setHasSavedAITestResults(false)
         // Reset on error so we can retry
         if (hasCheckedTestResultsRef.current === projectSetup.currentProjectId) {
@@ -413,7 +405,6 @@ function BuilderPageContent() {
 
   const handleTestWithAI = async (viewOnly = false) => {
     if (!projectSetup.currentProjectId) {
-      console.error('No project ID available')
       return
     }
 
@@ -430,7 +421,6 @@ function BuilderPageContent() {
 
         const data = await response.json()
         if (data.exists) {
-          console.log('✅ Loaded saved AI test results:', data)
           setAiTestResult(data)
           setIsAITestResultModalOpen(true)
         } else {
@@ -438,7 +428,6 @@ function BuilderPageContent() {
           handleTestWithAI(false)
         }
       } catch (error) {
-        console.error('❌ Error loading saved test results:', error)
         alert(`Failed to load saved test results: ${error.message}`)
       }
       return
@@ -446,7 +435,6 @@ function BuilderPageContent() {
 
     // Kickoff AI analysis in the headful "Try it out" browser, then auto-run HyperAgent tests after pinning finishes.
     setIsTestingWithAI(true)
-    console.log('🤖 Starting AI analysis in headful Try It Out browser...')
 
     try {
       await testExtension.handleTestExtension({
@@ -454,7 +442,6 @@ function BuilderPageContent() {
         autoRunHyperAgent: true,
       })
     } catch (error) {
-      console.error('❌ Error starting AI analysis flow:', error)
       alert(`Failed to start AI analysis: ${error.message}`)
     } finally {
       setIsTestingWithAI(false)
@@ -463,13 +450,10 @@ function BuilderPageContent() {
 
   const handleExecuteTestingAgent = async () => {
     if (!projectSetup.currentProjectId) {
-      console.error("No project ID available")
       return
     }
 
-    // Open headful "Try it out" browser and run Puppeteer -> AI agent in sequence.
     setIsTestingWithAI(true)
-    console.log("🧪🤖 Starting Execute Testing Agent flow (puppeteer → ai agent)...")
 
     try {
       const sequenceId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -481,7 +465,6 @@ function BuilderPageContent() {
         sequenceId,
       })
     } catch (error) {
-      console.error("❌ Error starting Execute Testing Agent flow:", error)
       alert(`Failed to start testing agent: ${error.message}`)
     } finally {
       setIsTestingWithAI(false)
@@ -491,7 +474,6 @@ function BuilderPageContent() {
   // Handler for generating Puppeteer tests from within the test modal
   const handleGeneratePuppeteerTestsFromModal = async () => {
     if (!projectSetup.currentProjectId) {
-      console.error("[puppeteer-tests] No project ID available")
       return
     }
 
@@ -511,12 +493,10 @@ function BuilderPageContent() {
     setActiveTab('chat')
 
     if (testExtension.isTestModalOpen) {
-      console.log("[puppeteer-tests] 🔄 Closing test modal to generate tests")
       testExtension.handleCloseTestModal()
     }
 
     try {
-      console.log("🧪 Generating Puppeteer tests...")
       const response = await fetch(`/api/projects/${projectSetup.currentProjectId}/generate-puppeteer-tests`, {
         method: 'POST',
         headers: {
@@ -526,21 +506,18 @@ function BuilderPageContent() {
       const data = await response.json()
       
       if (!response.ok) {
-        console.error("[puppeteer-tests] Generate failed:", data?.error)
         if (setTaskList) setTaskList([])
         if (addMsg) addMsg({ role: 'assistant', content: `❌ Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}` })
         else alert(`Failed to generate Puppeteer tests: ${data?.error || 'Unknown error'}`)
         return
       }
 
-      console.log("[puppeteer-tests] ✅ Tests generated successfully")
       if (setTaskProgress) setTaskProgress('puppeteer', 'complete')
       await fileManagement.loadProjectFiles(true)
       
       if (addMsg) addMsg({ role: 'assistant', content: 'Basic Puppeteer tests generated! Check **tests/puppeteer/index.test.js** in your file tree.' })
       else alert('Puppeteer tests generated successfully! Check tests/puppeteer/index.test.js')
     } catch (error) {
-      console.error("[puppeteer-tests] Error generating tests:", error)
       if (setTaskList) setTaskList([])
       if (addMsg) addMsg({ role: 'assistant', content: `Failed to generate Puppeteer tests: ${error.message}` })
       else alert(`Failed to generate Puppeteer tests: ${error.message}`)
@@ -550,7 +527,6 @@ function BuilderPageContent() {
   // Handler for generating AI agent tests from within the test modal
   const handleGenerateAiAgentTestsFromModal = async () => {
     if (!projectSetup.currentProjectId) {
-      console.error("[ai-tests] No project ID available")
       return
     }
 
@@ -570,7 +546,6 @@ function BuilderPageContent() {
     setActiveTab('chat')
 
     if (testExtension.isTestModalOpen) {
-      console.log("[ai-tests] 🔄 Closing test modal to generate tests")
       testExtension.handleCloseTestModal()
     }
 
@@ -616,8 +591,6 @@ function BuilderPageContent() {
   }
 
   const handleVersionRestored = async () => {
-    // Reload project files after version restore
-    console.log('🔄 Version restored, reloading project files...')
     await fileManagement.loadProjectFiles(true)
 
     // Refresh project details
@@ -631,7 +604,6 @@ function BuilderPageContent() {
   }
 
   const handleAddMetrics = () => {
-    console.log('📊 Add Metrics clicked')
     if (setInputMessageRef.current) {
       setInputMessageRef.current("Integrate chromie metrics into my extension and track key events!")
     }
@@ -639,7 +611,6 @@ function BuilderPageContent() {
 
   // Handle solving test errors in chat
   const handleSolveErrorInChat = (errorMessage) => {
-    console.log('🔧 Solve in chat clicked')
     if (setInputMessageRef.current) {
       // Sanitize error message to replace internal names
       const sanitizedMessage = errorMessage
@@ -653,7 +624,6 @@ function BuilderPageContent() {
 
   // Handle logs captured from test session
   const handleSessionLogsCapture = useCallback((logs) => {
-    console.log('[builder-page] Captured', logs.length, 'logs from test session')
     setTestSessionLogs(logs)
   }, [])
 

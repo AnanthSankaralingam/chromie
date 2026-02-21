@@ -9,9 +9,7 @@ export default function AIChat({ projectId, projectName, autoGeneratePrompt, onA
   const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
 
   useEffect(() => {
-    // Reset on navigation/refresh: local-only state
     setConversationTokenTotal(0)
-    console.log('[client/ai-chat] reset conversation state')
   }, [projectId])
 
   return (

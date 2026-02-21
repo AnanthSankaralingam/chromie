@@ -181,7 +181,6 @@ export default function AppBarBuilder({
   }
 
   const handlePublishClick = () => {
-    console.log('[publish] open modal')
     setIsPublishOpen(true)
   }
 
@@ -202,12 +201,10 @@ export default function AppBarBuilder({
     stopAllHighlights()
 
     if (!projectId) {
-      console.error('[fork] No project ID available for forking')
       return
     }
 
     try {
-      console.log('[fork] Starting fork for project', { projectId })
       setIsForkLoading(true)
 
       const response = await fetch(`/api/projects/${projectId}/fork`, {
@@ -222,7 +219,6 @@ export default function AppBarBuilder({
 
       if (!response.ok) {
         const message = data.error || 'Failed to fork project'
-        console.error('[fork] Fork failed:', message)
         
         setGithubModalStatus("error")
         setGithubModalMessage(message)
@@ -232,7 +228,6 @@ export default function AppBarBuilder({
         return
       }
 
-      console.log('[fork] Fork completed successfully', data)
 
       // Show success modal
       setGithubModalStatus("success")
@@ -248,7 +243,6 @@ export default function AppBarBuilder({
       }, 2000)
 
     } catch (error) {
-      console.error('[fork] Error forking project:', error)
       setGithubModalStatus("error")
       setGithubModalMessage(error.message || "Failed to fork project.")
       setGithubModalRepoUrl("")
@@ -268,12 +262,10 @@ export default function AppBarBuilder({
     }
 
     if (!projectId) {
-      console.error('[github-export] No project ID available for export')
       return
     }
 
     try {
-      console.log('[github-export] Starting export for project', { projectId })
       setIsExportingToGithub(true)
 
       const response = await fetch(`/api/projects/${projectId}/export-to-github`, {
@@ -288,7 +280,6 @@ export default function AppBarBuilder({
 
       if (!response.ok) {
         const message = data.error || 'Failed to export project to GitHub'
-        console.error('[github-export] Export failed:', message)
 
         if (response.status === 400 && message.toLowerCase().includes('github account not connected')) {
           setGithubModalStatus("error")
@@ -306,7 +297,6 @@ export default function AppBarBuilder({
         return
       }
 
-      console.log('[github-export] Export completed successfully', data)
 
       const repoFullName = data.repo?.full_name || data.repoFullName || 'GitHub repository'
       const htmlUrl = data.repo?.html_url || data.htmlUrl
@@ -317,7 +307,6 @@ export default function AppBarBuilder({
       setGithubModalRepoName(repoFullName)
       setGithubModalOpen(true)
     } catch (error) {
-      console.error('[github-export] Error exporting project to GitHub:', error)
       setGithubModalStatus("error")
       setGithubModalMessage(error.message || "Failed to export project to GitHub.")
       setGithubModalRepoUrl("")

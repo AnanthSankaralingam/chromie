@@ -154,10 +154,8 @@ export default function ShareExtensionPage({ token }) {
         throw new Error(data.error || "Failed to create test session")
       }
 
-      console.log("Test session data:", data.session)
       setTestSessionData(data.session)
       setLoadingProgress(100)
-      console.log("Test session created:", data.session.sessionId)
     } catch (error) {
       console.error("Error creating test session:", error)
       setTestError(error.message || "Failed to create test session")
@@ -206,7 +204,6 @@ export default function ShareExtensionPage({ token }) {
       setForkError(null)
       setForkSuccess(false)
 
-      console.log('[share page] Forking project from token:', token)
 
       const response = await fetch(`/api/share/${token}/fork`, {
         method: 'POST',
@@ -234,7 +231,6 @@ export default function ShareExtensionPage({ token }) {
       }
 
       const data = await response.json()
-      console.log('[share page] Fork successful:', data.project)
 
       // Show success state briefly
       setForkSuccess(true)

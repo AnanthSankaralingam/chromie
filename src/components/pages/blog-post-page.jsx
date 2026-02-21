@@ -23,7 +23,6 @@ export default function BlogPostPage({ slug }) {
   useEffect(() => {
     const foundPost = blogPostsData.find((p) => p.slug === slug)
     setPost(foundPost)
-    console.log('[blog-post] loaded post:', foundPost?.title)
   }, [slug])
 
   if (!post) {

@@ -6,7 +6,6 @@ export default function useResizablePanels() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('chromie_divider_position')
       const position = saved ? parseFloat(saved) : 30
-      console.log('Initial divider position loaded:', position)
       return position
     }
     return 30
@@ -28,11 +27,8 @@ export default function useResizablePanels() {
       const newPosition = ((e.clientX - rect.left) / rect.width) * 100
 
       const constrainedPosition = Math.min(Math.max(newPosition, 25), 45)
-      console.log('Setting divider position to:', constrainedPosition)
       setDividerPosition(constrainedPosition)
-      // Save to localStorage
       localStorage.setItem('chromie_divider_position', constrainedPosition.toString())
-      console.log('Saved to localStorage:', constrainedPosition)
     }
 
     const handleMouseUp = () => {

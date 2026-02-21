@@ -67,11 +67,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
       // Check if there's a pending prompt and preserve it
       const pendingPrompt = sessionStorage.getItem('pending_prompt')
       if (pendingPrompt) {
-        console.log('🔍 Preserving pending prompt during auth flow:', JSON.parse(pendingPrompt))
       }
       
-      console.log('🔍 Starting OAuth flow with auth callback URL:', authCallbackUrl)
-      console.log('🔍 Final redirect destination stored in sessionStorage:', finalRedirect)
       
       // Use Supabase's built-in OAuth flow
       // This will redirect to Google, then Google will redirect to our callback route

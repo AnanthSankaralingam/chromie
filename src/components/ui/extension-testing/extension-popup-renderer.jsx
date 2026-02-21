@@ -17,7 +17,6 @@ function ExtensionPopupRenderer({
   const iframeRef = useRef(null)
 
   useEffect(() => {
-    console.log("ExtensionPopupRenderer received files:", extensionFiles.length)
     
     if (extensionFiles.length > 0) {
       parseExtensionFiles()
@@ -34,14 +33,6 @@ function ExtensionPopupRenderer({
     const contentJS = extensionFiles.find(f => f.file_path === 'content.js')
     const manifest = extensionFiles.find(f => f.file_path === 'manifest.json')
 
-    console.log("Found extension files:", {
-      popup: !!popupHTML,
-      sidePanel: !!sidePanelHTML,
-      content: !!contentJS,
-      css: !!popupCSS,
-      manifest: !!manifest
-    })
-
     // Check if any content contains CSP-restricted sites
     const allContent = [
       popupHTML?.content,
@@ -54,7 +45,6 @@ function ExtensionPopupRenderer({
     setUsePopupWindow(hasCSPRestrictions)
 
     if (hasCSPRestrictions) {
-      console.log("CSP-restricted content detected, will use popup window")
     }
 
     if (popupHTML) {
@@ -224,7 +214,6 @@ function ExtensionPopupRenderer({
       const checkClosed = setInterval(() => {
         if (popupWindow.closed) {
           clearInterval(checkClosed)
-          console.log('Popup window closed')
         }
       }, 1000)
     }

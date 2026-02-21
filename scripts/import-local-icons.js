@@ -6,7 +6,7 @@ const { createClient } = require('@supabase/supabase-js');
 async function main() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const ICONS_DIR = process.env.ICONS_DIR || path.join(process.cwd(), 'icons');
+  const ICONS_DIR = process.env.ICONS_DIR || path.join(process.cwd(), 'public/icons');
   const ICON_VISIBILITY = process.env.ICON_VISIBILITY || 'global';
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

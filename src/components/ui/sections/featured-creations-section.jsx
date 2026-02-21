@@ -92,13 +92,9 @@ export default function FeaturedCreationsSection() {
   useEffect(() => {
     const fetchFeaturedProjects = async () => {
       try {
-        console.log("[FeaturedCreations] Fetching featured projects...")
         const response = await fetch("/api/featured-projects")
 
         if (!response.ok) {
-          console.error("[FeaturedCreations] Failed to fetch featured projects", {
-            status: response.status,
-          })
           setState({
             loading: false,
             error: "unable to load featured creations right now.",
@@ -108,17 +104,12 @@ export default function FeaturedCreationsSection() {
         }
 
         const data = await response.json()
-        console.log("[FeaturedCreations] Loaded featured projects", {
-          count: data?.projects?.length ?? 0,
-        })
-
         setState({
           loading: false,
           error: null,
           projects: Array.isArray(data.projects) ? data.projects : [],
         })
       } catch (error) {
-        console.error("[FeaturedCreations] Unexpected error while loading featured projects", error)
         setState({
           loading: false,
           error: "unexpected error loading featured creations.",
@@ -132,8 +123,6 @@ export default function FeaturedCreationsSection() {
 
   const handleForkProject = async (projectId) => {
     try {
-      console.log("[FeaturedCreations] Forking featured project", { projectId })
-
       const response = await fetch(`/api/projects/${projectId}/fork`, {
         method: "POST",
         credentials: "include",
@@ -145,19 +134,15 @@ export default function FeaturedCreationsSection() {
       const data = await response.json()
 
       if (!response.ok) {
-        const message = data.error || "Failed to fork project"
-        console.error("[FeaturedCreations] Fork failed:", message)
         return
       }
-
-      console.log("[FeaturedCreations] Fork completed successfully", data)
 
       if (data?.project?.id) {
         sessionStorage.setItem("chromie_current_project_id", data.project.id)
         router.push(`/builder?project=${data.project.id}`)
       }
     } catch (error) {
-      console.error("[FeaturedCreations] Error forking project:", error)
+      // Fork failed
     }
   }
 

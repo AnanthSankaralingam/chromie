@@ -120,7 +120,6 @@ export default function MetricsPage() {
       if (response.ok) {
         const data = await response.json()
         setMetricsData(data.metrics)
-        console.log('Fetched metrics data for project', projectId, ':', data.metrics)
       } else {
         console.error('Failed to fetch metrics')
         setMetricsData(null)

@@ -265,12 +265,6 @@ export function useStreamProcessor({
           analysisData,
         })
 
-        console.log("📤 [startGenerationWithUrl] Sending to API:", {
-          userProvidedUrl: userUrl,
-          skipScraping: false,
-          hasInitialRequirementsAnalysis: !!payload.initialRequirementsAnalysis,
-        })
-
         await processStream(payload)
 
         // Don't clear autoGeneratePrompt yet - it might pause for URL/API input
@@ -310,7 +304,6 @@ export function useStreamProcessor({
 
   const continueGenerationWithSkipScraping = useCallback(
     async (requestInfo) => {
-      console.log("🚫 User skipped URL - checking analysisData")
 
       setIsGenerating(true)
       resetStreamState(false) // Don't reset start message flag - this is a continuation
@@ -325,11 +318,6 @@ export function useStreamProcessor({
           userProvidedUrl: null,
           skipScraping: true,
           analysisData: requestInfo.analysisData,
-        })
-
-        console.log("📤 [handleUrlSubmit Skip] Sending to API:", {
-          skipScraping: true,
-          hasInitialRequirementsAnalysis: !!payload.initialRequirementsAnalysis,
         })
 
         // Custom event handler for start event in skip flow

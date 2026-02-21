@@ -200,7 +200,6 @@ export default function ProfilePage() {
   const handleDeleteProject = async (projectId) => {
     if (!projectId) return
 
-    console.log('Attempting to delete project:', projectId)
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
@@ -212,7 +211,6 @@ export default function ProfilePage() {
         setProjects(projects.filter(project => project.id !== projectId))
         setDeleteDialogOpen(false)
         setProjectToDelete(null)
-        console.log('Project deleted successfully')
       } else {
         const errorData = await response.json()
         console.error('Failed to delete project:', errorData.error)
@@ -315,7 +313,6 @@ export default function ProfilePage() {
         return
       }
 
-      console.log('Browser profile reset successfully')
       setResetProfileDialogOpen(false)
     } catch (error) {
       console.error('Error resetting browser profile:', error)
@@ -336,7 +333,6 @@ export default function ProfilePage() {
       if (response.ok) {
         // Remove the share from local state
         setShares(shares.filter(share => share.id !== shareId))
-        console.log('Share revoked successfully')
       } else {
         const errorData = await response.json()
         console.error('Failed to revoke share:', errorData.error)
@@ -450,15 +446,10 @@ export default function ProfilePage() {
       )
 
       if (!projectName) {
-        console.log('[import-extension] User cancelled project naming, aborting import')
         return
       }
 
       setIsImportingExtension(true)
-      console.log('[import-extension] Starting client-side import from profile page', {
-        fileCount: files.length,
-        projectName,
-      })
 
       const formData = new FormData()
       formData.append('projectName', projectName)
@@ -477,31 +468,19 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         const message = data?.error || 'Failed to import extension'
-        console.error('[import-extension] Import failed from profile page:', {
-          status: response.status,
-          message,
-          details: data,
-        })
         alert(message)
         return
       }
 
       const newProjectId = data?.project?.id
       if (!newProjectId) {
-        console.error('[import-extension] Import succeeded but project ID missing', data)
         alert('Extension imported but project ID was missing in the response.')
         return
       }
 
-      console.log('[import-extension] Import completed successfully from profile page', {
-        projectId: newProjectId,
-        projectName: data?.project?.name,
-      })
-
       sessionStorage.setItem('chromie_current_project_id', newProjectId)
       router.push(`/builder?project=${newProjectId}`)
     } catch (error) {
-      console.error('[import-extension] Unexpected error during import from profile page:', error)
       alert(error?.message || 'Failed to import extension')
     } finally {
       setIsImportingExtension(false)

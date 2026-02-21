@@ -187,9 +187,7 @@ export default function AssetUploadModal({
     const uploadedAssets = data.assets || (data.asset ? [data.asset] : [])
 
     if (uploadedAssets.length > 1) {
-      console.log("✅ Files uploaded successfully (auto-resized):", uploadedAssets.map(a => a.file_path).join(", "))
     } else {
-      console.log("✅ File uploaded successfully:", uploadedAssets[0]?.file_path)
     }
 
     if (onUpload) {

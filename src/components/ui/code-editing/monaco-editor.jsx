@@ -150,7 +150,6 @@ export default function MonacoEditor({
         }
       }))
     } catch (e) {
-      console.warn('[MonacoEditor] Failed to open asset upload modal', e)
     }
   }
 
@@ -237,7 +236,6 @@ export default function MonacoEditor({
     try {
       onHtmlPreviewToggle?.(next)
     } catch (e) {
-      console.warn('[MonacoEditor] onHtmlPreviewToggle error', e)
     }
   }
 
@@ -298,7 +296,6 @@ export default function MonacoEditor({
             replacedCount++
             return `'${url}'`
           } else {
-            console.warn('[MonacoEditor] Icon not found in map:', p1, 'Available:', Array.from(iconMap.keys()))
           }
           return m
         })
@@ -316,7 +313,6 @@ export default function MonacoEditor({
             replacedCount++
             return `${attr}=${quote}${url}${quote} data-chromie-icon`
           } else {
-            console.warn('[MonacoEditor] Icon not found in map:', iconPath, 'Original:', path, 'Available:', Array.from(iconMap.keys()))
           }
           return m
         })
@@ -402,7 +398,6 @@ export default function MonacoEditor({
 
   const handleFormat = () => {
     if (!isJsonFile(fileName)) {
-      console.warn('Format button only works with JSON files')
       return
     }
 

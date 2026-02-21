@@ -135,8 +135,15 @@ export class ChatMessagesService {
 
       const history = Array.isArray(data?.history) ? data.history : []
 
+      // Sort by timestamp to ensure correct message order (timestamp is for ordering only, not sent to AI)
+      const sorted = [...history].sort((a, b) => {
+        const ta = a?.timestamp ? new Date(a.timestamp).getTime() : 0
+        const tb = b?.timestamp ? new Date(b.timestamp).getTime() : 0
+        return ta - tb
+      })
+
       // Apply limit if specified (get most recent messages)
-      const finalHistory = limit && limit > 0 ? history.slice(-limit) : history
+      const finalHistory = limit && limit > 0 ? sorted.slice(-limit) : sorted
 
       console.log('[chat-messages-service] getHistory', {
         sessionId,

@@ -6,8 +6,13 @@
  */
 
 import { analyzeManifest } from '@/lib/codegen/file-analysis/analyzers/manifest-analyzer.js'
+import { AVAILABLE_ICON_PATHS } from '@/lib/utils/available-icons.js'
 
 const GLOB_PATTERN = /[*?[\]]/
+const ICON_REF_RE = /icons\/[A-Za-z0-9-_]+\.png/gi
+const FALLBACK_ICON = 'icons/icon128.png'
+
+const CODE_EXTENSIONS = ['.js', '.json', '.html']
 
 /**
  * @typedef {Object} HarnessError
@@ -86,6 +91,80 @@ export function validateManifestFileReferences(completedFiles) {
 }
 
 /**
+ * Levenshtein distance for string similarity.
+ */
+function levenshtein(a, b) {
+  const m = a.length
+  const n = b.length
+  const d = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) d[i][0] = i
+  for (let j = 0; j <= n; j++) d[0][j] = j
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+    }
+  }
+  return d[m][n]
+}
+
+/**
+ * Picks the most similar valid icon path for an invalid reference.
+ */
+function bestMatchingIcon(invalidPath, validPaths) {
+  const invalidName = invalidPath.replace(/^icons\//i, '').replace(/\.png$/i, '').toLowerCase()
+  if (!invalidName) return FALLBACK_ICON
+  let best = FALLBACK_ICON
+  let bestScore = -1
+  for (const p of validPaths) {
+    const name = p.replace(/^icons\//i, '').replace(/\.png$/i, '').toLowerCase()
+    const dist = levenshtein(invalidName, name)
+    const maxLen = Math.max(invalidName.length, name.length, 1)
+    const score = 1 - dist / maxLen
+    if (score > bestScore) {
+      bestScore = score
+      best = p
+    }
+  }
+  return best
+}
+
+/**
+ * Validates icon usage across JS, JSON, and HTML files. Replaces invalid icon refs
+ * with the best string-matched similar from shared icons or user uploads, or icons/icon128.png.
+ * Mutates completedFiles in place.
+ * @param {Map<string,string>} completedFiles
+ */
+export function validateAndFixIconUsage(completedFiles) {
+  const customIcons = new Set()
+  for (const path of completedFiles.keys()) {
+    if (path.startsWith('icons/')) customIcons.add(path)
+  }
+  const validPaths = new Set([...AVAILABLE_ICON_PATHS, ...customIcons])
+  if (validPaths.size === 0) validPaths.add(FALLBACK_ICON)
+
+  for (const [fileName, content] of completedFiles) {
+    const ext = fileName.slice(fileName.lastIndexOf('.'))
+    if (!CODE_EXTENSIONS.includes(ext)) continue
+
+    const refs = [...new Set(content.match(ICON_REF_RE) || [])]
+    let updated = content
+    for (const ref of refs) {
+      const normalized = ref.toLowerCase()
+      const isValid = [...validPaths].some((p) => p.toLowerCase() === normalized)
+      if (isValid) continue
+
+      const replacement = bestMatchingIcon(ref, validPaths)
+      updated = updated.replace(new RegExp(ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), replacement)
+      console.log(`[extension-harness] Fixed invalid icon "${ref}" -> "${replacement}" in ${fileName}`)
+    }
+    if (updated !== content) completedFiles.set(fileName, updated)
+  }
+}
+
+/**
  * Validates that chrome.runtime.sendMessage types have matching onMessage listeners and vice versa.
  * @param {Map<string,string>} completedFiles
  * @returns {HarnessError[]}
@@ -160,10 +239,12 @@ export function validateMessagePassing(completedFiles) {
 
 /**
  * Runs all harness validators and returns aggregated results.
+ * Runs icon validation/fix first (mutates completedFiles), then structural validators.
  * @param {Map<string,string>} completedFiles
  * @returns {{ errors: HarnessError[], hasErrors: boolean }}
  */
 export function runExtensionHarness(completedFiles) {
+  validateAndFixIconUsage(completedFiles)
   const errors = [
     ...validateManifestFileReferences(completedFiles),
     ...validateMessagePassing(completedFiles)

@@ -43,7 +43,6 @@ export async function loadIconAsDataUrl(iconPath) {
   
   // Check if icon exists in our dictionary first
   if (!hasIcon(path)) {
-    console.warn('[icon-loader] Icon not in available icons dictionary:', path)
     return null
   }
   
@@ -56,7 +55,6 @@ export async function loadIconAsDataUrl(iconPath) {
     // Fetch from public directory (Next.js serves files from public/ at root)
     const response = await fetch(`/${path}`)
     if (!response.ok) {
-      console.warn('[icon-loader] Icon not found at:', `/${path}`, response.status)
       return null
     }
     
@@ -68,17 +66,14 @@ export async function loadIconAsDataUrl(iconPath) {
         const dataUrl = reader.result
         // Cache it
         iconMap.set(path, dataUrl)
-        console.log('[icon-loader] Loaded icon:', path)
         resolve(dataUrl)
       }
       reader.onerror = () => {
-        console.error('[icon-loader] Error reading icon:', path)
         resolve(null)
       }
       reader.readAsDataURL(blob)
     })
   } catch (e) {
-    console.error('[icon-loader] Error loading icon:', path, e)
     return null
   }
 }

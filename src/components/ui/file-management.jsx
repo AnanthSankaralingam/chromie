@@ -253,7 +253,6 @@ export default function useFileManagement(currentProjectId, user) {
         throw new Error(errorData.error || 'Failed to delete asset')
       }
 
-      console.log(`Deleted asset: ${file.file_path}`)
 
       // Refresh the file list to reflect the deletion
       await loadProjectFiles(true)
@@ -293,7 +292,6 @@ export default function useFileManagement(currentProjectId, user) {
         throw new Error(errorData.error || 'Failed to delete file')
       }
 
-      console.log(`Deleted file: ${file.file_path}`)
 
       // Refresh the file list to reflect the deletion
       await loadProjectFiles(true)
@@ -334,7 +332,6 @@ export default function useFileManagement(currentProjectId, user) {
         throw new Error(errorData.error || 'Failed to create file')
       }
 
-      console.log(`Created file: ${fileName}`)
 
       // Refresh the file list to reflect the new file
       await loadProjectFiles(true)

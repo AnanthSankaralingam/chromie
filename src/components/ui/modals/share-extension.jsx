@@ -18,7 +18,6 @@ export default function ShareModal({
   const [copied, setCopied] = useState(false)
 
   const handleConfirm = useCallback(() => {
-    console.log("[share] confirm clicked")
     onConfirm?.()
   }, [onConfirm])
 
