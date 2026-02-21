@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
-    "@hyperbrowser/sdk": "^0.60.0",
+    "@hyperbrowser/sdk": "^0.83.3",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-avatar": "latest",
     "@radix-ui/react-dialog": "latest",
