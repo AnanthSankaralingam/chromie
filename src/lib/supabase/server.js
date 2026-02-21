@@ -1,12 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies, headers } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   // Fall back to Authorization header for programmatic API access (e.g. eval harness).
   // Browser sessions use cookies as normal — this only kicks in when there are none.
-  const authHeader = headers().get('authorization') || ''
+  const authHeader = (await headers()).get('authorization') || ''
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
 
   return createServerClient(

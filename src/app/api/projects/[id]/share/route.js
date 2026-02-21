@@ -19,8 +19,8 @@ function generateShareToken() {
 // POST: Generate new share link for a project
 export async function POST(request, { params }) {
   const startTime = Date.now()
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   // Security logging
   const userAgent = request.headers.get('user-agent') || 'unknown'
@@ -244,8 +244,8 @@ export async function POST(request, { params }) {
 
 // GET: Get existing share link for a project
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },
@@ -304,8 +304,8 @@ export async function GET(request, { params }) {
 
 // DELETE: Revoke existing share link
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },

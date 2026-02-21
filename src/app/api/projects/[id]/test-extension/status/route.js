@@ -7,8 +7,8 @@ import { hyperbrowserService } from "@/lib/hyperbrowser-service"
  * GET /api/projects/[id]/test-extension/status?sessionId=xxx
  */
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

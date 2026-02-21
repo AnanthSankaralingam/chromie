@@ -4,38 +4,65 @@
  * Completed tasks show an expandable diff-style code preview.
  */
 
-import { CheckCircle2, Circle, Loader2, Wrench } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { CheckCircle2, Circle, Loader2, Wrench, ChevronDown, ChevronRight } from 'lucide-react'
 import { FileDiffPreview } from './file-diff-preview'
 
 export function TaskChecklist({ tasks }) {
+  const allComplete = (tasks ?? []).length > 0 && (tasks ?? []).every(task => task.status === 'complete')
+  const [isCollapsed, setIsCollapsed] = useState(() => allComplete)
+  const userToggledRef = useRef(false)
+
+  // Auto-collapse when all tasks complete, unless the user manually toggled
+  useEffect(() => {
+    if (!allComplete || userToggledRef.current) return
+    const timer = setTimeout(() => setIsCollapsed(true), 1500)
+    return () => clearTimeout(timer)
+  }, [allComplete])
+
   if (!tasks || tasks.length === 0) {
     return null
   }
 
-  const allComplete = tasks.every(task => task.status === 'complete')
+  const handleToggle = () => {
+    userToggledRef.current = true
+    setIsCollapsed(prev => !prev)
+  }
 
   return (
     <div className="bg-slate-800/40 rounded-lg p-4 my-3 border border-slate-600/40">
-      <div className="flex items-center gap-2 mb-3">
+      <button
+        type="button"
+        className="flex items-center gap-2 w-full text-left"
+        onClick={handleToggle}
+      >
         {allComplete ? (
           <CheckCircle2 className="w-4 h-4 text-green-500" />
         ) : (
           <Loader2 className="w-4 h-4 text-neutral-500 animate-spin" />
         )}
-        <h3 className="text-sm font-semibold text-gray-100">
+        <h3 className="text-sm font-semibold text-gray-100 flex-1">
           {allComplete ? 'Files Generated' : 'Generating Files'}
         </h3>
-      </div>
-      
-      <div className="space-y-2">
-        {tasks.map((task) => (
-          <TaskItem key={task.id} task={task} />
-        ))}
-      </div>
+        {isCollapsed ? (
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-400" />
+        )}
+      </button>
 
-      <div className="mt-3 pt-3 border-t border-slate-600/40">
-        <TaskSummary tasks={tasks} />
-      </div>
+      {!isCollapsed && (
+        <div className="mt-3">
+          <div className="space-y-2">
+            {tasks.map((task) => (
+              <TaskItem key={task.id} task={task} />
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-600/40">
+            <TaskSummary tasks={tasks} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

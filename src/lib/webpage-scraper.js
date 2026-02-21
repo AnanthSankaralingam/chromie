@@ -168,7 +168,7 @@ export async function scrapeWebPage(url, options = {}) {
   console.log(`Looking up webpage data for ${url}${intent ? ` (intent: ${intent})` : ''}${profileId ? ` (profile: ${profileId})` : ''}`)
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const specificDomain = extractDomainName(url, true)
     const genericDomain = extractDomainName(url, false)
 

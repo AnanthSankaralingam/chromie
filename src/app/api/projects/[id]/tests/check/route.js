@@ -8,8 +8,8 @@ export const runtime = "nodejs"
  * Returns an object indicating which tests are present
  */
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const projectId = params.id
+  const supabase = await createClient()
+  const projectId = (await params).id
 
   const {
     data: { user },

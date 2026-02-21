@@ -6,8 +6,8 @@ import { checkPaidPlan } from "@/lib/validation"
 import { PLAN_LIMITS } from "@/lib/constants"
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const projectId = params.id
+  const supabase = await createClient()
+  const projectId = (await params).id
 
   const {
     data: { user },

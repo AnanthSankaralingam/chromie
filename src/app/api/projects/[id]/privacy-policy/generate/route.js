@@ -8,8 +8,8 @@ import { buildPrivacyPolicyPrompt } from "@/lib/prompts/followup/workflows/priva
 
 // POST: Generate privacy policy using AI
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const projectValidation = validateProjectId(projectId)
   if (!projectValidation.isValid) {

@@ -121,8 +121,8 @@ function filterRelevantFiles(existingFiles, relevantPaths, taggedFiles = null) {
 }
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },

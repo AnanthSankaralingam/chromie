@@ -3,8 +3,8 @@ import { NextResponse } from "next/server"
 
 // GET: Public endpoint to fetch privacy policy by slug
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { slug } = params
+  const supabase = await createClient()
+  const { slug } = await params
 
   if (!slug || typeof slug !== 'string') {
     return NextResponse.json({ error: "Invalid slug" }, { status: 400 })

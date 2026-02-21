@@ -72,8 +72,8 @@ const ALLOWED_MIME_TYPES = {
  * GET - List all assets for a project
  */
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -120,8 +120,8 @@ export async function GET(request, { params }) {
  * POST - Upload a new asset
  */
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -356,8 +356,8 @@ export async function POST(request, { params }) {
  * DELETE - Remove an asset
  */
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

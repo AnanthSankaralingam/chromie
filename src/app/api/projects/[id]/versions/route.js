@@ -4,8 +4,8 @@ import { checkPaidPlan } from "@/lib/validation"
 
 // GET - List all versions for a project
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },
@@ -62,8 +62,8 @@ export async function GET(request, { params }) {
 
 // POST - Create a new version snapshot
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

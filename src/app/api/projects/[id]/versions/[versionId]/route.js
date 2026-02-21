@@ -3,8 +3,8 @@ import { NextResponse } from "next/server"
 
 // GET - Get a specific version
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id, versionId } = params
+  const supabase = await createClient()
+  const { id, versionId } = await params
 
   const {
     data: { user },
@@ -50,8 +50,8 @@ export async function GET(request, { params }) {
 
 // DELETE - Delete a specific version
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id, versionId } = params
+  const supabase = await createClient()
+  const { id, versionId } = await params
 
   const {
     data: { user },

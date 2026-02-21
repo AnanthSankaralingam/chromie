@@ -36,7 +36,7 @@ export async function saveSingleFileToDatabase(filePath, rawContent, sessionId) 
   }
 
   console.log(`  → Saving ${filePath} (${content.length} chars)`)
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     const { data: existingFile } = await supabase
@@ -99,7 +99,7 @@ export async function saveFilesToDatabase(implementationResult, sessionId, repla
 
   console.log("🔄 Processing generated code for file saving...")
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   console.log('[codegen-stream] Skipping per-project icon persistence; will materialize at packaging')
   const allFiles = { ...implementationResult }
@@ -201,7 +201,7 @@ export async function saveFilesToDatabase(implementationResult, sessionId, repla
  * @param {Object} allFiles - All generated files (to extract manifest info)
  */
 export async function updateProjectMetadata(sessionId, allFiles = {}) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   let projectUpdateData = {
     has_generated_code: true,

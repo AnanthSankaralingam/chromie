@@ -11,8 +11,8 @@ const MAX_PROMPT_LENGTH = 500
  * POST - Generate brand assets for a project using AI
  */
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

@@ -29,7 +29,7 @@ function isImageFile(filePath, mimeType = "") {
 }
 
 export async function POST(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

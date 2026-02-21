@@ -5,8 +5,8 @@ import { NextResponse } from "next/server"
  * GET - Debug endpoint to check project assets and manifest icons
  */
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { id } = params
+  const supabase = await createClient()
+  const { id } = await params
 
   const {
     data: { user },

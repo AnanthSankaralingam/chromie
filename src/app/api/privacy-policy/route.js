@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 // GET: List all user's projects with privacy policy status
 export async function GET(request) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

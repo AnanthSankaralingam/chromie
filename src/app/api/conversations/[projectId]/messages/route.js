@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 
 // GET - Fetch conversation messages for a project
 export async function GET(request, { params }) {
-  const supabase = createClient()
-  const { projectId } = params
+  const supabase = await createClient()
+  const { projectId } = await params
 
   const {
     data: { user },

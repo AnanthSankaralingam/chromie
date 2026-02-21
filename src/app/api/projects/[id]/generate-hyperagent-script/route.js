@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 import { generateHyperAgentTestScript } from "@/lib/codegen/generate-hyperagent-script"
 
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const projectId = params.id
+  const supabase = await createClient()
+  const projectId = (await params).id
 
   const {
     data: { user },

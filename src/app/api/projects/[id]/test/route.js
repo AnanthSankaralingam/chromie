@@ -6,8 +6,8 @@ import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 
 // TODO depracate this route
 export async function POST(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },
@@ -116,8 +116,8 @@ export async function POST(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const supabase = createClient()
-  const { id: projectId } = params
+  const supabase = await createClient()
+  const { id: projectId } = await params
 
   const {
     data: { user },
