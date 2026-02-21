@@ -5,39 +5,30 @@ launch lauch launch
 ---
 
 ## P0 
-1. ~Enable user to select front end type for new extensions if we're not confident. (ananth)~
-2. Add read file tool to coder. (ananth)
-3. ~Create and stress test scraping with intent in followups. (ananth)~
-4. ~Allow agent to delete files safely~
+1. Add read file tool to coder.
 
 ---
 ## Bugs
-1. ~landing page -> builder page isn't smooth transition for users needing to sign in~
-2. ~mismatch of extension output schemas. make everything optional other than manifest?~
-3. ~messages only populate after everything is done and user can't see changes. update editor and maybe stream changes to files, similar to orchids~
-4. ~testing browser setup is slow, usually 15s before done. probably can speed up the pinning action, and sometimes logging extension is unnecessarily pinned too.~
+1. upload extension bugs even with valid files
+2. Template matching UI doesn't have any loading anymore with model thoughts or anything of that nature.
+3. In deployment wizard, show category and tool section as well as the store icon, which is just the base 128 icon from the manifest.
+4. Extension name when downloaded from deployment wizard doesn't have chromie-project-name prefix. 
 ---
 
 ## P1
-1. ~Improve testing UX: unify test results, logs, and explanations within testing browser view.~
-2. Improve demo generation flow (record AI demo, provide downloadable `.mp4`).
-3. Let followup agent use `grep` search tool.
-4. Debug patch handler - it doesnt always save everything but still saves everything despite no new changes.
+1. Improve demo generation flow (record AI demo, provide downloadable `.mp4`).
+2. Let followup agent use `grep` search tool.
 
 ---
 
 ## P2
-
-1. Stress test with popular use cases; confirm `options.html` and host permissions correctness.
-2. Puppeteer tests always pass and aren't clearly explained to the user — clarify test logic, explain results, and provide transparent feedback to user.
+1. Puppeteer tests always pass and aren't clearly explained to the user — clarify test logic, explain results, and provide transparent feedback to user.
 ---
 
 ## P3
 
 1. Offline job for scraping API docs (handle timeouts, caching).
 2. Add more blog posts and featured creations (gallery + preview).
-3. Security audit feature for users before exporting extensions.
-4. Google docs-like project collaborator feature
 
 ---
 
