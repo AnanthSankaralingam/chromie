@@ -40,7 +40,6 @@ export default function useDownloadExtension(currentProjectId, currentProjectNam
       // Clean up
       URL.revokeObjectURL(url)
       
-      console.log("ZIP file downloaded successfully with icons materialized from shared_icons")
     } catch (error) {
       console.error("Error downloading ZIP file:", error)
       alert(`Download failed: ${error.message}`)

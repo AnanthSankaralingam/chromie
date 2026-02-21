@@ -11,7 +11,6 @@ export default function PublishModal({ isOpen, onClose, onConfirm, projectId }) 
   const router = useRouter()
 
   const handleConfirm = useCallback(() => {
-    console.log("[publish] confirm clicked")
     onClose()
     router.push(`/deployment?project=${projectId}`)
   }, [onClose, router, projectId])

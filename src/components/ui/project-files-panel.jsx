@@ -95,7 +95,6 @@ export default function ProjectFilesPanel({
     // editor:openAssetUpload is handled at builder-page level so Icon button works when file tree is collapsed
   }
   const handleAssetUpload = (asset) => {
-    console.log('Asset uploaded:', asset)
     // Call the callback to refresh files
     if (onAssetUploaded) {
       onAssetUploaded()

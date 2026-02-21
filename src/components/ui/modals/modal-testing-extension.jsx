@@ -17,7 +17,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
   useEffect(() => {
     if (isOpen && sessionData?.sessionId) {
       setSessionExpired(false)
-      console.log("🔄 New test session detected, resetting expired state")
     }
   }, [isOpen, sessionData?.sessionId])
 

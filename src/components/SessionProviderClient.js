@@ -16,23 +16,19 @@ export default function SessionProviderClient({ children }) {
 
     const getSession = async () => {
       try {
-        console.log('SessionProvider: Getting initial session...')
         const sessionPromise = supabase.auth.getSession()
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Session load timeout')), SESSION_TIMEOUT_MS)
         )
         const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise])
         if (error) {
-          console.error('SessionProvider: Session error:', error)
           setUser(null)
           setSession(null)
         } else {
-          console.log('SessionProvider: Session loaded:', session ? 'authenticated' : 'no session')
           setSession(session)
           setUser(session?.user ?? null)
         }
       } catch (err) {
-        console.error('SessionProvider: Auth error:', err)
         setUser(null)
         setSession(null)
       } finally {

@@ -137,18 +137,48 @@ export class FireworksAdapter {
   }
 
   /**
+   * Sanitize a message for the Fireworks API.
+   * Strips Chromie-specific fields (timestamp, versionId). Timestamp is used only for ordering in getHistory;
+   * the AI does not need timestamps for follow-ups. Fireworks/OpenAI only accepts: role, content, name.
+   * @param {Object} msg - Raw message from conversation history
+   * @returns {Object} API-safe message
+   */
+  sanitizeMessage(msg) {
+    if (!msg || typeof msg !== 'object') return msg
+    const { role, content, name, images } = msg
+
+    // Build content: string or multimodal array if images present
+    let apiContent = content ?? ''
+    if (images && Array.isArray(images) && images.length > 0) {
+      const textContent = typeof content === 'string' ? content : (content?.text ?? '')
+      apiContent = [{ type: 'text', text: textContent }]
+      for (const img of images) {
+        if (img?.data) {
+          apiContent.push({ type: 'image_url', image_url: { url: img.data } })
+        }
+      }
+    }
+
+    const sanitized = { role, content: apiContent }
+    if (name) sanitized.name = name
+    return sanitized
+  }
+
+  /**
    * Normalize input to OpenAI messages format
    * @param {string|Array|Object} input - Input text, messages, or object with text and images
-   * @param {Array} conversation_history - Previous conversation history
+   * @param {Array} conversation_history - Previous conversation history (may contain timestamp, versionId)
    * @returns {Array} Normalized messages
    */
   normalizeInput(input, conversation_history = []) {
-    const messages = [...conversation_history]
+    const messages = conversation_history
+      .filter((m) => m && m.role)
+      .map((m) => this.sanitizeMessage(m))
 
     if (typeof input === 'string') {
       messages.push({ role: 'user', content: input })
     } else if (Array.isArray(input)) {
-      messages.push(...input)
+      messages.push(...input.map((m) => this.sanitizeMessage(m)))
     } else if (typeof input === 'object' && input.text) {
       // Handle input with images (vision request) — Kimi K2.5 supports image_url
       const content = [{ type: 'text', text: input.text }]

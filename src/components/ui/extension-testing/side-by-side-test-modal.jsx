@@ -126,11 +126,6 @@ export default function SideBySideTestModal({
         typeof onRefresh === "function"
       ) {
         autoRefreshAttemptedRef.current = true
-        console.warn("[session-wait] ⚠️ Session appears inactive, refreshing...", {
-          sessionId: sessionData?.sessionId,
-          status,
-          label,
-        })
         onRefresh()
         return { ok: false, refreshed: true, status }
       }
@@ -138,11 +133,6 @@ export default function SideBySideTestModal({
       await new Promise((r) => setTimeout(r, 1500))
     }
 
-    console.warn(`[session-wait] ⏳ Timed out waiting for active session for ${label || "action"}`, {
-      sessionId: sessionData?.sessionId,
-      lastStatus,
-      timeoutMs,
-    })
     return { ok: false, status: lastStatus, timedOut: true }
   }
 
@@ -241,7 +231,6 @@ export default function SideBySideTestModal({
       })
       setClearLogsTrigger((prev) => prev + 1)
     } catch (e) {
-      console.warn("[side-by-side-test-modal] Failed to clear console logs:", e?.message)
     }
   }
 

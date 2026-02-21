@@ -103,7 +103,6 @@ export default function TestingSidepanel({
     if (previousSessionActiveRef.current && !isSessionActive) {
       const capturedLogs = sessionLogsRef.current
       if (capturedLogs.length > 0 && onSessionLogsCapture) {
-        console.log("[testing-sidepanel] Session ended, capturing", capturedLogs.length, "logs")
         onSessionLogsCapture(capturedLogs)
       }
     }
@@ -119,13 +118,10 @@ export default function TestingSidepanel({
         if (response.ok) {
           const data = await response.json()
           setTestsExist(data.tests || { puppeteer: false, aiAgent: false })
-          console.log("[testing-sidepanel] 📋 Tests existence:", data.tests)
         } else {
-          console.error("[testing-sidepanel] Failed to check tests:", response.status)
           setTestsExist({ puppeteer: false, aiAgent: false })
         }
       } catch (error) {
-        console.error("[testing-sidepanel] Error checking tests:", error)
         setTestsExist({ puppeteer: false, aiAgent: false })
       } finally {
         setIsCheckingTests(false)
@@ -195,10 +191,8 @@ export default function TestingSidepanel({
               <button
                 onClick={() => {
                   if (isRunningPuppeteerTests) {
-                    console.log("[testing-sidepanel] ⏹️ Stop puppeteer tests clicked")
                     onStopPuppeteerTests?.()
                   } else {
-                    console.log("[testing-sidepanel] ▶️ Run puppeteer tests clicked")
                     setActiveTab("puppeteer")
                     onRunPuppeteerTests?.()
                   }
@@ -221,7 +215,6 @@ export default function TestingSidepanel({
             ) : (
               <button
                 onClick={() => {
-                  console.log("[testing-sidepanel] ✨ Generate puppeteer tests clicked")
                   onGeneratePuppeteerTests?.()
                 }}
                 disabled={isCheckingTests}
@@ -289,10 +282,8 @@ export default function TestingSidepanel({
               <button
                 onClick={() => {
                   if (isRunningAiAgentTests) {
-                    console.log("[testing-sidepanel] ⏹️ Stop AI agent tests clicked")
                     onStopAiAgentTests?.()
                   } else {
-                    console.log("[testing-sidepanel] ▶️ Run AI agent tests clicked")
                     setActiveTab("aiAgent")
                     onRunAiAgentTests?.()
                   }
@@ -315,7 +306,6 @@ export default function TestingSidepanel({
             ) : (
               <button
                 onClick={() => {
-                  console.log("[testing-sidepanel] ✨ Generate AI agent tests clicked")
                   onGenerateAiAgentTests?.()
                 }}
                 disabled={isCheckingTests}

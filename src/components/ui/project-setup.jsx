@@ -49,7 +49,7 @@ export default function useProjectSetup(user, isLoading) {
         return project
       }
     } catch (error) {
-      console.error('Error fetching project details:', error)
+      // Fetch failed
     }
     return null
   }
@@ -65,13 +65,12 @@ export default function useProjectSetup(user, isLoading) {
         setCurrentProjectHasGithubRepo(!!project.github_repo_full_name)
       }
     } catch (error) {
-      console.error('Error refreshing current project details:', error)
+      // Refresh failed
     }
   }
 
   const createDefaultProject = async () => {
     try {
-      console.log('Creating default project...')
       const response = await fetchWithTimeout('/api/projects', {
         method: 'POST',
         headers: {
@@ -97,7 +96,6 @@ export default function useProjectSetup(user, isLoading) {
           return
         }
         
-        console.error('Failed to create default project:', errorData)
         setProjectSetupError(`Failed to create project: ${errorData.error}`)
         setIsSettingUpProject(false)
         return
@@ -105,16 +103,12 @@ export default function useProjectSetup(user, isLoading) {
 
       const data = await response.json()
       const newProject = data.project
-
-      console.log('Created new project:', newProject.id)
-      
       setCurrentProjectId(newProject.id)
       setCurrentProjectName(newProject.name)
       setCurrentProjectHasGithubRepo(false)
       sessionStorage.setItem('chromie_current_project_id', newProject.id)
       setIsSettingUpProject(false)
     } catch (error) {
-      console.error('Error creating default project:', error)
       const isTimeout = error?.name === 'AbortError'
       setProjectSetupError(isTimeout ? 'Request timed out. Please try again.' : 'Failed to create project')
       setIsSettingUpProject(false)
@@ -132,7 +126,6 @@ export default function useProjectSetup(user, isLoading) {
     // Priority: URL parameter > session storage > most recent project
     if (projectIdFromUrl) {
       try {
-        console.log('Using project ID from URL:', projectIdFromUrl)
         setCurrentProjectId(projectIdFromUrl)
         sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
         const projectDetails = await fetchProjectDetails(projectIdFromUrl)
@@ -143,7 +136,6 @@ export default function useProjectSetup(user, isLoading) {
         setIsSettingUpProject(false)
         setProjectSetupError(null)
       } catch (err) {
-        console.error('Error loading project from URL:', err)
         const isTimeout = err?.name === 'AbortError'
         setProjectSetupError(isTimeout ? 'Request timed out. Please try again.' : 'Failed to load project')
         setIsSettingUpProject(false)
@@ -162,7 +154,6 @@ export default function useProjectSetup(user, isLoading) {
         setIsSettingUpProject(false)
         setProjectSetupError(null)
       } catch (err) {
-        console.error('Error loading stored project:', err)
         const isTimeout = err?.name === 'AbortError'
         setProjectSetupError(isTimeout ? 'Request timed out. Please try again.' : 'Failed to load project')
         setIsSettingUpProject(false)
@@ -181,8 +172,6 @@ export default function useProjectSetup(user, isLoading) {
     try {
       const response = await fetchWithTimeout('/api/projects')
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Failed to fetch projects:', errorText)
         setProjectSetupError('Failed to load projects')
         setIsSettingUpProject(false)
         return
@@ -193,7 +182,6 @@ export default function useProjectSetup(user, isLoading) {
 
       if (projects.length > 0) {
         const mostRecentProject = projects[0]
-        console.log('Using existing project:', mostRecentProject.id)
         setCurrentProjectId(mostRecentProject.id)
         setCurrentProjectName(mostRecentProject.name)
         setCurrentProjectHasGithubRepo(!!mostRecentProject.github_repo_full_name)
@@ -202,7 +190,6 @@ export default function useProjectSetup(user, isLoading) {
         await createDefaultProject()
       }
     } catch (error) {
-      console.error('Error checking/setting up project:', error)
       const isTimeout = error?.name === 'AbortError'
       setProjectSetupError(isTimeout ? 'Request timed out. Please try again.' : 'Failed to set up project')
       setIsSettingUpProject(false)

@@ -30,7 +30,6 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
 
   const loadVersions = async () => {
     if (!projectId) {
-      console.log('No project ID, skipping version load')
       return
     }
     
@@ -53,7 +52,6 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
       }
       
       setVersions(data.versions || [])
-      console.log(`📋 Loaded ${data.versions?.length || 0} versions`)
     } catch (err) {
       console.error("Error loading versions:", err)
       setError(err.message)
@@ -96,7 +94,6 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
         throw new Error(data.error || "Failed to create version")
       }
 
-      console.log(`✅ Created version: ${data.version.version_number}`)
       
       // Reset form and reload versions
       setNewVersionName("")
@@ -133,7 +130,6 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
       }
 
       const data = await response.json()
-      console.log(`✅ Reverted to version ${versionNumber}`, data)
       
       // Show success message
       alert(`Successfully reverted to version ${versionNumber}. Files restored: ${data.stats.files_restored}, Assets restored: ${data.stats.assets_restored}`)
@@ -168,7 +164,6 @@ export default function VersionHistoryPanel({ projectId, isOpen, onClose, onVers
         throw new Error(errorData.error || "Failed to delete version")
       }
 
-      console.log(`🗑️ Deleted version ${versionNumber}`)
       await loadVersions()
     } catch (err) {
       console.error("Error deleting version:", err)

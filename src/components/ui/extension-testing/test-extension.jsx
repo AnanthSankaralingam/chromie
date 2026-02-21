@@ -21,7 +21,6 @@ export default function useTestExtension(currentProjectId) {
     }
 
     cleanupAttempted.current = true
-    console.log("🧹 Cleaning up session:", sessionId)
 
     // Clear from sessionStorage
     try {
@@ -44,17 +43,13 @@ export default function useTestExtension(currentProjectId) {
 
       if (response.ok) {
         const result = await response.json()
-        console.log("✅ Session cleaned up")
-
         // Update browser usage indicator if available
         if (typeof window !== 'undefined' && window.dispatchEvent) {
           window.dispatchEvent(new CustomEvent('browserUsageUpdated'))
         }
-      } else {
-        console.warn("⚠️  Cleanup failed:", response.status)
       }
     } catch (error) {
-      console.error("❌ Cleanup error:", error.message)
+      // Cleanup failed
     }
   }
 
@@ -68,7 +63,6 @@ export default function useTestExtension(currentProjectId) {
       if (stored) {
         const { sessionId, projectId } = JSON.parse(stored)
         if (sessionId && projectId) {
-          console.log("🧹 Found orphaned session on mount, cleaning up:", sessionId)
           sessionStorage.removeItem(SESSION_STORAGE_KEY)
           // Use sendBeacon for reliable delivery (survives any navigation edge cases)
           if (navigator.sendBeacon) {
@@ -123,10 +117,7 @@ export default function useTestExtension(currentProjectId) {
   }, [testSessionData?.sessionId, currentProjectId])
 
   const handleTestExtension = async (options = {}) => {
-    console.log("🚀 Test Extension clicked")
-    
     if (!currentProjectId) {
-      console.error("❌ No project ID available")
       return
     }
 
@@ -155,8 +146,6 @@ export default function useTestExtension(currentProjectId) {
         })
       }, 1000)
 
-      console.log("📡 Creating test session...")
-      
       const createPromise = fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
@@ -175,8 +164,6 @@ export default function useTestExtension(currentProjectId) {
       const data = await response.json()
 
       if (!response.ok) {
-        console.error("❌ API Error:", data.error || data)
-
         // Store rich error data for UI consumption
         const errorData = {
           message: data.error || "Failed to create test session",
@@ -189,11 +176,6 @@ export default function useTestExtension(currentProjectId) {
         setLoadingProgress(100)
         return // Don't throw - error is stored in state for UI to display
       }
-
-      console.log("✅ Session created:", data.session?.sessionId)
-      console.log("📌 Automatic pinning initiated on server")
-      console.log("   Session ID:", data.session?.sessionId)
-      console.log("   Live URL:", data.session?.liveViewUrl ? "✓" : "✗")
 
       // Persist session info to survive page reloads
       try {
@@ -223,7 +205,6 @@ export default function useTestExtension(currentProjectId) {
         cleanupAttempted.current = false
       }
     } catch (error) {
-      console.error("❌ Error:", error.message)
       // Store the error in state for UI to display instead of clearing it
       setTestSessionData({
         error: {
@@ -245,7 +226,6 @@ export default function useTestExtension(currentProjectId) {
     } else {
       // If creation is still in-flight, mark for cleanup when it completes
       if (pendingCreateRef.current) {
-        console.log("⏳ Modal closed while session creation in progress. Will cleanup after creation.")
         cleanupAfterCreateRef.current = true
       }
     }

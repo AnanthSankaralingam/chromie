@@ -44,7 +44,6 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
       }
 
       const data = await response.json()
-      console.log("✅ Reverted to version:", data)
 
       // Notify parent component that revert was successful
       if (onRevert) {

@@ -1,0 +1,24 @@
+# Chromie
+
+> Chromie is an AI-powered no-code Chrome extension builder that turns natural language prompts into working Chrome extensions.
+
+Chromie lets you describe what you want in plain English and get a complete Chrome extension — manifest, background script, content scripts, popup, options page, and more. You can test extensions in a simulated browser, export to GitHub, and publish to the Chrome Web Store.
+
+Key capabilities:
+- Natural language to extension: describe your idea and get production-ready code
+- In-browser testing: run and debug extensions without leaving the app
+- AI-assisted testing: automated Puppeteer tests for your extension
+- Export to GitHub: one-click export of your project
+- Chrome Web Store deployment: walkthrough for publishing, with generated content for branding, permissions, etc.
+
+## Main
+
+- [Chromie Home](https://chromie.dev): Landing page and product overview
+- [Builder](https://chromie.dev/builder): Create and edit extensions with the AI builder
+- [Blog](https://chromie.dev/blog): Product updates and Chrome extension development tips
+- [Pricing](https://chromie.dev#pricing): Plans and credit usage
+
+## Optional
+
+- [Privacy Policy](https://chromie.dev/privacy-policy): Chromie's privacy practices
+- [Profile](https://chromie.dev/profile): User account and billing management

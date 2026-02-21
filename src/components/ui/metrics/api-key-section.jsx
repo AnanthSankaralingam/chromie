@@ -60,7 +60,6 @@ export default function ApiKeySection({ selectedProjectId }) {
       }
 
       const data = await response.json()
-      console.log('Fetched API keys:', data.apiKeys?.length || 0)
       setApiKeys(data.apiKeys || [])
     } catch (error) {
       console.error('Error fetching API keys:', error)
@@ -95,7 +94,6 @@ export default function ApiKeySection({ selectedProjectId }) {
       }
 
       setNewlyGeneratedKey(data.apiKey)
-      console.log('API key generated successfully for project:', selectedProjectId)
 
       // Refresh the list
       await fetchApiKeys()
@@ -121,8 +119,6 @@ export default function ApiKeySection({ selectedProjectId }) {
         const data = await response.json()
         throw new Error(data.error || 'Failed to delete API key')
       }
-
-      console.log('API key deleted successfully for project:', projectId)
 
       // Refresh the list
       await fetchApiKeys()
