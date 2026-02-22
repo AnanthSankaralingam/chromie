@@ -4,7 +4,7 @@
  */
 
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from '../file-analysis/index.js';
-import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/workflows/planning-context.js';
+import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/planning/planning-context.js';
 import { FOLLOW_UP_PATCH_PROMPT } from '@/lib/prompts/followup/follow-up-patching.js';
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
 import { executeToolCall } from './tool-executor.js';
