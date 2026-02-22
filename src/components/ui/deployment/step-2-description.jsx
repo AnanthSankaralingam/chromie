@@ -4,15 +4,68 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Copy, RefreshCw, CheckCircle2 } from "lucide-react"
 
+function inferCategory(projectData) {
+  const text = [projectData?.name, projectData?.description].join(' ').toLowerCase()
+  if (/\b(block|blocker|ad[\s-]?block|ublock|adguard|filter)\b/.test(text)) return 'Blocker'
+  if (/\b(access|a11y|screen[\s-]?reader|aria|contrast|dyslexia)\b/.test(text)) return 'Accessibility'
+  if (/\b(dev|debug|inspect|console|api|developer|code|json|http|request|response)\b/.test(text)) return 'Developer Tools'
+  if (/\b(news|weather|forecast|headline|rss|feed)\b/.test(text)) return 'News & Weather'
+  if (/\b(photo|image|picture|screenshot|gallery|camera)\b/.test(text)) return 'Photos'
+  if (/\b(shop|price|amazon|ebay|discount|coupon|deal|checkout|cart)\b/.test(text)) return 'Shopping'
+  if (/\b(social|twitter|facebook|instagram|reddit|chat|message|discord)\b/.test(text)) return 'Social & Communication'
+  if (/\b(sport|score|football|basketball|soccer|nfl|nba|baseball)\b/.test(text)) return 'Sports'
+  if (/\b(search|find|lookup|query)\b/.test(text)) return 'Search Tools'
+  if (/\b(fun|game|entertain|meme|joke|comic|emoji)\b/.test(text)) return 'Fun'
+  return 'Productivity'
+}
+
+const CWS_LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "ar", label: "Arabic" },
+  { value: "zh-CN", label: "Chinese (Simplified)" },
+  { value: "zh-TW", label: "Chinese (Traditional)" },
+  { value: "cs", label: "Czech" },
+  { value: "da", label: "Danish" },
+  { value: "nl", label: "Dutch" },
+  { value: "fi", label: "Finnish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "el", label: "Greek" },
+  { value: "hi", label: "Hindi" },
+  { value: "hu", label: "Hungarian" },
+  { value: "id", label: "Indonesian" },
+  { value: "it", label: "Italian" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "no", label: "Norwegian" },
+  { value: "pl", label: "Polish" },
+  { value: "pt-BR", label: "Portuguese (Brazil)" },
+  { value: "pt-PT", label: "Portuguese (Portugal)" },
+  { value: "ro", label: "Romanian" },
+  { value: "ru", label: "Russian" },
+  { value: "es", label: "Spanish" },
+  { value: "sv", label: "Swedish" },
+  { value: "th", label: "Thai" },
+  { value: "tr", label: "Turkish" },
+  { value: "uk", label: "Ukrainian" },
+  { value: "vi", label: "Vietnamese" },
+]
+
 export default function Step2Description({
   projectId,
   projectData,
   generatedDescription,
+  selectedCategory,
+  selectedLanguage,
   onDescriptionGenerated,
+  onCategorySelected,
+  onLanguageSelected,
   onComplete,
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [description, setDescription] = useState(generatedDescription || "")
+  const [category, setCategory] = useState(selectedCategory || inferCategory(projectData))
+  const [language, setLanguage] = useState(selectedLanguage || "en")
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(null)
 
@@ -45,6 +98,16 @@ export default function Step2Description({
     }
   }
 
+  const handleCategoryChange = (e) => {
+    setCategory(e.target.value)
+    onCategorySelected(e.target.value)
+  }
+
+  const handleLanguageChange = (e) => {
+    setLanguage(e.target.value)
+    onLanguageSelected(e.target.value)
+  }
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(description)
@@ -68,6 +131,39 @@ export default function Step2Description({
         </h3>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <p className="text-sm">{manifestDescription || "No name provided"}</p>
+        </div>
+      </div>
+
+      {/* Category & Language */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-zinc-400">
+            Category
+          </label>
+          <input
+            type="text"
+            value={category}
+            onChange={handleCategoryChange}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="e.g. Productivity"
+          />
+          <p className="text-xs text-zinc-500 mt-1">Suggested based on your extension name</p>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-zinc-400">
+            Primary Language
+          </label>
+          <select
+            value={language}
+            onChange={handleLanguageChange}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            {CWS_LANGUAGES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

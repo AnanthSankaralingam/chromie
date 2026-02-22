@@ -11,10 +11,8 @@ launch lauch launch
 
 ---
 ## Bugs
-1. upload extension bugs even with valid files
-2. Template matching UI doesn't have any loading anymore with model thoughts or anything of that nature.
-3. In deployment wizard, show category and tool section as well as the store icon, which is just the base 128 icon from the manifest.
-4. Extension name when downloaded from deployment wizard doesn't have chromie-project-name prefix. 
+1. Template matching UI doesn't have any loading anymore with model thoughts or anything of that nature.
+
 ---
 
 ## P1

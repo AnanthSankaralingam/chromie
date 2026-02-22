@@ -24,6 +24,8 @@ export default function DeploymentPage() {
   const [projectData, setProjectData] = useState(null)
   const [generatedData, setGeneratedData] = useState({
     description: null,
+    category: null,
+    language: "en",
     permissionJustifications: null,
     privacyPolicyText: null,
     privacyPolicySlug: null,
@@ -264,7 +266,11 @@ export default function DeploymentPage() {
           projectId={projectId}
           projectData={projectData}
           generatedDescription={generatedData.description}
+          selectedCategory={generatedData.category}
+          selectedLanguage={generatedData.language}
           onDescriptionGenerated={(desc) => updateGeneratedData("description", desc)}
+          onCategorySelected={(cat) => updateGeneratedData("category", cat)}
+          onLanguageSelected={(lang) => updateGeneratedData("language", lang)}
           onComplete={() => handleStepComplete(2)}
         />
       )}
