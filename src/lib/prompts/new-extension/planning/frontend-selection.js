@@ -44,7 +44,7 @@ IMPORTANT: If the user mentions two or more frontend types as options (e.g. "sid
 
 <output_schema>
 {
-  "frontend_type": "popup | sidepanel | overlay | new_tab | content_script_ui",
+  "frontend_type": "popup | sidepanel | overlay | new_tab | background_only | content_script_ui",
   "confidence": 0.0 to 1.0
 }
 </output_schema>
