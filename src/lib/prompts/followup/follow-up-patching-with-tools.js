@@ -1,53 +1,11 @@
 import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+import {
+  CHROME_API_SEARCH_TOOL,
+  WEB_SCRAPING_TOOL,
+  FILE_DELETE_TOOL
+} from './tools/index.js';
 
-export const CHROME_API_SEARCH_TOOL = `
-<chrome_api_search>
-Use this tool to search Chrome extension API documentation when you need to verify API methods, parameters, permissions, or best practices.
-
-To call this tool, output JSON:
-{
-  "tool": "chrome_api_search",
-  "query": "your search query here"
-}
-
-Tool results will be provided before you generate patches.
-</chrome_api_search>
-`;
-
-export const WEB_SCRAPING_TOOL = `
-<web_scraping>
-Use this tool (sparingly) to scrape and extract content from specific web pages when you need to analyze website structures for DOM manipulation or data extraction features.
-
-To call this tool, output JSON:
-{
-  "tool": "web_scraping",
-  "url": "https://example.com",
-  "intent": "what you want to extract or analyze"
-}
-
-Tool results will be provided before you generate patches.
-</web_scraping>
-`;
-
-export const FILE_DELETE_TOOL = `
-<file_deletion>
-Use this tool to safely delete obsolete, redundant, or unnecessary files from the project during refactoring or cleanup operations.
-
-To call this tool, output JSON:
-{
-  "tool": "delete_file",
-  "file_path": "path/to/file.js",
-  "reason": "Clear explanation of why this file should be deleted"
-}
-
-Safety notes:
-- Critical files like manifest.json cannot be deleted
-- Sensitive files (background.js, content.js, popup.html) will require user confirmation
-- You must provide a clear reason for each deletion
-
-Tool results will be provided before you generate patches
-</file_deletion>
-`;
+export { CHROME_API_SEARCH_TOOL, WEB_SCRAPING_TOOL, FILE_DELETE_TOOL };
 
 /**
  * Builds conditional tool descriptions based on enabled tools
@@ -107,14 +65,6 @@ ${ICON_CONFIGURATION}
 - Your entire patch response MUST start with \`*** Begin Patch\` on its own line
 - Your entire patch response MUST end with \`*** End Patch\` on its own line
 </critical_rules>
-
-<chrome_messaging_api_rules>
-Chrome Messaging Best Practices:
-- In port.onMessage listeners (chrome.runtime.onConnect), do NOT use 'sender'; only (message) is received.
-- To access sender/tab info, pass it in the message or capture it earlier.
-- If you need 'sender', use chrome.runtime.onMessage or chrome.tabs.onMessage (these provide (message, sender, sendResponse)).
-- Never reference 'sender' in port.onMessage.addListener callbacks.
-</chrome_messaging_api_rules>
 
 <v4a_diff_format>
 <file_marker>
