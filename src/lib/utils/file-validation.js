@@ -94,10 +94,12 @@ export function validateExtensionFiles(files) {
     }
   }
 
-  // Check file types
+  // Check file types, ignoring hidden/system files (e.g. .DS_Store, .gitignore)
   const invalidFiles = []
   for (const file of files) {
-    const filePath = file.name || file.webkitRelativePath || ''
+    const filePath = file.webkitRelativePath || file.name || ''
+    const baseName = filePath.split('/').pop()
+    if (baseName.startsWith('.')) continue
     if (filePath && !isAllowedFile(filePath)) {
       invalidFiles.push(filePath)
     }

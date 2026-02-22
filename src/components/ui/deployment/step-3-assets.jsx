@@ -23,6 +23,16 @@ export default function Step3Assets({ projectId, projectData, onComplete }) {
   const [isEditingAI, setIsEditingAI] = useState(false)
   const [aiEditError, setAiEditError] = useState(null)
 
+  // Store icon state
+  const [storeIcon, setStoreIcon] = useState({ url: "/icons/icon128.png", source: "default" }) // { blob?, url, source: 'default'|'ai'|'upload' }
+  const [storeIconViewMode, setStoreIconViewMode] = useState("preview") // "preview" | "replace"
+  const [storeIconReplaceMode, setStoreIconReplaceMode] = useState("upload") // "upload" | "ai"
+  const [storeIconPrompt, setStoreIconPrompt] = useState("")
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState(false)
+  const [iconAttempts, setIconAttempts] = useState(0)
+  const [storeIconError, setStoreIconError] = useState(null)
+  const [isProcessingIconUpload, setIsProcessingIconUpload] = useState(false)
+
   const MAX_AI_ATTEMPTS = 3
   const MAX_PROMPT_LENGTH = 500
 
@@ -32,14 +42,17 @@ export default function Step3Assets({ projectId, projectData, onComplete }) {
     { name: "Screenshot", width: 1280, height: 800, required: true },
   ]
 
-  // Initialize AI prompt from project description
+  // Initialize AI prompts from project description
   useEffect(() => {
     if (projectData?.description) {
       setAiPrompt(`Create a promotional image for my Chrome extension based on this description: ${projectData.description}`)
+      setStoreIconPrompt(`Create a 128x128 icon for a Chrome extension: ${projectData.description}. Clean, minimal, suitable for Chrome Web Store.`)
     } else if (projectData?.name) {
       setAiPrompt(`Create a promotional image for a Chrome extension called "${projectData.name}". Make it visually appealing with modern design.`)
+      setStoreIconPrompt(`Create a 128x128 icon for a Chrome extension called "${projectData.name}". Clean, minimal, modern design.`)
     }
   }, [projectData])
+
 
   const resizeImage = (file, targetWidth, targetHeight) => {
     return new Promise((resolve, reject) => {
@@ -101,6 +114,84 @@ export default function Step3Assets({ projectId, projectData, onComplete }) {
       img.onerror = () => reject(new Error("Failed to load image"))
       img.src = `data:${mimeType};base64,${base64Data}`
     })
+  }
+
+  const handleIconFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg"]
+    if (!validTypes.includes(file.type)) {
+      setStoreIconError("Only PNG and JPG files are supported")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setStoreIconError("File must be less than 5MB")
+      return
+    }
+
+    setIsProcessingIconUpload(true)
+    setStoreIconError(null)
+    try {
+      if (storeIcon) URL.revokeObjectURL(storeIcon.url)
+      const blob = await resizeImage(file, 128, 128)
+      setStoreIcon({ blob, url: URL.createObjectURL(blob), source: "upload" })
+      setStoreIconViewMode("preview")
+    } catch (err) {
+      setStoreIconError(err.message)
+    } finally {
+      setIsProcessingIconUpload(false)
+    }
+  }
+
+  const handleGenerateIcon = async () => {
+    if (iconAttempts >= MAX_AI_ATTEMPTS) {
+      setStoreIconError("Maximum generation attempts reached. Please upload an icon manually.")
+      return
+    }
+    const trimmed = storeIconPrompt.trim()
+    if (!trimmed) { setStoreIconError("Please enter a prompt"); return }
+    if (trimmed.length > MAX_PROMPT_LENGTH) {
+      setStoreIconError(`Prompt must be ${MAX_PROMPT_LENGTH} characters or less`)
+      return
+    }
+
+    setIsGeneratingIcon(true)
+    setStoreIconError(null)
+    try {
+      const response = await fetch(`/api/projects/${projectId}/assets/generate-icon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: trimmed }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        if (response.status === 403) throw new Error("Insufficient credits. Please upgrade your plan.")
+        throw new Error(data.error || "Failed to generate icon")
+      }
+      if (!data.success || !data.image) throw new Error("No image returned from AI")
+
+      if (storeIcon) URL.revokeObjectURL(storeIcon.url)
+      const blob = await resizeBase64Image(data.image.base64, data.image.mimeType, 128, 128)
+      setStoreIcon({ blob, url: URL.createObjectURL(blob), source: "ai" })
+      setIconAttempts((prev) => prev + 1)
+      setStoreIconViewMode("preview")
+    } catch (err) {
+      console.error("Icon generation error:", err)
+      setStoreIconError(err.message)
+    } finally {
+      setIsGeneratingIcon(false)
+    }
+  }
+
+  const handleDownloadStoreIcon = () => {
+    if (!storeIcon) return
+    const a = document.createElement("a")
+    a.href = storeIcon.url
+    a.download = "store-icon-128x128.png"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   const handleFileUpload = async (e) => {
@@ -314,8 +405,128 @@ export default function Step3Assets({ projectId, projectData, onComplete }) {
 
   const remainingAttempts = MAX_AI_ATTEMPTS - aiAttempts
 
+  const iconRemainingAttempts = MAX_AI_ATTEMPTS - iconAttempts
+  const showIconReplaceUI = !storeIcon || storeIconViewMode === "replace"
+
   return (
     <div className="space-y-6">
+
+      {/* Store Icon */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-sm">Store Icon (128×128)</h4>
+            <p className="text-xs text-zinc-500 mt-0.5">Required for the Chrome Web Store listing</p>
+          </div>
+          {storeIcon && storeIconViewMode === "preview" && (
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={handleDownloadStoreIcon}>
+                <Download className="w-4 h-4 mr-1" />
+                Download
+              </Button>
+              <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white"
+                onClick={() => { setStoreIconViewMode("replace"); setStoreIconError(null) }}>
+                Replace
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {storeIcon && storeIconViewMode === "preview" ? (
+          <div className="flex items-center gap-4">
+            <img
+              src={storeIcon.url}
+              alt="Store icon"
+              className="w-20 h-20 rounded-xl border border-zinc-700 object-cover bg-zinc-800"
+            />
+            <div className="text-sm text-zinc-400 space-y-1">
+              <p className="text-white font-medium">128 × 128 px</p>
+              {storeIcon.source === "default" && <p className="text-zinc-500">Default — replace with your own</p>}
+              {storeIcon.source === "ai" && <p>Generated with AI</p>}
+              {storeIcon.source === "upload" && <p>Uploaded</p>}
+            </div>
+          </div>
+        ) : showIconReplaceUI ? (
+          <div className="space-y-3">
+            {/* Sub-mode toggle */}
+            <div className="flex gap-2">
+              <Button type="button" size="sm"
+                variant={storeIconReplaceMode === "upload" ? "default" : "outline"}
+                onClick={() => { setStoreIconReplaceMode("upload"); setStoreIconError(null) }}
+                className={storeIconReplaceMode === "upload" ? "bg-indigo-600 hover:bg-indigo-700" : "border-zinc-700 hover:bg-zinc-800"}>
+                <Upload className="w-4 h-4 mr-1" />
+                Upload
+              </Button>
+              <Button type="button" size="sm"
+                variant={storeIconReplaceMode === "ai" ? "default" : "outline"}
+                onClick={() => { setStoreIconReplaceMode("ai"); setStoreIconError(null) }}
+                className={storeIconReplaceMode === "ai" ? "bg-indigo-600 hover:bg-indigo-700" : "border-zinc-700 hover:bg-zinc-800"}>
+                <Sparkles className="w-4 h-4 mr-1" />
+                Generate with AI
+              </Button>
+              {storeIcon && (
+                <Button type="button" size="sm" variant="ghost" className="text-zinc-400 hover:text-white ml-auto"
+                  onClick={() => { setStoreIconViewMode("preview"); setStoreIconError(null) }}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+
+            {/* Upload mode */}
+            {storeIconReplaceMode === "upload" && (
+              <div>
+                <label htmlFor="icon-upload"
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-700 rounded-lg p-6 text-center hover:border-indigo-500 transition-colors cursor-pointer">
+                  <Upload className="w-8 h-8 mb-2 text-zinc-500" />
+                  <p className="text-sm font-medium">
+                    {isProcessingIconUpload ? "Resizing…" : "Click to upload icon"}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">PNG or JPG — will be resized to 128×128</p>
+                </label>
+                <input id="icon-upload" type="file" accept="image/png,image/jpeg,image/jpg"
+                  className="hidden" onChange={handleIconFileUpload} disabled={isProcessingIconUpload} />
+              </div>
+            )}
+
+            {/* AI generate mode */}
+            {storeIconReplaceMode === "ai" && (
+              <div className="space-y-2">
+                <textarea
+                  value={storeIconPrompt}
+                  onChange={(e) => setStoreIconPrompt(e.target.value)}
+                  placeholder="Describe the icon you want to generate…"
+                  maxLength={MAX_PROMPT_LENGTH}
+                  className="w-full h-24 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-sm"
+                  disabled={isGeneratingIcon}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-zinc-500">
+                    {storeIconPrompt.length}/{MAX_PROMPT_LENGTH} · {iconRemainingAttempts} generation{iconRemainingAttempts !== 1 ? "s" : ""} remaining
+                  </p>
+                  <Button type="button" size="sm"
+                    onClick={handleGenerateIcon}
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    disabled={isGeneratingIcon || iconRemainingAttempts <= 0 || !storeIconPrompt.trim()}>
+                    {isGeneratingIcon ? (
+                      <><RefreshCw className="w-4 h-4 mr-1 animate-spin" />Generating…</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-1" />Generate</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {storeIconError && (
+              <div className="flex items-start gap-2 bg-red-900/20 border border-red-800 rounded-lg p-3">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-400">{storeIconError}</p>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+
       <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
         <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
           <ImageIcon className="w-4 h-4" />

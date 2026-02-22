@@ -14,11 +14,15 @@ export default function Step1Download({ projectId, onComplete }) {
       const response = await fetch(`/api/projects/${projectId}/download`)
       if (!response.ok) throw new Error("Download failed")
 
+      const contentDisposition = response.headers.get("Content-Disposition")
+      const filenameMatch = contentDisposition?.match(/filename="?([^"]+)"?/)
+      const filename = filenameMatch?.[1] || `chromie-ext-${projectId}.zip`
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `extension-${projectId}.zip`
+      a.download = filename
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
