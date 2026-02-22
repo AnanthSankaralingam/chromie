@@ -11,8 +11,6 @@ To call this tool, output JSON:
 
 Safety notes:
 - Critical files like manifest.json cannot be deleted
-- Sensitive files (background.js, content.js, popup.html) will require user confirmation
-- You must provide a clear reason for each deletion
 
 Tool results will be provided before you generate patches
 </file_deletion>

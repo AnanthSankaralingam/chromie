@@ -6,7 +6,7 @@
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from '../file-analysis/index.js';
 import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/workflows/planning-context.js';
 import { FOLLOW_UP_PATCH_PROMPT } from '@/lib/prompts/followup/follow-up-patching.js';
-import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS, buildToolDescriptions } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
+import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
 import { executeToolCall } from './tool-executor.js';
 
 /**
@@ -55,7 +55,8 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM) 
       success: true,
       justification: planningResult.justification || '',
       tools: planningResult.tools || [],
-      files: planningResult.files || Object.keys(existingFiles)
+      files: planningResult.files || Object.keys(existingFiles),
+      difficulty: planningResult.difficulty || 0
     };
   } catch (error) {
     console.error('❌ [followup-orchestrator] Failed to parse planning response:', error);
@@ -63,7 +64,8 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM) 
       success: false,
       justification: 'Planning response parsing failed',
       tools: [],
-      files: Object.keys(existingFiles)
+      files: Object.keys(existingFiles),
+      difficulty: 0
     };
   }
 }
@@ -101,7 +103,8 @@ export function selectFollowUpPrompt(planningResult) {
   return {
     prompt: FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS,
     enabledTools: planningResult.tools,
-    useAllFiles: false
+    useAllFiles: false,
+    difficulty: planningResult.difficulty
   };
 }
 

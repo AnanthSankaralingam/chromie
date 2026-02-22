@@ -31,12 +31,14 @@ Return ONLY valid JSON in this exact format:
 {
   "justification": "1-2 sentence explanation of what needs to be done and why these files/tools were selected",
   "tools": ["chrome_api_search", "web_scraping", "delete_file"],
-  "files": ["path/to/file1.js", "path/to/file2.js"]
+  "files": ["path/to/file1.js", "path/to/file2.js"],
+  "difficulty": 0.5
 }
 
 Rules:
 - "tools" array can be empty [] if no tools needed
 - "files" array should contain only relevant files (1-3 for simple changes, 5-10 for complex features)
+- "difficulty": number 0–1 indicating task difficulty (0=trivial, 1=very complex)
 - No text before or after the JSON
 </output_format>
 
@@ -71,6 +73,7 @@ Rules:
 {
   "justification": "Tab grouping feature requires Chrome tabGroups API. Enabling chrome_api_search for API methods and permission requirements.",
   "tools": ["chrome_api_search"],
+  "difficulty": 0.6,
   "files": [
     "src/background/service-worker.js",
     "src/popup/popup.html",
