@@ -61,6 +61,7 @@ export async function* generateChromeExtensionStream({
   taggedFiles = null, // User-tagged files that bypass planner selection
   supabase = null, // Supabase client for authenticated database access
   userSelectedFrontendType = null, // User-selected frontend type when confidence was low
+  userConfirmedWorkspaceIntegration = null, // true = yes, false = no, null = not yet asked
 }) {
   try {
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
@@ -73,6 +74,33 @@ export async function* generateChromeExtensionStream({
       console.log('📊 Previous planning tokens:', planningTokenUsage)
       requirementsAnalysis = initialRequirementsAnalysis;
       planningTokenUsage = initialPlanningTokenUsage;
+
+      // If user declined workspace integration, strip workspace APIs from requirements
+      if (userConfirmedWorkspaceIntegration === false && requirementsAnalysis.usesWorkspaceAPIs) {
+        const { isWorkspaceAPI } = await import('@/lib/utils/google-workspace-scopes.js')
+        requirementsAnalysis.usesWorkspaceAPIs = false
+        requirementsAnalysis.workspaceAPIs = []
+        requirementsAnalysis.workspaceScopes = []
+        if (requirementsAnalysis.suggestedAPIs && Array.isArray(requirementsAnalysis.suggestedAPIs)) {
+          requirementsAnalysis.suggestedAPIs = requirementsAnalysis.suggestedAPIs.filter(api => !isWorkspaceAPI(api.name))
+        }
+        if (requirementsAnalysis.planningResult?.externalResourcesResult?.external_apis) {
+          requirementsAnalysis.planningResult.externalResourcesResult.external_apis =
+            requirementsAnalysis.planningResult.externalResourcesResult.external_apis.filter(api => !isWorkspaceAPI(api.name))
+        }
+        if (requirementsAnalysis.planningResult) {
+          requirementsAnalysis.planningResult.usesWorkspaceAPIs = false
+          requirementsAnalysis.planningResult.workspaceAPIs = []
+          requirementsAnalysis.planningResult.workspaceScopes = []
+        }
+        // Re-format planning outputs so WORKSPACE_AUTH is empty
+        if (requirementsAnalysis.planningResult) {
+          requirementsAnalysis.planningOutputs = await formatPlanningOutputs(
+            requirementsAnalysis.planningResult, null, null, null, featureRequest
+          )
+        }
+        console.log('🔐 [generate-extension-stream] User declined - stripped workspace APIs from plan')
+      }
 
       // If user selected a frontend type (from low-confidence prompt), apply the override
       if (userSelectedFrontendType) {
@@ -304,6 +332,21 @@ export async function* generateChromeExtensionStream({
     }
     
     console.log('✅ No URL required or URL already provided - continuing with code generation');
+
+    // Check if Google Workspace APIs detected — prompt user to confirm BEFORE showing API form
+    if (requirementsAnalysis.usesWorkspaceAPIs && (userConfirmedWorkspaceIntegration == null)) {
+      console.log('🔐 [generate-extension-stream] Workspace APIs detected - requesting user confirmation')
+      yield {
+        type: "requires_workspace_api_confirmation",
+        content: "I detected that your extension might use Google Workspace APIs (e.g. Drive, Gmail, Calendar). Do you want to integrate with Google APIs? This will add OAuth setup and the required permissions.",
+        workspaceNames: (requirementsAnalysis.workspaceAPIs || []).map(a => a.name),
+        analysisData: {
+          requirements: requirementsAnalysis,
+          tokenUsage: planningTokenUsage,
+        },
+      }
+      return
+    }
 
     // Check if external APIs are suggested but not yet provided — halt for user validation
     const apiRequirement = checkApiRequirement(requirementsAnalysis, userProvidedApis);

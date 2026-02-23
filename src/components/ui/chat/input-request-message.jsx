@@ -638,6 +638,99 @@ const FRONTEND_TYPE_OPTIONS = [
   },
 ]
 
+// Google Drive logo path - served from public folder
+const GOOGLE_DRIVE_LOGO_SRC = '/Google-Drive-Logo.jpg'
+
+export function WorkspaceApiInputRequest({ message, onSubmit, onCancel, setMessages, messageIndex }) {
+  const [isSubmitted, setIsSubmitted] = useState(message.isSubmitted || false)
+  const [imgError, setImgError] = useState(false)
+
+  const handleConfirm = (confirmed) => {
+    setIsSubmitted(true)
+
+    if (setMessages && messageIndex !== undefined) {
+      setMessages((prev) => {
+        const updated = [...prev]
+        updated[messageIndex] = {
+          ...updated[messageIndex],
+          isSubmitted: true,
+          submittedValue: confirmed,
+        }
+        return updated
+      })
+    }
+
+    onSubmit(confirmed)
+  }
+
+  if (isSubmitted || message.isSubmitted) {
+    const confirmed = message.submittedValue ?? false
+    return (
+      <div className="flex items-center gap-2 text-sm text-green-400">
+        <Check className="h-4 w-4" />
+        <span>
+          {confirmed ? 'Google integration enabled' : 'Continue without Google integration'}
+        </span>
+      </div>
+    )
+  }
+
+  const workspaceApiNames = message.workspaceNames || []
+  const apiList = workspaceApiNames.length > 0 ? workspaceApiNames.join(', ') : 'Google Workspace APIs'
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-white flex items-center justify-center p-1">
+          {imgError ? (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500 via-yellow-500 to-blue-500 rounded text-white text-2xl font-bold" title="Google Drive">
+              G
+            </div>
+          ) : (
+            <img
+              src={GOOGLE_DRIVE_LOGO_SRC}
+              alt="Google Drive"
+              className="w-full h-full object-contain"
+              onError={() => setImgError(true)}
+            />
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100 mb-1">
+              Integrate with Google APIs?
+            </h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              {message.content || `I detected that your extension might use ${apiList}. Do you want to integrate with Google APIs? This will add OAuth setup and the required permissions.`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => handleConfirm(true)}
+          className="flex-1 px-5 py-3 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-gray-500 to-gray-400 text-white hover:from-gray-600 hover:to-gray-500 shadow-lg shadow-gray-500/20"
+        >
+          Yes, integrate with Google
+        </button>
+        <button
+          onClick={() => handleConfirm(false)}
+          className="flex-1 px-5 py-3 text-sm font-medium text-slate-300 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-slate-200 transition-colors"
+        >
+          No, continue without
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-3 text-sm font-medium text-slate-400 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-slate-300 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function FrontendTypeInputRequest({ message, onSubmit, onCancel, setMessages, messageIndex }) {
   const [selectedType, setSelectedType] = useState(message.suggestedType || 'popup')
   const [isSubmitted, setIsSubmitted] = useState(message.isSubmitted || false)

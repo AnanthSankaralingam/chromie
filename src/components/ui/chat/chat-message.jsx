@@ -3,11 +3,11 @@
 import { useState } from "react"
 import MarkdownMessage from "./markdown-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
-import { UrlInputRequest, ApiInputRequest, FrontendTypeInputRequest } from "./input-request-message"
+import { UrlInputRequest, ApiInputRequest, FrontendTypeInputRequest, WorkspaceApiInputRequest } from "./input-request-message"
 import { RotateCcw, Copy, Check } from "lucide-react"
 import { CHROMIE_LOGO_URL } from "@/lib/constants"
 
-export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, onFrontendTypeSubmit, onFrontendTypeCancel, setMessages, projectId, onRevert }) {
+export default function ChatMessage({ message, index, showAvatar, typingCancelSignal, onUrlSubmit, onApiSubmit, onUrlCancel, onApiCancel, onFrontendTypeSubmit, onFrontendTypeCancel, onWorkspaceApiSubmit, onWorkspaceApiCancel, setMessages, projectId, onRevert }) {
   const [isReverting, setIsReverting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   // Check if this is a final explanation message (marked with isFinalExplanation flag)
@@ -21,6 +21,7 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
   const isFrontendTypeInputRequest = message.type === "frontend_type_input_request"
   const isUrlInputRequest = message.type === "url_input_request"
   const isApiInputRequest = message.type === "api_input_request"
+  const isWorkspaceApiInputRequest = message.type === "workspace_api_input_request"
 
   // Check if this user message has a version snapshot
   const hasVersionSnapshot = isUser && message.versionId
@@ -124,7 +125,15 @@ export default function ChatMessage({ message, index, showAvatar, typingCancelSi
             : undefined
         }
       >
-        {isFrontendTypeInputRequest ? (
+        {isWorkspaceApiInputRequest ? (
+          <WorkspaceApiInputRequest
+            message={message}
+            onSubmit={onWorkspaceApiSubmit}
+            onCancel={onWorkspaceApiCancel}
+            setMessages={setMessages}
+            messageIndex={index}
+          />
+        ) : isFrontendTypeInputRequest ? (
           <FrontendTypeInputRequest
             message={message}
             onSubmit={onFrontendTypeSubmit}

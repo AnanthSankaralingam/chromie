@@ -342,6 +342,31 @@ export function createRequiresFrontendTypeHandler(context) {
   }
 }
 
+export function createRequiresWorkspaceApiHandler(context) {
+  const {
+    setMessages,
+    currentRequestRef,
+  } = context
+
+  return (data, prompt, requestType, projectId) => {
+    currentRequestRef.current = {
+      prompt: prompt,
+      requestType: requestType,
+      projectId: projectId,
+      analysisData: data.analysisData,
+    }
+
+    const workspaceApiMessage = {
+      role: "assistant",
+      type: "workspace_api_input_request",
+      content: data.content || "I detected that your extension might use Google Workspace APIs. Do you want to integrate with Google APIs?",
+      workspaceNames: data.workspaceNames || [],
+    }
+
+    setMessages((prev) => [...prev, workspaceApiMessage])
+  }
+}
+
 export function createRequiresApiHandler(context) {
   const {
     setMessages,

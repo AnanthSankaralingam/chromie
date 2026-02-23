@@ -88,7 +88,7 @@ export default function StreamingChat({
   const messagesContainerRef = useRef(null)
   const lastAssistantMessageCountRef = useRef(0)
 
-  const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis, continueGenerationWithFrontendType } =
+  const { startGeneration, startGenerationWithUrl, continueGenerationWithSkipScraping, continueGenerationWithApis, continueGenerationWithFrontendType, continueGenerationWithWorkspaceConfirmation } =
     useStreamProcessor({
       chatState,
       projectId,
@@ -438,6 +438,19 @@ export default function StreamingChat({
     currentRequestRef.current = null
   }
 
+  const handleWorkspaceApiSubmit = async (confirmed) => {
+    const requestInfo = currentRequestRef.current
+    currentRequestRef.current = null
+    if (requestInfo) {
+      await continueGenerationWithWorkspaceConfirmation(requestInfo, confirmed)
+    }
+  }
+
+  const handleWorkspaceApiCancel = () => {
+    chatState.setIsGenerating(false)
+    currentRequestRef.current = null
+  }
+
   const handleClearConversation = async () => {
     await clearConversation()
   }
@@ -519,6 +532,8 @@ export default function StreamingChat({
                       onApiCancel={handleApiCancel}
                       onFrontendTypeSubmit={handleFrontendTypeSubmit}
                       onFrontendTypeCancel={handleFrontendTypeCancel}
+                      onWorkspaceApiSubmit={handleWorkspaceApiSubmit}
+                      onWorkspaceApiCancel={handleWorkspaceApiCancel}
                       setMessages={setMessages}
                       projectId={projectId}
                       onRevert={() => {
