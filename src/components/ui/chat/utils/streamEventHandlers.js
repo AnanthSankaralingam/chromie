@@ -112,7 +112,15 @@ export function createStreamEventHandler(context) {
       case "scraping_complete":
       case "scraping_skipped":
       case "context_ready":
+        break
+
       case "phase":
+        // Render backend phase updates (analyzing/planning/implementing) as
+        // progress text so template-matching flows still show visible activity.
+        if (data.phase && typeof data.content === "string" && data.content.trim()) {
+          setCurrentPlanningPhase(data.phase)
+          setPlanningProgress(data.content)
+        }
         break
 
       case "analysis_complete":

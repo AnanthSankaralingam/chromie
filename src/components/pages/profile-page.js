@@ -19,6 +19,8 @@ import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
 import { validateExtensionFiles, FILE_VALIDATION_LIMITS, ALLOWED_EXTENSIONS } from "@/lib/utils/file-validation"
 
+const PRO_STRIPE_URL = "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05"
+
 export default function ProfilePage() {
   const { user, supabase } = useSession()
   const router = useRouter()
@@ -708,7 +710,7 @@ export default function ProfilePage() {
               <div className="text-center py-8">
                 <div className="text-slate-300 mb-4">No active subscription found.</div>
                 <Button
-                  onClick={() => setBillingDialogOpen(true)}
+                  onClick={() => window.open(PRO_STRIPE_URL, "_blank")}
                   className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
                 >
                   <Crown className="h-4 w-4 mr-2" />
