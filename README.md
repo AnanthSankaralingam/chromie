@@ -5,13 +5,13 @@ launch lauch launch
 ---
 
 ## P0 
-1. Add read file tool to coder.
-2. Add plan mode to followup conditionally. Dynamically classify difficult requests with existing file analysis flow.
-3. Bring all tooling to follow up. 
+1. Template matching UI doesn't have any loading anymore with model thoughts or anything of that nature.
+2. Add notification for when gen is done
+
 
 ---
 ## Bugs
-1. Template matching UI doesn't have any loading anymore with model thoughts or anything of that nature.
+1. 
 
 ---
 
@@ -19,12 +19,12 @@ launch lauch launch
 1. Improve demo generation flow (record AI demo, provide downloadable `.mp4`).
 2. Let followup agent use `grep` search tool.
 3. explore bundler for extensions. Try out one and post
-4.  potentially convert tech stack to something like Vite or Next.js. Use StackBlitz for building packages
+4. potentially convert tech stack to something like Vite, Next.js, or just use current stack with esbuild. Use StackBlitz for building packages
 
 ---
 
 ## P2
-1. Puppeteer tests always pass and aren't clearly explained to the user — clarify test logic, explain results, and provide transparent feedback to user.
+
 ---
 
 ## P3
