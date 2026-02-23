@@ -6,14 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Github, Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
-import AuthModal from "@/components/ui/modals/modal-auth"
 import { useState } from "react"
 import { useIsMobile } from "@/hooks"
 import { usePathname, useRouter } from "next/navigation"
 
 export default function AppBar() {
-  const { user } = useSession()
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const { user, supabase } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const isMobile = useIsMobile()
   const pathname = usePathname()
@@ -88,6 +86,20 @@ export default function AppBar() {
     }
   }
 
+  // Handle "Get Started" - directly trigger Google OAuth, redirect back to home
+  const handleGetStarted = async () => {
+    const currentOrigin = window.location.origin
+    document.cookie = `auth_redirect_destination=${encodeURIComponent('/')}; path=/; max-age=300; samesite=lax`
+    sessionStorage.setItem('auth_redirect_destination', '/')
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${currentOrigin}/auth/callback`,
+        queryParams: { access_type: 'offline', prompt: 'consent' },
+      },
+    })
+  }
+
   return (
     <>
       <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
@@ -154,21 +166,12 @@ export default function AppBar() {
                   </Avatar>
                 </Link>
               ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    className="hidden md:inline-flex border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-                    onClick={() => setIsAuthModalOpen(true)}
-                  >
-                    sign in
-                  </Button>
-                  <Button
-                    className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setIsAuthModalOpen(true)}
-                  >
-                    get started
-                  </Button>
-                </>
+                <Button
+                  className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleGetStarted}
+                >
+                  get started
+                </Button>
               )}
             </div>
           </div>
@@ -217,21 +220,12 @@ export default function AppBar() {
                 contact
               </a>
               {!user && (
-                <>
-                  <Button
-                    variant="outline"
-                    className="justify-start border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-                    onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
-                  >
-                    sign in
-                  </Button>
-                  <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false) }}
-                  >
-                    get started
-                  </Button>
-                </>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => { setIsMobileMenuOpen(false); handleGetStarted() }}
+                >
+                  get started
+                </Button>
               )}
               {/* Dashboard button removed from mobile menu */}
             </div>
@@ -239,11 +233,6 @@ export default function AppBar() {
         )}
       </header>
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
     </>
   )
 }

@@ -16,8 +16,8 @@ export function useNotificationSound() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  const playNotificationSound = () => {
-    if (!isPageVisible) {
+  const playNotificationSound = (forcePlay = false) => {
+    if (forcePlay || !isPageVisible) {
       try {
         // Create a soft, pleasant notification sound
         const audioContext = new (window.AudioContext || window.webkitAudioContext)()

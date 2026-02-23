@@ -971,22 +971,7 @@ export default function SideBySideTestModal({
             sessionId={sessionData?.sessionId}
             isSessionActive={!sessionExpired && !isLoading && !!sessionData?.sessionId}
             clearLogsTrigger={clearLogsTrigger}
-            viewportLabel={
-              sessionData?.browserInfo?.viewport?.width && sessionData?.browserInfo?.viewport?.height
-                ? `${sessionData.browserInfo.viewport.width}x${sessionData.browserInfo.viewport.height}`
-                : null
-            }
-            onRunPuppeteerTests={handleRunPuppeteerTests}
-            isRunningPuppeteerTests={isRunningPuppeteerTests}
-            puppeteerTestResult={puppeteerTestResult}
-            onRunAiAgentTests={handleRunHyperAgentTest}
-            isRunningAiAgentTests={isRunningHyperAgent}
-            aiAgentTestResult={hyperAgentResult}
-            onGeneratePuppeteerTests={onGeneratePuppeteerTests}
-            onGenerateAiAgentTests={onGenerateAiAgentTests}
             onSessionLogsCapture={onSessionLogsCapture}
-            onStopPuppeteerTests={handleStopPuppeteerTests}
-            onStopAiAgentTests={handleStopAiAgentTests}
           />
         </div>
       </div>

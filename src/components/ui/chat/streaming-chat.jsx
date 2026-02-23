@@ -7,6 +7,7 @@ import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import ClearChatSuggestionModal from "@/components/ui/modals/clear-chat-suggestion-modal"
 import ChatMessage from "@/components/ui/chat/chat-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
+import { MessageLoading } from "@/components/ui/message-loading"
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ui/conversation"
 import { useChatState } from "./hooks/useChatState"
 import { useStreamProcessor } from "./hooks/useStreamProcessor"
@@ -551,7 +552,12 @@ export default function StreamingChat({
             {isGenerating && !(planningProgress && currentPlanningPhase) && !(taskList && taskList.length > 0) && (
               <ChatBubble variant="received">
                 <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
-                <ChatBubbleMessage variant="received" isLoading />
+                <ChatBubbleMessage variant="received">
+                  <div className="flex items-center space-x-3">
+                    <MessageLoading />
+                    <span className="text-sm text-slate-400">Reasoning</span>
+                  </div>
+                </ChatBubbleMessage>
               </ChatBubble>
             )}
 
