@@ -35,6 +35,7 @@ export function analyzeJavaScript(content, path) {
     functions: extractFunctions(content),
     classes: extractClasses(content),
     eventHandlers: extractEventHandlers(content),
+    messageNames: extractMessageNames(content),
     chromeContext: inferChromeContext(path)
   }
 
@@ -252,4 +253,90 @@ function extractEventHandlers(content) {
   }
 
   return handlers
+}
+
+/**
+ * Extracts message names this file receives and sends.
+ *
+ * Received patterns detected:
+ *   message !== 'get-status'           (direct equality/inequality comparison)
+ *   message.type === 'GET_STATUS'      (property comparison)
+ *   switch (message.type) { case 'X': (switch case with brace-counting)
+ *
+ * Sent patterns detected:
+ *   chrome.runtime.sendMessage('x')                      (string literal)
+ *   chrome.runtime.sendMessage({ type: 'x' })            (object with type/action)
+ *   chrome.tabs.sendMessage(tabId, 'x')                  (string literal)
+ *   chrome.tabs.sendMessage(tabId, { type: 'x' })        (object with type/action)
+ */
+function extractMessageNames(content) {
+  const received = new Set()
+  const sent = new Set()
+  let match
+
+  // ── Received ──────────────────────────────────────────────────────────────
+
+  // Direct: message === 'x' or message !== 'x'
+  const directPattern = /\bmessage\s*[!=]=+\s*['"]([^'"]+)['"]/g
+  while ((match = directPattern.exec(content)) !== null) {
+    received.add(match[1])
+  }
+
+  // Property: (message|request|msg|req).type/action/command/name === 'x'
+  const propPattern = /\b(?:message|request|msg|req|data)\.(?:type|action|command|name|kind|event)\s*[!=]=+\s*['"]([^'"]+)['"]/g
+  while ((match = propPattern.exec(content)) !== null) {
+    received.add(match[1])
+  }
+
+  // Switch: switch (message[.prop]) { case 'x': ... }
+  // Uses brace-counting to reliably extract only cases inside the switch block.
+  const switchPattern = /switch\s*\(\s*(?:message|request|msg|req|data|e)(?:\.(?:type|action|command|name|kind|event))?\s*\)/g
+  while ((match = switchPattern.exec(content)) !== null) {
+    const braceStart = content.indexOf('{', match.index + match[0].length)
+    if (braceStart === -1) continue
+
+    let depth = 0
+    let blockEnd = braceStart
+    for (let i = braceStart; i < content.length; i++) {
+      if (content[i] === '{') depth++
+      else if (content[i] === '}') {
+        depth--
+        if (depth === 0) { blockEnd = i; break }
+      }
+    }
+
+    const block = content.slice(braceStart, blockEnd + 1)
+    const casePattern = /\bcase\s+['"]([^'"]+)['"]\s*:/g
+    let caseMatch
+    while ((caseMatch = casePattern.exec(block)) !== null) {
+      received.add(caseMatch[1])
+    }
+  }
+
+  // ── Sent ──────────────────────────────────────────────────────────────────
+
+  // chrome.runtime.sendMessage('x')
+  const runtimeStringPattern = /chrome\.runtime\.sendMessage\(\s*['"]([^'"]+)['"]/g
+  while ((match = runtimeStringPattern.exec(content)) !== null) {
+    sent.add(match[1])
+  }
+
+  // chrome.tabs.sendMessage(tabId, 'x')
+  const tabsStringPattern = /chrome\.tabs\.sendMessage\([^,)]+,\s*['"]([^'"]+)['"]/g
+  while ((match = tabsStringPattern.exec(content)) !== null) {
+    sent.add(match[1])
+  }
+
+  // chrome.runtime.sendMessage({ type/action/command: 'x' })
+  // chrome.tabs.sendMessage(tabId, { type/action/command: 'x' })
+  // Use [\s\S]{0,300}? to tolerate nested parens inside the argument object.
+  const sendObjectPattern = /chrome\.(?:runtime|tabs)\.sendMessage\([\s\S]{0,300}?(?:type|action|command|name|kind)\s*:\s*['"]([^'"]+)['"]/g
+  while ((match = sendObjectPattern.exec(content)) !== null) {
+    sent.add(match[1])
+  }
+
+  return {
+    received: Array.from(received),
+    sent: Array.from(sent)
+  }
 }

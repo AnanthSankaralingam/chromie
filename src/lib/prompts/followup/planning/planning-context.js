@@ -21,6 +21,7 @@ Output your analysis as JSON only.
 - **chrome_api_search**: Search Chrome extension API documentation for specific APIs, methods, and permissions. Enable when implementing features with Chrome APIs that may need documentation reference.
 - **web_scraping**: Scrape and extract content from specific web pages. Enable when the request involves extracting data from websites or analyzing target page structures.
 - **delete_file**: Safely delete obsolete or redundant files. Enable when refactoring code, consolidating functionality, or removing unused files per user request.
+- **read_file**: Let the patching agent request additional files by path. Enable only when file selection is uncertain—e.g. complex requests, many similar files, or imports/dependencies that may span unselected files.
 
 Most requests won't need any tools. Only enable tools the patching agent will genuinely need during implementation.
 </available_tools>
@@ -30,7 +31,7 @@ Return ONLY valid JSON in this exact format:
 
 {
   "justification": "1-2 sentence explanation of what needs to be done and why these files/tools were selected",
-  "tools": ["chrome_api_search", "web_scraping", "delete_file"],
+  "tools": ["chrome_api_search", "web_scraping", "delete_file", "read_file"],
   "files": ["path/to/file1.js", "path/to/file2.js"],
   "difficulty": 0.5
 }

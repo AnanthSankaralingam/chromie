@@ -23,10 +23,6 @@ Description: {{TASK_DESCRIPTION}}
 
 {{FILE_STRUCTURE}}
 
-{{STYLING_REQUIREMENTS}}
-
-{{POPUP_STYLING_REQUIREMENTS}}
-
 {{ICON_CONFIGURATION}}
 
 {{CHROME_MESSAGING_RULES}}
@@ -35,7 +31,7 @@ Description: {{TASK_DESCRIPTION}}
 
 <instructions>
 <task>
-1. Implement the task for {{FILE_NAME}} as described (context contains only this one file)
+1. Implement the task for {{FILE_NAME}} as described (context may contain multiple files for reference, but your patch MUST target only {{FILE_NAME}})
 2. Describe your changes in a few short sentences
 3. Output a patch with exactly ONE file block, enclosed within \`*** Begin Patch\` and \`*** End Patch\` markers
 </task>

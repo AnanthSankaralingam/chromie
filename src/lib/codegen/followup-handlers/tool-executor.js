@@ -23,6 +23,8 @@ export async function executeToolCall(toolCall, context = {}) {
       return await executeWebScraping(toolCall.params, context);
     case 'delete_file':
       return await executeFileDelete(toolCall.params, context);
+    case 'read_file':
+      return await executeReadFile(toolCall.params, context);
     default:
       console.warn(`⚠️ [tool-executor] Unknown tool: ${toolCall.name}`);
       return { error: `Unknown tool: ${toolCall.name}` };
@@ -149,6 +151,59 @@ function formatScrapingResults(result, intent) {
     majorElements: result.majorElementsData || {},
     intent: intent || 'general analysis'
   };
+}
+
+/**
+ * Execute read file tool - fetches file content for context the planning agent may have missed
+ * @param {Object} params - Tool parameters
+ * @param {string} params.file_path - Path of file to read
+ * @param {Object} context - Execution context (projectId, supabase, allProjectFiles)
+ * @returns {Promise<Object>} - File content or error
+ */
+async function executeReadFile(params, context) {
+  const { file_path } = params;
+  const { projectId, supabase, allProjectFiles } = context;
+
+  if (!file_path) {
+    return { success: false, error: 'Missing required parameter: file_path' };
+  }
+
+  // Use in-memory files if provided (avoids DB call)
+  if (allProjectFiles && allProjectFiles[file_path] !== undefined) {
+    return {
+      success: true,
+      file_path,
+      content: allProjectFiles[file_path]
+    };
+  }
+
+  if (!projectId || !supabase) {
+    return { success: false, error: 'Missing execution context: projectId and supabase required' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('code_files')
+      .select('content')
+      .eq('project_id', projectId)
+      .eq('file_path', file_path)
+      .maybeSingle();
+
+    if (error) {
+      return { success: false, error: `Failed to fetch file: ${error.message}` };
+    }
+    if (!data) {
+      return { success: false, error: `File not found: ${file_path}` };
+    }
+
+    return {
+      success: true,
+      file_path,
+      content: data.content || ''
+    };
+  } catch (err) {
+    return { success: false, error: `Failed to read file: ${err.message}` };
+  }
 }
 
 /**

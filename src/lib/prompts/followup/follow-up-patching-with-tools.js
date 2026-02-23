@@ -3,10 +3,11 @@ import {
   CHROME_API_SEARCH_TOOL,
   WEB_SCRAPING_TOOL,
   FILE_DELETE_TOOL,
+  READ_FILE_TOOL,
   buildToolDescriptions
 } from './tools/index.js';
 
-export { CHROME_API_SEARCH_TOOL, WEB_SCRAPING_TOOL, FILE_DELETE_TOOL, buildToolDescriptions };
+export { CHROME_API_SEARCH_TOOL, WEB_SCRAPING_TOOL, FILE_DELETE_TOOL, READ_FILE_TOOL, buildToolDescriptions };
 
 export const FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS = `
 <s>

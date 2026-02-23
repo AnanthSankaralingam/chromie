@@ -166,6 +166,9 @@ function parseToolParamsFromXml(toolName, xmlContent) {
   const intentMatch = xmlContent.match(/<intent>([\s\S]*?)<\/intent>/);
   if (intentMatch) params.intent = intentMatch[1].trim();
 
+  const filePathMatch = xmlContent.match(/<file_path>([\s\S]*?)<\/file_path>/);
+  if (filePathMatch) params.file_path = filePathMatch[1].trim();
+
   return params;
 }
 

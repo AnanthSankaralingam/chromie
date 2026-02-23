@@ -55,6 +55,9 @@ export const DEFAULT_MODELS = {
 // the user will be prompted to confirm or override the selection
 export const FRONTEND_CONFIDENCE_THRESHOLD = 0.8
 
+// Follow-up difficulty threshold — at or above this score, the meta planner flow is used
+export const FOLLOWUP_DIFFICULTY_THRESHOLD = 0.85
+
 // Planning phase model configuration
 export const PLANNING_MODELS = {
   DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts

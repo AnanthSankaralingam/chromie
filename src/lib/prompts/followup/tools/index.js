@@ -1,8 +1,9 @@
 import { CHROME_API_SEARCH_TOOL } from './chrome-api-search.js';
 import { WEB_SCRAPING_TOOL } from './scraping-with-intent.js';
 import { FILE_DELETE_TOOL } from './file-delete.js';
+import { READ_FILE_TOOL } from './read-file.js';
 
-export { CHROME_API_SEARCH_TOOL, WEB_SCRAPING_TOOL, FILE_DELETE_TOOL };
+export { CHROME_API_SEARCH_TOOL, WEB_SCRAPING_TOOL, FILE_DELETE_TOOL, READ_FILE_TOOL };
 
 /**
  * Builds conditional tool descriptions based on enabled tools
@@ -17,7 +18,8 @@ export function buildToolDescriptions(enabledTools = []) {
   const toolMap = {
     'chrome_api_search': CHROME_API_SEARCH_TOOL,
     'web_scraping': WEB_SCRAPING_TOOL,
-    'delete_file': FILE_DELETE_TOOL
+    'delete_file': FILE_DELETE_TOOL,
+    'read_file': READ_FILE_TOOL
   };
 
   const sections = enabledTools

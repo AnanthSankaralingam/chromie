@@ -68,6 +68,7 @@ export default function StreamingChat({
     currentPlanningPhase,
     isActuallyGeneratingCode,
     taskList,
+    taskListGenId,
     clearConversation,
   } = chatState
 
@@ -101,22 +102,27 @@ export default function StreamingChat({
       autoGeneratePrompt,
     })
 
-  // Sync taskList into the messages array so it renders in correct order (before final AI message)
+  // Sync taskList into the messages array so it renders in correct order (before final AI message).
+  // Uses taskListGenId to ensure each generation gets its own checklist message — prevents a second
+  // follow-up from updating the first follow-up's checklist in-place at the wrong position.
   useEffect(() => {
     if (!taskList || taskList.length === 0) return
     setMessages(prev => {
       let existingIdx = -1
       for (let i = prev.length - 1; i >= 0; i--) {
-        if (prev[i].type === 'task_checklist') { existingIdx = i; break }
+        if (prev[i].type === 'task_checklist' && prev[i].genId === taskListGenId) {
+          existingIdx = i
+          break
+        }
       }
       if (existingIdx !== -1) {
         const updated = [...prev]
         updated[existingIdx] = { ...updated[existingIdx], tasks: taskList }
         return updated
       }
-      return [...prev, { role: 'assistant', type: 'task_checklist', tasks: taskList }]
+      return [...prev, { role: 'assistant', type: 'task_checklist', tasks: taskList, genId: taskListGenId }]
     })
-  }, [taskList, setMessages])
+  }, [taskList, taskListGenId, setMessages])
 
   // Auto-generation effect
   useEffect(() => {
