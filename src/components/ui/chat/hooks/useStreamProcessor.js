@@ -5,6 +5,7 @@ import {
   createRequiresUrlHandler,
   createRequiresFrontendTypeHandler,
   createRequiresApiHandler,
+  createRequiresWorkspaceApiHandler,
 } from "../utils/streamEventHandlers"
 import { fetchWithErrorHandling, streamResponse, buildGeneratePayload } from "../utils/apiHelpers"
 
@@ -99,6 +100,7 @@ export function useStreamProcessor({
       const handleRequiresFrontendType = createRequiresFrontendTypeHandler(handlerContext)
       const handleRequiresUrl = createRequiresUrlHandler(handlerContext)
       const handleRequiresApi = createRequiresApiHandler(handlerContext)
+      const handleRequiresWorkspaceApi = createRequiresWorkspaceApiHandler(handlerContext)
 
       for await (const data of streamResponse(response)) {
         if (data.type === "requires_frontend_type") {
@@ -107,6 +109,8 @@ export function useStreamProcessor({
           handleRequiresUrl(data, payload.prompt, payload.requestType, payload.projectId)
         } else if (data.type === "requires_api") {
           handleRequiresApi(data, payload.prompt, payload.requestType, payload.projectId)
+        } else if (data.type === "requires_workspace_api_confirmation") {
+          handleRequiresWorkspaceApi(data, payload.prompt, payload.requestType, payload.projectId)
         } else if (eventHandlerExtensions[data.type]) {
           eventHandlerExtensions[data.type](data)
         } else {
@@ -409,6 +413,54 @@ export function useStreamProcessor({
     ]
   )
 
+  const continueGenerationWithWorkspaceConfirmation = useCallback(
+    async (requestInfo, confirmed) => {
+      setIsGenerating(true)
+      resetStreamState(false)
+
+      if (onGenerationStart) onGenerationStart()
+
+      try {
+        const urlSelection = lastUrlSelectionRef.current
+        const payload = buildGeneratePayload({
+          prompt: requestInfo.prompt,
+          projectId: requestInfo.projectId,
+          requestType: requestInfo.requestType,
+          userConfirmedWorkspaceIntegration: confirmed,
+          userProvidedUrl: urlSelection?.skipScraping ? null : urlSelection?.userUrl,
+          skipScraping: !!urlSelection?.skipScraping,
+          analysisData: requestInfo.analysisData,
+        })
+
+        await processStream(payload)
+      } catch (error) {
+        console.error("Error in workspace confirmation continuation:", error)
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `I encountered an error while continuing generation: ${error.message}\n\nPlease try again.`,
+          },
+        ])
+      } finally {
+        setIsGenerating(false)
+        setTypingCancelSignal((v) => v + 1)
+        if (onGenerationEnd) onGenerationEnd()
+      }
+    },
+    [
+      chatState,
+      onGenerationStart,
+      onGenerationEnd,
+      setIsGenerating,
+      resetStreamState,
+      processStream,
+      lastUrlSelectionRef,
+      setMessages,
+      setTypingCancelSignal,
+    ]
+  )
+
   const continueGenerationWithFrontendType = useCallback(
     async (requestInfo, selectedType) => {
       setIsGenerating(true)
@@ -464,5 +516,6 @@ export function useStreamProcessor({
     continueGenerationWithSkipScraping,
     continueGenerationWithApis,
     continueGenerationWithFrontendType,
+    continueGenerationWithWorkspaceConfirmation,
   }
 }

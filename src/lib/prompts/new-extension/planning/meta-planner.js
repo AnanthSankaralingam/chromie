@@ -15,16 +15,6 @@ You **do not generate code**. You only define the structure and execution order.
 
 The planning output is a **recommendation**—guardrails, not rigid constraints. You have flexibility within the bounds of what the summary describes.
 
-## Input
-
-<user_request>
-{USER_REQUEST}
-</user_request>
-
-<planning_summary>
-{PLANNING_SUMMARY}
-</planning_summary>
-
 ## Output Requirements
 
 Return a JSON object with the following structure exactly as shown in the example:
@@ -181,7 +171,17 @@ Task descriptions should suggest including relevant formatted context without ov
 - Simple popup (with background): manifest → background → popup.html → popup.js → styles.css
 - Content script: manifest → (background if needed) → content.js → (optional popup.html/js)
 - Sidepanel: manifest → (background if needed) → sidepanel.html → sidepanel.js → styles.css
-- With options: manifest → (background if needed) → UI files → options.html → options.js`;
+- With options: manifest → (background if needed) → UI files → options.html → options.js
+
+## Input
+
+<user_request>
+{USER_REQUEST}
+</user_request>
+
+<planning_summary>
+{PLANNING_SUMMARY}
+</planning_summary>`;
 
 /** Placeholders for Meta Planner prompt replacement (single-brace format). */
 export const META_PLANNER_PLACEHOLDERS = {

@@ -17,6 +17,11 @@ const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
 const PLANNING_PROVIDER = 'anthropic'
 
+// CACHE PRMOPTS IF TOKEN EXPANDS ENOUGH, NEED 1000                                                                                                                              
+const EXTERNAL_RESOURCES_STATIC = EXTERNAL_RESOURCES_PROMPT.split('<user_request>')[0].trimEnd()                                                                                                                                  
+const TEMPLATE_MATCHER_STATIC = TEMPLATE_MATCHER_PROMPT.split('<user_request>')[0].trimEnd()      
+
+
 /**
  * Streaming version of orchestratePlanning that yields planning_progress events in real-time.
  * Yields { type: 'planning_progress', phase, content } at each step, then
@@ -309,7 +314,6 @@ async function callFrontendSelectionPrompt(featureRequest, useCaseResult) {
 
   const prompt = FRONTEND_SELECTION_PROMPT
     .replace('{USER_REQUEST}', featureRequest)
-    .replace('{MATCHED_USE_CASE}', matchedUseCase)
     .replace('{REQUIRED_CHROME_APIS}', requiredApis)
 
   try {

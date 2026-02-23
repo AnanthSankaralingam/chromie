@@ -1,9 +1,5 @@
 export const EXTERNAL_RESOURCES_PROMPT = `You are a Chrome extension external resource analyzer. Identify if the user's request requires external APIs or specific websites.
 
-<user_request>
-{USER_REQUEST}
-</user_request>
-
 <task>
 Only suggest resources if HIGHLY CONFIDENT (>90% certainty) they are necessary. Return empty arrays if uncertain.
 
@@ -51,8 +47,6 @@ Set scraping_intent and scraping_intent_confidence when the extension targets SP
 OpenAI: https://api.openai.com/v1
 Stripe: https://api.stripe.com/v1
 GitHub: https://api.github.com
-Twilio: https://api.twilio.com/2010-04-01
-OpenWeather: https://api.openweathermap.org/data/2.5
 
 **Google Workspace APIs** (use full API name):
 Gmail API: https://gmail.googleapis.com/gmail/v1
@@ -81,7 +75,11 @@ IMPORTANT: When detecting Google Workspace needs:
 }
 </output_schema>
 
-Return only valid JSON. No markdown, no explanation. Extract ALL domains from URLs in request.`;
+Return only valid JSON. No markdown, no explanation. Extract ALL domains from URLs in request.
+
+<user_request>
+{USER_REQUEST}
+</user_request>`;
 
 export const EXTERNAL_RESOURCES_PREFILL = `{
   "external_apis": [`;

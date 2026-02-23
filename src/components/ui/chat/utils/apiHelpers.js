@@ -61,6 +61,7 @@ export function buildGeneratePayload({
   userProvidedApis = null,
   analysisData = null,
   userSelectedFrontendType = null,
+  userConfirmedWorkspaceIntegration = null,
 }) {
   const payload = {
     prompt,
@@ -90,6 +91,10 @@ export function buildGeneratePayload({
 
   if (userSelectedFrontendType) {
     payload.userSelectedFrontendType = userSelectedFrontendType
+  }
+
+  if (userConfirmedWorkspaceIntegration !== undefined && userConfirmedWorkspaceIntegration !== null) {
+    payload.userConfirmedWorkspaceIntegration = userConfirmedWorkspaceIntegration
   }
 
   return payload

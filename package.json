@@ -11,6 +11,7 @@
     "sync-icons": "cp icons/*.png public/icons/ 2>/dev/null || true"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@google/genai": "^1.41.0",
     "@hyperbrowser/sdk": "^0.83.3",
     "@monaco-editor/react": "^4.7.0",

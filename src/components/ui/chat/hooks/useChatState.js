@@ -53,11 +53,20 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
   const [isActuallyGeneratingCode, setIsActuallyGeneratingCode] = useState(false)
 
   // Task list for visual progress tracking
-  const [taskList, setTaskList] = useState([])
+  const [taskList, setTaskListRaw] = useState([])
+  const [taskListGenId, setTaskListGenId] = useState(0)
+
+  // Wraps the raw setter — increments genId when a new non-empty task list starts
+  const setTaskList = (newList) => {
+    setTaskListRaw(newList)
+    if (Array.isArray(newList) && newList.length > 0) {
+      setTaskListGenId(id => id + 1)
+    }
+  }
 
   // Helper to update task progress (extra = optional { content } for completed tasks)
   const setTaskProgress = (taskIdOrFileName, status, matchByFileName = false, extra = {}) => {
-    setTaskList(prev => prev.map(task => {
+    setTaskListRaw(prev => prev.map(task => {
       if (matchByFileName ? task.fileName === taskIdOrFileName : task.id === taskIdOrFileName) {
         return { ...task, status, ...extra }
       }
@@ -258,6 +267,7 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
 
     // Task list
     taskList,
+    taskListGenId,
     setTaskList,
     setTaskProgress,
 

@@ -28,7 +28,7 @@ export class ProviderRegistry {
       maxContextWindow: 128000
     })
 
-    // Register Anthropic adapter (via OpenAI SDK)
+    // Register Anthropic adapter (native @anthropic-ai/sdk)
     this.registerProvider('anthropic', new AnthropicAdapter(), {
       name: 'Anthropic',
       baseURL: 'https://api.anthropic.com/v1',

@@ -24,9 +24,14 @@ export function usePaidPlan() {
       return
     }
 
+    const abortController = new AbortController()
+
     const checkPaidPlan = async () => {
       try {
-        const response = await fetch('/api/billing/status')
+        const response = await fetch('/api/billing/status', {
+          credentials: 'same-origin',
+          signal: abortController.signal
+        })
         if (response.ok) {
           const data = await response.json()
           
@@ -70,15 +75,20 @@ export function usePaidPlan() {
           setPlan('free')
         }
       } catch (error) {
+        // Ignore abort errors (component unmounted or deps changed)
+        if (error?.name === 'AbortError') return
         console.error('Error checking paid plan:', error)
         setIsPaid(false)
         setPlan('free')
       } finally {
-        setIsLoading(false)
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
       }
     }
 
     checkPaidPlan()
+    return () => abortController.abort()
   }, [user, sessionLoading])
 
   return { isPaid, isLoading, plan }

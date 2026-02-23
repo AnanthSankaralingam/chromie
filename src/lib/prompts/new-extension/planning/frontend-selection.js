@@ -4,10 +4,6 @@ export const FRONTEND_SELECTION_PROMPT = `You are a Chrome extension UI architec
 {USER_REQUEST}
 </user_request>
 
-<matched_use_case>
-{MATCHED_USE_CASE}
-</matched_use_case>
-
 <required_chrome_apis>
 {REQUIRED_CHROME_APIS}s
 </required_chrome_apis>
@@ -44,7 +40,7 @@ IMPORTANT: If the user mentions two or more frontend types as options (e.g. "sid
 
 <output_schema>
 {
-  "frontend_type": "popup | sidepanel | overlay | new_tab | content_script_ui",
+  "frontend_type": "popup | sidepanel | overlay | new_tab | background_only | content_script_ui",
   "confidence": 0.0 to 1.0
 }
 </output_schema>

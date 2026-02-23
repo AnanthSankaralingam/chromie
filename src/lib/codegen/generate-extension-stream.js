@@ -28,9 +28,11 @@ import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/plann
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD } from "@/lib/constants";
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
 import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
 import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
+import { callFollowupMetaPlanner } from '@/lib/codegen/followup-handlers/followup-meta-planner-bridge.js'
+import { executeFollowupTaskGraph } from '@/lib/codegen/followup-handlers/followup-task-graph-executor.js'
 
 /**
  * Streaming version of generateChromeExtension that yields thinking and code generation in real-time
@@ -59,6 +61,7 @@ export async function* generateChromeExtensionStream({
   taggedFiles = null, // User-tagged files that bypass planner selection
   supabase = null, // Supabase client for authenticated database access
   userSelectedFrontendType = null, // User-selected frontend type when confidence was low
+  userConfirmedWorkspaceIntegration = null, // true = yes, false = no, null = not yet asked
 }) {
   try {
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
@@ -71,6 +74,33 @@ export async function* generateChromeExtensionStream({
       console.log('📊 Previous planning tokens:', planningTokenUsage)
       requirementsAnalysis = initialRequirementsAnalysis;
       planningTokenUsage = initialPlanningTokenUsage;
+
+      // If user declined workspace integration, strip workspace APIs from requirements
+      if (userConfirmedWorkspaceIntegration === false && requirementsAnalysis.usesWorkspaceAPIs) {
+        const { isWorkspaceAPI } = await import('@/lib/utils/google-workspace-scopes.js')
+        requirementsAnalysis.usesWorkspaceAPIs = false
+        requirementsAnalysis.workspaceAPIs = []
+        requirementsAnalysis.workspaceScopes = []
+        if (requirementsAnalysis.suggestedAPIs && Array.isArray(requirementsAnalysis.suggestedAPIs)) {
+          requirementsAnalysis.suggestedAPIs = requirementsAnalysis.suggestedAPIs.filter(api => !isWorkspaceAPI(api.name))
+        }
+        if (requirementsAnalysis.planningResult?.externalResourcesResult?.external_apis) {
+          requirementsAnalysis.planningResult.externalResourcesResult.external_apis =
+            requirementsAnalysis.planningResult.externalResourcesResult.external_apis.filter(api => !isWorkspaceAPI(api.name))
+        }
+        if (requirementsAnalysis.planningResult) {
+          requirementsAnalysis.planningResult.usesWorkspaceAPIs = false
+          requirementsAnalysis.planningResult.workspaceAPIs = []
+          requirementsAnalysis.planningResult.workspaceScopes = []
+        }
+        // Re-format planning outputs so WORKSPACE_AUTH is empty
+        if (requirementsAnalysis.planningResult) {
+          requirementsAnalysis.planningOutputs = await formatPlanningOutputs(
+            requirementsAnalysis.planningResult, null, null, null, featureRequest
+          )
+        }
+        console.log('🔐 [generate-extension-stream] User declined - stripped workspace APIs from plan')
+      }
 
       // If user selected a frontend type (from low-confidence prompt), apply the override
       if (userSelectedFrontendType) {
@@ -252,6 +282,7 @@ export async function* generateChromeExtensionStream({
         : filterRelevantFiles(existingFiles, planningResult.files, taggedFiles);
       requirementsAnalysis.selectedPrompt = promptSelection.prompt;
       requirementsAnalysis.planningJustification = planningResult.justification;
+      requirementsAnalysis.planningDifficulty = planningResult.difficulty || 0;
 
       // Track planning tokens
       planningTokenUsage = {
@@ -301,6 +332,21 @@ export async function* generateChromeExtensionStream({
     }
     
     console.log('✅ No URL required or URL already provided - continuing with code generation');
+
+    // Check if Google Workspace APIs detected — prompt user to confirm BEFORE showing API form
+    if (requirementsAnalysis.usesWorkspaceAPIs && (userConfirmedWorkspaceIntegration == null)) {
+      console.log('🔐 [generate-extension-stream] Workspace APIs detected - requesting user confirmation')
+      yield {
+        type: "requires_workspace_api_confirmation",
+        content: "I detected that your extension might use Google Workspace APIs (e.g. Drive, Gmail, Calendar). Do you want to integrate with Google APIs? This will add OAuth setup and the required permissions.",
+        workspaceNames: (requirementsAnalysis.workspaceAPIs || []).map(a => a.name),
+        analysisData: {
+          requirements: requirementsAnalysis,
+          tokenUsage: planningTokenUsage,
+        },
+      }
+      return
+    }
 
     // Check if external APIs are suggested but not yet provided — halt for user validation
     const apiRequirement = checkApiRequirement(requirementsAnalysis, userProvidedApis);
@@ -454,6 +500,12 @@ export async function* generateChromeExtensionStream({
     let selectedCodingPrompt;
 
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && requirementsAnalysis.selectedPrompt) {
+      if (requirementsAnalysis.planningDifficulty >= FOLLOWUP_DIFFICULTY_THRESHOLD) {
+        console.log(`🧠 [generate-extension-stream] High difficulty (${requirementsAnalysis.planningDifficulty}) — routing to followup meta planner flow`)
+        yield { type: 'planning_progress', phase: 'planning', content: 'Complex change detected — building structured patch plan...' }
+        yield* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase })
+        return
+      }
       // Use the prompt determined by follow-up planning
       selectedCodingPrompt = requirementsAnalysis.selectedPrompt;
       console.log(`🔧 [generate-extension-stream] Using planning-selected prompt (tools: ${requirementsAnalysis.enabledTools?.length > 0 ? 'enabled' : 'none'})`);
@@ -685,6 +737,10 @@ export async function* generateChromeExtensionStream({
     // Add supabase client and scraping intent to replacements for tool execution
     replacements.supabase = supabase
     replacements.scrapingIntent = requirementsAnalysis.scrapingIntent || null
+    // Pass all project files for read_file tool (when planning may have missed files)
+    if (usePatchingMode && existingFiles) {
+      replacements.allProjectFiles = existingFiles
+    }
 
     // Use the streaming code generation (skip thinking phase since it was done in planning)
     for await (const chunk of generateExtensionCodeStream(
@@ -740,4 +796,29 @@ export async function* generateChromeExtensionStream({
       content: `Error: ${error.message}`
     };
   }
+}
+
+/**
+ * Handles the high-difficulty follow-up path: calls the followup meta planner,
+ * then executes the resulting task graph.
+ */
+async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase }) {
+  const { followupPlan } = await callFollowupMetaPlanner(
+    featureRequest,
+    requirementsAnalysis.relevantFiles,
+    requirementsAnalysis.fileSummaries,
+    requirementsAnalysis.planningJustification
+  )
+  yield { type: 'generation_starting', content: 'generation_starting' }
+  yield { type: 'phase', phase: 'implementing', content: 'Patching extension files via task graph.' }
+  for await (const event of executeFollowupTaskGraph(followupPlan, {
+    userRequest: featureRequest,
+    existingFiles: requirementsAnalysis.relevantFiles,
+    sessionId,
+    modelOverride,
+    supabase
+  })) {
+    yield event
+  }
+  yield { type: 'generation_complete', content: 'generation_complete' }
 }
