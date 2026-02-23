@@ -3,10 +3,17 @@
  * Formats planning output for the Meta Planner and calls it to produce a task graph.
  */
 
+import Anthropic from '@anthropic-ai/sdk'
 import { META_PLANNER_PROMPT } from '@/lib/prompts/new-extension/planning/meta-planner.js'
-import { llmService } from '@/lib/services/llm-service.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
+
+// Split at ## Input to isolate the static (cacheable) portion of the prompt.
+const STATIC_SYSTEM_PROMPT = META_PLANNER_PROMPT.split('## Input')[0].trimEnd()
+
+function buildDynamicSection(featureRequest, planningSummary) {
+  return `## Input\n\n<user_request>\n${featureRequest}\n</user_request>\n\n<planning_summary>\n${planningSummary}\n</planning_summary>`
+}
 
 /**
  * Formats the planning result into a readable text summary for the Meta Planner.
@@ -88,24 +95,37 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
  * @returns {Promise<{metaPlan: Object, tokenUsage: Object}>}
  */
 export async function callMetaPlanner(featureRequest, planningSummary) {
-  // Build prompt from template
-  const prompt = META_PLANNER_PROMPT
-    .replace('{USER_REQUEST}', featureRequest)
-    .replace('{PLANNING_SUMMARY}', planningSummary)
+  console.log('🧠 [meta-planner-bridge] Calling Meta Planner with prompt caching')
 
-  console.log('🧠 [meta-planner-bridge] Meta Planner raw prompt :\n', prompt)
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const response = await llmService.createResponse({
-    provider: 'anthropic',
+  const response = await client.messages.create({
     model: PLANNING_MODELS.META_PLANNER,
-    input: prompt,
+    max_tokens: 4096,
     temperature: 0.2,
-    max_output_tokens: 4096,
-    store: false
+    system: [
+      {
+        type: 'text',
+        text: STATIC_SYSTEM_PROMPT,
+        cache_control: { type: 'ephemeral' }
+      },
+      {
+        type: 'text',
+        text: buildDynamicSection(featureRequest, planningSummary)
+      }
+    ],
+    messages: [
+      { role: 'user', content: 'Generate the task graph.' }
+    ]
   })
 
-  const outputText = response?.output_text || ''
-  const tokenUsage = response?.usage || { input_tokens: 0, output_tokens: 0 }
+  const outputText = response.content?.[0]?.text || ''
+  const tokenUsage = {
+    input_tokens: response.usage?.input_tokens ?? 0,
+    output_tokens: response.usage?.output_tokens ?? 0,
+    cache_creation_input_tokens: response.usage?.cache_creation_input_tokens ?? 0,
+    cache_read_input_tokens: response.usage?.cache_read_input_tokens ?? 0
+  }
 
   // Parse JSON from response
   const jsonContent = extractJsonContent(outputText)

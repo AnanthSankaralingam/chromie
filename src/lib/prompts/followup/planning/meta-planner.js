@@ -114,3 +114,5 @@ Return a JSON object with the following structure:
 5. agent_operations executes before the task graph; only "delete_file" type is supported
 6. If no files need patching (e.g., only a file deletion is needed), task_graph may be an empty array
 `;
+
+//TODO move user request to bottom and add prompt caching

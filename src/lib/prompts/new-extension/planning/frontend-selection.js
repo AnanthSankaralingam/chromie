@@ -4,10 +4,6 @@ export const FRONTEND_SELECTION_PROMPT = `You are a Chrome extension UI architec
 {USER_REQUEST}
 </user_request>
 
-<matched_use_case>
-{MATCHED_USE_CASE}
-</matched_use_case>
-
 <required_chrome_apis>
 {REQUIRED_CHROME_APIS}s
 </required_chrome_apis>

@@ -1,17 +1,14 @@
-// anthropic-adapter.js
-// Anthropic adapter using OpenAI SDK with Anthropic's API
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
 export class AnthropicAdapter {
   constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-      baseURL: 'https://api.anthropic.com/v1'
+    this.client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY
     })
   }
 
   /**
-   * Create a response using Anthropic API via OpenAI SDK
+   * Create a response using Anthropic API
    * @param {Object} params - Request parameters
    * @returns {Promise<Object>} Response object
    */
@@ -31,7 +28,7 @@ export class AnthropicAdapter {
         has_response_format: Boolean(response_format)
       })
 
-      // Normalize input to messages format
+      // Normalize input to Anthropic messages format
       const messages = this.normalizeInput(input, conversation_history)
 
       // Build request payload
@@ -43,12 +40,13 @@ export class AnthropicAdapter {
         stream: false
       }
 
-      // Handle response format
-      if (response_format) {
-        payload.response_format = this.normalizeResponseFormat(response_format)
+      // Handle response format (Anthropic uses output_config)
+      const outputConfig = this.buildOutputConfig(response_format)
+      if (outputConfig) {
+        payload.output_config = outputConfig
       }
 
-      const response = await this.client.chat.completions.create(payload)
+      const response = await this.client.messages.create(payload)
 
       // Normalize response to match expected format
       return this.normalizeResponse(response)
@@ -69,7 +67,8 @@ export class AnthropicAdapter {
     response_format,
     temperature = 0.2,
     max_output_tokens = 4096,
-    conversation_history = []
+    conversation_history = [],
+    thinkingConfig = null
   } = {}) {
     try {
       console.log('[anthropic-adapter] streamResponse', {
@@ -77,7 +76,7 @@ export class AnthropicAdapter {
         has_conversation_history: conversation_history.length > 0
       })
 
-      // Normalize input to messages format
+      // Normalize input to Anthropic messages format
       const messages = this.normalizeInput(input, conversation_history)
 
       // Build request payload
@@ -90,21 +89,55 @@ export class AnthropicAdapter {
       }
 
       // Handle response format
-      if (response_format) {
-        payload.response_format = this.normalizeResponseFormat(response_format)
+      const outputConfig = this.buildOutputConfig(response_format)
+      if (outputConfig) {
+        payload.output_config = outputConfig
       }
 
-      const stream = await this.client.chat.completions.create(payload)
+      // Handle thinking config (extended thinking)
+      if (thinkingConfig?.includeThoughts) {
+        payload.thinking = {
+          type: 'enabled',
+          budget_tokens: thinkingConfig.thinkingBudget ?? 4096
+        }
+      }
 
-      for await (const chunk of stream) {
-        if (chunk.choices && chunk.choices.length > 0) {
-          const choice = chunk.choices[0]
-          if (choice.delta && choice.delta.content) {
+      const stream = await this.client.messages.create(payload)
+
+      let lastStopReason = null
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta') {
+          const delta = event.delta
+          if (delta?.type === 'text_delta' && delta.text) {
             yield {
               type: 'content',
-              content: choice.delta.content,
-              finish_reason: choice.finish_reason
+              content: delta.text,
+              finish_reason: null
             }
+          } else if (delta?.type === 'thinking_delta' && delta.thinking) {
+            yield {
+              type: 'thinking_chunk',
+              content: delta.thinking
+            }
+          }
+        } else if (event.type === 'message_delta') {
+          lastStopReason = event.delta?.stop_reason ?? lastStopReason
+          // Yield token usage if available
+          if (event.usage) {
+            const usage = {
+              prompt_tokens: event.usage.input_tokens ?? 0,
+              completion_tokens: event.usage.output_tokens ?? 0,
+              total_tokens: (event.usage.input_tokens ?? 0) + (event.usage.output_tokens ?? 0),
+              total: (event.usage.input_tokens ?? 0) + (event.usage.output_tokens ?? 0)
+            }
+            yield { type: 'token_usage', usage }
+          }
+        } else if (event.type === 'message_stop' && lastStopReason) {
+          // Yield final chunk with finish reason
+          yield {
+            type: 'content',
+            content: '',
+            finish_reason: lastStopReason
           }
         }
       }
@@ -121,7 +154,7 @@ export class AnthropicAdapter {
    * @returns {Array} Normalized messages
    */
   normalizeInput(input, conversation_history = []) {
-    const messages = [...conversation_history]
+    const messages = this.convertConversationHistory(conversation_history)
 
     if (typeof input === 'string') {
       messages.push({
@@ -129,34 +162,27 @@ export class AnthropicAdapter {
         content: input
       })
     } else if (Array.isArray(input)) {
-      // If input is already in message format, add it
-      messages.push(...input)
+      // If input is already in message format, convert and add
+      messages.push(...this.convertMessageArray(input))
     } else if (typeof input === 'object' && input.text) {
       // Handle input with images (vision request)
       const content = [{ type: 'text', text: input.text }]
-      
-      // Add images if present
+
       if (input.images && Array.isArray(input.images)) {
         console.log(`[anthropic-adapter] Adding ${input.images.length} images to request`)
         for (const image of input.images) {
-          // Use OpenAI-compatible format since we're using OpenAI SDK
-          // Anthropic's OpenAI compatibility endpoint expects this format
-          if (image.data) {
-            content.push({
-              type: 'image_url',
-              image_url: {
-                url: image.data // Base64 data URL (data:image/jpeg;base64,...)
-              }
-            })
+          const imageBlock = this.parseImageToAnthropicFormat(image)
+          if (imageBlock) {
+            content.push(imageBlock)
           } else {
             console.warn('[anthropic-adapter] Invalid image format, expected data URL')
           }
         }
       }
-      
+
       messages.push({
         role: 'user',
-        content: content
+        content
       })
     } else {
       messages.push({
@@ -169,26 +195,95 @@ export class AnthropicAdapter {
   }
 
   /**
-   * Normalize response format for Anthropic API
-   * @param {Object} response_format - Response format configuration
-   * @returns {Object} Normalized response format
+   * Convert conversation history to Anthropic format
+   * Anthropic requires assistant content to be array of content blocks
    */
-  normalizeResponseFormat(response_format) {
+  convertConversationHistory(history) {
+    return this.convertMessageArray(history)
+  }
+
+  /**
+   * Convert message array to Anthropic format
+   */
+  convertMessageArray(messages) {
+    return messages.map((msg) => {
+      if (msg.role === 'user') {
+        return {
+          role: 'user',
+          content: typeof msg.content === 'string' ? msg.content : this.convertUserContent(msg.content)
+        }
+      }
+      if (msg.role === 'assistant') {
+        return {
+          role: 'assistant',
+          content: Array.isArray(msg.content)
+            ? msg.content
+            : [{ type: 'text', text: String(msg.content ?? '') }]
+        }
+      }
+      return null
+    }).filter(Boolean)
+  }
+
+  /**
+   * Convert user content (may include OpenAI-style image_url) to Anthropic format
+   */
+  convertUserContent(content) {
+    if (typeof content === 'string') return content
+    if (!Array.isArray(content)) return [{ type: 'text', text: String(content) }]
+
+    return content.map((block) => {
+      if (block.type === 'text') return block
+      if (block.type === 'image_url' && block.image_url?.url) {
+        const imageBlock = this.parseImageToAnthropicFormat({ data: block.image_url.url })
+        return imageBlock || { type: 'text', text: '' }
+      }
+      return { type: 'text', text: '' }
+    }).filter((b) => b.type === 'text' ? b.text : true)
+  }
+
+  /**
+   * Parse image data URL to Anthropic base64 format
+   * @param {Object} image - { data: 'data:image/jpeg;base64,...' }
+   */
+  parseImageToAnthropicFormat(image) {
+    const dataUrl = image.data || image.url
+    if (!dataUrl || typeof dataUrl !== 'string') return null
+
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+    if (!match) return null
+
+    const mediaType = match[1]
+    const base64Data = match[2]
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(mediaType)) return null
+
+    return {
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: base64Data
+      }
+    }
+  }
+
+  /**
+   * Build Anthropic output_config from response_format
+   */
+  buildOutputConfig(response_format) {
     if (!response_format) return null
 
     const rfType = response_format?.type || response_format?.format
     if (rfType === 'json_schema' || rfType === 'json' || response_format?.schema) {
+      const schema = response_format?.json_schema || response_format?.schema || response_format
       return {
-        type: 'json_schema',
-        json_schema: {
-          name: response_format?.name || 'response_schema',
-          schema: response_format?.json_schema || response_format?.schema || response_format
+        format: {
+          type: 'json_schema',
+          schema: typeof schema === 'object' ? schema : {}
         }
       }
-    }
-
-    if (rfType === 'text') {
-      return { type: 'text' }
     }
 
     return null
@@ -196,35 +291,39 @@ export class AnthropicAdapter {
 
   /**
    * Normalize Anthropic response to expected format
-   * @param {Object} response - Anthropic API response
-   * @returns {Object} Normalized response
    */
   normalizeResponse(response) {
-    const choice = response.choices?.[0]
-    const content = choice?.message?.content || ''
+    const contentBlocks = response.content || []
+    const textContent = contentBlocks
+      .filter((b) => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+
+    const usage = response.usage
+    const inputTokens = usage?.input_tokens ?? 0
+    const outputTokens = usage?.output_tokens ?? 0
+    const totalTokens = inputTokens + outputTokens
 
     return {
       id: response.id,
-      output_text: content,
-      usage: response.usage ? {
-        prompt_tokens: response.usage.prompt_tokens,
-        completion_tokens: response.usage.completion_tokens,
-        total_tokens: response.usage.total_tokens,
-        total: response.usage.total_tokens
+      output_text: textContent,
+      usage: usage ? {
+        prompt_tokens: inputTokens,
+        completion_tokens: outputTokens,
+        total_tokens: totalTokens,
+        total: totalTokens
       } : null,
-      choices: response.choices
+      choices: [{ message: { content: textContent } }]
     }
   }
 
   /**
    * Check if an error is a context limit error
-   * @param {Error} error - Error object
-   * @returns {boolean} Whether it's a context limit error
    */
   isContextLimitError(error) {
     const message = (error?.message || '').toLowerCase()
     const code = (error?.code || error?.status)?.toString().toLowerCase()
-    
+
     const keywords = [
       'context',
       'token',
@@ -237,10 +336,10 @@ export class AnthropicAdapter {
       'maximum context length',
       'context length exceeded'
     ]
-    
-    const codeMatches = ['context_length_exceeded', 'max_tokens', 'rate_limit_exceeded'].some(k => (code || '').includes(k))
-    const msgMatches = keywords.some(k => message.includes(k))
-    
+
+    const codeMatches = ['context_length_exceeded', 'max_tokens', 'rate_limit_exceeded'].some((k) => (code || '').includes(k))
+    const msgMatches = keywords.some((k) => message.includes(k))
+
     return Boolean(codeMatches || msgMatches)
   }
 }
