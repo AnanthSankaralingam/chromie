@@ -29,6 +29,19 @@ export async function* streamResponse(response) {
   const decoder = new TextDecoder()
   let buffer = ""
 
+  function* processLines(lines) {
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const data = JSON.parse(line.slice(6))
+          yield data
+        } catch (parseError) {
+          console.error("Error parsing stream data:", parseError, "| raw line:", line.slice(0, 200))
+        }
+      }
+    }
+  }
+
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -37,16 +50,13 @@ export async function* streamResponse(response) {
     const lines = buffer.split("\n")
     buffer = lines.pop() || ""
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        try {
-          const data = JSON.parse(line.slice(6))
-          yield data
-        } catch (parseError) {
-          console.error("Error parsing stream data:", parseError)
-        }
-      }
-    }
+    yield* processLines(lines)
+  }
+
+  // Flush remaining buffer — the last SSE event may not have a trailing newline
+  // before the stream closes (e.g. plan_ready right before controller.close()).
+  if (buffer.trim()) {
+    yield* processLines([buffer])
   }
 }
 
@@ -62,6 +72,7 @@ export function buildGeneratePayload({
   analysisData = null,
   userSelectedFrontendType = null,
   userConfirmedWorkspaceIntegration = null,
+  prebuiltMetaPlan = null,
 }) {
   const payload = {
     prompt,
@@ -95,6 +106,11 @@ export function buildGeneratePayload({
 
   if (userConfirmedWorkspaceIntegration !== undefined && userConfirmedWorkspaceIntegration !== null) {
     payload.userConfirmedWorkspaceIntegration = userConfirmedWorkspaceIntegration
+  }
+
+  // Phase 2 continuation: carry the pre-built meta plan for direct task graph execution.
+  if (prebuiltMetaPlan) {
+    payload.prebuiltMetaPlan = prebuiltMetaPlan
   }
 
   return payload

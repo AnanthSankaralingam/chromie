@@ -497,10 +497,26 @@ export default function StreamingChat({
       <div ref={messagesContainerRef} className="flex-1 overflow-hidden pb-4">
         <Conversation>
           <ConversationContent smooth={true} className="custom-scrollbar" data-scroll-container>
+            {(() => {
+              const INPUT_REQUEST_TYPES = ['url_input_request', 'api_input_request', 'frontend_type_input_request', 'workspace_api_input_request']
+              const isInputRequest = (m) => m && INPUT_REQUEST_TYPES.includes(m.type)
+              const filteredForRender = messages.filter((m) => !m.isThinking)
+              const lastMsg = filteredForRender[filteredForRender.length - 1]
+              const lastIsInputRequest = isInputRequest(lastMsg)
+              const hasPlanningOrTyping = (planningProgress && currentPlanningPhase) || (isGenerating && !(taskList && taskList.length > 0))
+              // When planning/typing is active and last message is an input request, defer it so it renders at bottom (after Planning)
+              const messagesToRender = lastIsInputRequest && hasPlanningOrTyping
+                ? filteredForRender.slice(0, -1)
+                : filteredForRender
+              const deferredInputRequest = lastIsInputRequest && hasPlanningOrTyping ? lastMsg : null
+              const deferredIndex = deferredInputRequest
+                ? (() => { let count = 0; for (let i = 0; i < messages.length; i++) { if (!messages[i].isThinking) { if (count === filteredForRender.length - 1) return i; count++ } } return -1 })()
+                : -1
+
+              return (
+                <>
             {/* Render all messages in chronological order (natural conversation flow) */}
-            {messages
-              .filter((message) => !message.isThinking)
-              .map((message, index, filteredMessages) => {
+            {messagesToRender.map((message, index, msgs) => {
                 // Render task checklist messages inline for correct ordering
                 if (message.type === 'task_checklist') {
                   return (
@@ -516,7 +532,7 @@ export default function StreamingChat({
                 }
 
                 // Show avatar only on first AI message in succession
-                const prevMessage = index > 0 ? filteredMessages[index - 1] : null
+                const prevMessage = index > 0 ? msgs[index - 1] : null
                 const showAvatar = message.role === "assistant" &&
                   (!prevMessage || prevMessage.role !== "assistant" || prevMessage.type === 'task_checklist')
 
@@ -591,6 +607,36 @@ export default function StreamingChat({
                 </ChatBubbleMessage>
               </ChatBubble>
             )}
+
+            {/* Deferred input request — render at bottom so the question for the user is the bottom-most message */}
+            {deferredInputRequest && (
+              <div key={`msg-deferred-${deferredIndex}`} data-message-role="assistant">
+                <ChatMessage
+                  message={deferredInputRequest}
+                  index={deferredIndex}
+                  showAvatar={true}
+                  typingCancelSignal={chatState.typingCancelSignal}
+                  onUrlSubmit={handleUrlSubmit}
+                  onApiSubmit={handleApiSubmit}
+                  onUrlCancel={handleUrlCancel}
+                  onApiCancel={handleApiCancel}
+                  onFrontendTypeSubmit={handleFrontendTypeSubmit}
+                  onFrontendTypeCancel={handleFrontendTypeCancel}
+                  onWorkspaceApiSubmit={handleWorkspaceApiSubmit}
+                  onWorkspaceApiCancel={handleWorkspaceApiCancel}
+                  setMessages={setMessages}
+                  projectId={projectId}
+                  onRevert={() => {
+                    if (typeof window !== 'undefined') {
+                      window.location.reload()
+                    }
+                  }}
+                />
+              </div>
+            )}
+                </>
+              )
+            })()}
 
             {/* Model Thinking Panel */}
             {(() => {
