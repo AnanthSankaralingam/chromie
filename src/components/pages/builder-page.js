@@ -90,7 +90,7 @@ function BuilderPageContent() {
 
   // Custom hooks for URL and notification management
   const { autoGeneratePrompt, setAutoGeneratePrompt, handleAutoGenerateComplete } = useAutoGenerateParams(hasProcessedAutoGenerate.current)
-  const { playNotificationSound, isPageVisible } = useNotificationSound()
+  const { playNotificationSound } = useNotificationSound()
 
   // Custom hooks
   const isMobile = useIsMobile(1024) // 1024px is Tailwind's lg: breakpoint
@@ -158,7 +158,7 @@ function BuilderPageContent() {
         title: "Share with your team",
         content: (
           <div className="space-y-1">
-            <p>Generate a secure share link once you’re happy with the build.</p>
+            <p>Share privately, publish or post your extension.</p>
             <p className="text-xs text-slate-400">You won't see this again now.</p>
           </div>
         ),
@@ -190,7 +190,7 @@ function BuilderPageContent() {
     }
   }, [isLoading, user])
 
-  // Handle pending_prompt fallback (e.g. direct /builder visit after OAuth; primary flow now goes via /home)
+  // Handle pending_prompt from home page: after OAuth, user lands here and we create the project and auto-generate
   const hasProcessedPendingPromptRef = useRef(false)
   const [isProcessingPendingPrompt, setIsProcessingPendingPrompt] = useState(false)
   useEffect(() => {
@@ -214,6 +214,7 @@ function BuilderPageContent() {
         if (response.ok) {
           const { project } = await response.json()
           sessionStorage.removeItem('pending_prompt')
+          setAutoGeneratePrompt(savedPrompt)
           router.push(`/builder?project=${project.id}&autoGenerate=${encodeURIComponent(savedPrompt)}`)
         } else {
           sessionStorage.removeItem('pending_prompt')
@@ -261,10 +262,19 @@ function BuilderPageContent() {
     }
   }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
+  // Show notify modal first when user lands with autoGenerate (project being created)
+  useEffect(() => {
+    if (!autoGeneratePrompt || !projectSetup.currentProjectId || projectSetup.isSettingUpProject) return
+    if (onboardingModal.checkShouldShowNotifyModal(true)) {
+      onboardingModal.showNotifyModal()
+    }
+  }, [autoGeneratePrompt, projectSetup.currentProjectId, projectSetup.isSettingUpProject])
+
   // Check if we should show onboarding modal when actual code generation starts (not planning)
   const handleCodeGenerationStarting = () => {
     if (autoGeneratePrompt && !hasProcessedAutoGenerate.current) {
       hasProcessedAutoGenerate.current = true
+      // Only show other modals if we didn't just show the notify modal (notify replaces for autoGenerate users)
       if (onboardingModal.checkShouldShowModal(true)) {
         onboardingModal.showModal()
       }
@@ -632,9 +642,10 @@ function BuilderPageContent() {
     setTestSessionLogs(null)
   }, [])
 
-  // Show loading state
-  if (isLoading || isProcessingPendingPrompt || projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && user && !projectSetup.projectSetupError)) {
-    return <LoadingState isLoading={isLoading || isProcessingPendingPrompt} isSettingUpProject={projectSetup.isSettingUpProject || isProcessingPendingPrompt} />
+  // Show loading state — only block on project setup when user is authenticated
+  const blockOnProjectSetup = user && (projectSetup.isSettingUpProject || (!projectSetup.currentProjectId && !projectSetup.projectSetupError))
+  if (isLoading || isProcessingPendingPrompt || blockOnProjectSetup) {
+    return <LoadingState isLoading={isLoading || isProcessingPendingPrompt} isSettingUpProject={user ? (projectSetup.isSettingUpProject || isProcessingPendingPrompt) : false} />
   }
 
   // Show error state if project setup failed
@@ -740,8 +751,10 @@ function BuilderPageContent() {
                     handleAutoGenerateComplete()
                   }
 
-                  // Play notification sound if user is not on the page
-                  playNotificationSound()
+                  // Play notification sound only if user opted in via the notify modal
+                  if (onboardingModal.getNotifyOnComplete()) {
+                    playNotificationSound(true)
+                  }
 
                   // Check if this was first generation and show testing prompt modal
                   if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
@@ -859,8 +872,10 @@ function BuilderPageContent() {
                       handleAutoGenerateComplete()
                     }
 
-                    // Play notification sound if user is not on the page
-                    playNotificationSound()
+                    // Play notification sound only if user opted in via the notify modal
+                    if (onboardingModal.getNotifyOnComplete()) {
+                      playNotificationSound(true)
+                    }
 
                     // Check if this was first generation and show testing prompt modal
                     if (!hasGeneratedCodeBeforeRef.current && projectSetup.currentProjectName) {
@@ -973,6 +988,7 @@ function BuilderPageContent() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        showBlurredBackground
       />
 
       {/* Asset Upload Modal - at builder level so Icon button works when file tree is collapsed */}
@@ -1025,6 +1041,8 @@ function BuilderPageContent() {
         onClose={onboardingModal.hideModal}
         currentStep={onboardingModal.currentStep}
         onNext={onboardingModal.goToNextStep}
+        onNotifyOptIn={() => onboardingModal.setNotifyOnComplete(true)}
+        onNotifyOptOut={() => onboardingModal.setNotifyOnComplete(false)}
       />
 
       {/* Testing Prompt Modal */}

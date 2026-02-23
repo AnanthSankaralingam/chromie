@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { useSession } from '@/components/SessionProviderClient'
 
-export default function AuthModal({ isOpen, onClose, redirectUrl }) {
+export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBackground }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
@@ -99,9 +100,37 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
     }
   }
 
+  const blurredOverlayStyle = showBlurredBackground
+    ? {
+        backgroundImage: "url('/auth-blurred-background.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundColor: 'transparent',
+      }
+    : undefined
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm">
+    <>
+      {isOpen && showBlurredBackground && typeof document !== 'undefined' && createPortal(
+        <div className="fixed left-[11%] top-[66%] z-[49] pointer-events-none select-none">
+          <div className="px-4 py-3 flex gap-2.5">
+            {['-0.32s', '-0.16s', '0s'].map((delay) => (
+              <div
+                key={delay}
+                className="w-3 h-3 rounded-full bg-white/80 animate-bounce shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+                style={{ animationDelay: delay }}
+              />
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent
+          className="sm:max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+          overlayClassName="z-[48]"
+          overlayStyle={blurredOverlayStyle}
+        >
         <DialogTitle className="sr-only">Authentication</DialogTitle>
         <div className="sr-only">Sign in or create an account to continue building Chrome extensions</div>
         <div className="relative">
@@ -171,7 +200,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }) {
             </CardContent>
           </Card>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

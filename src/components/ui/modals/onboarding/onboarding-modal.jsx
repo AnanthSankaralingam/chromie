@@ -1,5 +1,6 @@
 "use client"
 
+import NotifyStepModal from "./notify-step-modal"
 import TestStepModal from "./test-step-modal"
 import EditStepModal from "./edit-step-modal"
 import DownloadStepModal from "./download-step-modal"
@@ -9,7 +10,9 @@ export default function OnboardingModal({
   isOpen,
   onClose,
   currentStep,
-  onNext
+  onNext,
+  onNotifyOptIn,
+  onNotifyOptOut,
 }) {
   // Common props to pass to all step modals
   const commonProps = {
@@ -18,8 +21,17 @@ export default function OnboardingModal({
     onNext
   }
 
-  // Render the appropriate step modal based on currentStep
+  // Render the appropriate step modal based on currentStep (notify is first in list)
   switch (currentStep) {
+    case 'notify':
+      return (
+        <NotifyStepModal
+          isOpen={isOpen}
+          onClose={onClose}
+          onOptIn={onNotifyOptIn}
+          onOptOut={onNotifyOptOut}
+        />
+      )
     case 'test':
       return <TestStepModal {...commonProps} />
     case 'edit':

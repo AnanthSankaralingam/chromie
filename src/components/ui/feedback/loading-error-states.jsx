@@ -1,23 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
-const STUCK_THRESHOLD_MS = 10000
-
 export function LoadingState({ isLoading, isSettingUpProject }) {
-  const [showReloadHint, setShowReloadHint] = useState(false)
-
-  useEffect(() => {
-    if (!isLoading && !isSettingUpProject) {
-      setShowReloadHint(false)
-      return
-    }
-    const timer = setTimeout(() => setShowReloadHint(true), STUCK_THRESHOLD_MS)
-    return () => clearTimeout(timer)
-  }, [isLoading, isSettingUpProject])
-
   if (!isLoading && !isSettingUpProject) return null
 
   return (
@@ -35,18 +21,16 @@ export function LoadingState({ isLoading, isSettingUpProject }) {
         <p className="text-sm text-neutral-500">
           {isLoading ? "Loading" : "Setting up project"}
         </p>
-        {showReloadHint && (
-          <p className="mt-6 text-xs text-neutral-600">
-            Taking too long?{" "}
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="underline hover:text-neutral-400 transition-colors"
-            >
-              Reload page
-            </button>
-          </p>
-        )}
+        <p className="mt-6 text-xs text-neutral-600">
+          Taking too long?{" "}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="underline hover:text-neutral-400 transition-colors"
+          >
+            Reload page
+          </button>
+        </p>
       </div>
     </div>
   )
