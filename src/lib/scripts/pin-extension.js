@@ -1,4 +1,5 @@
 import { getPuppeteerSessionContext } from "@/lib/utils/browser-actions";
+import { HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID } from "@/lib/utils/hyperbrowser-utils";
 
 // Puppeteer script for: automatically pin extension to toolbar
 // Extension type: utility
@@ -35,6 +36,12 @@ const runPinExtension = async (sessionId) => {
     if (urlMatch) {
       capturedExtensionId = urlMatch[1];
       console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from initial URL:', capturedExtensionId);
+      if (capturedExtensionId === HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID) {
+        console.log('[PIN-EXTENSION] ℹ️  On HB screen-recording extension details, dont need to pin; navigating to list to select Chromie extension instead');
+        capturedExtensionId = null; // Clear so we navigate to list and pick Chromie
+        await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 4000 });
+        currentUrl = page.url();
+      }
     }
     
     if (!currentUrl.includes('chrome://extensions')) {
@@ -73,16 +80,17 @@ const runPinExtension = async (sessionId) => {
     await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('[PIN-EXTENSION] ✅ Wait complete');
 
-    // If we're already on a details page, we might not need to click Details
-    // Check if we're on a details view
-    const onDetailsPage = currentUrl.includes('?id=');
+    // If we're already on a details page (and it's the Chromie extension, not HB), we might not need to click Details
+    // Check if we're on a details view - skip if it's the HB screen-recording extension
+    const onDetailsPage = currentUrl.includes('?id=') && capturedExtensionId !== null;
     console.log('[PIN-EXTENSION] On details page:', onDetailsPage);
     
     if (!onDetailsPage) {
       // Navigate through shadow DOM to find and click Details button, and capture the extension ID
+      // Skip Hyperbrowser screen-recording extension (glppdlkdcbfhppbbglmjkmeopffhagad) - only pin Chromie
       console.log('[PIN-EXTENSION] 🔍 Finding extension card and Details button in shadow DOM...');
       
-      const evalResult = await page.evaluate(() => {
+      const evalResult = await page.evaluate((hbExtensionId) => {
         console.log('[PIN-EXTENSION-EVAL] Starting browser-side evaluation');
         const manager = document.querySelector('extensions-manager');
         console.log('[PIN-EXTENSION-EVAL] extensions-manager element:', !!manager);
@@ -216,9 +224,18 @@ const runPinExtension = async (sessionId) => {
         throw new Error(`No extension items found. Found ${allElements.length} total elements. Available element types: ${Object.keys(elementTypes).join(', ')}`);
       }
 
-        // Use the first extension item (most recently added should be first)
-        console.log('[PIN-EXTENSION-EVAL] 🎯 Selecting first extension item...');
-        const firstItem = items[0];
+        // Filter out Hyperbrowser screen-recording extension - only pin Chromie
+        const chromieItems = Array.from(items).filter((item) => {
+          const id = item.getAttribute('id');
+          return id && id !== hbExtensionId;
+        });
+        if (chromieItems.length === 0) {
+          throw new Error(`No Chromie extension found to pin (all ${items.length} extension(s) are HB screen-recording or have no ID)`);
+        }
+
+        // Use the first Chromie extension item (most recently added should be first)
+        console.log('[PIN-EXTENSION-EVAL] 🎯 Selecting first Chromie extension item (skipping HB)...');
+        const firstItem = chromieItems[0];
         console.log(`[PIN-EXTENSION-EVAL] ✅ Using first extension item (${items.length} total found)`);
         console.log(`[PIN-EXTENSION-EVAL] First item tag:`, firstItem.tagName);
         console.log(`[PIN-EXTENSION-EVAL] Has shadow root:`, !!firstItem.shadowRoot);
@@ -335,7 +352,7 @@ const runPinExtension = async (sessionId) => {
         // Click the Details button
         detailsButton.click();
         return { success: true, extensionId: extensionId };
-      });
+      }, HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID);
 
       if (!evalResult || !evalResult.success) {
         throw new Error('Failed to click Details button');

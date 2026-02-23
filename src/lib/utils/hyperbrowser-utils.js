@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js"
 import { ExtensionError, ERROR_CODES } from "@/lib/errors/extension-error"
 
+/** Hyperbrowser screen recording extension - always loaded in test sessions, should not be pinned */
+export const HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID = "glppdlkdcbfhppbbglmjkmeopffhagad"
+
 /**
  * Validate extension files and ensure required files are present
  * @param {Array<{file_path: string, content: string}>} files - Extension files
