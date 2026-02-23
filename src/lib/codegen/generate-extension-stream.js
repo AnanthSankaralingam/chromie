@@ -62,8 +62,28 @@ export async function* generateChromeExtensionStream({
   supabase = null, // Supabase client for authenticated database access
   userSelectedFrontendType = null, // User-selected frontend type when confidence was low
   userConfirmedWorkspaceIntegration = null, // true = yes, false = no, null = not yet asked
+  prebuiltMetaPlan = null, // Phase 2: pre-built meta plan from a prior plan_ready event
 }) {
   try {
+    // Phase 2: a meta plan was already built in a prior request — skip straight to execution.
+    if (prebuiltMetaPlan) {
+      console.log('⚡ [generate-extension-stream] Phase 2: executing pre-built task graph')
+      yield { type: 'generation_starting', content: 'generation_starting' }
+      yield { type: 'phase', phase: 'implementing', content: 'Generating extension files from task graph.' }
+      for await (const event of executeTaskGraph(prebuiltMetaPlan.metaPlan, {
+        metaPlan: prebuiltMetaPlan.metaPlan,
+        formattedPlanningOutputs: prebuiltMetaPlan.formattedPlanningOutputs,
+        scrapedWebpageAnalysis: prebuiltMetaPlan.scrapedWebpageAnalysis,
+        frontendType: prebuiltMetaPlan.frontendType,
+        featureRequest,
+        modelOverride,
+        sessionId,
+      })) {
+        yield event
+      }
+      yield { type: 'generation_complete', content: 'generation_complete' }
+      return
+    }
     let requirementsAnalysis = initialRequirementsAnalysis; // Use initial if provided
     let planningTokenUsage = initialPlanningTokenUsage; // Use initial if provided
 
@@ -561,20 +581,17 @@ export async function* generateChromeExtensionStream({
         featureRequest, planningSummary
       )
 
-      // Execute task graph
-      yield { type: 'generation_starting', content: 'generation_starting' }
-      yield { type: 'phase', phase: 'implementing', content: 'Generating extension files from task graph.' }
-
-      for await (const event of executeTaskGraph(metaPlan, {
-        metaPlan, formattedPlanningOutputs: updatedPlanningOutputs,
-        scrapedWebpageAnalysis, frontendType: requirementsAnalysis.frontend_type,
-        featureRequest, modelOverride, sessionId
-      })) {
-        yield event
+      // Phase 1 complete — hand off the plan to the client so it can start Phase 2
+      // in a fresh request, avoiding Vercel's 5-minute function timeout on long generations.
+      console.log('📦 [generate-extension-stream] Meta plan ready — yielding plan_ready for Phase 2')
+      yield {
+        type: 'plan_ready',
+        metaPlan,
+        formattedPlanningOutputs: updatedPlanningOutputs,
+        scrapedWebpageAnalysis,
+        frontendType: requirementsAnalysis.frontend_type,
       }
-
-      yield { type: 'generation_complete', content: 'generation_complete' }
-      return // Skip one-shot path
+      return // Phase 2 (executeTaskGraph) runs in the next request
     }
 
     const finalUserPrompt = featureRequest;

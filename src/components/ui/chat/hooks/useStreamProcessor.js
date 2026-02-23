@@ -102,8 +102,13 @@ export function useStreamProcessor({
       const handleRequiresApi = createRequiresApiHandler(handlerContext)
       const handleRequiresWorkspaceApi = createRequiresWorkspaceApiHandler(handlerContext)
 
+      let planReadyData = null
+
       for await (const data of streamResponse(response)) {
-        if (data.type === "requires_frontend_type") {
+        if (data.type === "plan_ready") {
+          console.log("[processStream] ✅ plan_ready received — Phase 1 complete", { hasMetaPlan: !!data.metaPlan, hasPlanningOutputs: !!data.formattedPlanningOutputs })
+          planReadyData = data
+        } else if (data.type === "requires_frontend_type") {
           handleRequiresFrontendType(data, payload.prompt, payload.requestType, payload.projectId)
         } else if (data.type === "requires_url") {
           handleRequiresUrl(data, payload.prompt, payload.requestType, payload.projectId)
@@ -118,7 +123,10 @@ export function useStreamProcessor({
         }
       }
 
-      return true
+      if (planReadyData) {
+        console.log("[processStream] 📦 Returning plan_ready data for Phase 2 trigger")
+      }
+      return planReadyData ? { planReady: planReadyData } : true
     },
     [
       chatState,
@@ -204,7 +212,20 @@ export function useStreamProcessor({
           payload.taggedFiles = taggedFiles
         }
 
-        await processStream(payload)
+        const streamResult = await processStream(payload)
+        // Phase 1 complete — fire Phase 2 immediately in a new request so
+        // task-graph execution runs in a fresh Vercel function invocation.
+        if (streamResult?.planReady) {
+          console.log("[startGeneration] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt,
+            projectId,
+            requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
 
         // Don't clear autoGeneratePrompt yet - it might pause for URL/API input
         if (autoGeneratePrompt) {
@@ -269,7 +290,18 @@ export function useStreamProcessor({
           analysisData,
         })
 
-        await processStream(payload)
+        const streamResult = await processStream(payload)
+        if (streamResult?.planReady) {
+          console.log("[startGenerationWithUrl] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt,
+            projectId,
+            requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
 
         // Don't clear autoGeneratePrompt yet - it might pause for URL/API input
         if (autoGeneratePrompt) {
@@ -337,7 +369,18 @@ export function useStreamProcessor({
           },
         }
 
-        await processStream(payload, eventHandlerExtensions)
+        const streamResult = await processStream(payload, eventHandlerExtensions)
+        if (streamResult?.planReady) {
+          console.log("[continueGenerationWithSkipScraping] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt: requestInfo.prompt,
+            projectId: requestInfo.projectId,
+            requestType: requestInfo.requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
       } catch (err) {
         console.error("Error continuing generation without URL:", err)
         setMessages((prev) => [
@@ -355,6 +398,7 @@ export function useStreamProcessor({
     },
     [
       chatState,
+      modelOverride,
       onGenerationStart,
       onGenerationEnd,
       setIsGenerating,
@@ -384,7 +428,18 @@ export function useStreamProcessor({
           analysisData: requestInfo.analysisData,
         })
 
-        await processStream(payload)
+        const streamResult = await processStream(payload)
+        if (streamResult?.planReady) {
+          console.log("[continueGenerationWithApis] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt: requestInfo.prompt,
+            projectId: requestInfo.projectId,
+            requestType: requestInfo.requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
       } catch (error) {
         console.error("Error in API continuation:", error)
         setMessages((prev) => [
@@ -402,6 +457,7 @@ export function useStreamProcessor({
     },
     [
       chatState,
+      modelOverride,
       onGenerationStart,
       onGenerationEnd,
       setIsGenerating,
@@ -432,7 +488,18 @@ export function useStreamProcessor({
           analysisData: requestInfo.analysisData,
         })
 
-        await processStream(payload)
+        const streamResult = await processStream(payload)
+        if (streamResult?.planReady) {
+          console.log("[continueGenerationWithWorkspaceConfirmation] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt: requestInfo.prompt,
+            projectId: requestInfo.projectId,
+            requestType: requestInfo.requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
       } catch (error) {
         console.error("Error in workspace confirmation continuation:", error)
         setMessages((prev) => [
@@ -450,6 +517,7 @@ export function useStreamProcessor({
     },
     [
       chatState,
+      modelOverride,
       onGenerationStart,
       onGenerationEnd,
       setIsGenerating,
@@ -482,7 +550,18 @@ export function useStreamProcessor({
           userSelectedFrontendType: selectedType,
         })
 
-        await processStream(payload)
+        const streamResult = await processStream(payload)
+        if (streamResult?.planReady) {
+          console.log("[continueGenerationWithFrontendType] 🚀 Triggering Phase 2 with pre-built meta plan")
+          await processStream(buildGeneratePayload({
+            prompt: requestInfo.prompt,
+            projectId: requestInfo.projectId,
+            requestType: requestInfo.requestType,
+            conversationTokenTotal,
+            modelOverride,
+            prebuiltMetaPlan: streamResult.planReady,
+          }))
+        }
       } catch (error) {
         console.error("Error in frontend type continuation:", error)
         setMessages((prev) => [
@@ -500,6 +579,7 @@ export function useStreamProcessor({
     },
     [
       chatState,
+      modelOverride,
       onGenerationStart,
       onGenerationEnd,
       setIsGenerating,

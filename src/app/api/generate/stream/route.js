@@ -123,7 +123,7 @@ export async function POST(request) {
   }
 
   try {
-    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images, taggedFiles, userSelectedFrontendType, userConfirmedWorkspaceIntegration } = await request.json()
+    const { prompt, projectId, requestType = REQUEST_TYPES.NEW_EXTENSION, userProvidedUrl, userProvidedApis, skipScraping, conversationTokenTotal, modelOverride, contextWindowMaxTokens, initialRequirementsAnalysis, initialPlanningTokenUsage, images, taggedFiles, userSelectedFrontendType, userConfirmedWorkspaceIntegration, prebuiltMetaPlan } = await request.json()
 
     console.log('[api/generate/stream] received', {
       conversationTokenTotal_in: conversationTokenTotal ?? null,
@@ -263,7 +263,7 @@ export async function POST(request) {
 
     // Auto-create version snapshot before processing user message
     // Skip if resuming from a previous request (to avoid duplicate messages)
-    const isResumingRequest = Boolean(initialRequirementsAnalysis && initialPlanningTokenUsage)
+    const isResumingRequest = Boolean(initialRequirementsAnalysis && initialPlanningTokenUsage) || Boolean(prebuiltMetaPlan)
 
     if (projectId && !isResumingRequest) {
       try {
@@ -336,7 +336,8 @@ export async function POST(request) {
             taggedFiles: taggedFiles || null,
             supabase: supabase, // Pass authenticated supabase client
             userSelectedFrontendType: userSelectedFrontendType || null,
-            userConfirmedWorkspaceIntegration: userConfirmedWorkspaceIntegration ?? null
+            userConfirmedWorkspaceIntegration: userConfirmedWorkspaceIntegration ?? null,
+            prebuiltMetaPlan: prebuiltMetaPlan || null,
           })) {
             const data = JSON.stringify(chunk)
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
@@ -358,8 +359,9 @@ export async function POST(request) {
               if (total > 0) accumulatedTokens = total
             }
             
-            // Check if user input is required (URL, frontend type, or API keys)
-            if (chunk.type === "requires_url" || chunk.type === "requires_frontend_type" || chunk.type === "requires_api" || chunk.type === "requires_workspace_api_confirmation") {
+            // Check if user input is required OR if phase 1 is handing off to phase 2.
+            // In both cases skip credit upsert (generation is not yet complete).
+            if (chunk.type === "requires_url" || chunk.type === "requires_frontend_type" || chunk.type === "requires_api" || chunk.type === "requires_workspace_api_confirmation" || chunk.type === "plan_ready") {
               console.log(`[api/generate/stream] 📋 Detected ${chunk.type} chunk - will halt after this`)
               requiresUrl = true
             }

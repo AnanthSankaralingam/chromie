@@ -160,6 +160,20 @@ function buildContextSections(task, executionContext) {
   return parts.join('\n\n')
 }
 
+const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview'
+const FAST_FILE_EXTENSIONS = new Set(['css', 'json'])
+
+/**
+ * Picks the model for a given file.
+ * CSS and JSON files use Gemini Flash (fast, cheap).
+ * All other files use the caller-supplied override or the default Fireworks model.
+ */
+function getModelForFile(fileName, modelOverride) {
+  const ext = (fileName || '').split('.').pop().toLowerCase()
+  if (FAST_FILE_EXTENSIONS.has(ext)) return GEMINI_FLASH_MODEL
+  return modelOverride || DEFAULT_MODEL
+}
+
 /**
  * Executes a single file-generation task.
  * @param {Object} task - A task from the meta planner's task_graph
@@ -237,7 +251,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
     .replace('{{OUTPUT_FORMAT}}', injections.OUTPUT_FORMAT)
 
-  const model = modelOverride || DEFAULT_MODEL
+  const model = getModelForFile(task.file_name, modelOverride)
   const provider = llmService.getProviderFromModel(model)
   const supportsThinking = provider === 'gemini' || provider === 'anthropic'
 
