@@ -9,7 +9,8 @@ import AuthModal from "@/components/ui/modals/modal-auth"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
-// import HowItWorksSection from "@/components/ui/sections/how-it-works-section" // COMMENTED OUT: Videos taking up too many resources on Vercel
+import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
+import TrustedBySection from "@/components/ui/sections/trusted-by-section"
 import BlogSection from "@/components/ui/sections/blog-section"
 import PricingSection from "@/components/ui/sections/pricing-section"
 import ContactSection from "@/components/ui/sections/contact-section"
@@ -305,7 +306,7 @@ const [inputFocused, setInputFocused] = useState(false)
   useEffect(() => {
     const handleHashScroll = () => {
       const hash = window.location.hash
-      const supportedHashes = ['#blog', '#pricing', '#contact', '#featured-creations']
+      const supportedHashes = ['#blog', '#pricing', '#contact', '#featured-creations', '#how-it-works']
 
       if (supportedHashes.includes(hash)) {
         setTimeout(() => {
@@ -520,9 +521,11 @@ const [inputFocused, setInputFocused] = useState(false)
           </div>
         </main>
 
-        {/* COMMENTED OUT: How It Works Section - Videos taking up too many resources on Vercel
+        {/* How It Works Section */}
         <HowItWorksSection />
-        */}
+
+        {/* Trusted By Section */}
+        <TrustedBySection />
 
         {/* Featured Creations Section */}
         <FeaturedCreationsSection />
