@@ -363,6 +363,17 @@ export function extractPatchBlock(text) {
             }
           })
         }
+
+        // Treat "all hunks skipped" as a hard failure so callers can retry with a structured fallback path.
+        if (hunks.length > 0 && result.skippedHunks === hunks.length) {
+          return {
+            path,
+            content: null,
+            action: 'update',
+            success: false,
+            error: `All hunks skipped for ${path} - no patch content could be applied`
+          }
+        }
         
         return { path, content: result.content, action: 'update', success: result.success, error: result.error }
       }

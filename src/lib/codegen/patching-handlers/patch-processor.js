@@ -188,8 +188,8 @@ export async function* processPatchModeOutput(outputText, existingFiles, userReq
   // Step 1: Apply patches
   const patchResult = processPatchOutput(outputText, existingFiles)
   
-  if (!patchResult.success && Object.keys(patchResult.updatedFiles).length === 0) {
-    console.log('❌ [patch-mode] Patch application failed completely')
+  if (!patchResult.success) {
+    console.log('❌ [patch-mode] Patch application failed')
     yield { type: "patch_failed", content: "Patch application failed" }
     yield { type: "final_result", result: { success: false, files: {}, explanation: patchResult.explanation, errors: patchResult.errors } }
     return

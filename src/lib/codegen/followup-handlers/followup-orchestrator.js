@@ -8,15 +8,42 @@ import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/planning/planni
 import { FOLLOW_UP_PATCH_PROMPT } from '@/lib/prompts/followup/follow-up-patching.js';
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
 import { executeToolCall } from './tool-executor.js';
+import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js';
+
+const FOLLOWUP_PLANNER_RESPONSE_FORMAT = {
+  type: 'json_schema',
+  name: 'followup_planning',
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['justification', 'tools', 'files', 'difficulty'],
+    properties: {
+      justification: { type: 'string' },
+      tools: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['chrome_api_search', 'web_scraping', 'delete_file', 'read_file']
+        }
+      },
+      files: {
+        type: 'array',
+        items: { type: 'string' }
+      },
+      difficulty: { type: 'number' }
+    }
+  }
+};
 
 /**
  * Calls the planning agent to determine tools and files needed
  * @param {string} userRequest - The user's follow-up request
  * @param {Object} existingFiles - Map of file paths to contents
  * @param {Function} callLLM - LLM call function (injected dependency)
+ * @param {Array<Object>|null} images - Optional image attachments for multimodal planning
  * @returns {Promise<Object>} - Planning result with tools, files, and success flag
  */
-export async function callFollowUpPlanning(userRequest, existingFiles, callLLM) {
+export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, images = null) {
   console.log('📋 [followup-orchestrator] Starting follow-up planning...');
 
   // 1. Analyze files for summaries
@@ -30,34 +57,88 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM) 
     .replace('{USER_REQUEST}', userRequest)
     .replace('{FILE_SUMMARIES}', fileSummaries);
 
-  // 3. Call LLM
+  const normalizePlanningResult = (planningResult) => {
+    const validTools = ['chrome_api_search', 'web_scraping', 'delete_file', 'read_file'];
+    const tools = Array.isArray(planningResult?.tools)
+      ? planningResult.tools.filter((t) => validTools.includes(t))
+      : [];
+    const files = Array.isArray(planningResult?.files) && planningResult.files.length > 0
+      ? planningResult.files
+      : Object.keys(existingFiles);
+    const difficultyRaw = Number(planningResult?.difficulty);
+    const difficulty = Number.isFinite(difficultyRaw)
+      ? Math.max(0, Math.min(1, difficultyRaw))
+      : 0;
+
+    return {
+      success: true,
+      justification: planningResult?.justification || '',
+      tools,
+      files,
+      difficulty
+    };
+  };
+
+  const parsePlanningResponse = (text) => {
+    if (!text || typeof text !== 'string') return null;
+
+    // Fast path: entire response is already JSON.
+    const directParsed = parseJsonWithRetry(text.trim());
+    if (directParsed && typeof directParsed === 'object') return directParsed;
+
+    // Fallback: extract JSON from markdown/fenced output.
+    const extracted = extractJsonContent(text);
+    const extractedParsed = parseJsonWithRetry(extracted);
+    if (extractedParsed && typeof extractedParsed === 'object') return extractedParsed;
+
+    return null;
+  };
+
+  const isValidPlanningShape = (obj) => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+    if (!('justification' in obj) || !('tools' in obj) || !('files' in obj)) return false;
+    if (!Array.isArray(obj.tools) || !Array.isArray(obj.files)) return false;
+    return true;
+  };
+
+  // 3. Call LLM (attempt 1: structured output + images)
   console.log('🤖 [followup-orchestrator] Calling followup planning agent...');
-  const response = await callLLM(prompt);
+  let response = await callLLM(prompt, images, { responseFormat: FOLLOWUP_PLANNER_RESPONSE_FORMAT });
 
   // 4. Parse JSON response
   try {
-    // Extract JSON from response (handle potential markdown code blocks)
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn('⚠️ [followup-orchestrator] No JSON found in planning response, using defaults');
+    let planningResult = parsePlanningResponse(response);
+    if (planningResult && !isValidPlanningShape(planningResult)) {
+      console.warn('⚠️ [followup-orchestrator] Parsed response was JSON but missing required planner keys');
+      planningResult = null;
+    }
+
+    // Attempt 2: JSON repair prompt if first parse failed
+    if (!planningResult) {
+      console.warn('⚠️ [followup-orchestrator] Planning response not parseable, retrying with strict JSON repair prompt');
+      const repairPrompt = `${prompt}\n\nCRITICAL: Return a single valid JSON object only. No markdown, no prose, no code fences.`;
+      response = await callLLM(repairPrompt, images, { responseFormat: FOLLOWUP_PLANNER_RESPONSE_FORMAT });
+      planningResult = parsePlanningResponse(response);
+      if (planningResult && !isValidPlanningShape(planningResult)) {
+        console.warn('⚠️ [followup-orchestrator] Retry produced JSON missing required planner keys');
+        planningResult = null;
+      }
+    }
+
+    if (!planningResult) {
+      console.warn('⚠️ [followup-orchestrator] No JSON found in planning response after retry, using defaults');
       return {
         success: false,
         justification: 'Could not parse planning response',
         tools: [],
-        files: Object.keys(existingFiles)
+        files: Object.keys(existingFiles),
+        difficulty: 0
       };
     }
 
-    const planningResult = JSON.parse(jsonMatch[0]);
     console.log('✅ [followup-orchestrator] Planning complete:', JSON.stringify(planningResult, null, 2));
 
-    return {
-      success: true,
-      justification: planningResult.justification || '',
-      tools: planningResult.tools || [],
-      files: planningResult.files || Object.keys(existingFiles),
-      difficulty: planningResult.difficulty || 0
-    };
+    return normalizePlanningResult(planningResult);
   } catch (error) {
     console.error('❌ [followup-orchestrator] Failed to parse planning response:', error);
     return {

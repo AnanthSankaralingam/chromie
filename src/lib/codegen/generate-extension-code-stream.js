@@ -5,7 +5,7 @@
 
 import { llmService } from "@/lib/services/llm-service"
 import { selectUnifiedSchema } from "@/lib/response-schemas/unified-schemas"
-import { DEFAULT_MODEL } from "@/lib/constants"
+import { DEFAULT_MODEL, FOLLOWUP_MODEL } from "@/lib/constants"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { containsPatch } from "@/lib/codegen/patching-handlers/patch-applier"
 import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-handlers/json-extractor"
@@ -296,7 +296,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || DEFAULT_MODEL
+  const modelUsed = modelOverride || (requestType === REQUEST_TYPES.ADD_TO_EXISTING ? FOLLOWUP_MODEL : DEFAULT_MODEL)
   const provider = getProviderFromModel(modelUsed)
   
   // Skip schema for patching mode
@@ -309,12 +309,12 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
   try {
     // Handle new request with Gemini streaming
     if (provider === 'gemini') {
-      yield* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
+      yield* handleGeminiStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
       return
     }
 
     // Handle new request with other providers
-    yield* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
+    yield* handleStandardResponseFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
 
   } catch (err) {
     console.error("[generateExtensionCodeStream] LLM Service error", err?.message || err)
@@ -333,7 +333,7 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 /**
  * Handles Gemini streaming flow
  */
-async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
+async function* handleGeminiStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
   console.log("[generateExtensionCodeStream] Using Gemini streaming", images ? `with ${images.length} images` : '')
   
   let combinedText = ''
@@ -350,7 +350,7 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
   
   for await (const s of llmService.streamResponse({
     provider,
-    model: modelOverride || DEFAULT_MODEL,
+    model: modelUsed,
     input: input,
     temperature: 0.2,
     max_output_tokens: 32000,
@@ -388,7 +388,7 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
   }
 
   if (usePatchingMode && containsPatch(combinedText)) {
-    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest, replacements.supabase)
+    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelUsed, sessionId, replacements, originalUserRequest, replacements.supabase)
   } else {
     if (usePatchingMode) {
       console.log('⚠️ [Gemini] Patching mode was active but no patch detected in output')
@@ -412,7 +412,7 @@ async function* handleGeminiStreamingFlow(provider, modelOverride, finalPrompt, 
 /**
  * Handles standard (non-streaming) response flow
  */
-async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
+async function* handleStandardResponseFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null, thinkingLevel = ThinkingLevel.MEDIUM) {
   console.log("[generateExtensionCodeStream] Using Responses API (new)", images ? `with ${images.length} images` : '')
   
   // Prepare input with images if provided
@@ -426,7 +426,7 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
   
   const response = await llmService.createResponse({
     provider,
-    model: modelOverride || DEFAULT_MODEL,
+    model: modelUsed,
     input: input,
     store: false, // Manual history storage handles clean content
     temperature: 0.2,
@@ -456,7 +456,7 @@ async function* handleStandardResponseFlow(provider, modelOverride, finalPrompt,
   }
   
   if (usePatchingMode && containsPatch(outputText)) {
-    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelOverride || DEFAULT_MODEL, sessionId, replacements, originalUserRequest, replacements.supabase)
+    yield* handlePatchingMode(outputText, existingFilesForPatch, userRequest, provider, modelUsed, sessionId, replacements, originalUserRequest, replacements.supabase)
   } else {
     if (usePatchingMode) {
       console.log('⚠️ [Responses API] Patching mode was active but no patch detected in output')
