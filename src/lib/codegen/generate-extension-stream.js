@@ -7,7 +7,6 @@ import { NEW_EXT_CONTENT_SCRIPT_UI_PROMPT } from "@/lib/prompts/new-extension/on
 import { FOLLOW_UP_FILE_REPLACEMENT_PROMPT } from "@/lib/prompts/followup/follow-up-file-replacement";
 import { FOLLOW_UP_PATCH_PROMPT } from "@/lib/prompts/followup/follow-up-patching";
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from "@/lib/prompts/followup/follow-up-patching-with-tools";
-import { TEMPLATE_PATCH_PROMPT } from "@/lib/prompts/new-extension/template/template-patch";
 import { batchScrapeWebpages } from "@/lib/webpage-scraper";
 import { orchestratePlanning, orchestratePlanningStream, formatPlanningOutputs } from "@/lib/codegen/planning-handlers/planning-orchestrator";
 import { generateExtensionCodeStream } from "@/lib/codegen/generate-extension-code-stream";
@@ -24,11 +23,11 @@ import {
   prepareFilesForPatching,
   buildPatchPromptReplacements
 } from "@/lib/codegen/patching-handlers/patch-mode-handler";
-import { loadTemplateFiles, formatTemplateFilesAsXml } from "@/lib/codegen/planning-handlers/template-loader";
+import { loadTemplateFiles } from "@/lib/codegen/planning-handlers/template-loader";
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
+import { DEFAULT_MODEL, FOLLOWUP_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
 import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
 import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
 import { callFollowupMetaPlanner } from '@/lib/codegen/followup-handlers/followup-meta-planner-bridge.js'
@@ -67,9 +66,8 @@ export async function* generateChromeExtensionStream({
   try {
     // Phase 2: a meta plan was already built in a prior request — skip straight to execution.
     if (prebuiltMetaPlan) {
-      console.log('⚡ [generate-extension-stream] Phase 2: executing pre-built task graph')
       yield { type: 'generation_starting', content: 'generation_starting' }
-      yield { type: 'phase', phase: 'implementing', content: 'Generating extension files from task graph.' }
+      yield { type: 'phase', phase: 'implementing', content: 'Generating extension files...' }
       for await (const event of executeTaskGraph(prebuiltMetaPlan.metaPlan, {
         metaPlan: prebuiltMetaPlan.metaPlan,
         formattedPlanningOutputs: prebuiltMetaPlan.formattedPlanningOutputs,
@@ -265,13 +263,24 @@ export async function* generateChromeExtensionStream({
       console.log("📊 [File Analysis]:", fileSummaries);
 
       // Create callLLM wrapper for follow-up planning (same default model and fallback as new extension gen)
-      const planningModel = modelOverride || DEFAULT_MODEL;
+      const planningModel = modelOverride || FOLLOWUP_MODEL;
       const planningProvider = llmService.getProviderFromModel(planningModel);
-      const callLLM = async (prompt) => {
+      const callLLM = async (prompt, planningImages = null, options = {}) => {
+        let input = prompt;
+        if (planningImages && planningImages.length > 0) {
+          input = {
+            text: prompt,
+            images: planningImages,
+          };
+          console.log(`📸 [generate-extension-stream] Passing ${planningImages.length} images to follow-up planner`);
+        }
+
         const response = await llmService.createResponse({
           provider: planningProvider,
           model: planningModel,
-          input: prompt,
+          input,
+          response_format: options.responseFormat || null,
+          session_id: sessionId,
           temperature: 0.2,
           max_output_tokens: 500,
           store: false
@@ -287,7 +296,7 @@ export async function* generateChromeExtensionStream({
         content: "Determining optimal approach for modifications..."
       };
 
-      const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM);
+      const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM, images);
       console.log('📊 [generate-extension-stream] Planning result:', JSON.stringify(planningResult, null, 2));
 
       // Select appropriate prompt based on planning result
@@ -516,22 +525,44 @@ export async function* generateChromeExtensionStream({
     }
     
     // For ADD_TO_EXISTING, use the prompt selected by the planning agent
-    // For new extensions, use standard prompt selection
+    // For new extensions, route through task-graph planners.
     let selectedCodingPrompt;
 
     if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && requirementsAnalysis.selectedPrompt) {
       if (requirementsAnalysis.planningDifficulty >= FOLLOWUP_DIFFICULTY_THRESHOLD) {
         console.log(`🧠 [generate-extension-stream] High difficulty (${requirementsAnalysis.planningDifficulty}) — routing to followup meta planner flow`)
-        yield { type: 'planning_progress', phase: 'planning', content: 'Complex change detected — building structured patch plan...' }
-        yield* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase })
+        yield { type: 'planning_progress', phase: 'planning', content: 'Complex change detected — building structured plan...' }
+        yield* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images })
         return
       }
       // Use the prompt determined by follow-up planning
       selectedCodingPrompt = requirementsAnalysis.selectedPrompt;
       console.log(`🔧 [generate-extension-stream] Using planning-selected prompt (tools: ${requirementsAnalysis.enabledTools?.length > 0 ? 'enabled' : 'none'})`);
     } else if (usingTemplate) {
-      // Use template patch prompt
-      selectedCodingPrompt = TEMPLATE_PATCH_PROMPT;
+      // Template-matched new extension: treat template files as a baseline and
+      // run the same followup meta planner flow used for structured patching.
+      console.log('🧠 [generate-extension-stream] Template matched — routing to followup meta planner mode')
+      yield { type: 'planning_progress', phase: 'planning', content: 'Template selected — building structured implementation plan...' }
+
+      const templateFileAnalysis = analyzeExtensionFiles(templateFiles)
+      const templatePlanningJustification = `Template "${requirementsAnalysis.matchedTemplate?.name}" matched (confidence ${requirementsAnalysis.matchedTemplate?.confidence}). Use template files as the baseline and implement user-specific behavior.`
+
+      const templateRequirementsAnalysis = {
+        ...requirementsAnalysis,
+        relevantFiles: templateFiles,
+        fileSummaries: templateFileAnalysis,
+        planningJustification: templatePlanningJustification,
+      }
+
+      yield* runFollowupMetaPlannerBranch({
+        featureRequest,
+        requirementsAnalysis: templateRequirementsAnalysis,
+        sessionId,
+        modelOverride,
+        supabase,
+        images
+      })
+      return
     } else {
       useTaskGraph = true
       console.log('🔄 [generate-extension-stream] No template matched - will use task graph approach')
@@ -539,8 +570,6 @@ export async function* generateChromeExtensionStream({
     
     if (useTaskGraph) {
       console.log('🔄 [generate-extension-stream] Using TASK GRAPH mode')
-    } else if (usingTemplate) {
-      console.log('🎨 [generate-extension-stream] Using TEMPLATE PATCH mode')
     } else if (usePatchingMode) {
       console.log('🔧 [generate-extension-stream] Using PATCH mode for modifications')
     } else {
@@ -693,28 +722,12 @@ export async function* generateChromeExtensionStream({
         }
       }
       
-      // Build replacements based on whether we're using a template
-      if (usingTemplate) {
-        // Format template files as XML for prompt
-        const templateFilesXml = formatTemplateFilesAsXml(templateFiles)
-
-        replacements = {
-          USER_REQUEST: finalUserPrompt,
-          USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
-          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
-          TEMPLATE_FILES: templateFilesXml,
-          WORKSPACE_AUTH: updatedPlanningOutputs.WORKSPACE_AUTH
-        };
-
-        console.log(`📦 [generate-extension-stream] Using template files for patching (${Object.keys(templateFiles).length} files)`)
-      } else {
-        replacements = {
-          USER_REQUEST: finalUserPrompt,
-          USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
-          EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
-          WORKSPACE_AUTH: updatedPlanningOutputs.WORKSPACE_AUTH
-        };
-      }
+      replacements = {
+        USER_REQUEST: finalUserPrompt,
+        USE_CASE_CHROME_APIS: updatedPlanningOutputs.USE_CASE_CHROME_APIS,
+        EXTERNAL_RESOURCES: updatedPlanningOutputs.EXTERNAL_RESOURCES + customIconsInfo,
+        WORKSPACE_AUTH: updatedPlanningOutputs.WORKSPACE_AUTH
+      };
     }
 
     console.log("🚀 Starting streaming code generation...");
@@ -732,7 +745,7 @@ export async function* generateChromeExtensionStream({
     // Prepare existing files for patching if in patch mode
     // If using template, use template files; otherwise use existing files
     const patchableFiles = usePatchingMode
-      ? (usingTemplate ? prepareFilesForPatching(templateFiles) : prepareFilesForPatching(existingFiles))
+      ? prepareFilesForPatching(existingFiles)
       : {}
 
     // Calculate expected file count for thinking level determination
@@ -741,13 +754,8 @@ export async function* generateChromeExtensionStream({
       // For follow-ups, count relevant files
       expectedFileCount = Object.keys(requirementsAnalysis.relevantFiles || {}).length
     } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
-      // For new extensions, estimate from template or use reasonable default
-      if (usingTemplate && templateFiles) {
-        expectedFileCount = Object.keys(templateFiles).length
-      } else {
-        // Conservative estimate for new extensions without template
-        expectedFileCount = 4
-      }
+      // Conservative estimate for new extensions without template
+      expectedFileCount = 4
     }
     console.log(`📊 [generate-extension-stream] Expected file count for thinking level: ${expectedFileCount}`)
 
@@ -778,6 +786,18 @@ export async function* generateChromeExtensionStream({
           expectedFileCount: expectedFileCount // For dynamic thinking level
         }
       )) {
+      // If patching fails (e.g., hunks cannot be applied), retry via structured followup meta planner.
+      if (chunk?.type === "patch_failed" && requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+        console.warn('⚠️ [generate-extension-stream] Patch mode failed - retrying with followup meta planner flow');
+        yield {
+          type: "planning_progress",
+          phase: "planning",
+          content: "Patch application failed, retrying with a structured plan..."
+        };
+        yield* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images });
+        return;
+      }
+
       // If Gemini thinking stream is used upstream, chunk.type may be 'thinking'
       if (chunk?.type === "thinking") {
         // Pass through as-is to UI which already handles thinking buffer
@@ -819,15 +839,17 @@ export async function* generateChromeExtensionStream({
  * Handles the high-difficulty follow-up path: calls the followup meta planner,
  * then executes the resulting task graph.
  */
-async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase }) {
+async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images = null }) {
   const { followupPlan } = await callFollowupMetaPlanner(
     featureRequest,
     requirementsAnalysis.relevantFiles,
     requirementsAnalysis.fileSummaries,
-    requirementsAnalysis.planningJustification
+    requirementsAnalysis.planningJustification,
+    images,
+    sessionId
   )
   yield { type: 'generation_starting', content: 'generation_starting' }
-  yield { type: 'phase', phase: 'implementing', content: 'Patching extension files via task graph.' }
+  yield { type: 'phase', phase: 'implementing', content: 'Generating extension files...' }
   for await (const event of executeFollowupTaskGraph(followupPlan, {
     userRequest: featureRequest,
     existingFiles: requirementsAnalysis.relevantFiles,

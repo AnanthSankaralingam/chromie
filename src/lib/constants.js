@@ -31,6 +31,7 @@ export const DEFAULT_PLAN = 'free'
 
 // Unified LLM Service defaults
 export const DEFAULT_MODEL = 'accounts/fireworks/models/kimi-k2p5'
+export const FOLLOWUP_MODEL = 'gemini-3-flash-preview'
 export const DEFAULT_PROVIDER = 'fireworks'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000

@@ -59,6 +59,20 @@ export class GeminiAdapter {
         maxOutputTokens: max_output_tokens
       }
 
+      // Honor requested response format for non-streaming calls.
+      // This is required for planner flows that depend on strict JSON output.
+      if (response_format) {
+        const normalizedFormat = this.normalizeResponseFormat(response_format)
+        if (normalizedFormat?.type === 'json_schema') {
+          generationConfig.responseMimeType = 'application/json'
+          if (normalizedFormat?.json_schema?.schema) {
+            generationConfig.responseSchema = normalizedFormat.json_schema.schema
+          }
+        } else if (normalizedFormat?.type === 'text') {
+          generationConfig.responseMimeType = 'text/plain'
+        }
+      }
+
       // Add thinking config for all Gemini models if explicitly provided
       if (thinkingConfig?.includeThoughts) {
         // Gemini 3 uses thinkingLevel (LOW/HIGH); Gemini 2.5 uses thinkingBudget
@@ -89,9 +103,7 @@ export class GeminiAdapter {
         promptTokens = um.promptTokenCount ?? 0
         totalTokens = thoughtsTokens + outputTokens + promptTokens
         console.log(`[gemini-adapter] Exact token usage - prompt: ${promptTokens}, output: ${outputTokens}, thoughts: ${thoughtsTokens}, total: ${totalTokens}`)
-        if (thoughtsTokens === 0 && thinkingConfig?.includeThoughts) {
-          console.log('[gemini-adapter] thoughtsTokenCount is 0 despite thinkingConfig - raw usageMetadata:', JSON.stringify(um, null, 2))
-        }
+
       }
 
       // Extract content from response — filter out thought parts to avoid leaking reasoning into output_text
@@ -199,9 +211,6 @@ export class GeminiAdapter {
             outputTokens = um.candidatesTokenCount ?? um.responseTokenCount ?? 0
             promptTokens = um.promptTokenCount ?? 0
             totalTokens = thoughtsTokens + outputTokens + promptTokens
-            if (thoughtsTokens === 0 && generationConfig.thinkingConfig?.includeThoughts) {
-              console.log('[gemini-adapter] STREAM thoughtsTokenCount is 0 - raw usageMetadata:', JSON.stringify(um, null, 2))
-            }
           }
 
           const parts = chunk?.candidates?.[0]?.content?.parts || []

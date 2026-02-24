@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils"
 const features = [
   { label: "credits", key: "credits" },                          // all plans
   { label: "simulated browser testing", key: "browserTesting" }, // all plans
+  { label: "deployment wizard", key: "deploymentWizard" },       // all plans
   { label: "private extension sharing", key: "privateSharing" }, // pro+
   { label: "GitHub export", key: "githubExport" },               // pro+
   { label: "version history", key: "versionHistory" },           // pro+
   { label: "automated AI testing", key: "advancedTesting" },     // pro+
   { label: "metrics platform", key: "metricsPlatform" },         // pro+
   { label: "privacy policy hosting", key: "privacyPolicyHosting" }, // pro+
-  { label: "deployment wizard", key: "deploymentWizard" },       // pro+
   { label: "demo creator", key: "demoCreator" },                 // pro+
   { label: "dedicated support", key: "dedicatedSupport" },       // enterprise only
 ]

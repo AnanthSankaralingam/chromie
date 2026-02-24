@@ -15,9 +15,11 @@ import { formatFileSummariesForFollowupPlanner } from '@/lib/codegen/file-analys
  * @param {Object} relevantFiles - Selected existing files (path → content) — used downstream by the executor, not sent to the planner
  * @param {Object} fileAnalysis - Raw result from analyzeExtensionFiles (passed to formatFileSummariesForPlanning)
  * @param {string} planningJustification - Justification from the pre-planning agent
+ * @param {Array<Object>|null} images - Optional image attachments for multimodal planning
+ * @param {string|null} sessionId - Session/project identifier for conversation history
  * @returns {Promise<{followupPlan: Object, tokenUsage: Object}>}
  */
-export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification) {
+export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
   const fileSummaries = formatFileSummariesForFollowupPlanner(fileAnalysis)
   console.log('📊 [followup-meta-planner-bridge] File summaries:\n', fileSummaries)
 
@@ -28,10 +30,20 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
 
   console.log('🧠 [followup-meta-planner-bridge] Raw prompt:\n', prompt)
 
+  let input = prompt
+  if (images && images.length > 0) {
+    input = {
+      text: prompt,
+      images
+    }
+    console.log(`📸 [followup-meta-planner-bridge] Passing ${images.length} images to followup meta planner`)
+  }
+
   const response = await llmService.createResponse({
     provider: 'anthropic',
     model: PLANNING_MODELS.META_PLANNER,
-    input: prompt,
+    input,
+    session_id: sessionId,
     temperature: 0.2,
     max_output_tokens: 4096,
     store: false

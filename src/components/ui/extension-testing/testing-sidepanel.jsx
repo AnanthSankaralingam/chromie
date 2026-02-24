@@ -34,6 +34,9 @@ export default function TestingSidepanel({
           <p className="text-xs text-gray-500 mb-3 leading-relaxed">
             This is a simulated Chrome browser. Test your extension by clicking the puzzle icon in the toolbar or invoking its expected behavior. Logs shown below.
           </p>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            If you run into bot detection, try refreshing typing a website full URL into the address bar instead of using Google.
+          </p>
           <ConsoleLogViewer
             sessionId={sessionId}
             projectId={projectId}

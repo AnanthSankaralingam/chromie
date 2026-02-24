@@ -202,7 +202,7 @@ export default function StreamingChat({
     const hasShownSuggestion = typeof window !== 'undefined' && localStorage.getItem(localStorageKey) === 'true'
 
     // Show modal when messages exceed 5 and not currently generating and haven't shown before
-    if (messages.length > 5 && !isGenerating && !hasShownSuggestion) {
+    if (messages.length > 10 && !isGenerating && !hasShownSuggestion) {
       setShowClearChatSuggestion(true)
       // Mark as shown so it doesn't appear again for this project
       if (typeof window !== 'undefined') {
