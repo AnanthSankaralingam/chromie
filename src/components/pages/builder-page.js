@@ -1008,6 +1008,7 @@ function BuilderPageContent() {
         isOpen={testExtension.isTestModalOpen}
         onClose={testExtension.handleCloseTestModal}
         sessionData={testExtension.testSessionData}
+        createOptions={testExtension.createOptions}
         onRefresh={testExtension.handleRefreshTest}
         isLoading={testExtension.isTestLoading}
         loadingProgress={testExtension.loadingProgress}

@@ -14,6 +14,7 @@ export default function SideBySideTestModal({
   isOpen,
   onClose,
   sessionData,
+  createOptions = null,
   onRefresh,
   isLoading = false,
   loadingProgress = 0,
@@ -39,6 +40,13 @@ export default function SideBySideTestModal({
   const puppeteerAbortControllerRef = useRef(null)
   const aiAgentAbortControllerRef = useRef(null)
   const [clearLogsTrigger, setClearLogsTrigger] = useState(0)
+
+  const hasBasicTests = extensionFiles.some(
+    (f) => (f.file_path || f.fullPath) === "tests/puppeteer/index.test.js"
+  )
+  const hasAiAgentTests = extensionFiles.some(
+    (f) => (f.file_path || f.fullPath) === "tests/hyperagent_test_script.js"
+  )
 
   const [isRecordingDemo, setIsRecordingDemo] = useState(false)
   const [demoStatus, setDemoStatus] = useState("idle") // idle | recording | saved | error
@@ -225,11 +233,12 @@ export default function SideBySideTestModal({
   // Handle HyperAgent test execution
   const clearConsoleLogs = async () => {
     if (!sessionData?.sessionId || !projectId) return
+    // Clear UI immediately so user sees empty logs before tests start
+    setClearLogsTrigger((prev) => prev + 1)
     try {
       await fetch(`/api/projects/${projectId}/test-extension/console-logs?sessionId=${sessionData.sessionId}`, {
         method: "DELETE",
       })
-      setClearLogsTrigger((prev) => prev + 1)
     } catch (e) {
     }
   }
@@ -463,6 +472,30 @@ export default function SideBySideTestModal({
 
   // Handle cleanup when modal is closed
   const handleClose = async () => {
+    // Save unsaved demo replay before closing (e.g. when session time limit was hit before user could click "View Video")
+    const hasUnsavedDemo =
+      (demoStatus === "saved" || demoStatus === "recording") &&
+      !demoVideoUrl &&
+      sessionData?.sessionId &&
+      projectId
+    if (hasUnsavedDemo) {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/testing-replays/demo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sessionData.sessionId }),
+        })
+        const data = await response.json()
+        if (response.ok && data?.success) {
+          console.log("[side-by-side-test] ✅ Saved demo replay before close (session time limit)")
+        } else {
+          console.warn("[side-by-side-test] ⚠️ Failed to save demo replay before close:", data?.error)
+        }
+      } catch (err) {
+        console.warn("[side-by-side-test] ⚠️ Error saving demo replay before close:", err?.message)
+      }
+    }
+
     // Capture logs before closing if session is active
     if (sessionData?.sessionId && projectId && onSessionLogsCapture) {
       try {
@@ -607,13 +640,52 @@ export default function SideBySideTestModal({
         signal: abortController.signal,
       })
 
-      const result = await response.json()
-
       if (!response.ok) {
-        throw new Error(result.error || "Puppeteer tests failed")
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || "Puppeteer tests failed")
       }
 
-      setPuppeteerTestResult(result)
+      // Stream NDJSON: each line is a JSON object
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let streamedResults = []
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const msg = JSON.parse(line)
+            if (msg.type === "test" && msg.result) {
+              streamedResults = [...streamedResults, msg.result]
+              setPuppeteerTestResult((prev) => ({
+                ...prev,
+                results: streamedResults,
+                passed: streamedResults.every((r) => r.status === "passed"),
+              }))
+            } else if (msg.type === "done") {
+              setPuppeteerTestResult({
+                passed: msg.success,
+                success: msg.success,
+                sessionId: msg.sessionId,
+                filePath: msg.filePath,
+                results: msg.results,
+                logAnalysis: msg.logAnalysis,
+              })
+            } else if (msg.type === "error") {
+              throw new Error(msg.error || "Test run failed")
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue
+            throw e
+          }
+        }
+      }
     } catch (error) {
       // Don't set error if it was aborted
       if (error.name === 'AbortError') {
@@ -867,12 +939,24 @@ export default function SideBySideTestModal({
                       <p className="text-gray-600 mb-4">
                         this session has reached its time limit, but you can continue using it. close the modal when you're done testing.
                       </p>
-                      <Button
-                        onClick={handleClose}
-                        className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
-                      >
-                        close session
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        {(demoStatus === "saved" || demoStatus === "recording") && !demoVideoUrl && (
+                          <Button
+                            variant="outline"
+                            onClick={handleViewDemoVideo}
+                            disabled={isResolvingDemoVideo}
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                          >
+                            {isResolvingDemoVideo ? "saving..." : "save & view recording"}
+                          </Button>
+                        )}
+                        <Button
+                          onClick={handleClose}
+                          className="bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white"
+                        >
+                          close session
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ) : isLoading ? (
@@ -972,6 +1056,17 @@ export default function SideBySideTestModal({
             isSessionActive={!sessionExpired && !isLoading && !!sessionData?.sessionId}
             clearLogsTrigger={clearLogsTrigger}
             onSessionLogsCapture={onSessionLogsCapture}
+            showTestingSection={sessionData?.autoRunHyperAgent === true || createOptions?.autoRunHyperAgent === true}
+            hasBasicTests={hasBasicTests}
+            hasAiAgentTests={hasAiAgentTests}
+            onRunBasicTests={handleRunPuppeteerTests}
+            onRunAiAgentTests={handleRunHyperAgentTest}
+            onGenerateBasicTests={onGeneratePuppeteerTests}
+            onGenerateAiAgentTests={onGenerateAiAgentTests}
+            isRunningBasicTests={isRunningPuppeteerTests}
+            isRunningAiAgentTests={isRunningHyperAgent}
+            basicTestResult={puppeteerTestResult}
+            aiAgentTestResult={hyperAgentResult}
           />
         </div>
       </div>

@@ -174,10 +174,12 @@ export async function POST(request, { params }) {
     
     console.log(`[test-extension] Loading extension with ${files?.length || 0} code files and ${assets?.length || 0} assets`)
 
-    // Calculate session expiry - enforce 1 minute maximum for all sessions
+    // Calculate session expiry: 5 min for "Run Tests", else use default (Try it out)
     const now = new Date()
     const sessionStartTime = now.toISOString()
-    const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
+    const remainingMinutes = body?.isRunTests === true
+      ? 5
+      : BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
     const session = await hyperbrowserService.createTestSession(
