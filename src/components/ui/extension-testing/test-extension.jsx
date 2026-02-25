@@ -5,6 +5,7 @@ const SESSION_STORAGE_KEY = "chromie_active_session"
 export default function useTestExtension(currentProjectId) {
   const [isTestModalOpen, setIsTestModalOpen] = useState(false)
   const [testSessionData, setTestSessionData] = useState(null)
+  const [createOptions, setCreateOptions] = useState(null)
   const [isTestLoading, setIsTestLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const cleanupAttempted = useRef(false)
@@ -122,6 +123,7 @@ export default function useTestExtension(currentProjectId) {
     }
 
     lastCreateOptionsRef.current = options || {}
+    setCreateOptions(options || null)
 
     // Clean up any existing session before creating a new one
     if (testSessionData?.sessionId) {
@@ -153,6 +155,7 @@ export default function useTestExtension(currentProjectId) {
         },
         body: JSON.stringify({
           awaitPinExtension: options?.awaitPinExtension === true,
+          isRunTests: options?.autoRunHyperAgent === true,
         }),
       })
       pendingCreateRef.current = createPromise
@@ -233,6 +236,7 @@ export default function useTestExtension(currentProjectId) {
     setIsTestModalOpen(false)
     isModalOpenRef.current = false
     setTestSessionData(null)
+    setCreateOptions(null)
     cleanupAttempted.current = false // Reset for next session
   }
 
@@ -245,6 +249,7 @@ export default function useTestExtension(currentProjectId) {
     } finally {
       setIsTestModalOpen(false)
       setTestSessionData(null)
+      setCreateOptions(null)
       cleanupAttempted.current = false
     }
   }
@@ -258,6 +263,7 @@ export default function useTestExtension(currentProjectId) {
   return {
     isTestModalOpen,
     testSessionData,
+    createOptions,
     isTestLoading,
     loadingProgress,
     handleTestExtension,

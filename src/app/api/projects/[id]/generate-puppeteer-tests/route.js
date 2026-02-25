@@ -69,7 +69,7 @@ ${Object.entries(codeFiles).map(([path, content]) => `
 ${content.slice(0, 3000)}${content.length > 3000 ? '\n... (truncated)' : ''}
 `).join('\n')}
 
-Based on the code above, identify the key functionalities of this extension and generate 2-4 functional test scenarios. Each test should:
+Based on the code above, identify the key functionalities of this extension and generate at most 4 functional test scenarios (prioritize the most critical features). Each test should:
 1. Have a clear test name describing what functionality it tests
 2. Include step-by-step Puppeteer actions to test that functionality
 3. Include assertions to verify the functionality works correctly
@@ -651,7 +651,9 @@ export async function POST(request, { params }) {
         description: project.description || project.name,
         codeFiles: codeFilesToAnalyze,
       })
-      console.log("[generate-puppeteer-tests] ✅ Generated", functionalTests.length, "functional test scenarios")
+      // Limit to 4 functional tests so total (4 smoke + 4 functional) stays at 8
+      functionalTests = Array.isArray(functionalTests) ? functionalTests.slice(0, 4) : []
+      console.log("[generate-puppeteer-tests] ✅ Generated", functionalTests.length, "functional test scenarios (max 4)")
     } catch (error) {
       console.error("[generate-puppeteer-tests] ⚠️  Failed to generate functional tests:", error)
       // Continue without functional tests

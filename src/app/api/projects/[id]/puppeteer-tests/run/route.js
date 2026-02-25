@@ -59,7 +59,7 @@ function injectStoredExtensionIdIntoTestCode(code, chromeExtensionId) {
   return next
 }
 
-async function runChromieTestFile({ code, sessionId, apiKey }) {
+async function runChromieTestFile({ code, sessionId, apiKey, onTestComplete }) {
   const tests = []
   let beforeEachFn = null
   let afterEachFn = null
@@ -121,11 +121,13 @@ async function runChromieTestFile({ code, sessionId, apiKey }) {
   const results = []
   for (const t of tests) {
     const startedAt = Date.now()
+    let result
     try {
       if (beforeEachFn) await beforeEachFn()
       await t.fn()
       if (afterEachFn) await afterEachFn()
-      results.push({ name: t.name, status: "passed", durationMs: Date.now() - startedAt })
+      result = { name: t.name, status: "passed", durationMs: Date.now() - startedAt }
+      results.push(result)
     } catch (e) {
       try {
         if (afterEachFn) await afterEachFn()
@@ -133,26 +135,18 @@ async function runChromieTestFile({ code, sessionId, apiKey }) {
         // ignore cleanup failures
       }
       console.error("[puppeteer-tests/run] ❌ Test failed:", { name: t.name, error: e?.message || String(e) })
-      results.push({
+      result = {
         name: t.name,
         status: "failed",
         durationMs: Date.now() - startedAt,
         error: e?.message || String(e),
-      })
+      }
+      results.push(result)
+    }
+    if (onTestComplete && result) {
+      await onTestComplete(result)
     }
   }
-
-  // Final cleanup for the shared connection.
-  // We avoid calling browser.disconnect() here because it can disrupt the
-  // embedded live view in the "Try it out" simulated browser environment.
-  // The session will be cleaned up when the user closes the modal or it expires.
-  /*
-  try {
-    await cachedContext?.browser?.disconnect?.()
-  } catch (_) {
-    // ignore
-  }
-  */
 
   const passed = results.every((r) => r.status === "passed")
   return { passed, results }
@@ -221,131 +215,130 @@ export async function POST(request, { params }) {
 
     const code = injectStoredExtensionIdIntoTestCode(testFile.content, storedChromeExtensionId)
 
-    const run = await runChromieTestFile({
-      code,
-      sessionId,
-      apiKey,
-    })
-
-    // Brief pause for logs to be captured (reduced from 1s for faster response)
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    // Analyze extension logs to verify test results
-    console.log("[puppeteer-tests/run] 📊 Analyzing extension logs for test verification...")
-    const logAnalysis = analyzeLogsForTestVerification(sessionId, {
-      checkExtensionErrors: true,
-      checkRuntimeErrors: true,
-      timeWindowMs: 10 * 60 * 1000, // Check logs from last 10 minutes
-    })
-
-    console.log("[puppeteer-tests/run] 📊 Log analysis:", {
-      hasErrors: logAnalysis.hasErrors,
-      errorCount: logAnalysis.errorCount,
-      warningCount: logAnalysis.warningCount,
-      totalLogs: logAnalysis.totalLogs,
-    })
-
-    // If logs show errors, mark tests as failed even if they didn't throw
-    let finalPassed = run.passed
-    let logBasedFailure = null
-
-    if (logAnalysis.hasErrors) {
-      console.log("[puppeteer-tests/run] ⚠️  Extension logs contain errors, marking tests as failed")
-      finalPassed = false
-      logBasedFailure = formatErrorSummary(logAnalysis.errors)
-
-      // Add a synthetic test result for log-based failures if all tests passed but logs show errors
-      if (run.passed && run.results.length > 0) {
-        // Check if we should add a log-based failure result
-        const hasLogFailureResult = run.results.some(
-          (r) => r.name && r.name.toLowerCase().includes("log")
-        )
-
-        if (!hasLogFailureResult) {
-          run.results.push({
-            name: "extension logs verification",
-            status: "failed",
-            durationMs: 0,
-            error: logBasedFailure,
-            logBased: true,
+    // Stream results as each test completes (NDJSON: one JSON object per line)
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        const write = (obj) => {
+          controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"))
+        }
+        try {
+          const run = await runChromieTestFile({
+            code,
+            sessionId,
+            apiKey,
+            onTestComplete: async (result) => {
+              write({ type: "test", result })
+            },
           })
-        }
-      }
-    }
 
-    // Return test results immediately so UI shows completion without delay.
-    // Video fetch + DB save run in background (don't block user).
-    const response = {
-      success: finalPassed,
-      sessionId,
-      filePath: "tests/puppeteer/index.test.js",
-      results: run.results,
-      logAnalysis: {
-        hasErrors: logAnalysis.hasErrors,
-        errorCount: logAnalysis.errorCount,
-        warningCount: logAnalysis.warningCount,
-        totalLogs: logAnalysis.totalLogs,
-        logBasedFailure: logBasedFailure,
-      },
-    }
+          // Brief pause for logs to be captured
+          await new Promise((resolve) => setTimeout(resolve, 300))
 
-    console.log("[puppeteer-tests/run] ✅ Completed", {
-      projectId,
-      sessionId,
-      passed: finalPassed,
-      testPassed: run.passed,
-      logBasedFailure: logBasedFailure !== null,
-    })
+          // Analyze extension logs to verify test results
+          console.log("[puppeteer-tests/run] 📊 Analyzing extension logs for test verification...")
+          const logAnalysis = analyzeLogsForTestVerification(sessionId, {
+            checkExtensionErrors: true,
+            checkRuntimeErrors: true,
+            timeWindowMs: 10 * 60 * 1000,
+          })
 
-    // Background: fetch video + save replay (don't block response)
-    void (async () => {
-      try {
-        const hbClient = new Hyperbrowser({ apiKey })
-        const sessionDetails = await hbClient.sessions.get(sessionId)
-        const liveUrl =
-          sessionDetails.liveViewUrl ||
-          sessionDetails.liveUrl ||
-          sessionDetails.debuggerUrl ||
-          sessionDetails.debuggerFullscreenUrl ||
-          null
-        let videoUrl = null
-        let recordingStatus = "unknown"
-        const maxAttempts = 5
-        for (let attempts = 0; attempts < maxAttempts; attempts++) {
-          const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
-          recordingStatus = recordingResponse.status
-          videoUrl = recordingResponse.recordingUrl
-          if (recordingStatus === "completed" || recordingStatus === "failed" || recordingStatus === "not_enabled") break
-          if (recordingStatus === "pending" || recordingStatus === "in_progress") {
-            await new Promise((r) => setTimeout(r, 1000))
-          } else break
-        }
-        const { error: replayError } = await supabase.from("session_replays").insert({
-          project_id: projectId,
-          session_id: sessionId,
-          live_url: liveUrl,
-          video_url: videoUrl,
-          recording_status: recordingStatus,
-          test_type: "puppeteer",
-          test_result: {
+          let finalPassed = run.passed
+          let logBasedFailure = null
+
+          if (logAnalysis.hasErrors) {
+            finalPassed = false
+            logBasedFailure = formatErrorSummary(logAnalysis.errors)
+            if (run.passed && run.results.length > 0) {
+              const hasLogFailureResult = run.results.some(
+                (r) => r.name && r.name.toLowerCase().includes("log")
+              )
+              if (!hasLogFailureResult) {
+                run.results.push({
+                  name: "extension logs verification",
+                  status: "failed",
+                  durationMs: 0,
+                  error: logBasedFailure,
+                  logBased: true,
+                })
+              }
+            }
+          }
+
+          write({
+            type: "done",
             success: finalPassed,
+            sessionId,
+            filePath: "tests/puppeteer/index.test.js",
             results: run.results,
             logAnalysis: {
               hasErrors: logAnalysis.hasErrors,
               errorCount: logAnalysis.errorCount,
               warningCount: logAnalysis.warningCount,
               totalLogs: logAnalysis.totalLogs,
-              logBasedFailure: logBasedFailure,
+              logBasedFailure,
             },
-          },
-        })
-        if (replayError) console.error("[puppeteer-tests/run] ⚠️ Background replay save failed:", replayError)
-      } catch (e) {
-        console.warn("[puppeteer-tests/run] ⚠️ Background video/replay error:", e?.message || e)
-      }
-    })()
+          })
 
-    return NextResponse.json(response, { status: 200 })
+          // Background: fetch video + save replay
+          void (async () => {
+            try {
+              const hbClient = new Hyperbrowser({ apiKey })
+              const sessionDetails = await hbClient.sessions.get(sessionId)
+              const liveUrl =
+                sessionDetails.liveViewUrl ||
+                sessionDetails.liveUrl ||
+                sessionDetails.debuggerUrl ||
+                sessionDetails.debuggerFullscreenUrl ||
+                null
+              let videoUrl = null
+              let recordingStatus = "unknown"
+              for (let attempts = 0; attempts < 5; attempts++) {
+                const recordingResponse = await hbClient.sessions.getVideoRecordingURL(sessionId)
+                recordingStatus = recordingResponse.status
+                videoUrl = recordingResponse.recordingUrl
+                if (["completed", "failed", "not_enabled"].includes(recordingStatus)) break
+                if (["pending", "in_progress"].includes(recordingStatus)) {
+                  await new Promise((r) => setTimeout(r, 1000))
+                } else break
+              }
+              const { error: replayError } = await supabase.from("session_replays").insert({
+                project_id: projectId,
+                session_id: sessionId,
+                live_url: liveUrl,
+                video_url: videoUrl,
+                recording_status: recordingStatus,
+                test_type: "puppeteer",
+                test_result: {
+                  success: finalPassed,
+                  results: run.results,
+                  logAnalysis: {
+                    hasErrors: logAnalysis.hasErrors,
+                    errorCount: logAnalysis.errorCount,
+                    warningCount: logAnalysis.warningCount,
+                    totalLogs: logAnalysis.totalLogs,
+                    logBasedFailure,
+                  },
+                },
+              })
+              if (replayError) console.error("[puppeteer-tests/run] ⚠️ Background replay save failed:", replayError)
+            } catch (e) {
+              console.warn("[puppeteer-tests/run] ⚠️ Background video/replay error:", e?.message || e)
+            }
+          })()
+        } catch (e) {
+          console.error("[puppeteer-tests/run] ❌ Error:", e)
+          write({ type: "error", error: e?.message || String(e) })
+        } finally {
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "application/x-ndjson" },
+    })
   } catch (error) {
     console.error("[puppeteer-tests/run] ❌ Error:", error)
     return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 })
