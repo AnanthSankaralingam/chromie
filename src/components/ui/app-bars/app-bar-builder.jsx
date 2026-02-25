@@ -406,28 +406,28 @@ export default function AppBarBuilder({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="end" 
-                    className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+                    className="w-56 rounded-xl bg-slate-900/95 border border-slate-600/60 backdrop-blur-sm shadow-xl shadow-black/20"
                   >
                     <DropdownMenuItem
                       onClick={handleGeneratePuppeteerTestsClick}
                       disabled={isTestDisabled || isGenerating}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                     >
-                      <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
+                      <FileCode className="h-4 w-4 mr-3 text-slate-400" />
                       <span className="flex-1">
-                        <span className="block">Generate Basic Tests</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
+                        <span className="block">generate basic tests</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">generate basic validation tests</span>
                       </span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={handleCreateTestingAgentClick}
                       disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                     >
-                      <Bot className="h-4 w-4 mr-3 text-violet-400" />
+                      <Bot className="h-4 w-4 mr-3 text-slate-400" />
                       <span className="flex-1">
-                        <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Agent Tests"}</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
+                        <span className="block">{isGeneratingTestAgent ? "creating..." : "generate ai agent tests"}</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">generate end‑to‑end ai tests</span>
                       </span>
                     </DropdownMenuItem>
                     
@@ -435,32 +435,32 @@ export default function AppBarBuilder({
                       <DropdownMenuItem
                         onClick={handleViewAIAnalysisClick}
                         disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                        className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                        className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                       >
-                        <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                        <span className="flex-1">View Past AI Analysis</span>
+                        <Sparkles className="h-4 w-4 mr-3 text-slate-400" />
+                        <span className="flex-1">view past ai analysis</span>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
                       onClick={handleTestWithAIClick}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                     >
-                      <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                      <Sparkles className="h-4 w-4 mr-3 text-slate-400" />
                       <span className="flex-1">
-                        <span className="block">{isTestingWithAI ? "Executing..." : "Run Tests"}</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
+                        <span className="block">{isTestingWithAI ? "executing..." : "run tests"}</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">runs basic and ai agent tests</span>
                       </span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={handleViewTestingReplaysClick}
                       disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                      className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                      className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                     >
-                      <History className="h-4 w-4 mr-3 text-blue-400" />
+                      <History className="h-4 w-4 mr-3 text-slate-400" />
                       <span className="flex-1">
-                        <span className="block">View Testing Replays</span>
-                        <span className="block text-[11px] leading-tight text-slate-400">Watch past test recordings</span>
+                        <span className="block">view testing replays</span>
+                        <span className="block text-[11px] leading-tight text-slate-400">watch past test recordings</span>
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -549,28 +549,28 @@ export default function AppBarBuilder({
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="w-56 bg-slate-800/95 border-slate-700 backdrop-blur-sm"
+                className="w-56 rounded-xl bg-slate-900/95 border border-slate-600/60 backdrop-blur-sm shadow-xl shadow-black/20"
               >
                 <DropdownMenuItem
                   onClick={() => { handleGeneratePuppeteerTestsClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                 >
-                  <FileCode className="h-4 w-4 mr-3 text-emerald-400" />
+                  <FileCode className="h-4 w-4 mr-3 text-slate-400" />
                   <span className="flex-1">
-                    <span className="block">Generate Basic Tests</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Basic validation (smoke tests)</span>
+                    <span className="block">generate basic tests</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">generate basic validation tests</span>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => { handleCreateTestingAgentClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isGeneratingTestAgent}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                 >
-                  <Bot className="h-4 w-4 mr-3 text-blue-400" />
+                  <Bot className="h-4 w-4 mr-3 text-slate-400" />
                   <span className="flex-1">
-                    <span className="block">{isGeneratingTestAgent ? "Creating..." : "Generate AI Agent Tests"}</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Setup for end‑to‑end AI testing</span>
+                    <span className="block">{isGeneratingTestAgent ? "creating..." : "generate ai agent tests"}</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">generate end‑to‑end ai agent tests</span>
                   </span>
                 </DropdownMenuItem>
                 
@@ -578,32 +578,32 @@ export default function AppBarBuilder({
                   <DropdownMenuItem
                     onClick={() => { handleViewAIAnalysisClick(); setIsMobileMenuOpen(false) }}
                     disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                    className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                    className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                   >
-                    <Sparkles className="h-4 w-4 mr-3 text-orange-400" />
-                    <span className="flex-1">View Past AI Analysis</span>
+                    <Sparkles className="h-4 w-4 mr-3 text-slate-400" />
+                    <span className="flex-1">view past ai analysis</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
                   onClick={() => { handleKickoffAIAnalysisClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                 >
-                  <Sparkles className="h-4 w-4 mr-3 text-purple-400" />
+                  <Sparkles className="h-4 w-4 mr-3 text-slate-400" />
                   <span className="flex-1">
-                    <span className="block">{isTestingWithAI ? "Executing..." : "Run Tests"}</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Runs Puppeteer → AI agent</span>
+                    <span className="block">{isTestingWithAI ? "executing..." : "run tests"}</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">runs basic and ai agent tests</span>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { handleViewTestingReplaysClick(); setIsMobileMenuOpen(false) }}
                   disabled={isTestDisabled || isGenerating || isTestingWithAI}
-                  className="cursor-pointer text-slate-200 hover:bg-slate-700/50 hover:text-white focus:bg-slate-700/50 focus:text-white"
+                  className="cursor-pointer text-slate-200 hover:bg-slate-800/80 hover:text-slate-100 focus:bg-slate-800/80 focus:text-slate-100 rounded-lg"
                 >
-                  <History className="h-4 w-4 mr-3 text-blue-400" />
+                  <History className="h-4 w-4 mr-3 text-slate-400" />
                   <span className="flex-1">
-                    <span className="block">View Testing Replays</span>
-                    <span className="block text-[11px] leading-tight text-slate-400">Watch past test recordings</span>
+                    <span className="block">view testing replays</span>
+                    <span className="block text-[11px] leading-tight text-slate-400">watch past test recordings</span>
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

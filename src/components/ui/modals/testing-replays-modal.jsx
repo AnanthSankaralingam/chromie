@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Play, Calendar, Video, Loader2 } from "lucide-react"
+import { Play, Calendar, Video, Check, X } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -233,6 +233,38 @@ export default function TestingReplaysModal({ isOpen, onClose, projectId }) {
                         <p className="text-sm text-slate-400 mb-2">
                           {selectedReplay.test_result.message}
                         </p>
+                      )}
+                      {selectedReplay.test_result.results && selectedReplay.test_result.results.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-xs text-slate-500 mb-2">Per-test results:</p>
+                          <ul className="space-y-1.5">
+                            {selectedReplay.test_result.results.map((r, i) => (
+                              <li
+                                key={i}
+                                className={`flex items-start gap-2 text-sm ${
+                                  r.status === "passed" ? "text-green-400/90" : "text-red-400/90"
+                                }`}
+                              >
+                                {r.status === "passed" ? (
+                                  <Check className="h-4 w-4 shrink-0 mt-0.5" />
+                                ) : (
+                                  <X className="h-4 w-4 shrink-0 mt-0.5" />
+                                )}
+                                <span className="flex-1 min-w-0">
+                                  <span className="font-medium text-slate-300">{r.name}</span>
+                                  {r.durationMs != null && (
+                                    <span className="text-slate-500 ml-2">({r.durationMs}ms)</span>
+                                  )}
+                                  {r.error && (
+                                    <p className="text-red-400/90 text-xs mt-1 break-words">
+                                      {r.error}
+                                    </p>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                       {selectedReplay.test_result.result && (
                         <div className="mt-3">
