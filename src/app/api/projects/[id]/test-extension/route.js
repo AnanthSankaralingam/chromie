@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
+import { buildExtension } from "@/lib/build/esbuild-service.js"
+import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 import { classifyError } from "@/lib/utils/error-classifier"
@@ -165,14 +167,37 @@ export async function POST(request, { params }) {
       // Continue without custom assets - not a fatal error
     }
 
-    // Combine code files and assets
-    // Mark assets with is_base64 flag so hyperbrowser-service knows to decode them
+    // Build extension (ensure required files + bundle)
+    const codeFiles = (files || []).filter((f) => !f.file_path.startsWith("tests/") && !f.file_path.startsWith(".chromie/"))
+    if (codeFiles.length === 0) {
+      return NextResponse.json({ error: "No buildable files found" }, { status: 404 })
+    }
+
+    const ensuredFiles = ensureRequiredFiles(codeFiles.map((f) => ({ file_path: f.file_path, content: f.content })))
+    const originalPaths = new Set(codeFiles.map((f) => f.file_path))
+    const placeholders = ensuredFiles.filter((f) => !originalPaths.has(f.file_path))
+    for (const file of placeholders) {
+      await supabase.from("code_files").upsert(
+        { project_id: id, file_path: file.file_path, content: file.content, last_used_at: new Date().toISOString() },
+        { onConflict: "project_id,file_path" }
+      )
+    }
+
+    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+    const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+    if (!buildResult.success) {
+      const msg = buildResult.errors?.length
+        ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ")
+        : "Build failed"
+      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+    }
+
+    const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
     const extensionFiles = [
-      ...(files || []).map((f) => ({ file_path: f.file_path, content: f.content })),
+      ...builtFiles,
       ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
     ]
-    
-    console.log(`[test-extension] Loading extension with ${files?.length || 0} code files and ${assets?.length || 0} assets`)
+    console.log(`[test-extension] Built ${builtFiles.length} files, ${assets?.length || 0} assets`)
 
     // Calculate session expiry: 5 min for "Run Tests", else use default (Try it out)
     const now = new Date()
