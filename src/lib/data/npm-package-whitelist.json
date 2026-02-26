@@ -1,0 +1,122 @@
+[
+  {
+    "name": "lodash",
+    "version": "4.17.21",
+    "description": "Utility library for working with arrays, objects, and strings",
+    "use_cases": ["data manipulation", "deep cloning", "debounce/throttle", "object merging"]
+  },
+  {
+    "name": "dayjs",
+    "version": "1.11.13",
+    "description": "Lightweight date/time library (2KB alternative to Moment.js)",
+    "use_cases": ["date formatting", "relative time", "date parsing", "timezone handling"]
+  },
+  {
+    "name": "marked",
+    "version": "15.0.4",
+    "description": "Fast markdown parser and compiler",
+    "use_cases": ["markdown rendering", "markdown-to-HTML conversion", "note-taking apps"]
+  },
+  {
+    "name": "dompurify",
+    "version": "3.2.4",
+    "description": "DOM-only XSS sanitizer for HTML, SVG, and MathML",
+    "use_cases": ["HTML sanitization", "XSS prevention", "safe HTML rendering"]
+  },
+  {
+    "name": "crypto-js",
+    "version": "4.2.0",
+    "description": "JavaScript library of crypto standards (AES, SHA, HMAC, etc.)",
+    "use_cases": ["encryption", "hashing", "data signing", "password hashing"]
+  },
+  {
+    "name": "uuid",
+    "version": "11.1.0",
+    "description": "RFC-compliant UUID generator",
+    "use_cases": ["unique ID generation", "record identification", "session tokens"]
+  },
+  {
+    "name": "ky",
+    "version": "1.7.4",
+    "description": "Tiny and elegant HTTP client based on the Fetch API",
+    "use_cases": ["API requests", "HTTP client", "request interceptors", "retry logic"]
+  },
+  {
+    "name": "sortablejs",
+    "version": "1.15.6",
+    "description": "Drag-and-drop sorting library for lists and grids",
+    "use_cases": ["drag-and-drop", "sortable lists", "kanban boards", "reorderable UI"]
+  },
+  {
+    "name": "chart.js",
+    "version": "4.4.7",
+    "description": "Simple yet flexible JavaScript charting library",
+    "use_cases": ["data visualization", "charts", "graphs", "dashboards"]
+  },
+  {
+    "name": "turndown",
+    "version": "7.2.0",
+    "description": "HTML to Markdown converter",
+    "use_cases": ["HTML-to-markdown conversion", "content extraction", "web clipping"]
+  },
+  {
+    "name": "highlight.js",
+    "version": "11.11.1",
+    "description": "Syntax highlighter with automatic language detection",
+    "use_cases": ["code highlighting", "syntax coloring", "code display", "developer tools"]
+  },
+  {
+    "name": "fuse.js",
+    "version": "7.0.0",
+    "description": "Lightweight fuzzy-search library with zero dependencies",
+    "use_cases": ["fuzzy search", "text search", "filtering", "autocomplete"]
+  },
+  {
+    "name": "idb-keyval",
+    "version": "6.2.1",
+    "description": "Super-simple key-val store using IndexedDB",
+    "use_cases": ["local storage", "IndexedDB wrapper", "offline data", "caching"]
+  },
+  {
+    "name": "linkify-html",
+    "version": "4.2.0",
+    "description": "Find and convert URLs in plain text to HTML links",
+    "use_cases": ["URL detection", "auto-linking", "text processing"]
+  },
+  {
+    "name": "he",
+    "version": "1.2.0",
+    "description": "HTML entity encoder/decoder",
+    "use_cases": ["HTML encoding", "entity decoding", "safe text display"]
+  },
+  {
+    "name": "toastify-js",
+    "version": "1.12.0",
+    "description": "Pure JavaScript toast notification library",
+    "use_cases": ["toast notifications", "alerts", "user feedback"]
+  },
+  {
+    "name": "date-fns",
+    "version": "4.1.0",
+    "description": "Modern JavaScript date utility library",
+    "use_cases": ["date formatting", "date arithmetic", "relative time", "date parsing"]
+  },
+  {
+    "name": "js-yaml",
+    "version": "4.1.0",
+    "description": "YAML parser and serializer for JavaScript",
+    "use_cases": ["YAML parsing", "configuration files", "data serialization"]
+  },
+  {
+    "name": "nanoid",
+    "version": "5.0.9",
+    "description": "Tiny, secure, URL-friendly unique string ID generator",
+    "use_cases": ["unique ID generation", "short IDs", "URL-safe identifiers"]
+  },
+  {
+    "name": "color",
+    "version": "4.2.3",
+    "description": "JavaScript library for color conversion and manipulation",
+    "use_cases": ["color conversion", "color manipulation", "theme generation"]
+  }
+]

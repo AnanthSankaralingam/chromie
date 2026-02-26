@@ -6,6 +6,7 @@
 export const ES6_IMPORT = /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s*,?\s*)*\s*from\s*['"]([^'"]+)['"]/g
 export const ES6_IMPORT_SIDE_EFFECT = /import\s+['"]([^'"]+)['"]/g
 export const DYNAMIC_IMPORT = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+export const COMMONJS_REQUIRE = /(?:^|[^.\w])require\s*\(\s*['"]([^'"]+)['"]\s*\)/g
 
 // Export patterns
 export const NAMED_EXPORT = /export\s+(?:const|let|var|function|class|async\s+function)\s+(\w+)/g

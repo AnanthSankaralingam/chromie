@@ -1,6 +1,7 @@
 import { llmService } from '@/lib/services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '@/lib/prompts/new-extension/planning/use-case.js'
 import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '@/lib/prompts/new-extension/planning/external-resources.js'
+import { getWhitelistForPrompt, validatePackages } from '@/lib/build/package-whitelist.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '@/lib/prompts/new-extension/planning/frontend-selection.js'
 import { TEMPLATE_MATCHER_PROMPT, TEMPLATE_MATCHER_PREFILL } from '@/lib/prompts/new-extension/planning/template-selection.js'
 import useCasesData from '@/lib/data/use_cases.json' // ONLY add niche code snippets for the use cases, chrome apis handles all other basic cases.
@@ -131,7 +132,8 @@ export async function* orchestratePlanningStream(featureRequest) {
         tokenUsage: totalTokenUsage,
         workspaceAPIs: workspaceApis,
         usesWorkspaceAPIs: usesWorkspaceAPIs,
-        workspaceScopes: workspaceScopes
+        workspaceScopes: workspaceScopes,
+        npmPackages: externalResourcesResponse.result.npm_packages || []
       }
     }
 
@@ -219,7 +221,9 @@ async function callUseCasePrompt(featureRequest) {
  * @returns {Promise<Object>} External resources result and token usage
  */
 async function callExternalResourcesPrompt(featureRequest) {
-  const prompt = EXTERNAL_RESOURCES_PROMPT.replace('{USER_REQUEST}', featureRequest)
+  const prompt = EXTERNAL_RESOURCES_PROMPT
+    .replace('{USER_REQUEST}', featureRequest)
+    .replace('{WHITELISTED_PACKAGES}', getWhitelistForPrompt())
 
   try {
     const response = await llmService.createResponse({
@@ -278,6 +282,21 @@ async function callExternalResourcesPrompt(featureRequest) {
       }
     }
 
+    // Validate npm_packages against whitelist
+    if (result.npm_packages && Array.isArray(result.npm_packages)) {
+      const packageNames = result.npm_packages.map(p => p.name).filter(Boolean)
+      const { valid, rejected } = validatePackages(packageNames)
+      if (rejected.length > 0) {
+        console.log(`🔍 [Planning Orchestrator] Rejected non-whitelisted npm packages: ${rejected.join(', ')}`)
+      }
+      // Keep only whitelisted packages, preserve the purpose field from LLM
+      const validNames = new Set(valid.map(v => v.name))
+      result.npm_packages = result.npm_packages.filter(p => validNames.has(p.name))
+      console.log(`📦 [Planning Orchestrator] Validated npm packages: ${result.npm_packages.map(p => p.name).join(', ') || 'none'}`)
+    } else {
+      result.npm_packages = []
+    }
+
     return {
       result,
       tokenUsage: {
@@ -295,7 +314,8 @@ async function callExternalResourcesPrompt(featureRequest) {
         webpages_to_scrape: [],
         no_external_needed: true,
         scraping_intent: null,
-        scraping_intent_confidence: 0
+        scraping_intent_confidence: 0,
+        npm_packages: []
       },
       tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     }
