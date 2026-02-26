@@ -5,7 +5,8 @@ Only suggest resources if HIGHLY CONFIDENT (>90% certainty) they are necessary. 
 
 1. Websites to scrape: Identify ALL domains mentioned or implied (including URLs provided in the request)
 2. External APIs: Identify APIs needed with exact API endpoints 
-3. Set no_external_needed: true only if both arrays are empty
+3. NPM packages: Identify at most 3 npm packages that would significantly benefit the extension. 
+3. Set no_external_needed: true only if all arrays are empty
 </task>
 
 <webpage_identification>
@@ -19,6 +20,12 @@ Do NOT include if:
 - Generic functionality ("dark mode for all sites", "password manager")
 - No specific sites mentioned or implied
 </webpage_identification>
+
+<scraping_intent>
+Set scraping_intent and scraping_intent_confidence when the extension targets SPECIFIC page elements (not generic structure):
+- High confidence (0.8-1): "Extract comment form and reply buttons", "Find job application fields and submit button", "Identify product price and add-to-cart elements"
+- Low confidence (0-0.5): Generic "analyze page structure", "find interactive elements" — use empty string for scraping_intent and 0 for confidence
+</scraping_intent>
 
 <api_identification>
 Suggest external API when:
@@ -35,12 +42,6 @@ Do NOT suggest API if:
 - It is a Chrome built-in API (chrome.storage, chrome.tabs, chrome.runtime, etc.) — these are NOT external APIs
 - The endpoint_url would be empty or a chrome.* namespace
 </api_identification>
-
-<scraping_intent>
-Set scraping_intent and scraping_intent_confidence when the extension targets SPECIFIC page elements (not generic structure):
-- High confidence (0.8-1): "Extract comment form and reply buttons", "Find job application fields and submit button", "Identify product price and add-to-cart elements"
-- Low confidence (0-0.5): Generic "analyze page structure", "find interactive elements" — use empty string for scraping_intent and 0 for confidence
-</scraping_intent>
 
 <common_api_endpoints>
 
@@ -59,6 +60,25 @@ IMPORTANT: When detecting Google Workspace needs:
 - Use "Google Drive API" not "Drive"
 </common_api_endpoints>
 
+<npm_package_guidance>
+Identify npm packages that would significantly benefit the extension. Only suggest packages from the whitelist below.
+
+Suggest a package ONLY if:
+- Complex functionality has a well-known library
+- Vanilla JS implementation would be impractical or error-prone  
+
+Do NOT suggest a package ONLY if:
+- Vanilla JS handles the task fine (simple string manipulation, basic DOM operations)
+- Chrome built-in APIs already cover it (chrome.storage, fetch, crypto.subtle)
+- The package is not on the whitelist below
+
+<whitelisted_packages>
+{WHITELISTED_PACKAGES}
+</whitelisted_packages>
+
+Remember to be minimal and only suggest packages that are actually needed.
+</npm_package_guidance>
+
 <output_schema>
 {
   "external_apis": [
@@ -71,7 +91,13 @@ IMPORTANT: When detecting Google Workspace needs:
   "webpages_to_scrape": ["array of domains"],
   "no_external_needed": "boolean",
   "scraping_intent": "1-2 sentence description of what to extract when scraping is highly niche (e.g., specific form fields, comment sections). Empty string if generic.",
-  "scraping_intent_confidence": "number 0-1: how niche this scraping job is. 1 = requires custom intent, 0 = generic page analysis suffices."
+  "scraping_intent_confidence": "number 0-1: how niche this scraping job is. 1 = requires custom intent, 0 = generic page analysis suffices.",
+  "npm_packages": [
+    {
+      "name": "string (must be from whitelist)",
+      "purpose": "string (1 sentence: why this package is needed)"
+    }
+  ]
 }
 </output_schema>
 
@@ -82,4 +108,6 @@ Return only valid JSON. No markdown, no explanation. Extract ALL domains from UR
 </user_request>`;
 
 export const EXTERNAL_RESOURCES_PREFILL = `{
-  "external_apis": [`;
+  "external_apis": [`
+
+export const EXTERNAL_RESOURCES_PROMPT_TEMPLATE = EXTERNAL_RESOURCES_PROMPT

@@ -16,15 +16,22 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
+  serverExternalPackages: ['esbuild-wasm'],
   webpack: (config, { isServer }) => {
+    // Handle .wasm files
+    config.module = config.module || {}
+    config.module.rules = config.module.rules || []
+    config.module.rules.push({
+      test: /\.wasm$/,
+      type: 'asset/resource',
+    })
+
     if (isServer) {
       // Prevent Next/Webpack from trying to bundle/resolve chromium-bidi & friends
       // These are server-only optional deps pulled by playwright-core
       config.externals = config.externals || []
-      
+
       // Add rule to ignore binary and text files from Playwright that might cause parsing issues
-      config.module = config.module || {}
-      config.module.rules = config.module.rules || []
       config.module.rules.push({
         test: /\.(ttf|woff|woff2|eot|otf|png|jpg|jpeg|gif|svg|ico|webp|html)$/,
         include: /playwright-core/,

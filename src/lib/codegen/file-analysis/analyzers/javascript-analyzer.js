@@ -8,6 +8,7 @@ import {
   ES6_IMPORT,
   ES6_IMPORT_SIDE_EFFECT,
   DYNAMIC_IMPORT,
+  COMMONJS_REQUIRE,
   NAMED_EXPORT,
   DEFAULT_EXPORT,
   EXPORT_FROM,
@@ -21,6 +22,7 @@ import {
   DOM_EVENT_LISTENER,
   DOCUMENT_READY
 } from '../utils/regex-patterns.js'
+import { classifyImport } from '@/lib/build/package-extractor.js'
 
 /**
  * Analyzes a JavaScript file
@@ -75,8 +77,31 @@ function extractImports(content) {
     imports.dynamic.push(match[1])
   }
 
+  // CommonJS require
+  const requirePattern = new RegExp(COMMONJS_REQUIRE.source, 'g')
+  while ((match = requirePattern.exec(content)) !== null) {
+    const specifier = match[1]
+    if (!imports.es6.includes(specifier) && !imports.dynamic.includes(specifier)) {
+      imports.dynamic.push(specifier)
+    }
+  }
+
   // Chrome APIs used (extracted separately)
   imports.chromeApis = extractChromeApis(content)
+
+  // Classify and collect npm package imports
+  const allSpecifiers = [...imports.es6, ...imports.sideEffect, ...imports.dynamic]
+  const npmSet = new Set()
+  for (const specifier of allSpecifiers) {
+    if (classifyImport(specifier) === 'npm_package') {
+      // Strip subpaths: lodash/get → lodash, @scope/pkg/sub → @scope/pkg
+      const root = specifier.startsWith('@')
+        ? specifier.split('/').slice(0, 2).join('/')
+        : specifier.split('/')[0]
+      npmSet.add(root)
+    }
+  }
+  imports.npmPackages = Array.from(npmSet)
 
   return imports
 }
