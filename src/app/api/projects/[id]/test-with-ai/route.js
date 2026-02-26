@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { Hyperbrowser } from "@hyperbrowser/sdk"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
+import { buildExtension } from "@/lib/build/esbuild-service.js"
+import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { analyzeLogsForTestVerification, formatErrorSummary } from "@/lib/utils/test-log-verification"
 
 export async function GET(request, { params }) {
@@ -97,20 +99,34 @@ export async function POST(request, { params }) {
       }, { status: 404 })
     }
 
-    // Get all extension files for uploading
-    const { data: extensionFiles, error: filesError } = await supabase
+    // Get extension files and assets
+    const { data: codeFiles, error: filesError } = await supabase
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", projectId)
-      .not("file_path", "like", "tests/%") // Exclude tests folder
+      .not("file_path", "like", "tests/%")
+      .not("file_path", "like", ".chromie/%")
 
-    if (filesError || !extensionFiles || extensionFiles.length === 0) {
-      return NextResponse.json({ 
-        error: "No extension files found. Please generate the extension first." 
-      }, { status: 404 })
+    if (filesError || !codeFiles || codeFiles.length === 0) {
+      return NextResponse.json({ error: "No extension files found. Please generate the extension first." }, { status: 404 })
     }
 
-    console.log(`📦 Found ${extensionFiles.length} extension files`)
+    const { data: assets } = await supabase.from("project_assets").select("file_path, content_base64").eq("project_id", projectId)
+
+    const ensuredFiles = ensureRequiredFiles(codeFiles.map((f) => ({ file_path: f.file_path, content: f.content })))
+    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+    const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+    if (!buildResult.success) {
+      const msg = buildResult.errors?.length ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ") : "Build failed"
+      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+    }
+
+    const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
+    const extensionFiles = [
+      ...builtFiles,
+      ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
+    ]
+    console.log(`📦 Built ${builtFiles.length} files, ${assets?.length || 0} assets`)
 
     // Initialize HyperBrowser client
     const hbClient = new Hyperbrowser({
@@ -185,7 +201,10 @@ Note: Stay on simple websites without CAPTCHAs during testing`
 
     // Upload extension and get extension ID
     console.log("📤 Uploading extension to Hyperbrowser...")
-    const extensionId = await hyperbrowserService.uploadExtensionFromFiles(extensionFiles)
+    const extensionId = await hyperbrowserService.uploadExtensionFromFiles(extensionFiles, {
+      projectId,
+      supabaseClient: supabase,
+    })
     console.log("✅ Extension uploaded, ID:", extensionId)
 
     // Create a new session with recording enabled
