@@ -16,7 +16,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  serverExternalPackages: ['esbuild-wasm'],
+  serverExternalPackages: ['esbuild'],
   webpack: (config, { isServer }) => {
     // Handle .wasm files
     config.module = config.module || {}

@@ -188,7 +188,7 @@ export class HyperbrowserService {
       console.log("[HYPERBROWSER-SERVICE] ⚡ Starting parallel extension upload + profile lookup...")
       const [extensionId, profileResult] = await Promise.all([
         filesArray.length > 0
-          ? this.uploadExtensionFromFiles(filesArray)
+          ? this.uploadExtensionFromFiles(filesArray, { projectId, supabaseClient })
           : Promise.resolve(null),
         (userId && supabaseClient)
           ? this.getOrCreateProfileId(userId, supabaseClient)
@@ -394,9 +394,10 @@ export class HyperbrowserService {
   /**
    * Zip provided extension files to a temporary archive, upload to Hyperbrowser, then delete the temp file
    * @param {Array<{file_path: string, content: string}>} files - Flat list of files with paths and contents
+   * @param {Object} [persistOptions] - Optional: { projectId, supabaseClient } to persist placeholder files to project
    * @returns {Promise<string|null>} The uploaded extension ID
    */
-  async uploadExtensionFromFiles(files) {
+  async uploadExtensionFromFiles(files, persistOptions = {}) {
     console.log("[HYPERBROWSER-SERVICE] 📦 uploadExtensionFromFiles called")
     console.log("[HYPERBROWSER-SERVICE] Files count:", files?.length || 0)
     
@@ -420,6 +421,43 @@ export class HyperbrowserService {
     console.log("[HYPERBROWSER-SERVICE] 🔧 Ensuring required files are present...")
     const validatedFiles = ensureRequiredFiles(files)
     console.log("[HYPERBROWSER-SERVICE] ✅ Required files ensured, count:", validatedFiles.length)
+
+    // Persist placeholder files (created when manifest declares files that don't exist) to Supabase
+    const { projectId, supabaseClient } = persistOptions
+    if (projectId && supabaseClient) {
+      const originalPaths = new Set((files || []).map(f => f.file_path || f.path || f.name).filter(Boolean))
+      const placeholderFiles = validatedFiles.filter(
+        f => !originalPaths.has(f.file_path || f.path || f.name) && !f.is_base64
+      )
+      if (placeholderFiles.length > 0) {
+        console.log("[HYPERBROWSER-SERVICE] 💾 Persisting", placeholderFiles.length, "placeholder file(s) to project")
+        for (const file of placeholderFiles) {
+          const filePath = file.file_path || file.path || file.name
+          const content = file.content ?? ""
+          if (!filePath || !content) continue
+          try {
+            const { error } = await supabaseClient
+              .from("code_files")
+              .upsert(
+                {
+                  project_id: projectId,
+                  file_path: filePath,
+                  content,
+                  last_used_at: new Date().toISOString(),
+                },
+                { onConflict: "project_id,file_path" }
+              )
+            if (error) {
+              console.error("[HYPERBROWSER-SERVICE] ❌ Failed to persist placeholder", filePath, error.message)
+            } else {
+              console.log("[HYPERBROWSER-SERVICE] ✅ Persisted placeholder to project:", filePath)
+            }
+          } catch (err) {
+            console.error("[HYPERBROWSER-SERVICE] ❌ Error persisting placeholder", filePath, err?.message || err)
+          }
+        }
+      }
+    }
     
     const zip = new JSZip()
 

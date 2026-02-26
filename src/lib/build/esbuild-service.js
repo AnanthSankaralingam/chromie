@@ -1,28 +1,17 @@
 /**
  * esbuild Build Service
  *
- * Bundles Chrome extension files using esbuild-wasm.
+ * Bundles Chrome extension files using esbuild.
+ * - Server-side (Node.js): uses native esbuild (excluded via serverExternalPackages)
  * - Resolves relative imports via a virtual filesystem plugin
  * - Resolves bare module imports (npm packages) from pre-bundled vendor cache
  * - Non-JS/CSS files pass through unchanged
  */
 
-import * as esbuild from 'esbuild-wasm'
+import * as esbuild from 'esbuild'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { resolveProjectPackages } from './package-extractor.js'
-
-// ── esbuild-wasm singleton ────────────────────────────────────────────────────
-
-let initialized = false
-
-async function ensureInitialized() {
-  if (initialized) return
-  await esbuild.initialize({
-    wasmURL: 'https://unpkg.com/esbuild-wasm@0.24.2/esbuild.wasm',
-  })
-  initialized = true
-}
 
 // ── Vendor cache loader ───────────────────────────────────────────────────────
 
@@ -161,7 +150,7 @@ function packageResolverPlugin(validPackages) {
  */
 
 /**
- * Bundle a Chrome extension's files using esbuild-wasm
+ * Bundle a Chrome extension's files using esbuild
  *
  * @param {Object} options
  * @param {Record<string, string>} options.files - Map of file_path → content
@@ -172,20 +161,6 @@ function packageResolverPlugin(validPackages) {
 export async function buildExtension({ files, planPackages, minify = false }) {
   const errors = []
   const warnings = []
-
-  try {
-    await ensureInitialized()
-  } catch (err) {
-    return {
-      success: false,
-      files,
-      resolvedPackages: [],
-      rejectedPackages: [],
-      errors: [{ file: '', message: `esbuild initialization failed: ${err.message}` }],
-      warnings: [],
-      fallback: true
-    }
-  }
 
   // Step 1: Extract and validate npm imports
   const { valid, rejected } = resolveProjectPackages(planPackages || [], files)

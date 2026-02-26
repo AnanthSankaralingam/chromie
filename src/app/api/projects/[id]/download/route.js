@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import JSZip from "jszip"
 import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
+import { buildExtension } from "@/lib/build/esbuild-service.js"
+import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 
 export async function GET(request, { params }) {
   const supabase = await createClient()
@@ -46,17 +48,73 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "No files found for this project" }, { status: 404 })
     }
 
-    // Create zip
+    // Build file array for bundling (exclude tests and internal files)
+    const filesForBuild = files
+      .filter((f) => !f.file_path.startsWith('tests/') && !f.file_path.startsWith('.chromie/'))
+      .map((f) => ({ file_path: f.file_path, content: f.content }))
+
+    if (filesForBuild.length === 0) {
+      return NextResponse.json({ error: "No buildable files found" }, { status: 404 })
+    }
+
+    // Ensure manifest-declared files exist (e.g. background.js, popup, content scripts)
+    const ensuredFiles = ensureRequiredFiles(filesForBuild)
+
+    // Persist any placeholder files that were created
+    const originalPaths = new Set(filesForBuild.map((f) => f.file_path))
+    const placeholders = ensuredFiles.filter((f) => !originalPaths.has(f.file_path))
+    if (placeholders.length > 0) {
+      for (const file of placeholders) {
+        try {
+          await supabase
+            .from("code_files")
+            .upsert(
+              {
+                project_id: projectId,
+                file_path: file.file_path,
+                content: file.content,
+                last_used_at: new Date().toISOString(),
+              },
+              { onConflict: "project_id,file_path" }
+            )
+          console.log("[download] Persisted placeholder:", file.file_path)
+        } catch (err) {
+          console.warn("[download] Failed to persist placeholder", file.file_path, err?.message)
+        }
+      }
+    }
+
+    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+
+    // planPackages: extract from code (package-extractor merges with code-detected imports)
+    const planPackages = []
+
+    const buildResult = await buildExtension({ files: fileMap, planPackages })
+
+    if (!buildResult.success) {
+      const msg = buildResult.errors?.length
+        ? buildResult.errors.map((e) => `${e.file || 'build'}: ${e.message}`).join('; ')
+        : 'Build failed'
+      console.error('[download] Build failed:', buildResult.errors)
+      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+    }
+
+    console.log('[download] Build succeeded, resolved packages:', buildResult.resolvedPackages)
+
+    const builtFiles = buildResult.files
+    const builtFilesArray = Object.entries(builtFiles).map(([file_path, content]) => ({ file_path, content }))
+
+    // Create zip from bundled output
     const zip = new JSZip()
 
-    // Add all non-icon files
-    for (const file of files) {
+    // Add all non-icon files (use built/bundled content)
+    for (const file of builtFilesArray) {
       if (file.file_path.startsWith('icons/')) continue
-      zip.file(file.file_path, getContentWithIconSizing(file, files))
+      zip.file(file.file_path, getContentWithIconSizing(file, builtFilesArray))
     }
 
     // Parse manifest for required icon paths
-    const manifestFile = files.find(f => f.file_path === 'manifest.json')
+    const manifestFile = builtFilesArray.find((f) => f.file_path === 'manifest.json')
     if (!manifestFile) {
       return NextResponse.json({ error: "Manifest file not found" }, { status: 400 })
     }
@@ -103,7 +161,7 @@ export async function GET(request, { params }) {
     }
     // From code files: scan for any 'icons/*.png' references, including chrome.runtime.getURL('icons/...')
     const iconRefRegex = /icons\/[A-Za-z0-9-_]+\.png/gi
-    for (const f of files) {
+    for (const f of builtFilesArray) {
       if (typeof f.content !== 'string') continue
       if (f.file_path.startsWith('icons/')) continue
       const matches = f.content.match(iconRefRegex)

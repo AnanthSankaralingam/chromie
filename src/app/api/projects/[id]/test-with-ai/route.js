@@ -185,7 +185,10 @@ Note: Stay on simple websites without CAPTCHAs during testing`
 
     // Upload extension and get extension ID
     console.log("📤 Uploading extension to Hyperbrowser...")
-    const extensionId = await hyperbrowserService.uploadExtensionFromFiles(extensionFiles)
+    const extensionId = await hyperbrowserService.uploadExtensionFromFiles(extensionFiles, {
+      projectId,
+      supabaseClient: supabase,
+    })
     console.log("✅ Extension uploaded, ID:", extensionId)
 
     // Create a new session with recording enabled

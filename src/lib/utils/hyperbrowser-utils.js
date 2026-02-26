@@ -230,134 +230,42 @@ export function createDefaultIconBase64() {
 }
 
 /**
- * Create a default background.js service worker
- * Safe implementation that checks for API availability
+ * Create a minimal default background.js service worker
  */
 export function createDefaultBackgroundJS() {
-  return `// [CHROMIE:background.js] Default background service worker
-console.log('[CHROMIE:background.js] Service worker loaded');
-
-// Listen for extension installation
-if (chrome.runtime && chrome.runtime.onInstalled) {
-  chrome.runtime.onInstalled.addListener((details) => {
-    console.log('[CHROMIE:background.js] Extension installed:', details.reason);
-  });
-}
-
-// Handle action button clicks (if action API is available)
-if (chrome.action && chrome.action.onClicked) {
-  chrome.action.onClicked.addListener((tab) => {
-    console.log('[CHROMIE:background.js] Action button clicked');
-    
-    // If sidePanel API is available, open side panel
-    if (chrome.sidePanel && chrome.sidePanel.open) {
-      chrome.sidePanel.open({ windowId: tab.windowId }).catch((error) => {
-        console.error('[CHROMIE:background.js] Failed to open side panel:', error);
-      });
-    }
-  });
-}
-
-// Handle messages from content scripts or other parts of the extension
-if (chrome.runtime && chrome.runtime.onMessage) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[CHROMIE:background.js] Message received:', message);
-    // Handle messages here
-    return true; // Keep the message channel open for async responses
-  });
-}
+  return `chrome.runtime.onInstalled.addListener(() => {});
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { return true; });
 `
 }
 
 /**
- * Create default popup HTML
+ * Create minimal default popup HTML
  */
 export function createDefaultPopupHTML(extensionName = 'Extension') {
   return `<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${extensionName}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      width: 300px;
-      min-height: 200px;
-    }
-    h1 {
-      font-size: 18px;
-      margin: 0 0 12px 0;
-    }
-  </style>
-</head>
-<body>
-  <h1>${extensionName}</h1>
-  <p>Extension popup interface</p>
-</body>
+<head><meta charset="utf-8"><title>${extensionName}</title></head>
+<body><p>${extensionName}</p></body>
 </html>
 `
 }
 
 /**
- * Create default side panel HTML
+ * Create minimal default side panel HTML
  */
 export function createDefaultSidePanelHTML(extensionName = 'Extension') {
   return `<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${extensionName}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    h1 {
-      font-size: 20px;
-      margin: 0 0 12px 0;
-    }
-  </style>
-</head>
-<body>
-  <h1>${extensionName}</h1>
-  <p>Side panel interface</p>
-</body>
+<head><meta charset="utf-8"><title>${extensionName}</title></head>
+<body><p>${extensionName}</p></body>
 </html>
 `
 }
 
 /**
- * Create default content script
+ * Create minimal default content script
  */
 export function createDefaultContentJS() {
-  return `// [CHROMIE:content.js] Default content script
-console.log('[CHROMIE:content.js] Content script loaded');
-
-// Listen for messages from background, side panel, or popup
-if (chrome.runtime && chrome.runtime.onMessage) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[CHROMIE:content.js] Message received:', message);
-    
-    // Handle different message actions
-    if (message.action === 'scanPage') {
-      // Example: Scan page and return data
-      const elements = [];
-      // ... scan logic ...
-      sendResponse({ elements });
-    } else if (message.action === 'highlightElement') {
-      // Example: Highlight an element
-      // ... highlight logic ...
-      sendResponse({ success: true });
-    }
-    
-    // Return true to indicate we will send a response asynchronously
-    return true;
-  });
-}
+  return `chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => { return true; });
 `
 }
