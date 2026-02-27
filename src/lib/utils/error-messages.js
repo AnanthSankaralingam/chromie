@@ -38,6 +38,11 @@ export function getUserFriendlyError(error, classification) {
         message: 'Your extension is missing required files or has an invalid structure.',
         action: 'Ensure manifest.json exists',
       },
+      build: {
+        title: 'Extension Build Failed',
+        message: 'Your extension failed to build. This may be due to an incorrect import from a whitelisted package.',
+        action: 'Try "import * as pkg from \'package-name\'" instead of "import pkg from \'package-name\'", or use named imports: "import { get, set } from \'package-name\'"',
+      },
     },
     auth: {
       authentication: {
@@ -58,6 +63,13 @@ export function getUserFriendlyError(error, classification) {
         title: 'Session Unavailable',
         message: 'The Testing Browser session is no longer active. It may have expired or been closed.',
         action: 'Start a new testing session',
+      },
+    },
+    infrastructure: {
+      high_traffic: {
+        title: 'High Traffic',
+        message: 'We\'re experiencing high traffic right now. Please try again in a moment.',
+        action: 'Try again or contact support',
       },
     },
     general: {

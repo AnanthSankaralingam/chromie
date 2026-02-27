@@ -28,7 +28,13 @@ const whitelist = JSON.parse(readFileSync(WHITELIST_PATH, 'utf-8'))
 const BROWSER_ENTRY_OVERRIDES = {
   uuid: (pkgRoot) => join(pkgRoot, 'dist', 'esm-browser', 'index.js'),
   nanoid: (pkgRoot) => join(pkgRoot, 'index.browser.js'),
+  // jszip: lib/ resolves readable-stream -> readable-stream-browser.js which requires Node's "stream".
+  // Use pre-built dist/jszip.min.js (UMD) instead — already bundled for browser.
+  jszip: (pkgRoot) => join(pkgRoot, 'dist', 'jszip.min.js'),
 }
+
+// Packages that only have named exports — add default export so "import X from 'pkg'" works
+const PACKAGES_NEED_DEFAULT_EXPORT = ['pdfjs-dist']
 
 // Clean and recreate vendor directory
 rmSync(VENDOR_DIR, { recursive: true, force: true })
@@ -73,6 +79,27 @@ for (const pkg of whitelist) {
       // Suppress warnings about CommonJS to ESM conversion
       logLevel: 'error',
     })
+
+    // Add default export for packages that only have named exports (e.g. pdfjs-dist)
+    if (PACKAGES_NEED_DEFAULT_EXPORT.includes(pkg.name)) {
+      let content = readFileSync(outFile, 'utf-8')
+      if (!content.includes('export default')) {
+        const match = content.match(/export\s*\{([^}]+)\}\s*;?\s*$/)
+        if (match) {
+          const exportNames = match[1]
+            .split(',')
+            .map((s) => {
+              const asMatch = s.trim().match(/\s+as\s+(\w+)$/)
+              return asMatch ? asMatch[1] : s.trim().split(/\s/)[0]
+            })
+            .filter(Boolean)
+          if (exportNames.length > 0) {
+            content += `\nexport default {${exportNames.join(',')}};`
+            writeFileSync(outFile, content)
+          }
+        }
+      }
+    }
 
     results.push({ name: pkg.name, version: pkg.version, file: `${pkg.name.replace('/', '__')}@${pkg.version}.js` })
     console.log(`  ✅ ${pkg.name}@${pkg.version}`)

@@ -8,16 +8,30 @@ export default function TrustedBySection() {
           trusted by
         </p>
         <div className="flex items-center justify-center gap-16 md:gap-24 opacity-80">
-          <img
-            src="/omnispeech_logo.png"
-            alt="Omnispeech"
-            className="h-10 md:h-12 object-contain"
-          />
-          <img
-            src="/QTR-Logo.png"
-            alt="QTR"
-            className="h-10 md:h-12 object-contain"
-          />
+          <a
+            href="https://chromewebstore.google.com/detail/omnispeech-ai-deepfake-de/fdaalloapkmfoeelgbhdedlbiplcoahp/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-100 transition-opacity"
+          >
+            <img
+              src="/omnispeech_logo.png"
+              alt="Omnispeech"
+              className="h-10 md:h-12 object-contain"
+            />
+          </a>
+          <a
+            href="https://qtr.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-100 transition-opacity"
+          >
+            <img
+              src="/QTR-Logo.png"
+              alt="QTR"
+              className="h-10 md:h-12 object-contain"
+            />
+          </a>
         </div>
       </div>
     </section>

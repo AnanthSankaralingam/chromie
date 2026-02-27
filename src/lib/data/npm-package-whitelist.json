@@ -12,16 +12,16 @@
     "use_cases": ["date formatting", "relative time", "date parsing", "timezone handling"]
   },
   {
-    "name": "marked",
-    "version": "15.0.4",
-    "description": "Fast markdown parser and compiler",
-    "use_cases": ["markdown rendering", "markdown-to-HTML conversion", "note-taking apps"]
-  },
-  {
     "name": "dompurify",
     "version": "3.2.4",
     "description": "DOM-only XSS sanitizer for HTML, SVG, and MathML",
     "use_cases": ["HTML sanitization", "XSS prevention", "safe HTML rendering"]
+  },
+  {
+    "name": "ky",
+    "version": "1.7.4",
+    "description": "Tiny and elegant HTTP client based on the Fetch API",
+    "use_cases": ["API requests", "HTTP client", "request interceptors", "retry logic"]
   },
   {
     "name": "crypto-js",
@@ -36,34 +36,28 @@
     "use_cases": ["unique ID generation", "record identification", "session tokens"]
   },
   {
-    "name": "ky",
-    "version": "1.7.4",
-    "description": "Tiny and elegant HTTP client based on the Fetch API",
-    "use_cases": ["API requests", "HTTP client", "request interceptors", "retry logic"]
+    "name": "extension-storage",
+    "version": "1.0.0",
+    "description": "Promise-based wrapper around browser/Chrome extension storage API",
+    "use_cases": ["browser storage abstraction", "data persistence", "cross-context caching"]
   },
   {
-    "name": "sortablejs",
-    "version": "1.15.6",
-    "description": "Drag-and-drop sorting library for lists and grids",
-    "use_cases": ["drag-and-drop", "sortable lists", "kanban boards", "reorderable UI"]
+    "name": "idb-keyval",
+    "version": "6.2.1",
+    "description": "Super-simple key-val store using IndexedDB",
+    "use_cases": ["local storage", "IndexedDB wrapper", "offline data", "caching"]
   },
   {
-    "name": "chart.js",
-    "version": "4.4.7",
-    "description": "Simple yet flexible JavaScript charting library",
-    "use_cases": ["data visualization", "charts", "graphs", "dashboards"]
+    "name": "pdfjs-dist",
+    "version": "4.3.136",
+    "description": "PDF parsing and rendering library maintained by Mozilla",
+    "use_cases": ["PDF text extraction", "PDF rendering", "PDF viewer", "document analysis"]
   },
   {
-    "name": "turndown",
-    "version": "7.2.0",
-    "description": "HTML to Markdown converter",
-    "use_cases": ["HTML-to-markdown conversion", "content extraction", "web clipping"]
-  },
-  {
-    "name": "highlight.js",
-    "version": "11.11.1",
-    "description": "Syntax highlighter with automatic language detection",
-    "use_cases": ["code highlighting", "syntax coloring", "code display", "developer tools"]
+    "name": "jszip",
+    "version": "3.10.1",
+    "description": "Create, read, and edit .zip files directly in the browser",
+    "use_cases": ["file compression", "data export", "archiving"]
   },
   {
     "name": "fuse.js",
@@ -72,10 +66,10 @@
     "use_cases": ["fuzzy search", "text search", "filtering", "autocomplete"]
   },
   {
-    "name": "idb-keyval",
-    "version": "6.2.1",
-    "description": "Super-simple key-val store using IndexedDB",
-    "use_cases": ["local storage", "IndexedDB wrapper", "offline data", "caching"]
+    "name": "webextension-polyfill",
+    "version": "0.12.0",
+    "description": "Promise-based browser API polyfill for Chrome/Firefox/Edge",
+    "use_cases": ["cross-browser compatibility", "extension APIs", "async/await support"]
   },
   {
     "name": "linkify-html",
@@ -90,22 +84,22 @@
     "use_cases": ["HTML encoding", "entity decoding", "safe text display"]
   },
   {
+    "name": "sortablejs",
+    "version": "1.15.6",
+    "description": "Drag-and-drop sorting library for lists and grids",
+    "use_cases": ["drag-and-drop", "sortable lists", "kanban boards", "reorderable UI"]
+  },
+  {
+    "name": "chart.js",
+    "version": "4.4.7",
+    "description": "Simple yet flexible JavaScript charting library",
+    "use_cases": ["data visualization", "charts", "graphs", "dashboards"]
+  },
+  {
     "name": "toastify-js",
     "version": "1.12.0",
     "description": "Pure JavaScript toast notification library",
     "use_cases": ["toast notifications", "alerts", "user feedback"]
-  },
-  {
-    "name": "date-fns",
-    "version": "4.1.0",
-    "description": "Modern JavaScript date utility library",
-    "use_cases": ["date formatting", "date arithmetic", "relative time", "date parsing"]
-  },
-  {
-    "name": "js-yaml",
-    "version": "4.1.0",
-    "description": "YAML parser and serializer for JavaScript",
-    "use_cases": ["YAML parsing", "configuration files", "data serialization"]
   },
   {
     "name": "nanoid",
@@ -118,5 +112,41 @@
     "version": "4.2.3",
     "description": "JavaScript library for color conversion and manipulation",
     "use_cases": ["color conversion", "color manipulation", "theme generation"]
+  },
+  {
+    "name": "compressorjs",
+    "version": "1.2.1",
+    "description": "JavaScript image compression library in the browser",
+    "use_cases": ["image compression", "file optimization", "upload performance"]
+  },
+  {
+    "name": "file-saver",
+    "version": "2.0.5",
+    "description": "Client-side file saving library for blobs and data URLs",
+    "use_cases": ["file downloads", "data export", "PDF/image saving"]
+  },
+  {
+    "name": "mitt",
+    "version": "3.0.1",
+    "description": "Tiny functional event emitter",
+    "use_cases": ["event bus", "pub/sub", "cross-script messaging"]
+  },
+  {
+    "name": "preact",
+    "version": "10.24.1",
+    "description": "Fast 3KB alternative to React with the same modern API",
+    "use_cases": ["popup UI", "options page UI", "lightweight components"]
+  },
+  {
+    "name": "zustand",
+    "version": "4.5.2",
+    "description": "Small, fast, and scalable state management library",
+    "use_cases": ["UI state management", "popup/store synchronization", "extension settings"]
+  },
+  {
+    "name": "turndown",
+    "version": "7.2.0",
+    "description": "HTML to Markdown converter",
+    "use_cases": ["HTML-to-markdown conversion", "content extraction", "web clipping"]
   }
 ]
