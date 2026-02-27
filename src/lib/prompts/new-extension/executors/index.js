@@ -126,7 +126,7 @@ function buildContextSections(task, executionContext) {
     parts.push(`<use_case_and_chrome_apis>\n${formattedPlanningOutputs.USE_CASE_CHROME_APIS}\n</use_case_and_chrome_apis>`)
   }
 
-  if (ctx.external_apis && formattedPlanningOutputs?.EXTERNAL_RESOURCES) {
+  if ((ctx.external_apis || ctx.npm_packages) && formattedPlanningOutputs?.EXTERNAL_RESOURCES) {
     parts.push(`<external_resources>\n${formattedPlanningOutputs.EXTERNAL_RESOURCES}\n</external_resources>`)
   }
 

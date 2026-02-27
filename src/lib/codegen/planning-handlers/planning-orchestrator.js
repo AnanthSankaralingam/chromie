@@ -699,7 +699,7 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
  * @returns {Promise<string>} Formatted markdown
  */
 async function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
-  const { external_apis, webpages_to_scrape, no_external_needed } = externalResourcesResult
+  const { external_apis, webpages_to_scrape, npm_packages, no_external_needed } = externalResourcesResult
 
   // Check if we have scraped webpage data to include (only if status code is 200)
   const hasScrapedData = scrapeStatusCode === 200 &&
@@ -757,8 +757,9 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
 
   const hasApis = allApis.length > 0
   const hasWebpages = webpages_to_scrape && webpages_to_scrape.length > 0
+  const hasNpmPackages = npm_packages && Array.isArray(npm_packages) && npm_packages.length > 0
 
-  if (no_external_needed && !hasScrapedData && !hasApis && !hasWebpages) {
+  if (no_external_needed && !hasScrapedData && !hasApis && !hasWebpages && !hasNpmPackages) {
     return 'No external resources needed for this extension.'
   }
 
@@ -793,6 +794,14 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
     output += 'Target Websites\n'
     output += webpages_to_scrape.map(domain => `- ${domain}`).join('\n')
     output += '\n'
+  }
+
+  if (hasNpmPackages) {
+    output += 'NPM Packages to use — add ES6 imports at the top of each JS file that needs them:\n'
+    npm_packages.forEach(pkg => {
+      output += `- **${pkg.name}**: ${pkg.purpose || 'Use as needed'} — use: \`import ${pkg.name === 'dompurify' ? 'DOMPurify' : pkg.name} from \'${pkg.name}\'\`\n`
+    })
+    output += '\nDo NOT use globals or script tags. Always use ES6 import statements so the bundler can include the package.\n\n'
   }
 
   // Include scraped webpage analysis if available (even if webpages_to_scrape is empty)

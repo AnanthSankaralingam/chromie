@@ -36,11 +36,14 @@ export class FireworksAdapter {
 
       const messages = this.normalizeInput(input, conversation_history)
 
+      // Fireworks requires stream=true when max_tokens > 4096; cap for non-streaming
+      const effectiveMaxTokens = Math.min(max_output_tokens, 4096)
+
       const payload = {
         model,
         messages,
         temperature,
-        max_tokens: max_output_tokens,
+        max_tokens: effectiveMaxTokens,
         stream: false
       }
 
