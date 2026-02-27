@@ -60,6 +60,13 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
     sections.push(`## External APIs\n${apiLines.join('\n')}`)
   }
 
+  // NPM packages (whitelisted, for bundling)
+  const npmPackages = externalResourcesResult.npm_packages || []
+  if (npmPackages.length > 0) {
+    const pkgLines = npmPackages.map(p => `- ${p.name}: ${p.purpose || 'Use as needed'}`)
+    sections.push(`## NPM Packages\n${pkgLines.join('\n')}`)
+  }
+
   // Scraped webpage data availability
   const hasRealScrapedData = scrapedWebpageAnalysis && typeof scrapedWebpageAnalysis === 'string' && !scrapedWebpageAnalysis.startsWith('<!--')
   if (hasRealScrapedData) {
@@ -174,6 +181,7 @@ function normalizeMetaPlan(metaPlan, planningSummary, featureRequest = '') {
   const out = structuredClone(metaPlan)
 
   const hasExternalApiInSummary = /## External APIs\s*\n[\s\S]*https?:\/\//i.test(planningSummary || '')
+  const hasNpmPackagesInSummary = /## NPM Packages\s*\n/i.test(planningSummary || '')
   const hasScrapedWebpage = /## Scraped Webpage Data/i.test(planningSummary || '')
   const hasWorkspace = /## Workspace Integration/i.test(planningSummary || '')
 
@@ -201,6 +209,18 @@ function normalizeMetaPlan(metaPlan, planningSummary, featureRequest = '') {
     if (Array.isArray(out.task_graph)) {
       for (const t of out.task_graph) {
         if (t?.context_requirements) t.context_requirements.external_apis = false
+      }
+    }
+  }
+
+  // NPM packages: when planning detected whitelisted packages, ensure JS tasks get external_resources context
+  if (hasNpmPackagesInSummary && Array.isArray(out.task_graph)) {
+    const jsExtensions = ['.js', '.mjs']
+    for (const t of out.task_graph) {
+      const fileName = t?.file_name || ''
+      const isJsFile = jsExtensions.some(ext => fileName.toLowerCase().endsWith(ext))
+      if (isJsFile && t?.context_requirements) {
+        t.context_requirements.npm_packages = true
       }
     }
   }

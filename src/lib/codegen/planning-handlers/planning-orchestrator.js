@@ -699,7 +699,7 @@ function formatUseCaseOutput(useCaseResult, featureRequest = '') {
  * @returns {Promise<string>} Formatted markdown
  */
 async function formatExternalResourcesOutput(externalResourcesResult, scrapedWebpageAnalysis = null, scrapeStatusCode = null, userProvidedApis = null) {
-  const { external_apis, webpages_to_scrape, no_external_needed } = externalResourcesResult
+  const { external_apis, webpages_to_scrape, npm_packages, no_external_needed } = externalResourcesResult
 
   // Check if we have scraped webpage data to include (only if status code is 200)
   const hasScrapedData = scrapeStatusCode === 200 &&
@@ -757,8 +757,9 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
 
   const hasApis = allApis.length > 0
   const hasWebpages = webpages_to_scrape && webpages_to_scrape.length > 0
+  const hasNpmPackages = npm_packages && Array.isArray(npm_packages) && npm_packages.length > 0
 
-  if (no_external_needed && !hasScrapedData && !hasApis && !hasWebpages) {
+  if (no_external_needed && !hasScrapedData && !hasApis && !hasWebpages && !hasNpmPackages) {
     return 'No external resources needed for this extension.'
   }
 
@@ -792,6 +793,14 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
   if (hasWebpages) {
     output += 'Target Websites\n'
     output += webpages_to_scrape.map(domain => `- ${domain}`).join('\n')
+    output += '\n'
+  }
+
+  if (hasNpmPackages) {
+    output += 'NPM Packages to use (whitelisted, import with: import x from \'package-name\')\n'
+    npm_packages.forEach(pkg => {
+      output += `- **${pkg.name}**: ${pkg.purpose || 'Use as needed'}\n`
+    })
     output += '\n'
   }
 
