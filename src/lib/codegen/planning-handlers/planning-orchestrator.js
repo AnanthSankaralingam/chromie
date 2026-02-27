@@ -797,11 +797,11 @@ async function formatExternalResourcesOutput(externalResourcesResult, scrapedWeb
   }
 
   if (hasNpmPackages) {
-    output += 'NPM Packages to use (whitelisted, import with: import x from \'package-name\')\n'
+    output += 'NPM Packages to use — add ES6 imports at the top of each JS file that needs them:\n'
     npm_packages.forEach(pkg => {
-      output += `- **${pkg.name}**: ${pkg.purpose || 'Use as needed'}\n`
+      output += `- **${pkg.name}**: ${pkg.purpose || 'Use as needed'} — use: \`import ${pkg.name === 'dompurify' ? 'DOMPurify' : pkg.name} from \'${pkg.name}\'\`\n`
     })
-    output += '\n'
+    output += '\nDo NOT use globals or script tags. Always use ES6 import statements so the bundler can include the package.\n\n'
   }
 
   // Include scraped webpage analysis if available (even if webpages_to_scrape is empty)
