@@ -12,6 +12,7 @@ import * as esbuild from 'esbuild'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { resolveProjectPackages } from './package-extractor.js'
+import { getAllWhitelistedNames } from './package-whitelist.js'
 
 // ── Vendor cache loader ───────────────────────────────────────────────────────
 
@@ -119,8 +120,12 @@ function packageResolverPlugin(validPackages) {
           return { path: rootPkg, namespace: 'vendor-pkg' }
         }
 
-        // Not a whitelisted package — mark as external to prevent build failure
-        return { path: args.path, external: true }
+        // Not a whitelisted package — fail the build (Chrome extensions cannot load npm packages at runtime)
+        return {
+          errors: [{
+            text: `Package "${rootPkg}" is not whitelisted. Only whitelisted packages can be used in extensions. Remove this import or use a whitelisted alternative.`
+          }]
+        }
       })
 
       // Load pre-bundled package content from vendor cache
@@ -166,7 +171,20 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   const { valid, rejected } = resolveProjectPackages(planPackages || [], files)
 
   if (rejected.length > 0) {
-    warnings.push({ message: `Non-whitelisted packages ignored: ${rejected.join(', ')}` })
+    const whitelistPreview = getAllWhitelistedNames().slice(0, 10).join(', ')
+    errors.push({
+      file: '',
+      message: `Non-whitelisted packages are not supported: ${rejected.join(', ')}. Only whitelisted packages can be used (e.g. ${whitelistPreview}...). Remove these imports or use a whitelisted alternative.`
+    })
+    return {
+      success: false,
+      files: {},
+      resolvedPackages: [],
+      rejectedPackages: rejected,
+      errors,
+      warnings,
+      fallback: true
+    }
   }
 
   const validPackageNames = new Set(valid.map(v => v.name))
@@ -176,7 +194,19 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   const resolvedPackages = valid.filter(v => cache.has(v.name)).map(v => v.name)
   const missingFromCache = valid.filter(v => !cache.has(v.name)).map(v => v.name)
   if (missingFromCache.length > 0) {
-    warnings.push({ message: `Whitelisted packages not in vendor cache (run prebundle): ${missingFromCache.join(', ')}` })
+    errors.push({
+      file: '',
+      message: `Whitelisted packages not in vendor cache: ${missingFromCache.join(', ')}. Run \`npm run prebundle\` to build the project.`
+    })
+    return {
+      success: false,
+      files: {},
+      resolvedPackages: [],
+      rejectedPackages: rejected,
+      errors,
+      warnings,
+      fallback: true
+    }
   }
 
   // Step 2: Normalize file paths (ensure leading /)
