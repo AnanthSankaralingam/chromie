@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
+import { buildExtension } from "@/lib/build/esbuild-service.js"
+import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
 
 export async function POST(request, { params }) {
@@ -34,8 +37,13 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
 
-    // Get project files (using service role to bypass RLS)
-    const serviceSupabase = await createClient()
+    // Get project files (using service role to bypass RLS for shared project access)
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const serviceSupabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+      ? createServiceClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+      : await createClient()
+
     const { data: files, error: filesError } = await serviceSupabase
       .from("code_files")
       .select("file_path, content")
@@ -51,7 +59,42 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "No extension files found" }, { status: 404 })
     }
 
-    const extensionFiles = files.map((f) => ({ file_path: f.file_path, content: f.content }))
+    // Build extension (filter tests/.chromie, ensure required files, bundle)
+    const codeFiles = files
+      .filter((f) => !f.file_path.startsWith("tests/") && !f.file_path.startsWith(".chromie/"))
+      .map((f) => ({ file_path: f.file_path, content: f.content }))
+
+    if (codeFiles.length === 0) {
+      return NextResponse.json({ error: "No buildable files found" }, { status: 404 })
+    }
+
+    const ensuredFiles = ensureRequiredFiles(codeFiles)
+    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+    const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+
+    if (!buildResult.success) {
+      const msg = buildResult.errors?.length
+        ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ")
+        : "Build failed"
+      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+    }
+
+    const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
+
+    // Fetch project assets (custom icons, etc.) for shared project
+    let assets = []
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const { data: assetsData } = await serviceSupabase
+        .from("project_assets")
+        .select("file_path, content_base64")
+        .eq("project_id", sharedProject.project_id)
+      assets = assetsData || []
+    }
+
+    const extensionFiles = [
+      ...builtFiles,
+      ...assets.map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
+    ]
 
     // Calculate session expiry - enforce 1 minute maximum for shared extension testing
     const now = new Date()
@@ -59,8 +102,13 @@ export async function POST(request, { params }) {
     const remainingMinutes = BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
-    console.log("Creating shared extension test session with files count:", extensionFiles.length)
-    const session = await hyperbrowserService.createTestSession(extensionFiles, sharedProject.project_id)
+    console.log("Creating shared extension test session with built files:", builtFiles.length, "assets:", assets.length)
+    const session = await hyperbrowserService.createTestSession(
+      extensionFiles,
+      sharedProject.project_id,
+      null,
+      null
+    )
 
     // Debug: Log session details after creation
     console.log("🔍 Shared extension test session created successfully:", {

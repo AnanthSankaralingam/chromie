@@ -4,6 +4,8 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import JSZip from "jszip"
 import { SHARE_RATE_LIMITS } from "@/lib/constants"
 import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
+import { buildExtension } from "@/lib/build/esbuild-service.js"
+import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { 
   validateShareToken, 
   isShareExpired,
@@ -162,13 +164,38 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "No files found for this project" }, { status: 404 })
     }
 
-    // Create zip using JSZip (same pattern as project download)
+    // Build file array for bundling (exclude tests and internal files)
+    const filesForBuild = files
+      .filter((f) => !f.file_path.startsWith('tests/') && !f.file_path.startsWith('.chromie/'))
+      .map((f) => ({ file_path: f.file_path, content: f.content }))
+
+    if (filesForBuild.length === 0) {
+      return NextResponse.json({ error: "No buildable files found" }, { status: 404 })
+    }
+
+    // Ensure manifest-declared files exist (placeholders not persisted for shared downloads)
+    const ensuredFiles = ensureRequiredFiles(filesForBuild)
+    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+
+    const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+
+    if (!buildResult.success) {
+      const msg = buildResult.errors?.length
+        ? buildResult.errors.map((e) => `${e.file || 'build'}: ${e.message}`).join('; ')
+        : 'Build failed'
+      console.error('[shared download] Build failed:', buildResult.errors)
+      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+    }
+
+    const builtFilesArray = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
+
+    // Create zip from bundled output (same pattern as project download)
     const zip = new JSZip()
 
-    // Add all non-icon files
-    for (const file of files) {
+    // Add all non-icon files (use built/bundled content)
+    for (const file of builtFilesArray) {
       if (file.file_path.startsWith('icons/')) continue
-      zip.file(file.file_path, getContentWithIconSizing(file, files))
+      zip.file(file.file_path, getContentWithIconSizing(file, builtFilesArray))
     }
 
     // Fetch project assets (custom icons and other files) using service role
@@ -217,7 +244,7 @@ export async function GET(request, { params }) {
     }
 
     // Parse manifest for required icon paths
-    const manifestFile = files.find(f => f.file_path === 'manifest.json')
+    const manifestFile = builtFilesArray.find(f => f.file_path === 'manifest.json')
     if (!manifestFile) {
       return NextResponse.json({ error: "Manifest file not found" }, { status: 400 })
     }
@@ -264,7 +291,7 @@ export async function GET(request, { params }) {
     }
     // From code files: scan for any 'icons/*.png' references, including chrome.runtime.getURL('icons/...')
     const iconRefRegex = /icons\/[A-Za-z0-9-_]+\.png/gi
-    for (const f of files) {
+    for (const f of builtFilesArray) {
       if (typeof f.content !== 'string') continue
       if (f.file_path.startsWith('icons/')) continue
       const matches = f.content.match(iconRefRegex)
