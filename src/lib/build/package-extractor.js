@@ -50,9 +50,11 @@ function getRootPackageName(specifier) {
 }
 
 // Regex patterns for import detection
-const ES6_IMPORT_RE = /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s*,?\s*)*\s*from\s*['"]([^'"]+)['"]/g
-const ES6_SIDE_EFFECT_RE = /import\s+['"]([^'"]+)['"]/g
-const DYNAMIC_IMPORT_RE = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g
+// Note: ES6_IMPORT_RE uses a simple `from 'module'` match to avoid catastrophic
+// backtracking from nested quantifiers on large/minified files.
+const ES6_IMPORT_RE = /\bfrom\s+['"]([^'"]+)['"]/g
+const ES6_SIDE_EFFECT_RE = /\bimport\s+['"]([^'"]+)['"]/g
+const DYNAMIC_IMPORT_RE = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g
 const COMMONJS_REQUIRE_RE = /(?:^|[^.\w])require\s*\(\s*['"]([^'"]+)['"]\s*\)/g
 
 /**

@@ -176,15 +176,21 @@ export async function POST(request, { params }) {
     const ensuredFiles = ensureRequiredFiles(codeFiles.map((f) => ({ file_path: f.file_path, content: f.content })))
     const originalPaths = new Set(codeFiles.map((f) => f.file_path))
     const placeholders = ensuredFiles.filter((f) => !originalPaths.has(f.file_path))
+    console.log(`[test-extension] Upserting ${placeholders.length} placeholder files: ${placeholders.map(f => f.file_path).join(', ')}`)
     for (const file of placeholders) {
+      console.log(`[test-extension]   - upserting: ${file.file_path}`)
       await supabase.from("code_files").upsert(
         { project_id: id, file_path: file.file_path, content: file.content, last_used_at: new Date().toISOString() },
         { onConflict: "project_id,file_path" }
       )
+      console.log(`[test-extension]   - upserted: ${file.file_path}`)
     }
 
     const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+    console.log(`[test-extension] Starting buildExtension with ${Object.keys(fileMap).length} files: ${Object.keys(fileMap).join(', ')}`)
+    const buildStart = Date.now()
     const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+    console.log(`[test-extension] buildExtension completed in ${Date.now() - buildStart}ms, success=${buildResult.success}`)
     if (!buildResult.success) {
       const msg = buildResult.errors?.length
         ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ")
@@ -207,6 +213,8 @@ export async function POST(request, { params }) {
       : BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
+    console.log(`[test-extension] Creating hyperbrowser session (awaitPinExtension=${awaitPinExtension}, files=${extensionFiles.length})...`)
+    const sessionStart = Date.now()
     const session = await hyperbrowserService.createTestSession(
       extensionFiles,
       id,
@@ -214,6 +222,7 @@ export async function POST(request, { params }) {
       supabase,
       { awaitPinExtension }
     )
+    console.log(`[test-extension] createTestSession completed in ${Date.now() - sessionStart}ms`)
 
     // Store the Chrome extension ID if we got it
     if (session.chromeExtensionId) {

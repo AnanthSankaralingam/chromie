@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/forms-and-input/label"
 import { Input } from "@/components/ui/forms-and-input/input"
-import { Upload, Image as ImageIcon, FileIcon, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Upload, Image as ImageIcon, FileIcon, AlertCircle, CheckCircle2, Sparkles } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/forms-and-input/select"
 import { INPUT_LIMITS } from "@/lib/constants"
 import { Textarea } from "@/components/ui/forms-and-input/textarea"
@@ -38,7 +38,7 @@ export default function AssetUploadModal({
   const [selectedFile, setSelectedFile] = useState(null)
   const [filePreview, setFilePreview] = useState(null)
   const [fileType, setFileType] = useState("icon")
-  const [sourceMode, setSourceMode] = useState("upload") // upload only (generate/library deprecated)
+  const [sourceMode, setSourceMode] = useState("upload")
   const [customPath, setCustomPath] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -72,10 +72,9 @@ export default function AssetUploadModal({
   useEffect(() => {
     if (!isOpen) return
     const nextFileType = defaultFileType === "asset" ? "asset" : "icon"
-    // Deprecated: generate and library modes removed, only upload supported
-    const nextMode = "upload"
+    const nextMode = defaultMode === "generate" && nextFileType === "icon" ? "generate" : "upload"
     setFileType(nextFileType)
-    setSourceMode("upload")
+    setSourceMode(nextMode)
     resetUploadState()
     resetAiState()
   }, [defaultFileType, defaultMode, isOpen])
@@ -163,6 +162,32 @@ export default function AssetUploadModal({
     }
   }
 
+  const handleGenerateAI = async () => {
+    if (!aiPrompt.trim() || !projectId) return
+    setIsGeneratingAI(true)
+    setAiError(null)
+    setAiGeneratedImage(null)
+    try {
+      const response = await fetch(`/api/projects/${projectId}/assets/generate-icon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt.trim() })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate icon")
+      }
+      setAiGeneratedImage(data.image) // { base64, mimeType }
+      if (!customPath) {
+        setCustomPath("icons/icon.png")
+      }
+    } catch (err) {
+      setAiError(err.message)
+    } finally {
+      setIsGeneratingAI(false)
+    }
+  }
+
   const uploadAsset = async ({ base64Content, mimeType }) => {
     const response = await fetch(`/api/projects/${projectId}/assets`, {
       method: "POST",
@@ -185,10 +210,6 @@ export default function AssetUploadModal({
     }
 
     const uploadedAssets = data.assets || (data.asset ? [data.asset] : [])
-
-    if (uploadedAssets.length > 1) {
-    } else {
-    }
 
     if (onUpload) {
       uploadedAssets.forEach(asset => onUpload(asset))
@@ -276,6 +297,11 @@ export default function AssetUploadModal({
     }
   }
 
+  const handleModeSwitch = (mode) => {
+    setSourceMode(mode)
+    setError(null)
+    setAiError(null)
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -330,6 +356,36 @@ export default function AssetUploadModal({
             )}
           </div>
 
+          {/* Mode Tabs — only for icons */}
+          {fileType === "icon" && (
+            <div className="flex rounded-lg bg-slate-800 p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => handleModeSwitch("upload")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  sourceMode === "upload"
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeSwitch("generate")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  sourceMode === "generate"
+                    ? "bg-slate-700 text-white"
+                    : "text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Generate with AI
+              </button>
+            </div>
+          )}
+
           {/* File Upload */}
           {sourceMode === "upload" && (
             <div className="space-y-2">
@@ -363,6 +419,58 @@ export default function AssetUploadModal({
             </div>
           )}
 
+          {/* AI Generate */}
+          {sourceMode === "generate" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="text-white">Describe your icon</Label>
+                <Textarea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value.slice(0, MAX_PROMPT_LENGTH))}
+                  placeholder="e.g. A bold shield with a lightning bolt, dark blue and white"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+                  rows={3}
+                />
+                <p className="text-xs text-slate-500">{aiPrompt.length}/{MAX_PROMPT_LENGTH} characters</p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleGenerateAI}
+                disabled={!aiPrompt.trim() || isGeneratingAI}
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50"
+              >
+                {isGeneratingAI ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-violet-400 border-t-white" />
+                    Generating...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Generate Icon
+                  </span>
+                )}
+              </Button>
+              {aiGeneratedImage && (
+                <div className="space-y-2">
+                  <Label className="text-white">Generated Icon</Label>
+                  <div className="border border-slate-700 rounded-lg p-4 bg-slate-800 flex items-center justify-center">
+                    <img
+                      src={`data:${aiGeneratedImage.mimeType};base64,${aiGeneratedImage.base64}`}
+                      alt="Generated icon"
+                      className="max-h-48 object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+              {aiError && (
+                <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-400">{aiError}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* File Path */}
           <div className="space-y-2">
@@ -379,14 +487,14 @@ export default function AssetUploadModal({
             </p>
           </div>
 
-          {/* Preview */}
-          {filePreview && (
+          {/* Preview (upload mode) */}
+          {sourceMode === "upload" && filePreview && (
             <div className="space-y-2">
               <Label className="text-white">Preview</Label>
               <div className="border border-slate-700 rounded-lg p-4 bg-slate-800">
-                <img 
-                  src={filePreview} 
-                  alt="Preview" 
+                <img
+                  src={filePreview}
+                  alt="Preview"
                   className="max-h-48 mx-auto object-contain"
                 />
                 {iconDimensions && (
@@ -408,12 +516,6 @@ export default function AssetUploadModal({
             <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-          {aiError && (
-            <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-400">{aiError}</p>
             </div>
           )}
 
