@@ -1,4 +1,4 @@
-import { STYLING_REQUIREMENTS, ICON_CONFIGURATION } from '../one-shot/shared-content.js';
+import { STYLING_REQUIREMENTS, ICON_CONFIGURATION, NPM_PACKAGE_IMPORT_GUIDANCE } from '../one-shot/shared-content.js';
 
 export const TEMPLATE_PATCH_PROMPT = `
 <system>
@@ -65,6 +65,8 @@ Chrome Messaging Best Practices:
 ${STYLING_REQUIREMENTS}
 
 ${ICON_CONFIGURATION}
+
+${NPM_PACKAGE_IMPORT_GUIDANCE}
 
 <v4a_diff_format>
 <file_marker>

@@ -84,6 +84,7 @@ Return a JSON object with the following structure exactly as shown in the exampl
       "context_requirements": {
         "use_case": true,
         "external_apis": false,
+        "npm_packages": false,
         "scraped_webpage": false,
         "workspace_scopes": false,
         "existing_files": []
@@ -147,6 +148,7 @@ For each task, suggest which formatted context to include. These are **recommend
 
 - **use_case**: suggest if task needs to understand the user's request (manifest permissions, background logic, content script behavior)
 - **external_apis**: suggest if task makes HTTP/API calls and the summary mentions external APIs (manifest host_permissions, background API calls)
+- **npm_packages**: suggest if task uses an npm package listed under "Available NPM Packages" in the summary (JS files that import or call the package)
 - **scraped_webpage**: suggest if task needs DOM structure or selectors and the summary mentions scraped/target website content (content script, overlay, DOM injection)
 - **workspace_scopes**: suggest if task implements Google Workspace integration and the summary mentions workspace APIs
 - **existing_files**: Array of file names this task depends on (e.g., popup.js needs ["manifest.json", "background.js", "popup.html"])

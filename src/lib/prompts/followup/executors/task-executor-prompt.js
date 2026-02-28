@@ -29,6 +29,8 @@ Description: {{TASK_DESCRIPTION}}
 
 {{CONSOLE_LOGGING_REQUIREMENTS}}
 
+{{NPM_PACKAGE_IMPORT_GUIDANCE}}
+
 <instructions>
 <task>
 1. Implement the task for {{FILE_NAME}} as described (context may contain multiple files for reference, but your patch MUST target only {{FILE_NAME}})

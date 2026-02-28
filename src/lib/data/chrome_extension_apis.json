@@ -124,12 +124,6 @@
       "code_snippet": "// Start a download\nchrome.downloads.download({\n  url: \"https://example.com/file.pdf\",\n  filename: \"downloaded-file.pdf\",\n  saveAs: true\n}, (downloadId) => {\n});\n\n// Search downloads\nchrome.downloads.search({ query: [\"example\"] }, (items) => {\n});\n\n// Listen for download completion\nchrome.downloads.onChanged.addListener((delta) => {\n  if (delta.state && delta.state.current === \"complete\") {\n  }\n});"
     },
     {
-      "name": "runtime",
-      "description": "Use the chrome.runtime API to retrieve the service worker, return details about the manifest, and listen for and respond to events in the extension lifecycle. Most methods don't require permissions.",
-      "permissions": [],
-      "code_snippet": "// Get manifest information\nconst manifest = chrome.runtime.getManifest();\n\n// Listen for extension installation\nchrome.runtime.onInstalled.addListener(({ reason }) => {\n  if (reason === \"install\") {}\n});"
-    },
-    {
       "name": "sidePanel",
       "description": "Host extension content in the browser's side panel, providing persistent contextual UI alongside web content. Available methods: setPanelBehavior(), open(), getOptions(). CRITICAL: There are NO event listeners (no onOpen, no onClose). To detect when side panel opens, use chrome.runtime.connect() from sidepanel.js and listen with chrome.runtime.onConnect in background.js.",
       "permissions": ["sidePanel"],

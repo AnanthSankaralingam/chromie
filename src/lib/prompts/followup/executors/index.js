@@ -9,7 +9,8 @@ import { DEFAULT_MODEL } from '@/lib/constants.js'
 import {
   CONSOLE_LOGGING_REQUIREMENTS,
   ICON_CONFIGURATION,
-  CHROME_MESSAGING_API_RULES
+  CHROME_MESSAGING_API_RULES,
+  NPM_PACKAGE_IMPORT_GUIDANCE
 } from '@/lib/prompts/new-extension/one-shot/shared-content.js'
 
 /**
@@ -34,7 +35,8 @@ function getFileTypeInjections(fileName, frontendType) {
   return {
     ICON_CONFIGURATION: (type === 'json' || type === 'html') ? ICON_CONFIGURATION : '',
     CONSOLE_LOGGING_REQUIREMENTS: type === 'js' ? CONSOLE_LOGGING_REQUIREMENTS : '',
-    CHROME_MESSAGING_RULES: type === 'js' ? CHROME_MESSAGING_API_RULES : ''
+    CHROME_MESSAGING_RULES: type === 'js' ? CHROME_MESSAGING_API_RULES : '',
+    NPM_PACKAGE_IMPORT_GUIDANCE: type === 'js' ? NPM_PACKAGE_IMPORT_GUIDANCE : ''
   }
 }
 
@@ -124,6 +126,7 @@ export async function executeFollowupTask(task, executionContext) {
     .replace('{{ICON_CONFIGURATION}}', injections.ICON_CONFIGURATION)
     .replace('{{CHROME_MESSAGING_RULES}}', injections.CHROME_MESSAGING_RULES)
     .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
+    .replace('{{NPM_PACKAGE_IMPORT_GUIDANCE}}', injections.NPM_PACKAGE_IMPORT_GUIDANCE)
 
   const model = modelOverride || DEFAULT_MODEL
   const provider = llmService.getProviderFromModel(model)

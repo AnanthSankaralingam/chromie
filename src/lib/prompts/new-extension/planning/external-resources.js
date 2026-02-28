@@ -40,7 +40,7 @@ Do NOT suggest API if:
 - Service only offers web scraping (no documented API)
 - Unclear if API exists or is accessible
 - It is a Chrome built-in API (chrome.storage, chrome.tabs, chrome.runtime, etc.) — these are NOT external APIs
-- The endpoint_url would be empty or a chrome.* namespace
+- A redundant NPM package is chosen
 </api_identification>
 
 <common_api_endpoints>
@@ -102,6 +102,11 @@ Remember to be minimal and only suggest packages that are actually needed.
 </output_schema>
 
 Return only valid JSON. No markdown, no explanation. Extract ALL domains from URLs in request.
+
+<implementation_guidelines>
+- Suggest only external resources that are actually needed.
+- Do not suggest redundant resources. For example, if a NPM package can be used for a task, do not suggest an external API for the same thing.
+</implementation_guidelines>
 
 <user_request>
 {USER_REQUEST}
