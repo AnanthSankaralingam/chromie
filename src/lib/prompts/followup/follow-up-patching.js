@@ -1,4 +1,4 @@
-import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+import { ICON_CONFIGURATION, NPM_PACKAGE_IMPORT_GUIDANCE } from '../new-extension/one-shot/shared-content.js';
 
 export const FOLLOW_UP_PATCH_PROMPT = `
 <system>
@@ -16,6 +16,8 @@ Respect and use my existing conventions, libraries, and Chrome APIs that are alr
 </existing_files>
 
 ${ICON_CONFIGURATION}
+
+${NPM_PACKAGE_IMPORT_GUIDANCE}
 
 {TOOL_DESCRIPTIONS}
 

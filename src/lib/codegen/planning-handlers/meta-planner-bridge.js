@@ -51,8 +51,11 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
     allApis = userProvidedApis
       .filter(a => a?.endpoint)
       .map(a => ({ name: a.name || 'User API', endpoint: a.endpoint }))
+  } else if (Array.isArray(userProvidedApis) && userProvidedApis.length === 0) {
+    // User explicitly declined all APIs — include nothing
+    allApis = []
   } else {
-    // No user input — use planner-detected APIs with usable endpoints
+    // No user input yet (null/undefined) — use planner-detected APIs with usable endpoints
     allApis = plannerApis.filter(a => Boolean(a?.endpoint || a?.endpoint_url || a?.url))
   }
   if (allApis.length > 0) {
@@ -63,8 +66,8 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
   // NPM packages (whitelisted, for bundling)
   const npmPackages = externalResourcesResult.npm_packages || []
   if (npmPackages.length > 0) {
-    const pkgLines = npmPackages.map(p => `- ${p.name}: ${p.purpose || 'Use as needed'}`)
-    sections.push(`## NPM Packages\n${pkgLines.join('\n')}`)
+    const pkgLines = npmPackages.map(p => `- ${p.name}: ${p.purpose || 'Use as needed with '}`)
+    sections.push(`## Available NPM Packages\n${pkgLines.join('\n')}`)
   }
 
   // Scraped webpage data availability
@@ -181,7 +184,7 @@ function normalizeMetaPlan(metaPlan, planningSummary, featureRequest = '') {
   const out = structuredClone(metaPlan)
 
   const hasExternalApiInSummary = /## External APIs\s*\n[\s\S]*https?:\/\//i.test(planningSummary || '')
-  const hasNpmPackagesInSummary = /## NPM Packages\s*\n/i.test(planningSummary || '')
+  const hasNpmPackagesInSummary = /## (?:Available )?NPM Packages\s*\n/i.test(planningSummary || '')
   const hasScrapedWebpage = /## Scraped Webpage Data/i.test(planningSummary || '')
   const hasWorkspace = /## Workspace Integration/i.test(planningSummary || '')
 

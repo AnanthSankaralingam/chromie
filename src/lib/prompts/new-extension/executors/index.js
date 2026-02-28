@@ -5,23 +5,11 @@
  */
 
 import { TASK_EXECUTOR_PROMPT } from './task-executor-prompt.js'
-import { getFrontendModule } from './frontend-modules/index.js'
+import { getFrontendModuleForFile } from './frontend-modules/index.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES } from '../one-shot/shared-content.js'
-
-/**
- * Files whose tasks should receive the frontend module injection.
- */
-const UI_FILE_PATTERNS = [
-  'popup', 'sidepanel', 'overlay', 'newtab', 'content', 'styles'
-]
-
-function isUiRelatedFile(fileName) {
-  const lower = fileName.toLowerCase()
-  return UI_FILE_PATTERNS.some(p => lower.includes(p))
-}
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES, NPM_PACKAGE_IMPORT_GUIDANCE } from '../one-shot/shared-content.js'
 
 /**
  * Returns the file type based on extension.
@@ -66,6 +54,7 @@ function getFileTypeInjections(fileName, frontendType) {
     ICON_CONFIGURATION: (type === 'json' || type === 'html') ? ICON_CONFIGURATION : '',
     CONSOLE_LOGGING_REQUIREMENTS: type === 'js' ? CONSOLE_LOGGING_REQUIREMENTS : '',
     CHROME_MESSAGING_RULES: type === 'js' ? CHROME_MESSAGING_API_RULES : '',
+    NPM_PACKAGE_IMPORT_GUIDANCE: type === 'js' ? NPM_PACKAGE_IMPORT_GUIDANCE : '',
     OUTPUT_FORMAT: getOutputFormat(fileName, type)
   }
 }
@@ -227,8 +216,8 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
   // Build context sections
   const contextSections = buildContextSections(task, executionContext)
 
-  // Inject frontend module for UI-related files
-  const frontendModule = isUiRelatedFile(task.file_name) ? getFrontendModule(frontendType) : ''
+  // Inject frontend module only when file name matches that module (e.g. popup.js → popup, content.js → content-injection)
+  const frontendModule = getFrontendModuleForFile(task.file_name)
 
   // Build conditional injections based on file type
   const injections = getFileTypeInjections(task.file_name, frontendType)
@@ -249,6 +238,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     .replace('{{ICON_CONFIGURATION}}', injections.ICON_CONFIGURATION)
     .replace('{{CHROME_MESSAGING_RULES}}', injections.CHROME_MESSAGING_RULES)
     .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
+    .replace('{{NPM_PACKAGE_IMPORT_GUIDANCE}}', injections.NPM_PACKAGE_IMPORT_GUIDANCE)
     .replace('{{OUTPUT_FORMAT}}', injections.OUTPUT_FORMAT)
 
   const model = getModelForFile(task.file_name, modelOverride)

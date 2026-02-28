@@ -31,6 +31,8 @@ Description: {{TASK_DESCRIPTION}}
 
 {{CONSOLE_LOGGING_REQUIREMENTS}}
 
+{{NPM_PACKAGE_IMPORT_GUIDANCE}}
+
 {{OUTPUT_FORMAT}}
 
 <implementation_guidelines>

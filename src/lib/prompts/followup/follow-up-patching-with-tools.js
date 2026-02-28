@@ -1,4 +1,4 @@
-import { ICON_CONFIGURATION } from '../new-extension/one-shot/shared-content.js';
+import { ICON_CONFIGURATION, NPM_PACKAGE_IMPORT_GUIDANCE } from '../new-extension/one-shot/shared-content.js';
 import {
   CHROME_API_SEARCH_TOOL,
   WEB_SCRAPING_TOOL,
@@ -25,6 +25,8 @@ Respect and use my existing conventions, libraries, and Chrome APIs that are alr
 </existing_files>
 
 ${ICON_CONFIGURATION}
+
+${NPM_PACKAGE_IMPORT_GUIDANCE}
 
 {TOOL_DESCRIPTIONS}
 

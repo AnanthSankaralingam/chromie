@@ -69,6 +69,27 @@ body {
 }
 </popup_styling_requirements>`;
 
+export const NPM_PACKAGE_IMPORT_GUIDANCE = `
+<npm_package_import_guidance>
+For npm packages: use \`import * as X from 'package-name'\` instead of named imports.
+- Access named exports as X.foo, default export as X.default
+- You MUST use this package as needed, do not generate placeholder code or use alternative methods.
+</npm_package_import_guidance>`;
+
+/**
+ * Format npm packages for the external resources section.
+ * @param {Array<{name: string, purpose?: string}>} npm_packages - Packages from planning
+ * @returns {string} Formatted section text
+ */
+export function formatNpmPackagesSection(npm_packages) {
+  if (!npm_packages || npm_packages.length === 0) return ''
+  const lines = ['MANDATORY NPM packages — you MUST use these. Add ES6 imports to use:']
+  for (const pkg of npm_packages) {
+    lines.push(`- ${pkg.name}: ${pkg.purpose || 'Use as needed'}`)
+  }
+  return lines.join('\n') + '\n\n'
+}
+
 export const CHROME_MESSAGING_API_RULES = `
 <chrome_messaging_api_rules>
 Chrome Messaging Best Practices:

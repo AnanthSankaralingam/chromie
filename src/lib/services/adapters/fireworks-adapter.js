@@ -36,7 +36,7 @@ export class FireworksAdapter {
 
       const messages = this.normalizeInput(input, conversation_history)
 
-      // Fireworks requires stream=true when max_tokens > 4096; cap for non-streaming
+      // Fireworks API: max_tokens > 4096 requires stream=true; cap non-streaming at 4096
       const effectiveMaxTokens = Math.min(max_output_tokens, 4096)
 
       const payload = {
@@ -113,8 +113,10 @@ export class FireworksAdapter {
 
         if (chunk.choices && chunk.choices.length > 0) {
           const choice = chunk.choices[0]
-          if (choice.delta && choice.delta.content) {
-            yield { type: 'answer_chunk', content: choice.delta.content }
+          const delta = choice?.delta
+          // Yield only delta.content; never delta.reasoning_content (model thoughts)
+          if (delta?.content) {
+            yield { type: 'answer_chunk', content: delta.content }
           }
         }
       }
@@ -237,7 +239,9 @@ export class FireworksAdapter {
    */
   normalizeResponse(response) {
     const choice = response.choices?.[0]
-    const content = choice?.message?.content || ''
+    const msg = choice?.message
+    // Use only content; never include reasoning_content (model thoughts) in output
+    const content = msg?.content ?? ''
     const rawUsage = response.usage
 
     const usage = rawUsage ? {

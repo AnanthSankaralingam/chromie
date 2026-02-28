@@ -57,7 +57,7 @@ export const DEFAULT_MODELS = {
 export const FRONTEND_CONFIDENCE_THRESHOLD = 0.8
 
 // Follow-up difficulty threshold — at or above this score, the meta planner flow is used
-export const FOLLOWUP_DIFFICULTY_THRESHOLD = 0.85
+export const FOLLOWUP_DIFFICULTY_THRESHOLD = 0.7
 
 // Planning phase model configuration
 export const PLANNING_MODELS = {

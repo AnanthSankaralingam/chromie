@@ -1,4 +1,4 @@
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS } from './shared-content.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, NPM_PACKAGE_IMPORT_GUIDANCE } from './shared-content.js';
 
 export const NEW_EXT_POPUP_PROMPT = `You are a Chrome extension development expert. Your task is to implement a Chrome extension with a popup frontend based on the user request.
 

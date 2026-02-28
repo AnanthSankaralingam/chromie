@@ -29,7 +29,7 @@ export default function ErrorDisplay({ error, onSolveInChat, isLoading }) {
         {friendlyError.message}
       </p>
 
-      {onSolveInChat && (
+      {onSolveInChat && classification.type === 'extension' && (
         <div className="flex justify-center">
           <Button
             onClick={handleSolveInChat}
