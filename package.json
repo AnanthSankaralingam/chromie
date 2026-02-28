@@ -76,7 +76,7 @@
     "lodash": "^4.17.21",
     "marked": "^15.0.4",
     "nanoid": "^5.0.9",
-    "pdfjs-dist": "^4.3.136",
+    "unpdf": "^1.4.0",
     "postcss": "^8.5",
     "sortablejs": "^1.15.6",
     "tailwindcss": "^3.4.17",

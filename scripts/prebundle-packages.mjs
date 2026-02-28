@@ -34,7 +34,7 @@ const BROWSER_ENTRY_OVERRIDES = {
 }
 
 // Packages that only have named exports — add default export so "import X from 'pkg'" works
-const PACKAGES_NEED_DEFAULT_EXPORT = ['pdfjs-dist']
+const PACKAGES_NEED_DEFAULT_EXPORT = ['unpdf']
 
 // Clean and recreate vendor directory
 rmSync(VENDOR_DIR, { recursive: true, force: true })

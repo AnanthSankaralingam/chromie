@@ -48,10 +48,10 @@
     "use_cases": ["local storage", "IndexedDB wrapper", "offline data", "caching"]
   },
   {
-    "name": "pdfjs-dist",
-    "version": "4.3.136",
-    "description": "PDF parsing and rendering library maintained by Mozilla",
-    "use_cases": ["PDF text extraction", "PDF rendering", "PDF viewer", "document analysis"]
+    "name": "unpdf",
+    "version": "1.4.0",
+    "description": "PDF parsing and text extraction library",
+    "use_cases": ["PDF text extraction", "PDF parsing", "document analysis"]
   },
   {
     "name": "jszip",

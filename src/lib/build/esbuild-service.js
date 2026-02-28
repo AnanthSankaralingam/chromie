@@ -166,9 +166,12 @@ function packageResolverPlugin(validPackages) {
 export async function buildExtension({ files, planPackages, minify = false }) {
   const errors = []
   const warnings = []
+  console.log('[esbuild] buildExtension started')
 
   // Step 1: Extract and validate npm imports
+  console.log('[esbuild] Step 1: resolving project packages...')
   const { valid, rejected } = resolveProjectPackages(planPackages || [], files)
+  console.log(`[esbuild] Step 1 done: valid=${valid.map(v=>v.name)}, rejected=${rejected}`)
 
   if (rejected.length > 0) {
     const whitelistPreview = getAllWhitelistedNames().slice(0, 10).join(', ')
@@ -190,13 +193,15 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   const validPackageNames = new Set(valid.map(v => v.name))
 
   // Check which valid packages are actually in the vendor cache
+  console.log('[esbuild] Step 2: loading vendor cache...')
   const cache = getVendorCache()
+  console.log(`[esbuild] Step 2 done: vendor cache has ${cache.size} packages`)
   const resolvedPackages = valid.filter(v => cache.has(v.name)).map(v => v.name)
   const missingFromCache = valid.filter(v => !cache.has(v.name)).map(v => v.name)
   if (missingFromCache.length > 0) {
     errors.push({
       file: '',
-      message: `Whitelisted packages not in vendor cache: ${missingFromCache.join(', ')}. Run \`npm run prebundle\` to build the project.`
+      message: `Whitelisted packages not in vendor cache: ${missingFromCache.join(', ')}.`
     })
     return {
       success: false,
@@ -234,7 +239,10 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   const outputFiles = { ...passthroughFiles }
 
   // Step 4: Bundle each JS entry point
+  console.log(`[esbuild] Step 4: bundling ${Object.keys(jsFiles).length} JS files: ${Object.keys(jsFiles).join(', ')}`)
   for (const [entryPath, content] of Object.entries(jsFiles)) {
+    console.log(`[esbuild]   bundling ${entryPath} (${content.length} chars)...`)
+    const fileStart = Date.now()
     try {
       const result = await esbuild.build({
         stdin: {
@@ -254,6 +262,7 @@ export async function buildExtension({ files, planPackages, minify = false }) {
         ],
       })
 
+      console.log(`[esbuild]   bundled ${entryPath} in ${Date.now() - fileStart}ms`)
       if (result.errors.length > 0) {
         for (const err of result.errors) {
           errors.push({ file: entryPath, message: err.text })
@@ -274,6 +283,7 @@ export async function buildExtension({ files, planPackages, minify = false }) {
         outputFiles[outputPath] = content
       }
     } catch (err) {
+      console.error(`[esbuild]   ❌ error bundling ${entryPath} after ${Date.now() - fileStart}ms: ${err.message}`)
       errors.push({ file: entryPath, message: err.message })
       // On failure, include original unbundled file
       outputFiles[entryPath.replace(/^\//, '')] = content
@@ -281,6 +291,7 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   }
 
   // Step 5: Transform CSS files
+  console.log(`[esbuild] Step 5: transforming ${Object.keys(cssFiles).length} CSS files`)
   for (const [entryPath, content] of Object.entries(cssFiles)) {
     try {
       const result = await esbuild.transform(content, {
@@ -314,6 +325,8 @@ export async function buildExtension({ files, planPackages, minify = false }) {
   }
 
   const hasErrors = errors.length > 0
+  console.log(`[esbuild] buildExtension done: success=${!hasErrors}, errors=${errors.length}, outputFiles=${Object.keys(outputFiles).length}`)
+  if (errors.length > 0) console.error('[esbuild] errors:', errors)
   return {
     success: !hasErrors,
     files: outputFiles,
