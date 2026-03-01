@@ -1,10 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { TestTube, ArrowRight } from "lucide-react"
+import { TestTube, Sparkles, Code, Chrome, Zap, Boxes, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import blogPostsData from "@/lib/data/blog-posts.json"
+
+const iconMap = {
+  "test-tube": TestTube,
+  "sparkles": Sparkles,
+  "code": Code,
+  "chrome": Chrome,
+  "zap": Zap,
+  "boxes": Boxes,
+}
 
 export default function BlogSection() {
   // Get featured posts (currently just showing the first 3)
@@ -34,7 +43,10 @@ export default function BlogSection() {
 
         {/* Featured Posts Grid - center when single post, grid when multiple */}
         <div className={`mb-12 ${featuredPosts.length === 1 ? 'flex justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
-          {featuredPosts.map((post, index) => (
+          {featuredPosts.map((post, index) => {
+            const Icon = iconMap[post.icon] || TestTube
+            const iconImage = post.iconImage
+            return (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
@@ -51,8 +63,12 @@ export default function BlogSection() {
                   <div className="relative flex flex-col h-full">
                     {/* Icon */}
                     <div className="mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30 group-hover:scale-110 transition-transform duration-300">
-                        <TestTube className="w-6 h-6 text-gray-400" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30 group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+                        {iconImage ? (
+                          <img src={iconImage} alt="" className="w-8 h-8 object-contain" />
+                        ) : (
+                          <Icon className="w-6 h-6 text-gray-400" />
+                        )}
                       </div>
                     </div>
 
@@ -83,7 +99,8 @@ export default function BlogSection() {
                 </div>
               </Link>
             </motion.div>
-          ))}
+            )
+          })}
         </div>
 
         {/* View All Posts Button */}

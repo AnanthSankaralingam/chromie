@@ -135,26 +135,6 @@ export default function BlogPage() {
             ))}
           </div>
         </div>
-
-        {/* Newsletter Section */}
-        <div className="max-w-3xl mx-auto mt-20">
-          <div className="bg-gradient-to-br from-gray-900/30 to-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-500/30 p-12 text-center">
-            <h2 className="text-3xl font-bold mb-4">stay updated</h2>
-            <p className="text-gray-300 mb-8">
-              get the latest chromie updates delivered straight to your inbox
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gray-500/50 focus:ring-2 focus:ring-gray-500/20"
-              />
-              <button className="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-gray-500/50">
-                Subscribe
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

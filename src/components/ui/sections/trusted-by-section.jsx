@@ -9,6 +9,18 @@ export default function TrustedBySection() {
         </p>
         <div className="flex items-center justify-center gap-16 md:gap-24 opacity-80">
           <a
+            href="https://www.youtube.com/watch?v=SCteMclpA38"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-100 transition-opacity"
+          >
+            <img
+              src="/promptly-logo-128.png"
+              alt="Promptly AI"
+              className="h-10 md:h-12 object-contain"
+            />
+          </a>
+          <a
             href="https://chromewebstore.google.com/detail/omnispeech-ai-deepfake-de/fdaalloapkmfoeelgbhdedlbiplcoahp/"
             target="_blank"
             rel="noopener noreferrer"

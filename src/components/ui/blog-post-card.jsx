@@ -15,6 +15,7 @@ const iconMap = {
 
 export default function BlogPostCard({ post, index }) {
   const Icon = iconMap[post.icon] || TestTube
+  const iconImage = post.iconImage
 
   return (
     <motion.div
@@ -30,8 +31,12 @@ export default function BlogPostCard({ post, index }) {
           <div className="relative p-8 flex flex-col h-full">
             {/* Icon */}
             <div className="mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-purple-500/30 group-hover:scale-110 transition-transform duration-300">
-                <Icon className="w-8 h-8 text-purple-400" />
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-600/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-purple-500/30 group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+                {iconImage ? (
+                  <img src={iconImage} alt="" className="w-10 h-10 object-contain" />
+                ) : (
+                  <Icon className="w-8 h-8 text-purple-400" />
+                )}
               </div>
             </div>
 
