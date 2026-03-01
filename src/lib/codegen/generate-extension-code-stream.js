@@ -5,7 +5,7 @@
 
 import { llmService } from "@/lib/services/llm-service"
 import { selectUnifiedSchema } from "@/lib/response-schemas/unified-schemas"
-import { DEFAULT_MODEL, FOLLOWUP_MODEL } from "@/lib/constants"
+import { DEFAULT_MODEL, FOLLOWUP_MODEL, FIREWORKS_CODEGEN_MAX_TOKENS } from "@/lib/constants"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { containsPatch } from "@/lib/codegen/patching-handlers/patch-applier"
 import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-handlers/json-extractor"
@@ -313,7 +313,13 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     }
 
-    // Handle new request with other providers
+    // Fireworks (Kimi K2.5): use streaming for higher token limit + clean content/reasoning separation
+    if (provider === 'fireworks') {
+      yield* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
+      return
+    }
+
+    // Handle new request with other providers (Anthropic, OpenAI)
     yield* handleStandardResponseFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images, thinkingLevel)
 
   } catch (err) {
@@ -406,6 +412,64 @@ async function* handleGeminiStreamingFlow(provider, modelUsed, finalPrompt, json
     }
   }
   
+  yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
+}
+
+/**
+ * Handles Fireworks (Kimi K2.5) streaming flow.
+ * Uses streaming for higher token limits (65536) and ensures reasoning_content is never mixed with content.
+ */
+async function* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+  console.log("[generateExtensionCodeStream] Using Fireworks streaming", images ? `with ${images.length} images` : '')
+
+  let combinedText = ''
+  let exactTokenUsage = null
+
+  let input = finalPrompt
+  if (images && images.length > 0) {
+    input = { text: finalPrompt, images }
+  }
+
+  for await (const s of llmService.streamResponse({
+    provider,
+    model: modelUsed,
+    input,
+    temperature: 0.2,
+    max_output_tokens: FIREWORKS_CODEGEN_MAX_TOKENS,
+    response_format: jsonSchema,
+    session_id: sessionId,
+    thinkingConfig: null // Fireworks uses reasoning_effort in adapter; we only consume content
+  })) {
+    if (s?.type === 'answer_chunk' || s?.type === 'content') {
+      combinedText += s.content
+    } else if (s?.type === 'token_usage') {
+      exactTokenUsage = s.usage
+      console.log('[generateExtensionCodeStream] Fireworks streaming token usage:', exactTokenUsage)
+    }
+  }
+
+  const response = { output_text: combinedText, usage: exactTokenUsage || { total_tokens: 0 } }
+  const { tokensUsedThisRequest } = processResponseMetadata(response, conversationTokenTotal)
+
+  yield { type: "token_usage", total: tokensUsedThisRequest }
+  yield { type: "complete", content: combinedText }
+
+  if (usePatchingMode) {
+    console.log('🔧 [Fireworks Patch Mode] Raw LLM output:')
+    console.log('─'.repeat(80))
+    console.log(combinedText)
+    console.log('─'.repeat(80))
+  }
+
+  if (usePatchingMode && containsPatch(combinedText)) {
+    yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelUsed, sessionId, replacements, originalUserRequest, replacements.supabase)
+  } else {
+    if (usePatchingMode) {
+      console.log('⚠️ [Fireworks] Patching mode was active but no patch detected in output')
+    }
+    yield* handleReplacementMode(combinedText, sessionId, replacements, "Fireworks stream", originalUserRequest)
+  }
+
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }
 }
 

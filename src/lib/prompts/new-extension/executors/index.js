@@ -253,7 +253,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     model,
     input: prompt,
     temperature: 0.2,
-    max_output_tokens: 12000,
+    max_output_tokens: 20000,
     store: false,
     thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
   })
