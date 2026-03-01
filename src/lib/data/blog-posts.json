@@ -1,20 +1,67 @@
 [
   {
+    "id": "why-we-built-chromie",
+    "title": "Why we built chromie",
+    "slug": "why-we-built-chromie",
+    "excerpt": "The founder of Promptly AI (20K users, acquired) shares how extension development frustrations led to building chromie.dev—an AI-centered ecosystem designed for extension developers.",
+    "date": "Mar 1",
+    "year": "2026",
+    "category": "Founder Story",
+    "icon": "chrome",
+    "iconImage": "/promptly-logo-128.png",
+    "authors": [{"name": "Ananth from chromie.dev", "avatar": "/chromie-logo-1.png"}],
+    "tags": ["founder story", "Promptly AI", "Chrome extension", "product development"],
+    "body": [
+      {"type": "h2", "text": "From Promptly to chromie"},
+      {"type": "p", "text": "For the past year, I've dedicated myself to building and growing Promptly AI, a prompt engineering Chrome extension with 20,000 users that was recently acquired by another startup."},
+      {"type": "p", "text": "My journey with Promptly began simply: I recognized the immense power of AI chatbots, but also the frustration of prompt engineering. Getting the best results was often tedious, and many users didn't know where to start. My goal was to solve a problem I personally experienced by creating a very simple Chrome extension.", "links": {"Promptly AI": "https://www.youtube.com/watch?v=SCteMclpA38"}},
+      {"type": "p", "text": "Promptly's core feature was a one-click prompt optimizer. It injected a button into services like ChatGPT, extracted the user's current prompt, and replaced it with an optimized, \"engineered\" version. The technology under the hood was straightforward: an LLM tasked with refining input to another LLM—it was AI for AI."},
+      {"type": "h2", "text": "Battling development friction"},
+      {"type": "p", "text": "However, while the core product concept was simple, the process of building and maintaining the extension was anything but. I was constantly battling development friction:"},
+      {"type": "ul", "items": [
+        "Dealing with complex and often confusing Chrome APIs.",
+        "The tedious process of scraping and adapting to changing website structures.",
+        "The slow, convoluted cycle of having to manually reload the extension after every single code edit."
+      ]},
+      {"type": "p", "text": "This constant struggle with the convoluted Chrome extension development process sparked my next idea. I built chromie.dev because I was my first customer."},
+      {"type": "h2", "text": "Building chromie.dev"},
+      {"type": "p", "text": "I realized the community needed a dedicated, streamlined environment. chromie.dev is not just another AI coding tool; it's a complete ecosystem designed to eliminate the friction I faced. My vision was clear: to create an AI-centered coding tool that integrates essential features for real-world projects—including built-in testing, easy sharing, and painless deployment."},
+      {"type": "p", "text": "While it's true that any AI tool can help generate an extension, chromie.dev's differentiation is in its focus. It's built by an extension developer for the extension developer. It's designed for the side project you want to take public, solving the exact pain points that nearly derailed Promptly AI."}
+    ]
+  },
+  {
     "id": "testing-features-launch",
     "title": "Testing Features for Chrome Extensions",
     "slug": "testing-features-launch",
     "excerpt": "Manually testing Chrome extensions is tedious. Click through your extension, check if it works, make a change, repeat. We got tired of it, so we built something better: automated tests that actually understand what your extension does.",
     "content": "Manually testing Chrome extensions is tedious. Click through your extension, check if it works, make a change, repeat. We got tired of it, so we built something better: automated tests that actually understand what your extension does.",
-    "date": "Jan 22",
+    "date": "Jan 29",
     "year": "2026",
     "category": "Engineering",
     "icon": "test-tube",
-    "authors": [
-      {
-        "name": "Chromie Team",
-        "avatar": "/chromie-logo-1.png"
-      }
-    ],
+    "authors": [{"name": "Akshay from chromie.dev", "avatar": "/chromie-logo-1.png"}],
     "tags": ["testing", "chrome extensions", "automation", "AI"]
+  },
+  {
+    "id": "omnispeech-first-customer",
+    "title": "How chromie.dev Secured Its First Customer: OmniSpeech",
+    "slug": "omnispeech-first-customer",
+    "excerpt": "After customer interviews revealed mixed interest, a chance meeting at a University of Maryland startup conference led to chromie.dev's first customer—OmniSpeech, an AI deepfake detection platform.",
+    "date": "Feb 25",
+    "year": "2026",
+    "category": "Customer Story",
+    "icon": "sparkles",
+    "iconImage": "/omnispeech_logo.png",
+    "authors": [{"name": "Ananth from chromie.dev", "avatar": "/chromie-logo-1.png"}],
+    "tags": ["customer story", "OmniSpeech", "Chrome extension", "product-market fit"],
+    "body": [
+      {"type": "h2", "text": "Finding our first customer"},
+      {"type": "p", "text": "After building the initial prototype for chromie.dev, we were eager to pitch the product we had so excitedly built. However, after conducting several customer interviews, we realized our product wasn't as unanimously exciting as we had thought. We remained bullish on chromie, but understood that some companies didn't have a real need for our product. Until we met OmniSpeech.", "links": {"OmniSpeech": "https://chromewebstore.google.com/detail/omnispeech-ai-deepfake-de/fdaalloapkmfoeelgbhdedlbiplcoahp"}},
+      {"type": "p", "text": "I ran into David at a start-up conference at the University of Maryland, where he initially pitched me his product, OmniSpeech, an AI deepfake detection platform. Curious, I asked how he monetized the powerful technology, to which he mentioned their Zoom AI Detection. Almost instinctively, I asked if they had brought the product to Chrome. They hadn't, and now it was my turn to pitch! I explained chromie.dev's value proposition to David, explaining that their sole focus will/should remain building their Deepfake Technology and chromie will bridge their gap to a Chrome Extension. To my surprise, he agreed! chromie.dev finally secured its first customer, and identified a new segment of product-customer fit."},
+      {"type": "h2", "text": "From handshake to contract"},
+      {"type": "p", "text": "After some demos and contract negotiations, we finally signed our contract with OmniSpeech! Our prototype was ready the same day, and in the following weeks, we met with OmniSpeech to integrate their API updates into the extension."},
+      {"type": "h2", "text": "Beta testing and launch"},
+      {"type": "p", "text": "Leveraging chromie's secure sharing, we easily added beta testers to the extension without directly publishing to the Chrome Web Store. After some minor bugs and styling issues were complete, we were ready to go to market. Using our novel Deployment Wizard, we swiftly met Chrome Web Store publishing requirements and posted their now live extension!"}
+    ]
   }
 ]

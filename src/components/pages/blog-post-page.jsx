@@ -17,6 +17,24 @@ const iconMap = {
   "boxes": Boxes,
 }
 
+function renderTextWithLinks(text, links) {
+  if (!links || Object.keys(links).length === 0) return text
+  const entries = Object.entries(links)
+  const firstEntry = entries.find(([key]) => text.includes(key))
+  if (!firstEntry) return text
+  const [linkText, href] = firstEntry
+  const idx = text.indexOf(linkText)
+  const before = text.slice(0, idx)
+  const after = text.slice(idx + linkText.length)
+  const remainingLinks = Object.fromEntries(entries.filter(([k]) => k !== linkText))
+  const rest = Object.keys(remainingLinks).length > 0 ? renderTextWithLinks(after, remainingLinks) : after
+  return [
+    before,
+    <a key={linkText} href={href} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">{linkText}</a>,
+    ...(Array.isArray(rest) ? rest : [rest]),
+  ]
+}
+
 export default function BlogPostPage({ slug }) {
   const [post, setPost] = useState(null)
 
@@ -37,6 +55,7 @@ export default function BlogPostPage({ slug }) {
   }
 
   const Icon = iconMap[post.icon] || TestTube
+  const iconImage = post.iconImage
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
@@ -104,8 +123,12 @@ export default function BlogPostPage({ slug }) {
           >
             {/* Icon */}
             <div className="mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30">
-                <Icon className="w-10 h-10 text-gray-400" />
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30 overflow-hidden">
+                {iconImage ? (
+                  <img src={iconImage} alt="" className="w-12 h-12 object-contain" />
+                ) : (
+                  <Icon className="w-10 h-10 text-gray-400" />
+                )}
               </div>
             </div>
 
@@ -153,6 +176,26 @@ export default function BlogPostPage({ slug }) {
             className="prose prose-invert prose-lg max-w-none"
           >
             <div className="bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700/50 p-8 md:p-12">
+              {post.body ? (
+                post.body.map((block, i) => (
+                  block.type === "h2" ? (
+                    <h2 key={i} className="text-3xl font-bold text-white mt-12 mb-6">{block.text}</h2>
+                  ) : block.type === "h3" ? (
+                    <h3 key={i} className="text-xl font-semibold text-gray-200 mt-8 mb-4">{block.text}</h3>
+                  ) : block.type === "ul" ? (
+                    <ul key={i} className="list-disc list-inside text-gray-300 space-y-2 mb-8 ml-4">
+                      {block.items.map((item, j) => (
+                        <li key={j} className="leading-relaxed">{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p key={i} className={`text-gray-300 leading-relaxed mb-8 ${i === 0 ? "text-xl" : ""}`}>
+                      {block.links ? renderTextWithLinks(block.text, block.links) : block.text}
+                    </p>
+                  )
+                ))
+              ) : (
+                <>
               <p className="text-xl text-gray-300 leading-relaxed mb-8">
                 Here's the thing about testing Chrome extensions: it sucks. You make a change, load the extension manually, click around to see if it works, check the console for errors, then do it all over again for the next change.
               </p>
@@ -270,6 +313,8 @@ export default function BlogPostPage({ slug }) {
                   </button>
                 </Link>
               </div>
+                </>
+              )}
             </div>
           </motion.article>
 
