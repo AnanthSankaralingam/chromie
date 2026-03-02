@@ -182,7 +182,7 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
         model,
         input: repairPrompt,
         temperature: 0.1,
-        max_output_tokens: 16000,
+        max_output_tokens: 32000,
         store: false,
         thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
       })
@@ -252,7 +252,7 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       model,
       input: harnessPrompt,
       temperature: 0.1,
-      max_output_tokens: 12000,
+      max_output_tokens: 32000,
       store: false,
       thinkingConfig: supportsThinking ? { includeThoughts: true, thinkingLevel: 'LOW' } : null
     })

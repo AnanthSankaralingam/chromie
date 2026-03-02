@@ -1,5 +1,7 @@
 // fireworks-adapter.js
 // Fireworks AI adapter using OpenAI-compatible SDK for Kimi K2.5 and other Fireworks models
+// Kimi K2.5 is a reasoning model: reasoning_content = model thoughts, content = final output only.
+// We ALWAYS use content and NEVER reasoning_content to avoid thought leakage into code.
 import OpenAI from 'openai'
 
 export class FireworksAdapter {
@@ -13,7 +15,24 @@ export class FireworksAdapter {
   }
 
   /**
+   * Strip any reasoning/thinking blocks that may have leaked into content.
+   * Safety net in case the API ever returns reasoning mixed with content.
+   * @param {string} text - Raw content
+   * @returns {string} Content with reasoning blocks removed
+   */
+  stripReasoningFromContent(text) {
+    if (!text || typeof text !== 'string') return text || ''
+    let out = text
+    // Remove <think>...</think>
+    out = out.replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // Remove <thinking>...</thinking>
+    out = out.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    return out.trim()
+  }
+
+  /**
    * Create a response using Fireworks API (OpenAI-compatible)
+   * For max_output_tokens > 4096, uses streaming internally (Fireworks requires stream for higher limits).
    * @param {Object} params - Request parameters
    * @returns {Promise<Object>} Response object
    */
@@ -31,20 +50,30 @@ export class FireworksAdapter {
       console.log('[fireworks-adapter] createResponse', {
         model,
         has_conversation_history: conversation_history.length > 0,
-        has_response_format: Boolean(response_format)
+        has_response_format: Boolean(response_format),
+        max_output_tokens
       })
 
       const messages = this.normalizeInput(input, conversation_history)
 
-      // Fireworks API: max_tokens > 4096 requires stream=true; cap non-streaming at 4096
-      const effectiveMaxTokens = Math.min(max_output_tokens, 4096)
+      // Fireworks API: max_tokens > 4096 requires stream=true; use streaming internally for higher limits
+      if (max_output_tokens > 4096) {
+        return await this.createResponseViaStreaming({
+          model,
+          messages,
+          response_format,
+          temperature,
+          max_output_tokens
+        })
+      }
 
       const payload = {
         model,
         messages,
         temperature,
-        max_tokens: effectiveMaxTokens,
-        stream: false
+        max_tokens: max_output_tokens,
+        stream: false,
+        reasoning_effort: 'low' // Minimize thinking for code output; keep tokens for actual content
       }
 
       if (response_format) {
@@ -61,6 +90,65 @@ export class FireworksAdapter {
     } catch (error) {
       console.error('[fireworks-adapter] createResponse error:', error)
       throw error
+    }
+  }
+
+  /**
+   * Create response via streaming when max_tokens > 4096.
+   * Collects only content chunks (never reasoning_content), returns normalized response.
+   */
+  async createResponseViaStreaming({
+    model,
+    messages,
+    response_format,
+    temperature,
+    max_output_tokens
+  }) {
+    const payload = {
+      model,
+      messages,
+      temperature,
+      max_tokens: max_output_tokens,
+      stream: true,
+      reasoning_effort: 'low'
+    }
+
+    if (response_format) {
+      const normalized = this.normalizeResponseFormat(response_format)
+      if (normalized) payload.response_format = normalized
+    }
+
+    const stream = await this.client.chat.completions.create(payload)
+
+    let content = ''
+    let promptTokens = 0
+    let completionTokens = 0
+
+    for await (const chunk of stream) {
+      if (chunk.usage) {
+        promptTokens = chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0
+        completionTokens = chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0
+      }
+      if (chunk.choices?.[0]?.delta?.content) {
+        content += chunk.choices[0].delta.content
+      }
+    }
+
+    const usage = {
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: promptTokens + completionTokens,
+      total: promptTokens + completionTokens
+    }
+    console.log('[fireworks-adapter] createResponseViaStreaming token usage:', usage)
+
+    content = this.stripReasoningFromContent(content)
+
+    return {
+      id: null,
+      output_text: content,
+      usage,
+      choices: [{ message: { content } }]
     }
   }
 
@@ -91,7 +179,8 @@ export class FireworksAdapter {
         messages,
         temperature,
         max_tokens: max_output_tokens,
-        stream: true
+        stream: true,
+        reasoning_effort: 'low' // Minimize thinking; content only for code output
       }
 
       if (response_format) {
@@ -105,17 +194,14 @@ export class FireworksAdapter {
       let completionTokens = 0
 
       for await (const chunk of stream) {
-        // Capture usage if provided in the final chunk
         if (chunk.usage) {
           promptTokens = chunk.usage.prompt_tokens ?? chunk.usage.input_tokens ?? 0
           completionTokens = chunk.usage.completion_tokens ?? chunk.usage.output_tokens ?? 0
         }
-
-        if (chunk.choices && chunk.choices.length > 0) {
-          const choice = chunk.choices[0]
-          const delta = choice?.delta
-          // Yield only delta.content; never delta.reasoning_content (model thoughts)
-          if (delta?.content) {
+        if (chunk.choices?.[0]?.delta) {
+          const delta = chunk.choices[0].delta
+          // CRITICAL: Yield only delta.content (final output). NEVER delta.reasoning_content (model thoughts).
+          if (delta.content) {
             yield { type: 'answer_chunk', content: delta.content }
           }
         }
@@ -240,8 +326,9 @@ export class FireworksAdapter {
   normalizeResponse(response) {
     const choice = response.choices?.[0]
     const msg = choice?.message
-    // Use only content; never include reasoning_content (model thoughts) in output
-    const content = msg?.content ?? ''
+    // Use only content; NEVER reasoning_content (model thoughts). Strip any leaked reasoning as safety net.
+    let content = msg?.content ?? ''
+    content = this.stripReasoningFromContent(content)
     const rawUsage = response.usage
 
     const usage = rawUsage ? {

@@ -36,6 +36,10 @@ export const DEFAULT_PROVIDER = 'fireworks'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
 
+// Fireworks/Kimi K2.5: reasoning model; use content only, never reasoning_content
+// Higher limits require streaming (non-streaming capped at 4096)
+export const FIREWORKS_CODEGEN_MAX_TOKENS = 32768
+
 // Supported providers
 export const SUPPORTED_PROVIDERS = {
   GEMINI: 'gemini',
