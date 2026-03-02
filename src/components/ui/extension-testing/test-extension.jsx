@@ -148,6 +148,10 @@ export default function useTestExtension(currentProjectId) {
         })
       }, 1000)
 
+      // Use mobile-friendly viewport when client is on mobile for vertical testing (Hyperbrowser min width: 500)
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+      const viewport = isMobile ? { width: 800, height: 1280 } : null
+
       const createPromise = fetch(`/api/projects/${currentProjectId}/test-extension`, {
         method: "POST",
         headers: {
@@ -156,6 +160,7 @@ export default function useTestExtension(currentProjectId) {
         body: JSON.stringify({
           awaitPinExtension: options?.awaitPinExtension === true,
           isRunTests: options?.autoRunHyperAgent === true,
+          viewport,
         }),
       })
       pendingCreateRef.current = createPromise

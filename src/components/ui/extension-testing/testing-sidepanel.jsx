@@ -43,7 +43,7 @@ export default function TestingSidepanel({
   const canRunTests = isSessionActive && !isRunningBasicTests && !isRunningAiAgentTests
 
   return (
-    <aside className="w-[380px] max-w-[42vw] border-l border-gray-200 bg-white flex flex-col overflow-hidden min-h-0">
+    <aside className="w-full md:w-[380px] md:max-w-[42vw] border-t md:border-t-0 md:border-l border-gray-200 bg-white flex flex-col overflow-hidden min-h-0 max-h-[45vh] md:max-h-none flex-shrink-0">
       <div className="flex-1 overflow-y-auto bg-white scroll-area-white">
         <div className="px-4 pt-4 pb-2">
           {showTestingSection && (
@@ -225,7 +225,8 @@ export default function TestingSidepanel({
           {!showTestingSection && (
             <>
               <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                This is a simulated Chrome browser. Test your extension by clicking the puzzle icon in the toolbar or invoking its expected behavior. Logs shown below.
+                This is a simulated Chrome browser. Test your extension by clicking the puzzle icon in the toolbar or invoking its expected behavior.
+                <span className="hidden md:inline"> Logs shown below.</span>
               </p>
               <p className="text-xs text-gray-500 mb-3 leading-relaxed">
                 If you run into bot detection, try refreshing typing a website full URL into the address bar instead of using Google.
@@ -233,19 +234,21 @@ export default function TestingSidepanel({
             </>
           )}
           {showTestingSection && (
-            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            <p className="hidden md:block text-xs text-gray-500 mb-3 leading-relaxed">
               logs from your extension appear below.
             </p>
           )}
-          <ConsoleLogViewer
-            sessionId={sessionId}
-            projectId={projectId}
-            isSessionActive={isSessionActive}
-            onLogsReady={handleLogsReady}
-            clearLogsTrigger={clearLogsTrigger}
-            flow
-            light
-          />
+          <div className="hidden md:block">
+            <ConsoleLogViewer
+              sessionId={sessionId}
+              projectId={projectId}
+              isSessionActive={isSessionActive}
+              onLogsReady={handleLogsReady}
+              clearLogsTrigger={clearLogsTrigger}
+              flow
+              light
+            />
+          </div>
         </div>
       </div>
     </aside>

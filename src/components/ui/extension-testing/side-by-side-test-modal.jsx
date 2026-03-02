@@ -441,6 +441,15 @@ export default function SideBySideTestModal({
     puppeteerTestResult,
   ])
 
+  // Prevent body scroll when modal is open (especially important on mobile)
+  // IMPORTANT: Must be before early return to keep hook order stable.
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = prev }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
@@ -756,16 +765,20 @@ export default function SideBySideTestModal({
     }
   }
 
-  // Get viewport dimensions from sessionData, with fallbacks
+  // Get viewport dimensions from sessionData, with fallbacks (used for desktop layout)
   const viewportWidth = sessionData?.browserInfo?.viewport?.width || 1920;
   const viewportHeight = sessionData?.browserInfo?.viewport?.height || 1080;
 
   // Estimate extra height for modal header and footer
   const modalExtraHeight = 56 + 50; // Total ~106px
 
+  // Mobile: full viewport (handled by w-full h-full). Desktop: use session dimensions.
+  const desktopWidth = Math.min(viewportWidth, 1920);
+  const desktopHeight = Math.min(viewportHeight + modalExtraHeight, 1200);
+
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 md:p-4 overflow-hidden"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleClose()
@@ -773,37 +786,36 @@ export default function SideBySideTestModal({
       }}
     >
       <div
-        className="bg-white rounded-lg shadow-xl flex flex-col overflow-hidden"
+        className="bg-white rounded-none md:rounded-lg shadow-xl flex flex-col overflow-hidden
+          w-full h-full max-w-full max-h-full
+          md:w-[var(--modal-width)] md:h-[var(--modal-height)] md:min-w-[320px] md:min-h-[200px] md:max-w-[95vw] md:max-h-[95vh]"
         style={{
-          width: `${viewportWidth}px`,
-          height: `${viewportHeight + modalExtraHeight}px`,
-          minWidth: '320px',
-          minHeight: '200px',
-          maxWidth: '95vw',
-          maxHeight: '95vh',
+          // CSS vars for desktop: use session dimensions, capped for safety
+          "--modal-width": `${desktopWidth}px`,
+          "--modal-height": `${desktopHeight}px`,
         }}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
+        <div className="px-3 md:px-6 py-3 md:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 flex-shrink-0">
+          <div className="flex items-center space-x-2 md:space-x-4 min-w-0">
+            <div className="flex items-center space-x-2 min-w-0">
               <ExternalLink
                 className={cn(
-                  "h-5 w-5",
+                  "h-4 w-4 md:h-5 md:w-5 flex-shrink-0",
                   sessionData?.status === 'active' ? "text-green-600" : "text-gray-400"
                 )}
               />
-              <h2 className="text-lg font-semibold text-gray-900">extension test environment</h2>
+              <h2 className="text-sm md:text-lg font-semibold text-gray-900 truncate">extension test environment</h2>
             </div>
 
             {sessionData && (
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-xs md:text-sm text-gray-500 flex-shrink-0">
                 <span>session: {sessionData.sessionId?.slice(-8)}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
             {/* Session Timer */}
             {sessionData?.expiresAt && !sessionExpired && (
               <SessionTimer
@@ -824,21 +836,21 @@ export default function SideBySideTestModal({
           </div>
         </div>
 
-        {/* Main Content - Browser (left) + Testing Sidepanel (right) */}
-        <div className="flex-1 flex overflow-hidden bg-white">
-          {/* Left Column */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Main Content - Browser (left/top) + Testing Sidepanel (right/bottom) */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-white min-h-0">
+          {/* Left Column / Top on mobile */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0 md:min-h-[200px]">
             {/* Browser Panel */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <Monitor className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">
+            <div className="flex-1 flex flex-col overflow-hidden min-h-[200px] md:min-h-0">
+              <div className="px-3 md:px-4 py-2 bg-white border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <Monitor className="h-4 w-4 text-gray-600 flex-shrink-0" />
+                  <span className="text-xs md:text-sm font-medium text-gray-700 truncate">
                     {isViewingDemo && demoVideoUrl ? "demo video recording" : "live browser session"}
                   </span>
                 </div>
                 {/* Demo recording controls (moved from top bar) */}
-                <div className="flex items-center space-x-2 relative">
+                <div className="flex items-center space-x-2 relative flex-wrap">
                   <Button
                     variant={isRecordingDemo ? "destructive" : "outline"}
                     size="sm"
@@ -898,7 +910,7 @@ export default function SideBySideTestModal({
                 </div>
               </div>
 
-              <div className="flex-1 relative overflow-hidden">
+              <div className="flex-1 relative overflow-auto md:overflow-hidden">
                 {isViewingDemo && demoVideoUrl ? (
                   <div className="absolute inset-0 bg-black flex items-center justify-center">
                     <div className="w-full h-full bg-black flex items-center justify-center">
@@ -1019,19 +1031,29 @@ export default function SideBySideTestModal({
                     />
                   </div>
                 ) : sessionData?.iframeUrl ? (
-                  <iframe
-                    src={iframeSrc}
-                    className="absolute inset-0 w-full h-full border-0"
-                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
-                    allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
-                    loading="eager"
-                    title="testing session"
-                    style={{
-                      transform: "translateZ(0)",
-                      willChange: "transform",
-                      backfaceVisibility: "hidden",
-                    }}
-                  />
+                  <div
+                    className="absolute inset-0 min-w-full min-h-full"
+                    style={
+                      viewportWidth < 1000
+                        ? { minWidth: viewportWidth, minHeight: viewportHeight }
+                        : undefined
+                    }
+                  >
+                    <iframe
+                      src={iframeSrc}
+                      className="absolute inset-0 w-full h-full border-0"
+                      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+                      allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
+                      loading="eager"
+                      title="testing session"
+                      style={{
+                        transform: "translateZ(0)",
+                        willChange: "transform",
+                        backfaceVisibility: "hidden",
+                        touchAction: "manipulation",
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-white">
                     <div className="text-center">

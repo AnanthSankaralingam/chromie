@@ -522,6 +522,16 @@ export default function AppBarBuilder({
       {isMobileMenuOpen && (
         <div className="sm:hidden border-t border-white/10 mt-3 pt-3">
           <div className="flex flex-col space-y-3">
+            <Button
+              id={tourTestButtonId ? `${tourTestButtonId}-mobile` : undefined}
+              onClick={() => { handleTestClick(); setIsMobileMenuOpen(false) }}
+              disabled={isTestDisabled || isGenerating}
+              variant="ghost"
+              className="w-full rounded-full font-semibold bg-slate-50 text-slate-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              try it out
+            </Button>
             <DropdownMenu open={isAITestDropdownOpen} onOpenChange={setIsAITestDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
