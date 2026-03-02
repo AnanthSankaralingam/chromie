@@ -225,7 +225,8 @@ export default function TestingSidepanel({
           {!showTestingSection && (
             <>
               <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                This is a simulated Chrome browser. Test your extension by clicking the puzzle icon in the toolbar or invoking its expected behavior. Logs shown below.
+                This is a simulated Chrome browser. Test your extension by clicking the puzzle icon in the toolbar or invoking its expected behavior.
+                <span className="hidden md:inline"> Logs shown below.</span>
               </p>
               <p className="text-xs text-gray-500 mb-3 leading-relaxed">
                 If you run into bot detection, try refreshing typing a website full URL into the address bar instead of using Google.
@@ -233,19 +234,21 @@ export default function TestingSidepanel({
             </>
           )}
           {showTestingSection && (
-            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            <p className="hidden md:block text-xs text-gray-500 mb-3 leading-relaxed">
               logs from your extension appear below.
             </p>
           )}
-          <ConsoleLogViewer
-            sessionId={sessionId}
-            projectId={projectId}
-            isSessionActive={isSessionActive}
-            onLogsReady={handleLogsReady}
-            clearLogsTrigger={clearLogsTrigger}
-            flow
-            light
-          />
+          <div className="hidden md:block">
+            <ConsoleLogViewer
+              sessionId={sessionId}
+              projectId={projectId}
+              isSessionActive={isSessionActive}
+              onLogsReady={handleLogsReady}
+              clearLogsTrigger={clearLogsTrigger}
+              flow
+              light
+            />
+          </div>
         </div>
       </div>
     </aside>

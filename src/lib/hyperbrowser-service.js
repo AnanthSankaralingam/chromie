@@ -171,7 +171,7 @@ export class HyperbrowserService {
   async createTestSession(extensionFiles = {}, projectId, userId = null, supabaseClient = null, options = {}) {
     try {
       console.log("[HYPERBROWSER-SERVICE] 🚀 createTestSession called")
-      const { autoPinExtension = true, awaitPinExtension = false } = options || {}
+      const { autoPinExtension = true, awaitPinExtension = false, viewport: viewportOverride } = options || {}
       
       if (!this.apiKey || !this.client) {
         console.error("[HYPERBROWSER-SERVICE] ❌ Missing HYPERBROWSER_API_KEY")
@@ -198,11 +198,19 @@ export class HyperbrowserService {
 
       const profileId = profileResult?.profileId || null
       
+      // Use mobile viewport (e.g. 390x844) when client requests it for vertical-friendly testing on mobile devices
+      const sessionViewport = viewportOverride && viewportOverride.width && viewportOverride.height
+        ? viewportOverride
+        : { width: 1920, height: 1080 }
+      if (viewportOverride) {
+        console.log("[HYPERBROWSER-SERVICE] 📱 Using mobile viewport:", sessionViewport.width, "x", sessionViewport.height)
+      }
+
       const sessionCreatePayload = {
         // Hyperbrowser session configuration
-        // viewport: 1920x1080 for web (main focus). Cloud browser stays desktop-sized regardless of client device.
-        // For mobile clients, the modal UI adapts responsively; session dimensions stay unchanged.
-        viewport: { width: 1920, height: 1080 },
+        // screen: 1920x1080 for web (default). 720x1280 for mobile clients (portrait, vertical-friendly).
+        screen: sessionViewport,
+        ...(viewportOverride && { device: ["mobile"] }),
         blockAds: false,
         timeoutMinutes: 3,
         enableWindowManager: true,
@@ -264,7 +272,7 @@ export class HyperbrowserService {
         expiresAt: sessionDetails.expiresAt || session.expiresAt || null,
         browserInfo: {
           userAgent: "Chrome Extension Tester",
-          viewport: { width: 1920, height: 1080 },
+          viewport: sessionViewport,
         },
         connectUrl: sessionDetails.wsEndpoint || sessionDetails.connectUrl,
         seleniumRemoteUrl: sessionDetails.seleniumRemoteUrl,

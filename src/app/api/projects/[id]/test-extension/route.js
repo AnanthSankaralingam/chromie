@@ -213,14 +213,17 @@ export async function POST(request, { params }) {
       : BROWSER_SESSION_CONFIG.SESSION_DURATION_MINUTES
     const sessionExpiryTime = new Date(now.getTime() + (remainingMinutes * 60 * 1000))
 
-    console.log(`[test-extension] Creating hyperbrowser session (awaitPinExtension=${awaitPinExtension}, files=${extensionFiles.length})...`)
+    const viewport = body?.viewport && typeof body.viewport === "object" && body.viewport.width && body.viewport.height
+      ? body.viewport
+      : null
+    console.log(`[test-extension] Creating hyperbrowser session (awaitPinExtension=${awaitPinExtension}, files=${extensionFiles.length}, viewport=${viewport ? `${viewport.width}x${viewport.height}` : "default"})...`)
     const sessionStart = Date.now()
     const session = await hyperbrowserService.createTestSession(
       extensionFiles,
       id,
       user.id,
       supabase,
-      { awaitPinExtension }
+      { awaitPinExtension, viewport }
     )
     console.log(`[test-extension] createTestSession completed in ${Date.now() - sessionStart}ms`)
 

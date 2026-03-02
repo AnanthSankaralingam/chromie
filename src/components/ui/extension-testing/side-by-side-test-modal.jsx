@@ -441,6 +441,15 @@ export default function SideBySideTestModal({
     puppeteerTestResult,
   ])
 
+  // Prevent body scroll when modal is open (especially important on mobile)
+  // IMPORTANT: Must be before early return to keep hook order stable.
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = prev }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
@@ -767,14 +776,6 @@ export default function SideBySideTestModal({
   const desktopWidth = Math.min(viewportWidth, 1920);
   const desktopHeight = Math.min(viewportHeight + modalExtraHeight, 1200);
 
-  // Prevent body scroll when modal is open (especially important on mobile)
-  useEffect(() => {
-    if (!isOpen) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => { document.body.style.overflow = prev }
-  }, [isOpen])
-
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 md:p-4 overflow-hidden"
@@ -909,7 +910,7 @@ export default function SideBySideTestModal({
                 </div>
               </div>
 
-              <div className="flex-1 relative overflow-hidden">
+              <div className="flex-1 relative overflow-auto md:overflow-hidden">
                 {isViewingDemo && demoVideoUrl ? (
                   <div className="absolute inset-0 bg-black flex items-center justify-center">
                     <div className="w-full h-full bg-black flex items-center justify-center">
@@ -1030,19 +1031,29 @@ export default function SideBySideTestModal({
                     />
                   </div>
                 ) : sessionData?.iframeUrl ? (
-                  <iframe
-                    src={iframeSrc}
-                    className="absolute inset-0 w-full h-full border-0"
-                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
-                    allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
-                    loading="eager"
-                    title="testing session"
-                    style={{
-                      transform: "translateZ(0)",
-                      willChange: "transform",
-                      backfaceVisibility: "hidden",
-                    }}
-                  />
+                  <div
+                    className="absolute inset-0 min-w-full min-h-full"
+                    style={
+                      viewportWidth < 1000
+                        ? { minWidth: viewportWidth, minHeight: viewportHeight }
+                        : undefined
+                    }
+                  >
+                    <iframe
+                      src={iframeSrc}
+                      className="absolute inset-0 w-full h-full border-0"
+                      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+                      allow="clipboard-read; clipboard-write; autoplay; fullscreen; camera; microphone"
+                      loading="eager"
+                      title="testing session"
+                      style={{
+                        transform: "translateZ(0)",
+                        willChange: "transform",
+                        backfaceVisibility: "hidden",
+                        touchAction: "manipulation",
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-white">
                     <div className="text-center">
