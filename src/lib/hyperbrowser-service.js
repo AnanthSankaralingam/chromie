@@ -200,6 +200,8 @@ export class HyperbrowserService {
       
       const sessionCreatePayload = {
         // Hyperbrowser session configuration
+        // viewport: 1920x1080 for web (main focus). Cloud browser stays desktop-sized regardless of client device.
+        // For mobile clients, the modal UI adapts responsively; session dimensions stay unchanged.
         viewport: { width: 1920, height: 1080 },
         blockAds: false,
         timeoutMinutes: 3,

@@ -43,7 +43,7 @@ export default function TestingSidepanel({
   const canRunTests = isSessionActive && !isRunningBasicTests && !isRunningAiAgentTests
 
   return (
-    <aside className="w-[380px] max-w-[42vw] border-l border-gray-200 bg-white flex flex-col overflow-hidden min-h-0">
+    <aside className="w-full md:w-[380px] md:max-w-[42vw] border-t md:border-t-0 md:border-l border-gray-200 bg-white flex flex-col overflow-hidden min-h-0 max-h-[45vh] md:max-h-none flex-shrink-0">
       <div className="flex-1 overflow-y-auto bg-white scroll-area-white">
         <div className="px-4 pt-4 pb-2">
           {showTestingSection && (

@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Play } from "lucide-react"
 
-const DEMO_VIDEO_URL = "https://www.youtube.com/watch?v=xP2IfRgc5xA"
+const DEMO_VIDEO_URL = "https://www.youtube.com/watch?v=jg2oDxsKay0"
 
 function getYouTubeEmbedUrl(url, showControls = true) {
   let videoId = null

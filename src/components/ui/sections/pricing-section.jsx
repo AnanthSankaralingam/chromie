@@ -2,9 +2,27 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Check, X, Star, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, X, Star, ChevronDown, ChevronUp, Play } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+
+const EXTENDED_DEMO_URL = "https://www.youtube.com/watch?v=towZ0uxt5s4"
+
+function getYouTubeEmbedUrl(url) {
+  let videoId = null
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes("youtu.be")) {
+      videoId = parsed.pathname.replace("/", "")
+    } else {
+      videoId = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop()
+    }
+  } catch {}
+  if (!videoId) return null
+  const params = new URLSearchParams({ rel: "0", modestbranding: "1", playsinline: "1", controls: "1" })
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`
+}
 
 const features = [
   { label: "credits", key: "credits" },                          // all plans
@@ -199,6 +217,7 @@ function PricingCard({ plan, index }) {
 
 export default function PricingSection() {
   const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | 'why' | 'privacyPolicy' | null
+  const [isExtendedDemoOpen, setIsExtendedDemoOpen] = useState(false)
 
   return (
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
@@ -231,9 +250,16 @@ export default function PricingSection() {
         >
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">Pricing</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">pricing</h2>
-          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
+          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto mb-4">
             choose the perfect plan for your chrome extension development needs
           </p>
+          <button
+            onClick={() => setIsExtendedDemoOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-200 bg-slate-700/60 border border-slate-600/60 hover:bg-slate-600/60 hover:border-slate-500/60 hover:text-white transition-all"
+          >
+            <Play className="w-4 h-4" />
+            watch extended demo
+          </button>
         </motion.div>
 
         {/* Pricing Cards */}
@@ -428,6 +454,22 @@ export default function PricingSection() {
           </div>
         </motion.div>
 
+        {/* Extended Demo Modal */}
+        <Dialog open={isExtendedDemoOpen} onOpenChange={setIsExtendedDemoOpen}>
+          <DialogContent className="sm:max-w-4xl bg-slate-900/95 border-slate-700 backdrop-blur-sm p-0 overflow-hidden">
+            <div className="aspect-video w-full">
+              {getYouTubeEmbedUrl(EXTENDED_DEMO_URL) && (
+                <iframe
+                  title="chromie extended demo"
+                  src={getYouTubeEmbedUrl(EXTENDED_DEMO_URL)}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </section>
   )
