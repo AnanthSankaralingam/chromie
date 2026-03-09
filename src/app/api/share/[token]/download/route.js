@@ -366,7 +366,7 @@ export async function GET(request, { params }) {
 
     // Increment download count
     const { error: updateError } = await supabase
-      .from("shared_projects")
+      .from("shared_links")
       .update({ download_count: sharedProject.download_count + 1 })
       .eq("id", sharedProject.id)
 

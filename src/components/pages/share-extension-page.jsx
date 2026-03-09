@@ -3,14 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, User, Calendar, AlertCircle, Loader2, ExternalLink, CheckCircle, Play, GitFork } from "lucide-react"
+import { Download, AlertCircle, Loader2, ExternalLink, CheckCircle, Play, GitFork, Star, Copy, User } from "lucide-react"
 import Link from "next/link"
 import { useSession } from '@/components/SessionProviderClient'
 import TestModal from '@/components/ui/modals/modal-testing-extension'
 import AuthModal from '@/components/ui/modals/modal-auth'
-import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { motion } from "framer-motion"
 
 export default function ShareExtensionPage({ token }) {
   const { user } = useSession()
@@ -35,6 +32,8 @@ export default function ShareExtensionPage({ token }) {
 
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0)
 
   useEffect(() => {
     if (token) {
@@ -55,6 +54,7 @@ export default function ShareExtensionPage({ token }) {
       }
 
       setProjectData(data)
+      setSelectedFileIndex(0)
     } catch (err) {
       console.error('[share page] Error fetching project:', err)
       setError(err.message || 'Failed to load project')
@@ -252,58 +252,54 @@ export default function ShareExtensionPage({ token }) {
   }
 
   const formatDate = (dateString) => {
+    if (!dateString) return '—'
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric'
     })
   }
 
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return '—'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+    if (diffMins < 1) return 'less than a minute ago'
+    if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+    return formatDate(dateString)
+  }
+
+  const formatSizeBytes = (bytes) => {
+    if (!bytes) return '—'
+    if (bytes < 1024) return `${bytes} B`
+    const kb = bytes / 1024
+    return `${kb.toFixed(1)} KB`
+  }
+
+  const handleCopyCode = async () => {
+    const codeFiles = projectData?.files?.filter((f) => f.content && !f.file_path.startsWith('.chromie/')) || []
+    const currentFile = codeFiles[selectedFileIndex] || codeFiles[0]
+    const content = currentFile?.content || ''
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedCode(true)
+      setTimeout(() => setCopiedCode(false), 2000)
+    } catch (_) {}
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex items-center justify-center">
-        {/* Animated Background */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <FlickeringGrid
-            className="absolute inset-0 z-0"
-            squareSize={4}
-            gridGap={6}
-            color="rgb(156, 163, 175)"
-            maxOpacity={0.15}
-            flickerChance={2.0}
-          />
-          
-          <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.15, 0.25, 0.15],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
-        </div>
-        
-        <div className="text-center relative z-10">
+      <div className="min-h-[60vh] bg-black flex items-center justify-center">
+        <div className="text-center">
           <Loader2 className="h-12 w-12 text-gray-400 animate-spin mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">loading extension</h2>
-          <p className="text-slate-400">fetching project details...</p>
+          <h2 className="text-xl font-semibold text-white mb-2">Loading extension</h2>
+          <p className="text-gray-400">Fetching project details...</p>
         </div>
       </div>
     )
@@ -311,64 +307,20 @@ export default function ShareExtensionPage({ token }) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex items-center justify-center px-6">
-        {/* Animated Background */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <FlickeringGrid
-            className="absolute inset-0 z-0"
-            squareSize={4}
-            gridGap={6}
-            color="rgb(156, 163, 175)"
-            maxOpacity={0.15}
-            flickerChance={2.0}
-          />
-          
-          <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.15, 0.25, 0.15],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
+      <div className="min-h-[60vh] bg-black flex items-center justify-center px-6">
+        <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Extension not found</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <Button asChild className="bg-white hover:bg-gray-200 text-black">
+            <Link href="/" className="flex items-center justify-center gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Go to chromie.dev
+            </Link>
+          </Button>
         </div>
-        
-        <Card className="w-full max-w-md bg-slate-800/95 border-slate-700 backdrop-blur-sm relative z-10">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="h-8 w-8 text-red-400" />
-            </div>
-            <CardTitle className="text-white text-xl">extension not found</CardTitle>
-            <CardDescription className="text-slate-400">
-              {error}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button asChild className="bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500">
-              <Link href="/">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                go to chromie
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     )
   }
@@ -377,231 +329,213 @@ export default function ShareExtensionPage({ token }) {
     return null
   }
 
-  const { project, files } = projectData
+  const { project, files, metadata } = projectData
+  const codeFiles = files?.filter((f) => f.content && !f.file_path.startsWith('.chromie/')) || []
+  const codePreviewFile = codeFiles[selectedFileIndex] || codeFiles[0]
+  const codePreviewContent = codePreviewFile?.content || ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <FlickeringGrid
-          className="absolute inset-0 z-0"
-          squareSize={4}
-          gridGap={6}
-          color="rgb(156, 163, 175)"
-          maxOpacity={0.15}
-          flickerChance={2.0}
-        />
-        
-        <motion.div 
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/15 rounded-full filter blur-[140px] z-10"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div 
-          className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-blue-600/15 rounded-full filter blur-[140px] z-10"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
-      </div>
-
-      <main className="max-w-2xl mx-auto px-6 py-8 relative z-10">
-        <Card className="bg-slate-800/95 border-slate-700 backdrop-blur-sm">
-        <CardHeader className="text-center pb-6">
-          <CardTitle className="text-white text-2xl mb-2">{project.author.name.split(' ')[0].toLowerCase()} shared their chrome extension with you!</CardTitle>
-          <CardDescription className="text-slate-400 text-lg">
-            {project.name} - {project.description || 'a chrome extension built with chromie'}
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-8">
-          {/* Download Section */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Button
-                onClick={handleTestExtension}
-                disabled={isTestLoading}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 font-medium"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                {isTestLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    starting...
-                  </>
-                ) : (
-                  'test extension'
-                )}
-              </Button>
-
-              <Button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 font-medium"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    downloading...
-                  </>
-                ) : (
-                  'download extension'
-                )}
-              </Button>
-
-              <Button
-                onClick={handleForkProject}
-                disabled={isForkLoading || forkSuccess}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 font-medium"
-              >
-                {forkSuccess ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    forked!
-                  </>
-                ) : isForkLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    forking...
-                  </>
-                ) : (
-                  <>
-                    <GitFork className="h-4 w-4 mr-2" />
-                    fork project
-                  </>
-                )}
-              </Button>
+    <div className="min-h-screen bg-black">
+      <main className="max-w-3xl mx-auto px-6 py-10">
+        {/* Chrome Web Store style: Extension header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6 mb-8">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="h-5 w-5 text-gray-500 fill-gray-500" aria-hidden />
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">{project.name}</h1>
             </div>
-            
-            {downloadError && (
-              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
-                  <span className="text-red-400 font-medium text-sm">download error</span>
-                </div>
-                <p className="text-red-300 text-sm">{downloadError}</p>
-              </div>
-            )}
-
-            {testError && (
-              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
-                  <span className="text-red-400 font-medium text-sm">test error</span>
-                </div>
-                <p className="text-red-300 text-sm">{testError}</p>
-              </div>
-            )}
-
-            {forkError && (
-              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
-                  <span className="text-red-400 font-medium text-sm">fork error</span>
-                </div>
-                <p className="text-red-300 text-sm">{forkError}</p>
-              </div>
-            )}
-
-            {forkSuccess && (
-              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-green-400 font-medium text-sm">success!</span>
-                </div>
-                <p className="text-green-300 text-sm">Project forked successfully. Redirecting to builder...</p>
-              </div>
-            )}
-          
-          <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
-            <p className="text-xs text-slate-400">
-              <strong>how to test:</strong> click "test extension" to try the extension in a live browser environment. no installation required!
+            <p className="text-gray-400 text-base mb-4">
+              {project.description || 'A Chrome extension built with chromie'}
             </p>
-            <p className="text-xs text-slate-400">
-              <strong>how to install:</strong> after downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">chrome://extensions/</Link>, extract the zip file and hit load unpacked in developer mode.
-            </p>
-            <p className="text-xs text-slate-400">
-              <strong>how to fork:</strong> click "fork project" to create your own copy that you can edit and customize in the builder.
-            </p>
-          </div>
-          </div>
-
-          {/* Project Details */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4 text-sm text-slate-400">
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span>created by {project.author.name}</span>
+            {project.author?.name && (
+              <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                <User className="h-4 w-4 shrink-0" />
+                <span>by {project.author.name}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDate(project.created_at)}</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="text-white font-medium text-sm">extension files ({files.length})</h4>
-              <div className="space-y-1 max-h-32 overflow-y-auto bg-slate-700/30 rounded-lg p-3">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
-                    <span className="text-slate-300 font-mono text-xs">{file.file_path}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="space-y-4 pt-4 border-t border-slate-600">
-            <div>
-              <h3 className="text-white text-lg font-semibold mb-2">create your own extension</h3>
-              <p className="text-slate-300 text-sm mb-4">
-                want to build extensions like this? try chromie for free!
-              </p>
-            </div>
-            
-            <div className="space-y-2 text-sm text-slate-300">
-              <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                <span>describe your idea, we'll write the code</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                <span>test from within the app or on shared links</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                <span>publish, share or download your extension</span>
-              </div>
-            </div>
-            
-            <Button asChild className="w-full bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black font-medium">
-              <Link href="/" className="flex items-center justify-center">
-                start building for free
-                <ExternalLink className="h-4 w-4 ml-2" />
-              </Link>
+            )}
+            <Button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium px-6 py-2.5 rounded"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  + Install extension
+                </>
+              )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* Test Extension Modal */}
+        </div>
+
+        {/* Metadata table - Chrome Web Store style */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 py-4 border-y border-gray-800">
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Size</div>
+            <div className="text-white font-medium">{formatSizeBytes(metadata?.size_bytes)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Version</div>
+            <div className="text-white font-medium">{metadata?.version || '1.0.0'}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Created</div>
+            <div className="text-white font-medium">{formatDate(project.created_at)}</div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Updated</div>
+            <div className="text-white font-medium">{formatRelativeTime(metadata?.updated_at)}</div>
+          </div>
+        </div>
+
+        {/* Code snippet section */}
+        {codeFiles.length > 0 && (
+          <div className="mb-10">
+            {/* File tabs */}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {codeFiles.map((file, idx) => (
+                <button
+                  key={file.file_path}
+                  onClick={() => setSelectedFileIndex(idx)}
+                  className={`px-4 py-2 text-xs font-mono whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                    selectedFileIndex === idx
+                      ? 'text-white border-blue-500 bg-[#1e1e1e]'
+                      : 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-gray-800/50'
+                  }`}
+                >
+                  {file.file_path}
+                </button>
+              ))}
+            </div>
+            <div className="relative rounded-lg overflow-hidden border border-gray-800 bg-[#1e1e1e]">
+              <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-gray-700">
+                <span className="text-gray-400 text-sm font-mono">
+                  {codePreviewFile?.file_path}
+                </span>
+                <button
+                  onClick={handleCopyCode}
+                  className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors"
+                >
+                  {copiedCode ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+              <pre className="p-4 overflow-x-auto text-sm text-gray-300 font-mono max-h-64 overflow-y-auto">
+                <code>{codePreviewContent}</code>
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Secondary actions */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          <Button
+            onClick={handleTestExtension}
+            disabled={isTestLoading}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-800"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            {isTestLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              'Test extension'
+            )}
+          </Button>
+          <Button
+            onClick={handleForkProject}
+            disabled={isForkLoading || forkSuccess}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-800"
+          >
+            {forkSuccess ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                Forked!
+              </>
+            ) : isForkLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Forking...
+              </>
+            ) : (
+              <>
+                <GitFork className="h-4 w-4 mr-2" />
+                Fork project
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Error messages */}
+        {(downloadError || testError || forkError) && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            {downloadError && (
+              <p className="text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" /> {downloadError}
+              </p>
+            )}
+            {testError && (
+              <p className="text-red-400 text-sm flex items-center gap-2 mt-1">
+                <AlertCircle className="h-4 w-4 shrink-0" /> {testError}
+              </p>
+            )}
+            {forkError && (
+              <p className="text-red-400 text-sm flex items-center gap-2 mt-1">
+                <AlertCircle className="h-4 w-4 shrink-0" /> {forkError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {forkSuccess && (
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <p className="text-green-400 text-sm flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" /> Project forked successfully. Redirecting to builder...
+            </p>
+          </div>
+        )}
+
+        {/* How to install */}
+        <div className="bg-gray-900 rounded-lg p-4 text-sm text-gray-400">
+          <p className="font-medium text-white mb-2">How to install</p>
+          <p>
+            After downloading, go to <Link href="chrome://extensions/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">chrome://extensions/</Link>, enable Developer mode, then click Load unpacked and select the extracted folder.
+          </p>
+        </div>
+
+        {/* CTA */}
+        <div className="mt-12 pt-8 border-t border-gray-800">
+          <h3 className="text-lg font-semibold text-white mb-2">Create your own extension</h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Want to build extensions like this? Try chromie for free — describe your idea and we&apos;ll write the code.
+          </p>
+          <Button asChild className="bg-white hover:bg-gray-200 text-black">
+            <Link href="/" className="flex items-center gap-2">
+              Start building for free
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </main>
+
       <TestModal
         isOpen={isTestModalOpen}
         onClose={handleCloseTestModal}
@@ -611,14 +545,12 @@ export default function ShareExtensionPage({ token }) {
         loadingProgress={loadingProgress}
         projectId={projectData?.project?.id}
       />
-      
-      {/* Auth Modal */}
+
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        redirectUrl={window.location.pathname}
+        redirectUrl={typeof window !== 'undefined' ? window.location.pathname : '/'}
       />
-      </main>
     </div>
   )
 }

@@ -65,9 +65,6 @@ export async function GET(request, { params }) {
       .gt("expires_at", new Date().toISOString())
       .single()
 
-    console.log("sharedProject", sharedProject)
-    console.log("shareError", shareError)
-
     if (shareError || !sharedProject) {
       securityLog('warn', 'Share token not found', {
         token: token?.substring(0, 8) + '...',
@@ -86,6 +83,7 @@ export async function GET(request, { params }) {
         name,
         description,
         created_at,
+        last_used_at,
         user_id
       `)
       .eq("id", sharedProject.project_id)
@@ -142,8 +140,6 @@ export async function GET(request, { params }) {
       .eq("project_id", sharedProject.project_id)
       .order("file_path")
 
-    console.log("Files query result:", { files: files?.length || 0, filesError })
-    
     if (filesError) {
       console.error("Error fetching project files:", filesError)
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
@@ -161,6 +157,20 @@ export async function GET(request, { params }) {
     if (updateError) {
       console.error("Error updating share access stats:", updateError)
       // Don't fail the request for this
+    }
+
+    // Extract version from manifest.json and compute total size
+    let version = '1.0.0'
+    let totalSizeBytes = 0
+    const manifestFile = (files || []).find((f) => f.file_path === 'manifest.json')
+    if (manifestFile?.content) {
+      try {
+        const manifest = JSON.parse(manifestFile.content)
+        if (manifest.version) version = manifest.version
+      } catch (_) { /* ignore parse errors */ }
+    }
+    for (const f of files || []) {
+      if (f.content) totalSizeBytes += new TextEncoder().encode(f.content).length
     }
 
     const processingTime = Date.now() - startTime
@@ -182,12 +192,18 @@ export async function GET(request, { params }) {
         name: project.name,
         description: project.description,
         created_at: project.created_at,
+        last_used_at: project.last_used_at,
         author: {
           name: profile.name,
           email: profile.email
         }
       },
       files: files || [],
+      metadata: {
+        version,
+        size_bytes: totalSizeBytes,
+        updated_at: project.last_used_at || project.created_at
+      },
       share_info: {
         created_at: sharedProject.created_at,
         download_count: sharedProject.download_count,
