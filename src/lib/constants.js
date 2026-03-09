@@ -32,7 +32,9 @@ export const DEFAULT_PLAN = 'free'
 // Unified LLM Service defaults (ionrouter Kimi when IONROUTER_API_KEY set, else Gemini)
 export const DEFAULT_MODEL = process.env.IONROUTER_API_KEY ? 'kimi-k2.5' : 'gemini-3-flash-preview'
 export const FOLLOWUP_MODEL = 'gemini-3-flash-preview'
-export const DEFAULT_PROVIDER = process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
+export const DEFAULT_PROVIDER = 'ionrouter'
+// Dedicated fast model for HTML file generation in the task-graph executor
+export const HTML_CODEGEN_MODEL = 'gemini-3.1-flash-lite-preview'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
 

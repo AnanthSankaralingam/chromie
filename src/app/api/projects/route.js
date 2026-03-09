@@ -1,21 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { INPUT_LIMITS } from "@/lib/constants"
 import emailService from "@/lib/services/email-service"
+import { withAuth } from "@/lib/api/with-auth"
 
-export async function GET() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const GET = withAuth(async ({ supabase, user }) => {
   const { data: projects, error } = await supabase
     .from("projects")
     .select("*")
@@ -27,20 +16,9 @@ export async function GET() {
   }
 
   return NextResponse.json({ projects })
-}
+})
 
-export async function POST(request) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+export const POST = withAuth(async ({ request, supabase, user }) => {
   const { name, description } = await request.json()
 
   if (description && typeof description === 'string' && description.length > INPUT_LIMITS.PROMPT) {
@@ -157,4 +135,4 @@ export async function POST(request) {
     console.error("Exception in project creation:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-}
+})

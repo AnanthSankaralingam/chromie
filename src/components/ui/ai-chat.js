@@ -3,10 +3,39 @@
 import { useState, useEffect } from "react"
 import StreamingChat from "@/components/ui/chat/streaming-chat"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
+import { useBuilderChat } from "@/components/ui/chat/builder-chat-context"
 
-export default function AIChat({ projectId, projectName, autoGeneratePrompt, onAutoGenerateComplete, onCodeGenerated, onFileWritten, onGenerationStart, onGenerationEnd, onOpenCanvas, hasGeneratedCode, isCanvasOpen, chatWidth, isProjectReady, isOnboardingModalOpen, onCodeGenerationStarting, onSetInputMessage, onSetAddMessageCallback, onSetTaskListCallback, testSessionLogs, onClearTestSessionLogs, availableFiles, onVersionHistoryClick, userIsPaid = true, isStillLoadingPaidPlan = false }) {
+export default function AIChat({
+  projectId,
+  projectName,
+  autoGeneratePrompt,
+  availableFiles,
+}) {
   const [conversationTokenTotal, setConversationTokenTotal] = useState(0)
   const [showTokenLimitModal, setShowTokenLimitModal] = useState(false)
+
+  const {
+    onAutoGenerateComplete,
+    onCodeGenerated,
+    onFileWritten,
+    onGenerationStart,
+    onGenerationEnd,
+    onOpenCanvas,
+    hasGeneratedCode,
+    isCanvasOpen,
+    chatWidth,
+    isProjectReady,
+    isOnboardingModalOpen,
+    onCodeGenerationStarting,
+    onSetInputMessage,
+    onSetAddMessageCallback,
+    onSetTaskListCallback,
+    testSessionLogs,
+    onClearTestSessionLogs,
+    onVersionHistoryClick,
+    userIsPaid = true,
+    isStillLoadingPaidPlan = false,
+  } = useBuilderChat()
 
   useEffect(() => {
     setConversationTokenTotal(0)
