@@ -4,7 +4,15 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export class EmailService {
     constructor() {
-        this.from = process.env.RESEND_FROM_EMAIL || 'Chromie <welcome@chromie.dev>'
+        const fromRaw = process.env.RESEND_FROM_EMAIL || 'Chromie <welcome@chromie.dev>'
+        this.fromParts = fromRaw.includes('|') ? fromRaw.split('|').map((s) => s.trim()).filter(Boolean) : [fromRaw]
+        this.from = this.fromParts[0]
+        // Reply-To: comma-separated so replies go to both founders. Falls back to extracting emails from From if not set
+        this.replyTo = process.env.RESEND_REPLY_TO_EMAIL
+            ? process.env.RESEND_REPLY_TO_EMAIL.split(',').map((e) => e.trim()).filter(Boolean)
+            : this.fromParts.length > 1
+                ? this.fromParts.map((p) => p.match(/<([^>]+)>/)?.[1] || p).filter(Boolean)
+                : null
     }
 
     /**
@@ -19,13 +27,19 @@ export class EmailService {
         }
 
         try {
-            const { data, error } = await resend.emails.send({
-                from: this.from,
+            const from = this.fromParts.length > 1
+                ? this.fromParts[Math.floor(Math.random() * this.fromParts.length)]
+                : this.from
+            const senderName = (from.match(/^([^<]+)</)?.[1]?.trim() || 'chromie').toLowerCase()
+            const payload = {
+                from,
                 to: [user.email],
                 subject: 'welcome to chromie! 🎉',
-                html: this.generateWelcomeEmailHTML(user),
-                text: this.generateWelcomeEmailText(user)
-            })
+                html: this.generateWelcomeEmailHTML(user, senderName),
+                text: this.generateWelcomeEmailText(user, senderName)
+            }
+            if (this.replyTo?.length) payload.replyTo = this.replyTo
+            const { data, error } = await resend.emails.send(payload)
 
             if (error) {
                 console.error('Failed to send welcome email:', error)
@@ -45,7 +59,7 @@ export class EmailService {
      * @param {Object} user - User object
      * @returns {string} HTML email content
      */
-    generateWelcomeEmailHTML(user) {
+    generateWelcomeEmailHTML(user, senderName = 'chromie') {
         const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
         const firstName = userName.split(' ')[0] || 'there'
 
@@ -55,8 +69,11 @@ export class EmailService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>welcome to chromie!</title>
     <style>
+        :root { color-scheme: light dark; }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         * {
@@ -69,7 +86,7 @@ export class EmailService {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #1a1a1a;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
             min-height: 100vh;
             padding: 20px;
         }
@@ -77,7 +94,7 @@ export class EmailService {
         .email-wrapper {
             max-width: 700px;
             margin: 0 auto;
-            background: #ffffff;
+            background: #ffffff !important;
             border-radius: 24px;
             overflow: hidden;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
@@ -155,8 +172,8 @@ export class EmailService {
         }
         
         .feature-card {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border: 1px solid #e2e8f0;
+            background: #1e293b;
+            border: 1px solid #334155;
             border-radius: 16px;
             padding: 24px;
             transition: all 0.3s ease;
@@ -171,7 +188,7 @@ export class EmailService {
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
         }
         
         .feature-icon {
@@ -183,12 +200,12 @@ export class EmailService {
         .feature-title {
             font-size: 18px;
             font-weight: 600;
-            color: #2d3748;
+            color: #e2e8f0;
             margin-bottom: 8px;
         }
         
         .feature-desc {
-            color: #718096;
+            color: #94a3b8;
             font-size: 15px;
             line-height: 1.6;
         }
@@ -197,15 +214,15 @@ export class EmailService {
             text-align: center;
             margin: 50px 0;
             padding: 40px;
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            background: #1e293b;
             border-radius: 20px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #334155;
         }
         
         .cta-text {
             font-size: 20px;
             font-weight: 500;
-            color: #2d3748;
+            color: #e2e8f0;
             margin-bottom: 24px;
         }
         
@@ -244,31 +261,18 @@ export class EmailService {
             box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
         }
         
-        .closing {
-            margin: 40px 0;
-            padding: 30px;
-            background: #f8fafc;
-            border-radius: 16px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .closing-text {
-            font-size: 16px;
-            color: #4a5568;
-            margin-bottom: 16px;
-        }
-        
-        .signature {
-            font-weight: 600;
-            color: #2d3748;
-        }
-        
         .ps-note {
             background: #fff5f5;
             border: 1px solid #fed7d7;
             border-radius: 12px;
             padding: 20px;
             margin: 30px 0;
+            list-style: none;
+        }
+        
+        .ps-note p {
+            margin: 0;
+            color: #c53030;
         }
         
         .ps-note strong {
@@ -324,20 +328,107 @@ export class EmailService {
                 grid-template-columns: 1fr;
             }
         }
+        
+        @media (prefers-color-scheme: light) {
+            .feature-card {
+                background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+                border-color: #e2e8f0 !important;
+            }
+            .feature-title { color: #2d3748 !important; }
+            .feature-desc { color: #718096 !important; }
+            .cta-section {
+                background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+                border-color: #e2e8f0 !important;
+            }
+            .cta-text { color: #2d3748 !important; }
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a2e !important;
+            }
+            
+            .hero-section {
+                background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+            }
+            
+            .logo, .subtitle {
+                color: #ffffff !important;
+            }
+            
+            .email-wrapper {
+                background: #0f172a !important;
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+            }
+            
+            .content {
+                background: #0f172a !important;
+            }
+            
+            .greeting {
+                color: #a5b4fc !important;
+                -webkit-text-fill-color: #a5b4fc !important;
+                background: none !important;
+                background-clip: unset !important;
+            }
+            
+            .intro-text {
+                color: #94a3b8 !important;
+            }
+            
+            .feature-card {
+                background: #1e293b !important;
+                border-color: #334155 !important;
+            }
+            
+            .feature-card::before {
+                background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
+            }
+            
+            .feature-title {
+                color: #e2e8f0 !important;
+            }
+            
+            .feature-desc {
+                color: #94a3b8 !important;
+            }
+            
+            .cta-section {
+                background: #1e293b !important;
+                border-color: #334155 !important;
+            }
+            
+            .cta-text {
+                color: #e2e8f0 !important;
+            }
+            
+            .ps-note {
+                background: #450a0a !important;
+                border-color: #7f1d1d !important;
+            }
+            
+            .ps-note p {
+                color: #fca5a5 !important;
+            }
+            
+            .ps-note strong {
+                color: #fecaca !important;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="email-wrapper">
         <div class="hero-section">
             <div class="logo">chromie</div>
-            <div class="subtitle">or chrome extensions</div>
+            <div class="subtitle">next gen web browsing</div>
         </div>
         
         <div class="content">
             <h1 class="greeting">hey ${firstName}! 👋</h1>
             
             <p class="intro-text">
-                welcome to chromie! we're excited you've joined our community of developers building amazing chrome extensions with ai.
+                welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of developers building amazing chrome extensions with ai.
             </p>
             
             <p class="intro-text">
@@ -371,6 +462,14 @@ export class EmailService {
                 </div>
             </div>
             
+            <p class="intro-text">
+                we'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
+            </p>
+            
+            <p class="intro-text">
+                best,<br>${senderName}
+            </p>
+            
             <div class="cta-section">
                 <p class="cta-text">ready to build your first extension?</p>
                 <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}" class="cta-button">
@@ -378,13 +477,8 @@ export class EmailService {
                 </a>
             </div>
             
-            <div class="closing">
-                <p class="closing-text">we'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.</p>
-                <p class="signature">best,<br>the chromie team</p>
-            </div>
-            
             <div class="ps-note">
-                <p><strong>p.s.</strong> need help or have feedback? just reply to this email - we personally read and respond to every message!</p>
+                <p><strong>p.s.</strong> reply to this email with feedback and we'll send you free credits!</p>
             </div>
         </div>
         
@@ -407,7 +501,7 @@ export class EmailService {
      * @param {Object} user - User object
      * @returns {string} Text email content
      */
-    generateWelcomeEmailText(user) {
+    generateWelcomeEmailText(user, senderName = 'chromie') {
         const userName = user.name || user.user_metadata?.full_name || user.user_metadata?.name || 'there'
         const firstName = userName.split(' ')[0] || 'there'
 
@@ -416,7 +510,7 @@ chromie - chrome extensions in seconds
 
 hey ${firstName}! 👋
 
-welcome to chromie! i'm excited you've joined our community of developers building amazing chrome extensions with ai.
+welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of developers building amazing chrome extensions with ai.
 
 chromie makes it effortless to create powerful chrome extensions without writing a single line of code. whether you're looking to automate tasks, integrate with your favorite tools, or build productivity solutions, chromie has you covered.
 
@@ -428,20 +522,20 @@ chromie makes it effortless to create powerful chrome extensions without writing
 • custom dashboards - build personalized browser experiences tailored to your specific needs
 • api integrations - connect with any service or tool you use 
 
-ready to build your first extension? visit: 'https://chromie.dev'}
-
-i'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
+we'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
 
 best,
-chromie 
+${senderName}
 
-p.s. need help or have feedback? just reply to this email - we personally read and respond to every message!
+ready to build your first extension? visit: https://chromie.dev
+
+p.s. reply to this email with feedback and we'll send you free credits!
 
 ---
 you're receiving this email because you signed up for chromie.
 chromie • building the future of browser automation
 
-unsubscribe: 'https://chromie.dev/unsubscribe?email=${encodeURIComponent(user.email)}
+unsubscribe: https://chromie.dev/unsubscribe?email=${encodeURIComponent(user.email)}
     `
     }
 }
