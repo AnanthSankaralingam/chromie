@@ -70,11 +70,11 @@ async function* yieldExplanation(implementationResult, context) {
 function getProviderFromModel(model) {
   if (typeof model === 'string') {
     if (model.toLowerCase().includes('gemini')) return 'gemini'
-    if (model.toLowerCase().includes('kimi') || model.toLowerCase().includes('fireworks')) return 'fireworks'
+    if (model.toLowerCase().includes('kimi')) return 'ionrouter'
     if (model.toLowerCase().includes('claude')) return 'anthropic'
     if (model.toLowerCase().includes('gpt')) return 'openai'
   }
-  return 'fireworks'
+  return process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
 }
 
 /**
@@ -313,9 +313,9 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
       return
     }
 
-    // Fireworks (Kimi K2.5): use streaming for higher token limit + clean content/reasoning separation
-    if (provider === 'fireworks') {
-      yield* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
+    // Ionrouter (Kimi K2.5): use streaming for higher token limit
+    if (provider === 'ionrouter') {
+      yield* handleKimiStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images)
       return
     }
 
@@ -416,11 +416,11 @@ async function* handleGeminiStreamingFlow(provider, modelUsed, finalPrompt, json
 }
 
 /**
- * Handles Fireworks (Kimi K2.5) streaming flow.
- * Uses streaming for higher token limits (65536) and ensures reasoning_content is never mixed with content.
+ * Handles Kimi (ionrouter) streaming flow.
+ * Uses streaming for higher token limits.
  */
-async function* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
-  console.log("[generateExtensionCodeStream] Using Fireworks streaming", images ? `with ${images.length} images` : '')
+async function* handleKimiStreamingFlow(provider, modelUsed, finalPrompt, jsonSchema, sessionId, conversationTokenTotal, replacements, usePatchingMode, existingFilesForPatch, userRequest, originalUserRequest, images = null) {
+  console.log("[generateExtensionCodeStream] Using Kimi streaming", images ? `with ${images.length} images` : '')
 
   let combinedText = ''
   let exactTokenUsage = null
@@ -438,13 +438,13 @@ async function* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, j
     max_output_tokens: FIREWORKS_CODEGEN_MAX_TOKENS,
     response_format: jsonSchema,
     session_id: sessionId,
-    thinkingConfig: null // Fireworks uses reasoning_effort in adapter; we only consume content
+    thinkingConfig: null
   })) {
     if (s?.type === 'answer_chunk' || s?.type === 'content') {
       combinedText += s.content
     } else if (s?.type === 'token_usage') {
       exactTokenUsage = s.usage
-      console.log('[generateExtensionCodeStream] Fireworks streaming token usage:', exactTokenUsage)
+      console.log('[generateExtensionCodeStream] Kimi streaming token usage:', exactTokenUsage)
     }
   }
 
@@ -455,7 +455,7 @@ async function* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, j
   yield { type: "complete", content: combinedText }
 
   if (usePatchingMode) {
-    console.log('🔧 [Fireworks Patch Mode] Raw LLM output:')
+    console.log('🔧 [Kimi Patch Mode] Raw LLM output:')
     console.log('─'.repeat(80))
     console.log(combinedText)
     console.log('─'.repeat(80))
@@ -465,9 +465,9 @@ async function* handleFireworksStreamingFlow(provider, modelUsed, finalPrompt, j
     yield* handlePatchingMode(combinedText, existingFilesForPatch, userRequest, provider, modelUsed, sessionId, replacements, originalUserRequest, replacements.supabase)
   } else {
     if (usePatchingMode) {
-      console.log('⚠️ [Fireworks] Patching mode was active but no patch detected in output')
+      console.log('⚠️ [Kimi] Patching mode was active but no patch detected in output')
     }
-    yield* handleReplacementMode(combinedText, sessionId, replacements, "Fireworks stream", originalUserRequest)
+    yield* handleReplacementMode(combinedText, sessionId, replacements, "Kimi stream", originalUserRequest)
   }
 
   yield { type: "phase", phase: "implementing", content: "Implementation complete: generated extension artifacts and updated the project." }

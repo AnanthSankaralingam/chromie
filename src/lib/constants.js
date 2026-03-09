@@ -29,15 +29,14 @@ export const CREDIT_COSTS = {
 // Default plan for users without billing info
 export const DEFAULT_PLAN = 'free'
 
-// Unified LLM Service defaults
-export const DEFAULT_MODEL = 'accounts/fireworks/models/kimi-k2p5'
+// Unified LLM Service defaults (ionrouter Kimi when IONROUTER_API_KEY set, else Gemini)
+export const DEFAULT_MODEL = process.env.IONROUTER_API_KEY ? 'kimi-k2.5' : 'gemini-3-flash-preview'
 export const FOLLOWUP_MODEL = 'gemini-3-flash-preview'
-export const DEFAULT_PROVIDER = 'fireworks'
+export const DEFAULT_PROVIDER = process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
 
-// Fireworks/Kimi K2.5: reasoning model; use content only, never reasoning_content
-// Higher limits require streaming (non-streaming capped at 4096)
+// Kimi K2.5 (ionrouter): higher limits require streaming (non-streaming capped at 4096)
 export const FIREWORKS_CODEGEN_MAX_TOKENS = 32768
 
 // Supported providers
@@ -50,7 +49,7 @@ export const SUPPORTED_PROVIDERS = {
 // Default models for each provider
 export const DEFAULT_MODELS = {
   gemini: 'gemini-3-flash-preview',
-  fireworks: 'accounts/fireworks/models/kimi-k2p5',
+  ionrouter: 'kimi-k2.5',
   openai: 'o3',
   anthropic: 'claude-haiku-4-5-20251001'
 }

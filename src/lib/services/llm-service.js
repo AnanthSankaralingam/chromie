@@ -10,16 +10,16 @@ export class LLMService {
     
     // Define fallback provider hierarchy
     this.fallbackHierarchy = {
-      'gemini': ['fireworks', 'anthropic', 'openai'],
-      'fireworks': ['gemini', 'anthropic', 'openai'],
-      'anthropic': ['gemini', 'fireworks', 'openai'],
-      'openai': ['gemini', 'fireworks', 'anthropic']
+      'gemini': ['ionrouter', 'anthropic', 'openai'],
+      'ionrouter': ['gemini', 'anthropic', 'openai'],
+      'anthropic': ['gemini', 'ionrouter', 'openai'],
+      'openai': ['gemini', 'ionrouter', 'anthropic']
     }
     
     // Define default models for fallback providers
     this.defaultModels = {
       'gemini': 'gemini-3-flash-preview',
-      'fireworks': 'accounts/fireworks/models/kimi-k2p5',
+      'ionrouter': 'kimi-k2.5',
       'anthropic': 'claude-haiku-4-5-20251001',
       'openai': 'gpt-4o-mini'
     }
@@ -33,11 +33,11 @@ export class LLMService {
   getProviderFromModel(model) {
     if (typeof model === 'string') {
       if (model.toLowerCase().includes('gemini')) return 'gemini'
-      if (model.toLowerCase().includes('kimi') || model.toLowerCase().includes('fireworks')) return 'fireworks'
+      if (model.toLowerCase().includes('kimi')) return 'ionrouter'
       if (model.toLowerCase().includes('claude')) return 'anthropic'
       if (model.toLowerCase().includes('gpt')) return 'openai'
     }
-    return 'fireworks'
+    return process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
   }
   
   /**

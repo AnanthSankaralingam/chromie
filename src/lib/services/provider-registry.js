@@ -3,7 +3,7 @@
 import { OpenAIAdapter } from './adapters/openai-adapter.js'
 import { AnthropicAdapter } from './adapters/anthropic-adapter.js'
 import { GeminiAdapter } from './adapters/gemini-adapter.js'
-import { FireworksAdapter } from './adapters/fireworks-adapter.js'
+import { IonrouterAdapter } from './adapters/ionrouter-adapter.js'
 
 export class ProviderRegistry {
   constructor() {
@@ -48,11 +48,11 @@ export class ProviderRegistry {
       maxContextWindow: 1000000
     })
 
-    // Register Fireworks adapter (Kimi K2.5 and other Fireworks models)
-    this.registerProvider('fireworks', new FireworksAdapter(), {
-      name: 'Fireworks AI',
-      baseURL: 'https://api.fireworks.ai/inference/v1',
-      apiKeyEnv: 'FIREWORKS_API_KEY',
+    // Register Ionrouter adapter (Kimi K2.5 via ionrouter.io)
+    this.registerProvider('ionrouter', new IonrouterAdapter(), {
+      name: 'Ionrouter Kimi',
+      baseURL: 'https://kimi.ionrouter.io/v1',
+      apiKeyEnv: 'IONROUTER_API_KEY',
       supportsStreaming: true,
       supportsJsonSchema: false,
       maxContextWindow: 256000
@@ -114,8 +114,8 @@ export class ProviderRegistry {
         'gemini-1.5-flash',
         'gemini-1.0-pro'
       ],
-      fireworks: [
-        'accounts/fireworks/models/kimi-k2p5'
+      ionrouter: [
+        'kimi-k2.5'
       ]
     }
     
@@ -162,8 +162,8 @@ export class ProviderRegistry {
         'gemini-1.5-flash': { maxTokens: 8192, temperature: 0.2 },
         'gemini-1.0-pro': { maxTokens: 4096, temperature: 0.2 }
       },
-      fireworks: {
-        'accounts/fireworks/models/kimi-k2p5': { maxTokens: 32768, temperature: 0.6 }
+      ionrouter: {
+        'kimi-k2.5': { maxTokens: 32768, temperature: 0.6 }
       }
     }
 

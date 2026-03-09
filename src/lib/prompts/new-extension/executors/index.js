@@ -155,7 +155,7 @@ const FAST_FILE_EXTENSIONS = new Set(['css', 'json'])
 /**
  * Picks the model for a given file.
  * CSS and JSON files use Gemini Flash (fast, cheap).
- * All other files use the caller-supplied override or the default Fireworks model.
+ * All other files use the caller-supplied override or the default model.
  */
 function getModelForFile(fileName, modelOverride) {
   const ext = (fileName || '').split('.').pop().toLowerCase()
