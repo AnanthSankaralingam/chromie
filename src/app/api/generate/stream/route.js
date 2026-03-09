@@ -9,11 +9,11 @@ import { randomUUID } from "crypto"
 
 /**
  * Get the default provider based on environment variables
- * Priority: GOOGLE_AI_API_KEY > OPENAI_API_KEY > ANTHROPIC_API_KEY
+ * Priority: IONROUTER_API_KEY (Kimi) > GOOGLE_AI_API_KEY > OPENAI_API_KEY > ANTHROPIC_API_KEY
  * @returns {string} Provider name
  */
 function getDefaultProvider() {
-  if (process.env.FIREWORKS_API_KEY) return 'fireworks'
+  if (process.env.IONROUTER_API_KEY) return 'ionrouter'
   if (process.env.GOOGLE_AI_API_KEY) return 'gemini'
   if (process.env.OPENAI_API_KEY) return 'openai'
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic'
