@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useOnboardingModal } from "@/hooks/use-onboarding-modal"
 import { useIsMobile } from "@/hooks/use-is-mobile"
 import AIChat from "@/components/ui/ai-chat"
+import { BuilderChatProvider } from "@/components/ui/chat/builder-chat-context"
 import SideBySideTestModal from "@/components/ui/extension-testing/side-by-side-test-modal"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { OnboardingModal } from "@/components/ui/modals/onboarding"
@@ -733,13 +734,10 @@ function BuilderPageContent() {
         <div className="lg:hidden h-[calc(100vh-73px-49px)] relative z-20">
           {activeTab === 'chat' && isMobile && (
             <div className="h-full flex flex-col">
-              <AIChat
-                projectId={projectSetup.currentProjectId}
-                projectName={projectSetup.currentProjectName}
-                availableFiles={fileManagement.flatFiles}
-                autoGeneratePrompt={autoGeneratePrompt}
-                onAutoGenerateComplete={handleAutoGenerateComplete}
-                onCodeGenerated={async (response) => {
+              <BuilderChatProvider
+                value={{
+                  onAutoGenerateComplete: handleAutoGenerateComplete,
+                  onCodeGenerated: async (response) => {
                   await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                   setIsGenerating(false)
                   setHasGeneratedCode(true)
@@ -781,34 +779,43 @@ function BuilderPageContent() {
                     }
                     setActiveTab('files') // Switch to files tab after code generation
                   }, 500) // Small delay to ensure file structure is updated
+                },
+                  onFileWritten: (filePath, content) => fileManagement.injectStreamedFile(filePath, content),
+                  onGenerationStart: () => {
+                    setIsGenerating(true)
+                    // Track hasGeneratedCode state before generation starts
+                    hasGeneratedCodeBeforeRef.current = hasGeneratedCode
+                  },
+                  onGenerationEnd: () => {
+                    setIsGenerating(false)
+                  },
+                  onOpenCanvas: handleOpenCanvasFromChat,
+                  hasGeneratedCode,
+                  isCanvasOpen: false,
+                  isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId,
+                  isOnboardingModalOpen: onboardingModal.isModalOpen,
+                  onCodeGenerationStarting: handleCodeGenerationStarting,
+                  onSetInputMessage: (setInputMessage) => { setInputMessageRef.current = setInputMessage },
+                  onSetAddMessageCallback: (fn) => { addChatMessageRef.current = fn },
+                  onSetTaskListCallback: (setTaskList, setTaskProgress) => {
+                    setTaskListRef.current = setTaskList
+                    setTaskProgressRef.current = setTaskProgress
+                  },
+                  testSessionLogs,
+                  onClearTestSessionLogs: handleClearTestSessionLogs,
+                  onVersionHistoryClick: handleVersionHistoryClick,
+                  userIsPaid: !!isPaid,
+                  isStillLoadingPaidPlan: isLoadingPaidPlan,
+                  chatWidth: undefined,
                 }}
-                onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
-                onGenerationStart={() => {
-                  setIsGenerating(true)
-                  // Track hasGeneratedCode state before generation starts
-                  hasGeneratedCodeBeforeRef.current = hasGeneratedCode
-                }}
-                onGenerationEnd={() => {
-                  setIsGenerating(false)
-                }}
-                onOpenCanvas={handleOpenCanvasFromChat}
-                hasGeneratedCode={hasGeneratedCode}
-                isCanvasOpen={false}
-                isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
-                isOnboardingModalOpen={onboardingModal.isModalOpen}
-                onCodeGenerationStarting={handleCodeGenerationStarting}
-                onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
-                onSetAddMessageCallback={(fn) => { addChatMessageRef.current = fn }}
-                onSetTaskListCallback={(setTaskList, setTaskProgress) => {
-                  setTaskListRef.current = setTaskList
-                  setTaskProgressRef.current = setTaskProgress
-                }}
-                testSessionLogs={testSessionLogs}
-                onClearTestSessionLogs={handleClearTestSessionLogs}
-                onVersionHistoryClick={handleVersionHistoryClick}
-                userIsPaid={!!isPaid}
-                isStillLoadingPaidPlan={isLoadingPaidPlan}
-              />
+              >
+                <AIChat
+                  projectId={projectSetup.currentProjectId}
+                  projectName={projectSetup.currentProjectName}
+                  availableFiles={fileManagement.flatFiles}
+                  autoGeneratePrompt={autoGeneratePrompt}
+                />
+              </BuilderChatProvider>
             </div>
           )}
 
@@ -854,13 +861,10 @@ function BuilderPageContent() {
             style={isCanvasOpen ? { width: `${chatCanvasDividerPosition}%` } : undefined}
           >
             <div className={isCanvasOpen ? "h-full flex flex-col" : "w-full h-full flex flex-col"}>
-              <AIChat
-                  projectId={projectSetup.currentProjectId}
-                  projectName={projectSetup.currentProjectName}
-                  availableFiles={fileManagement.flatFiles}
-                  autoGeneratePrompt={autoGeneratePrompt}
-                  onAutoGenerateComplete={handleAutoGenerateComplete}
-                  onCodeGenerated={async (response) => {
+              <BuilderChatProvider
+                value={{
+                  onAutoGenerateComplete: handleAutoGenerateComplete,
+                  onCodeGenerated: async (response) => {
                     await fileManagement.loadProjectFiles(true) // Refresh from server to get updated files
                     setIsGenerating(false)
                     setHasGeneratedCode(true)
@@ -901,34 +905,43 @@ function BuilderPageContent() {
                         setSelectedFile(manifestFile)
                       }
                     }, 500) // Small delay to ensure file structure is updated
-                  }}
-                  onFileWritten={(filePath, content) => fileManagement.injectStreamedFile(filePath, content)}
-                  onGenerationStart={() => {
+                  },
+                  onFileWritten: (filePath, content) => fileManagement.injectStreamedFile(filePath, content),
+                  onGenerationStart: () => {
                     setIsGenerating(true)
                     // Track hasGeneratedCode state before generation starts
                     hasGeneratedCodeBeforeRef.current = hasGeneratedCode
-                  }}
-                  onGenerationEnd={() => {
+                  },
+                  onGenerationEnd: () => {
                     setIsGenerating(false)
-                  }}
-                  onOpenCanvas={handleOpenCanvas}
-                  hasGeneratedCode={hasGeneratedCode}
-                  isCanvasOpen={isCanvasOpen}
-                  isProjectReady={!projectSetup.isSettingUpProject && !!projectSetup.currentProjectId}
-                  isOnboardingModalOpen={onboardingModal.isModalOpen}
-                  onCodeGenerationStarting={handleCodeGenerationStarting}
-                  onSetInputMessage={(setInputMessage) => { setInputMessageRef.current = setInputMessage }}
-                  onSetAddMessageCallback={(fn) => { addChatMessageRef.current = fn }}
-                  onSetTaskListCallback={(setTaskList, setTaskProgress) => {
+                  },
+                  onOpenCanvas: handleOpenCanvas,
+                  hasGeneratedCode,
+                  isCanvasOpen,
+                  isProjectReady: !projectSetup.isSettingUpProject && !!projectSetup.currentProjectId,
+                  isOnboardingModalOpen: onboardingModal.isModalOpen,
+                  onCodeGenerationStarting: handleCodeGenerationStarting,
+                  onSetInputMessage: (setInputMessage) => { setInputMessageRef.current = setInputMessage },
+                  onSetAddMessageCallback: (fn) => { addChatMessageRef.current = fn },
+                  onSetTaskListCallback: (setTaskList, setTaskProgress) => {
                     setTaskListRef.current = setTaskList
                     setTaskProgressRef.current = setTaskProgress
-                  }}
-                  testSessionLogs={testSessionLogs}
-                  onClearTestSessionLogs={handleClearTestSessionLogs}
-                  onVersionHistoryClick={handleVersionHistoryClick}
-                  userIsPaid={!!isPaid}
-                  isStillLoadingPaidPlan={isLoadingPaidPlan}
+                  },
+                  testSessionLogs,
+                  onClearTestSessionLogs: handleClearTestSessionLogs,
+                  onVersionHistoryClick: handleVersionHistoryClick,
+                  userIsPaid: !!isPaid,
+                  isStillLoadingPaidPlan: isLoadingPaidPlan,
+                  chatWidth: undefined,
+                }}
+              >
+                <AIChat
+                  projectId={projectSetup.currentProjectId}
+                  projectName={projectSetup.currentProjectName}
+                  availableFiles={fileManagement.flatFiles}
+                  autoGeneratePrompt={autoGeneratePrompt}
                 />
+              </BuilderChatProvider>
             </div>
           </div>
 

@@ -56,77 +56,99 @@ export function useStreamProcessor({
         if (onGenerationEnd) onGenerationEnd()
       }
 
-      const response = await fetchWithErrorHandling(
-        "/api/generate/stream",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-        onTokenLimitError
-      )
+      const runOnce = async () => {
+        const response = await fetchWithErrorHandling(
+          "/api/generate/stream",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+          onTokenLimitError
+        )
 
-      if (!response) return false
+        if (!response) return false
 
-      // Create event handler context
-      const handlerContext = {
-        setMessages,
-        setModelThinkingFull,
-        setConversationTokenTotal,
-        setPlanningProgress,
-        setCurrentPlanningPhase,
-        setIsGenerationComplete,
-        explanationBufferRef,
-        thinkingChunkCountRef,
-        conversationTokenTotal,
-        filesSavedRef,
-        doneReceivedRef,
-        hasShownStartMessageRef,
-        onCodeGenerated,
-        onFileWritten,
-        hasGeneratedCode,
-        setHasGeneratedCode,
-        modelThinkingFull,
-        setModelThinkingDisplay,
-        thinkingTimerRef,
-        setTypingCancelSignal,
-        currentRequestRef,
-        setIsActuallyGeneratingCode,
-        setTaskList: chatState.setTaskList,
-        setTaskProgress: chatState.setTaskProgress,
-      }
-
-      const handleEvent = createStreamEventHandler(handlerContext)
-      const handleRequiresFrontendType = createRequiresFrontendTypeHandler(handlerContext)
-      const handleRequiresUrl = createRequiresUrlHandler(handlerContext)
-      const handleRequiresApi = createRequiresApiHandler(handlerContext)
-      const handleRequiresWorkspaceApi = createRequiresWorkspaceApiHandler(handlerContext)
-
-      let planReadyData = null
-
-      for await (const data of streamResponse(response)) {
-        if (data.type === "plan_ready") {
-          console.log("[processStream] ✅ plan_ready received — Phase 1 complete", { hasMetaPlan: !!data.metaPlan, hasPlanningOutputs: !!data.formattedPlanningOutputs })
-          planReadyData = data
-        } else if (data.type === "requires_frontend_type") {
-          handleRequiresFrontendType(data, payload.prompt, payload.requestType, payload.projectId)
-        } else if (data.type === "requires_url") {
-          handleRequiresUrl(data, payload.prompt, payload.requestType, payload.projectId)
-        } else if (data.type === "requires_api") {
-          handleRequiresApi(data, payload.prompt, payload.requestType, payload.projectId)
-        } else if (data.type === "requires_workspace_api_confirmation") {
-          handleRequiresWorkspaceApi(data, payload.prompt, payload.requestType, payload.projectId)
-        } else if (eventHandlerExtensions[data.type]) {
-          eventHandlerExtensions[data.type](data)
-        } else {
-          handleEvent(data)
+        // Create event handler context
+        const handlerContext = {
+          setMessages,
+          setModelThinkingFull,
+          setConversationTokenTotal,
+          setPlanningProgress,
+          setCurrentPlanningPhase,
+          setIsGenerationComplete,
+          explanationBufferRef,
+          thinkingChunkCountRef,
+          conversationTokenTotal,
+          filesSavedRef,
+          doneReceivedRef,
+          hasShownStartMessageRef,
+          onCodeGenerated,
+          onFileWritten,
+          hasGeneratedCode,
+          setHasGeneratedCode,
+          modelThinkingFull,
+          setModelThinkingDisplay,
+          thinkingTimerRef,
+          setTypingCancelSignal,
+          currentRequestRef,
+          setIsActuallyGeneratingCode,
+          setTaskList: chatState.setTaskList,
+          setTaskProgress: chatState.setTaskProgress,
         }
+
+        const handleEvent = createStreamEventHandler(handlerContext)
+        const handleRequiresFrontendType = createRequiresFrontendTypeHandler(handlerContext)
+        const handleRequiresUrl = createRequiresUrlHandler(handlerContext)
+        const handleRequiresApi = createRequiresApiHandler(handlerContext)
+        const handleRequiresWorkspaceApi = createRequiresWorkspaceApiHandler(handlerContext)
+
+        let planReadyData = null
+
+        for await (const data of streamResponse(response)) {
+          if (data.type === "plan_ready") {
+            console.log("[processStream] ✅ plan_ready received — Phase 1 complete", { hasMetaPlan: !!data.metaPlan, hasPlanningOutputs: !!data.formattedPlanningOutputs })
+            planReadyData = data
+          } else if (data.type === "requires_frontend_type") {
+            handleRequiresFrontendType(data, payload.prompt, payload.requestType, payload.projectId)
+          } else if (data.type === "requires_url") {
+            handleRequiresUrl(data, payload.prompt, payload.requestType, payload.projectId)
+          } else if (data.type === "requires_api") {
+            handleRequiresApi(data, payload.prompt, payload.requestType, payload.projectId)
+          } else if (data.type === "requires_workspace_api_confirmation") {
+            handleRequiresWorkspaceApi(data, payload.prompt, payload.requestType, payload.projectId)
+          } else if (eventHandlerExtensions[data.type]) {
+            eventHandlerExtensions[data.type](data)
+          } else {
+            handleEvent(data)
+          }
+        }
+
+        if (planReadyData) {
+          console.log("[processStream] 📦 Returning plan_ready data for Phase 2 trigger")
+        }
+        return planReadyData ? { planReady: planReadyData } : true
       }
 
-      if (planReadyData) {
-        console.log("[processStream] 📦 Returning plan_ready data for Phase 2 trigger")
+      try {
+        return await runOnce()
+      } catch (error) {
+        // One-shot retry ONLY for obvious client-side/network failures. Backend 5xx
+        // errors (including scraper/Lambda issues) are surfaced directly so that
+        // existing backend fallbacks and error handling can run without interference.
+        const message = String(error?.message || "").toLowerCase()
+        const isTransientNetworkError =
+          message.includes("fetch failed") ||
+          message.includes("network error") ||
+          message.includes("failed to fetch")
+
+        if (!isTransientNetworkError) {
+          throw error
+        }
+
+        console.warn("[processStream] Retrying stream once after transient network error:", message)
+        return await runOnce()
       }
-      return planReadyData ? { planReady: planReadyData } : true
     },
     [
       chatState,

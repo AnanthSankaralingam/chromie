@@ -44,101 +44,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Check credit limit for browser testing (1 credit per use)
+    // Check credit limit for browser testing (1 credit per use). We only charge after
+    // a successful build + session creation, but still enforce the limit up-front.
     const browserTestCredits = CREDIT_COSTS.BROWSER_TESTING
-    
     const limitCheck = await checkLimit(user.id, 'credits', browserTestCredits, supabase)
-    
     if (!limitCheck.allowed) {
       return NextResponse.json(
         formatLimitError(limitCheck, 'credits'),
         { status: 429 }
       )
-    }
-
-    // Charge 1 credit immediately when "try it out" is clicked (before creating session)
-    try {
-      // Use service-role client for RLS-safe updates
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-      let db = supabase
-      if (supabaseUrl && serviceKey) {
-        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-        db = createServiceClient(supabaseUrl, serviceKey)
-      }
-
-      // Check if user already has a token_usage record
-      const { data: existingUsage, error: fetchError } = await db
-        .from('token_usage')
-        .select('id, total_credits, total_tokens, monthly_reset, model')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('Error fetching existing usage:', fetchError)
-        return NextResponse.json({ error: "Failed to fetch usage" }, { status: 500 })
-      }
-
-      const now = new Date()
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      let newMonthlyResetISO = existingUsage?.monthly_reset || firstDayOfMonth.toISOString()
-
-      // Determine if reset is due
-      let isResetDue = false
-      if (existingUsage?.monthly_reset) {
-        const d = new Date(existingUsage.monthly_reset)
-        const plusOne = new Date(d)
-        plusOne.setMonth(plusOne.getMonth() + 1)
-        isResetDue = now >= plusOne
-      }
-
-      let newTotalCredits
-      if (!existingUsage || isResetDue) {
-        newTotalCredits = browserTestCredits
-        newMonthlyResetISO = firstDayOfMonth.toISOString()
-      } else {
-        newTotalCredits = (existingUsage.total_credits || 0) + browserTestCredits
-      }
-
-      if (existingUsage?.id) {
-        // Update existing record
-        const { error: updateError } = await db
-          .from('token_usage')
-          .update({
-            total_credits: newTotalCredits,
-            monthly_reset: newMonthlyResetISO
-          })
-          .eq('id', existingUsage.id)
-          .eq('user_id', user.id)
-
-        if (updateError) {
-          console.error('Error updating credit usage:', updateError)
-          return NextResponse.json({ error: "Failed to charge credit" }, { status: 500 })
-        } else {
-          console.log(`✅ Charged ${browserTestCredits} credit(s) for browser testing session creation`)
-        }
-      } else {
-        // Create new record
-        const { error: insertError } = await db
-          .from('token_usage')
-          .insert({
-            user_id: user.id,
-            total_credits: browserTestCredits,
-            total_tokens: 0,
-            model: 'browser-testing',
-            monthly_reset: newMonthlyResetISO
-          })
-
-        if (insertError) {
-          console.error('Error creating credit usage record:', insertError)
-          return NextResponse.json({ error: "Failed to charge credit" }, { status: 500 })
-        } else {
-          console.log(`✅ Charged ${browserTestCredits} credit(s) for browser testing session creation`)
-        }
-      }
-    } catch (updateError) {
-      console.error('Error charging credit:', updateError)
-      return NextResponse.json({ error: "Failed to charge credit" }, { status: 500 })
     }
 
     // Extract user plan from limit check
@@ -257,6 +171,85 @@ export async function POST(request, { params }) {
       }
     } else {
       console.warn("[test-extension] ⚠️  No Chrome extension ID in session response")
+    }
+
+    // Charge 1 credit only after we have successfully built the extension and
+    // created a Testing Browser session. This avoids charging for failed builds.
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      let db = supabase
+      if (supabaseUrl && serviceKey) {
+        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+        db = createServiceClient(supabaseUrl, serviceKey)
+      }
+
+      const { data: existingUsage, error: fetchError } = await db
+        .from('token_usage')
+        .select('id, total_credits, total_tokens, monthly_reset, model')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing usage (post-session):', fetchError)
+      } else {
+        const now = new Date()
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        let newMonthlyResetISO = existingUsage?.monthly_reset || firstDayOfMonth.toISOString()
+
+        // Determine if reset is due
+        let isResetDue = false
+        if (existingUsage?.monthly_reset) {
+          const d = new Date(existingUsage.monthly_reset)
+          const plusOne = new Date(d)
+          plusOne.setMonth(plusOne.getMonth() + 1)
+          isResetDue = now >= plusOne
+        }
+
+        let newTotalCredits
+        if (!existingUsage || isResetDue) {
+          newTotalCredits = browserTestCredits
+          newMonthlyResetISO = firstDayOfMonth.toISOString()
+        } else {
+          newTotalCredits = (existingUsage.total_credits || 0) + browserTestCredits
+        }
+
+        if (existingUsage?.id) {
+          const { error: updateError } = await db
+            .from('token_usage')
+            .update({
+              total_credits: newTotalCredits,
+              monthly_reset: newMonthlyResetISO
+            })
+            .eq('id', existingUsage.id)
+            .eq('user_id', user.id)
+
+          if (updateError) {
+            console.error('Error updating credit usage after test session creation:', updateError)
+          } else {
+            console.log(`✅ Charged ${browserTestCredits} credit(s) for browser testing session creation`)
+          }
+        } else {
+          const { error: insertError } = await db
+            .from('token_usage')
+            .insert({
+              user_id: user.id,
+              total_credits: browserTestCredits,
+              total_tokens: 0,
+              model: 'browser-testing',
+              monthly_reset: newMonthlyResetISO
+            })
+
+          if (insertError) {
+            console.error('Error creating credit usage record after test session creation:', insertError)
+          } else {
+            console.log(`✅ Charged ${browserTestCredits} credit(s) for browser testing session creation`)
+          }
+        }
+      }
+    } catch (updateError) {
+      console.error('Error charging credit after test session creation:', updateError)
+      // Non-fatal: the session is already running; we just skip charging on failure.
     }
 
     return NextResponse.json({

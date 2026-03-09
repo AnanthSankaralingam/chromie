@@ -171,6 +171,37 @@ export function ensureRequiredFiles(files) {
     }
   }
 
+  // For side-panel based extensions, also ensure we have a basic JS controller and styles
+  // so the panel is actually interactive in both the test browser and when loaded locally.
+  if (manifest.side_panel) {
+    const sidepanelJsPath = 'sidepanel.js'
+    const stylesCssPath = 'styles.css'
+
+    const hasSidepanelJs = files.some(f => f.file_path === sidepanelJsPath) || result.some(f => f.file_path === sidepanelJsPath)
+    if (!hasSidepanelJs) {
+      console.log(`Creating default side panel script: ${sidepanelJsPath}`)
+      result.push({
+        file_path: sidepanelJsPath,
+        content:
+`document.addEventListener('DOMContentLoaded', () => {
+  console.log('[chromie] default sidepanel.js loaded');
+});`
+      })
+    }
+
+    const hasStylesCss = files.some(f => f.file_path === stylesCssPath) || result.some(f => f.file_path === stylesCssPath)
+    if (!hasStylesCss) {
+      console.log(`Creating default styles file: ${stylesCssPath}`)
+      result.push({
+        file_path: stylesCssPath,
+        content:
+`body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}`
+      })
+    }
+  }
+
   if (manifest.background && manifest.background.service_worker) {
     const backgroundFile = files.find(f => f.file_path === manifest.background.service_worker)
     if (!backgroundFile) {

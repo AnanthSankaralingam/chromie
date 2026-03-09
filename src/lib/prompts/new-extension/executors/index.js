@@ -7,7 +7,7 @@
 import { TASK_EXECUTOR_PROMPT } from './task-executor-prompt.js'
 import { getFrontendModuleForFile } from './frontend-modules/index.js'
 import { llmService } from '@/lib/services/llm-service.js'
-import { DEFAULT_MODEL } from '@/lib/constants.js'
+import { DEFAULT_MODEL, HTML_CODEGEN_MODEL } from '@/lib/constants.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES, NPM_PACKAGE_IMPORT_GUIDANCE } from '../one-shot/shared-content.js'
 
@@ -159,6 +159,7 @@ const FAST_FILE_EXTENSIONS = new Set(['css', 'json'])
  */
 function getModelForFile(fileName, modelOverride) {
   const ext = (fileName || '').split('.').pop().toLowerCase()
+  if (ext === 'html') return HTML_CODEGEN_MODEL
   if (FAST_FILE_EXTENSIONS.has(ext)) return GEMINI_FLASH_MODEL
   return modelOverride || DEFAULT_MODEL
 }

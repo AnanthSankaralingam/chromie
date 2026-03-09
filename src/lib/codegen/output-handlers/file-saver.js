@@ -203,17 +203,44 @@ export async function saveFilesToDatabase(implementationResult, sessionId, repla
 export async function updateProjectMetadata(sessionId, allFiles = {}) {
   const supabase = await createClient()
 
-  let projectUpdateData = {
-    has_generated_code: true,
-    last_used_at: new Date().toISOString()
-  }
+  // Build a Map so we can reuse existing harness validators for minimum-viable checks.
+  const completedFiles = new Map(Object.entries(allFiles || {}))
 
-  if (allFiles['manifest.json']) {
+  let hasValidManifest = false
+  let hasRequiredFiles = false
+
+  if (completedFiles.has('manifest.json')) {
     try {
-      const manifestContent = allFiles['manifest.json']
+      const manifestContent = completedFiles.get('manifest.json')
       const manifest = typeof manifestContent === 'string'
         ? JSON.parse(manifestContent)
         : manifestContent
+
+      hasValidManifest = !!manifest && !!manifest.name && !!manifest.version && !!manifest.manifest_version
+
+      // Use the extension harness manifest validator to ensure referenced files exist.
+      // We import lazily to avoid a hard dependency cycle at module load time.
+      try {
+        const { validateManifestFileReferences } = await import('@/lib/codegen/extension-harness.js')
+        const manifestErrors = validateManifestFileReferences(completedFiles) || []
+        const missingFileErrors = manifestErrors.filter(e => e.type === 'missing_file')
+        hasRequiredFiles = missingFileErrors.length === 0
+        if (!hasRequiredFiles) {
+          console.warn(
+            '[updateProjectMetadata] Manifest references missing files, will NOT mark project as fully generated:',
+            missingFileErrors.map(e => `${e.referencedBy} -> ${e.referencedFile} (${e.field})`)
+          )
+        }
+      } catch (harnessErr) {
+        console.warn('[updateProjectMetadata] Could not run manifest harness validation:', harnessErr?.message || harnessErr)
+        // Fall back to a conservative check: require at least manifest + one additional file.
+        hasRequiredFiles = completedFiles.size > 1
+      }
+
+      // Populate project name/description when available.
+      const projectUpdateData = {
+        last_used_at: new Date().toISOString(),
+      }
 
       if (manifest.name && manifest.name.trim()) {
         projectUpdateData.name = manifest.name.trim()
@@ -224,24 +251,66 @@ export async function updateProjectMetadata(sessionId, allFiles = {}) {
         projectUpdateData.description = manifest.description.trim()
         console.log(`📝 [stream] Updating project description to: ${manifest.description}`)
       }
+
+      // Only mark has_generated_code true when we have a valid manifest AND all manifest
+      // references resolve to concrete files. This prevents half-generated projects
+      // (missing sidepanel/options/etc.) from masquerading as completed extensions.
+      projectUpdateData.has_generated_code = hasValidManifest && hasRequiredFiles
+
+      try {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update(projectUpdateData)
+          .eq('id', sessionId)
+
+        if (updateError) {
+          console.error('❌ Error updating project:', updateError)
+        } else {
+          console.log(
+            '✅ Project updated successfully with extension info',
+            { has_generated_code: projectUpdateData.has_generated_code }
+          )
+        }
+      } catch (error) {
+        console.error('💥 Exception during project update:', error)
+      }
     } catch (parseError) {
       console.warn('Could not parse manifest.json for project update in stream:', parseError.message)
-    }
-  }
 
-  try {
-    const { error: updateError } = await supabase
-      .from('projects')
-      .update(projectUpdateData)
-      .eq('id', sessionId)
+      // If manifest is not parseable, keep a conservative update: only touch last_used_at
+      try {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            last_used_at: new Date().toISOString(),
+            has_generated_code: false,
+          })
+          .eq('id', sessionId)
 
-    if (updateError) {
-      console.error('❌ Error updating project:', updateError)
-    } else {
-      console.log('✅ Project updated successfully with extension info')
+        if (updateError) {
+          console.error('❌ Error updating project after manifest parse failure:', updateError)
+        }
+      } catch (err) {
+        console.error('💥 Exception during project update after manifest parse failure:', err)
+      }
     }
-  } catch (error) {
-    console.error('💥 Exception during project update:', error)
+  } else {
+    // No manifest at all – never mark this project as generated.
+    try {
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({
+          last_used_at: new Date().toISOString(),
+          has_generated_code: false,
+        })
+        .eq('id', sessionId)
+
+      if (updateError) {
+        console.error('❌ Error updating project without manifest:', updateError)
+      }
+    } catch (error) {
+      console.error('💥 Exception during project update without manifest:', error)
+    }
   }
 }
 
