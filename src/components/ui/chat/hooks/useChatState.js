@@ -5,7 +5,7 @@ const INITIAL_GREETING = {
   content: "hi! i'm **chromie**, your chrome extension assistant. tell me what you'd like in your extension.",
 }
 
-export function useChatState(projectId, hasGeneratedCodeProp) {
+export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = false) {
   const [inputMessage, setInputMessage] = useState("")
   const [messages, setMessages] = useState([INITIAL_GREETING])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -79,8 +79,12 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     async function loadMessages() {
       if (!projectId || messagesLoaded) return
 
+      const url = isAdminMode
+        ? `/api/admin/projects/${projectId}/messages`
+        : `/api/conversations/${projectId}/messages`
+
       try {
-        const response = await fetch(`/api/conversations/${projectId}/messages`)
+        const response = await fetch(url)
         
         if (!response.ok) {
           setMessagesLoaded(true)
@@ -102,7 +106,7 @@ export function useChatState(projectId, hasGeneratedCodeProp) {
     }
 
     loadMessages()
-  }, [projectId])
+  }, [projectId, isAdminMode])
 
   // Reset conversation state on project change
   useEffect(() => {
