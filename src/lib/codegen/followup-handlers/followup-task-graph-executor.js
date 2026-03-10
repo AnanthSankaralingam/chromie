@@ -63,10 +63,21 @@ function stripMarkdownFences(text) {
  * @param {string} executionContext.sessionId - Project/session ID
  * @param {string|null} executionContext.modelOverride - Optional model override
  * @param {Object} executionContext.supabase - Supabase client
+ * @param {boolean} [executionContext.saveAllFilesOnComplete=false] - When true, persist the full working
+ *   file set (not just patched files). This is used for template adaptation flows where the "existing"
+ *   files are a baseline template that must be fully materialized into the project, even if some of
+ *   them do not require modifications.
  * @returns {AsyncGenerator}
  */
 export async function* executeFollowupTaskGraph(followupPlan, executionContext) {
-  const { userRequest, existingFiles, sessionId, modelOverride, supabase } = executionContext
+  const {
+    userRequest,
+    existingFiles,
+    sessionId,
+    modelOverride,
+    supabase,
+    saveAllFilesOnComplete = false,
+  } = executionContext
   const deletedFiles = new Set()
   const savePromises = []
 
@@ -247,6 +258,33 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
 
   // ── Step 6: Finalize ───────────────────────────────────────────────────────
   await Promise.allSettled(savePromises)
+
+  // Optionally persist the full working file set. This is primarily used for template
+  // adaptation flows, where "existingFiles" is actually the template baseline rather
+  // than real files already stored in the database. In that case, we need to ensure
+  // that every file in the template (not just patched ones) is written to the project.
+  if (saveAllFilesOnComplete) {
+    const alreadySaved = new Set(savedFiles)
+    const baselineSavePromises = []
+
+    for (const [filePath, content] of Object.entries(workingFiles)) {
+      if (deletedFiles.has(filePath)) continue
+      if (alreadySaved.has(filePath)) continue
+
+      baselineSavePromises.push(
+        saveSingleFileToDatabase(filePath, content, sessionId).then((res) => {
+          if (res.success) {
+            savedFiles.push(res.filePath)
+          }
+          return res
+        })
+      )
+    }
+
+    if (baselineSavePromises.length > 0) {
+      await Promise.allSettled(baselineSavePromises)
+    }
+  }
 
   const explanation = [
     followupPlan.summary?.purpose,

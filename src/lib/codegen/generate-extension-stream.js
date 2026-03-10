@@ -560,7 +560,12 @@ export async function* generateChromeExtensionStream({
         sessionId,
         modelOverride,
         supabase,
-        images
+        images,
+        // For template adaptation, the "existing" files are the template baseline.
+        // We want every template file (even those that don't need edits) to be
+        // materialized into the project, so instruct the executor to persist the
+        // full working file set on completion.
+        isTemplateAdaptation: true,
       })
       return
     } else {
@@ -839,7 +844,7 @@ export async function* generateChromeExtensionStream({
  * Handles the high-difficulty follow-up path: calls the followup meta planner,
  * then executes the resulting task graph.
  */
-async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images = null }) {
+async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images = null, isTemplateAdaptation = false }) {
   const { followupPlan } = await callFollowupMetaPlanner(
     featureRequest,
     requirementsAnalysis.relevantFiles,
@@ -855,7 +860,8 @@ async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnaly
     existingFiles: requirementsAnalysis.relevantFiles,
     sessionId,
     modelOverride,
-    supabase
+    supabase,
+    saveAllFilesOnComplete: isTemplateAdaptation,
   })) {
     yield event
   }
