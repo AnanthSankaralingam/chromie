@@ -104,7 +104,7 @@ function BuilderPageContent() {
   const tourStartedRef = useRef(false)
   const { isPaid, isLoading: isLoadingPaidPlan } = usePaidPlan()
 
-  const fileManagement = useFileManagement(projectSetup.currentProjectId, user)
+  const fileManagement = useFileManagement(projectSetup.currentProjectId, user, projectSetup.isAdminMode)
   const downloadExtension = useDownloadExtension(
     projectSetup.currentProjectId,
     projectSetup.currentProjectName,
@@ -807,6 +807,7 @@ function BuilderPageContent() {
                   userIsPaid: !!isPaid,
                   isStillLoadingPaidPlan: isLoadingPaidPlan,
                   chatWidth: undefined,
+                  isAdminMode: projectSetup.isAdminMode,
                 }}
               >
                 <AIChat
@@ -847,6 +848,7 @@ function BuilderPageContent() {
                 selectedFile={selectedFile}
                 onFileSave={handleFileSave}
                 allFiles={fileManagement.flatFiles}
+                readOnly={projectSetup.isAdminMode}
               />
             </div>
           )}
@@ -933,6 +935,7 @@ function BuilderPageContent() {
                   userIsPaid: !!isPaid,
                   isStillLoadingPaidPlan: isLoadingPaidPlan,
                   chatWidth: undefined,
+                  isAdminMode: projectSetup.isAdminMode,
                 }}
               >
                 <AIChat
@@ -987,6 +990,7 @@ function BuilderPageContent() {
                           onClose={() => setIsCanvasOpen(false)}
                           isFileTreeCollapsed={isFileTreeCollapsed}
                           onToggleFileTree={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
+                          readOnly={projectSetup.isAdminMode}
                         />
                       </div>
                     </div>

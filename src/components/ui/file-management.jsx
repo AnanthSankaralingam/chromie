@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 
-export default function useFileManagement(currentProjectId, user) {
+export default function useFileManagement(currentProjectId, user, isAdminMode = false) {
   const [fileStructure, setFileStructure] = useState([])
   const [flatFiles, setFlatFiles] = useState([])
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
@@ -107,9 +107,10 @@ export default function useFileManagement(currentProjectId, user) {
     isLoadingRef.current = true
     setIsLoadingFiles(true)
     try {
+      const basePath = isAdminMode ? `/api/admin/projects/${currentProjectId}` : `/api/projects/${currentProjectId}`
       // Fetch code files
-      const filesResponse = await fetch(`/api/projects/${currentProjectId}/files`)
-      
+      const filesResponse = await fetch(`${basePath}/files`)
+
       if (!filesResponse.ok) {
         const errorData = await filesResponse.json()
         console.error("Error loading project files:", errorData.error)
@@ -122,7 +123,7 @@ export default function useFileManagement(currentProjectId, user) {
       // Fetch project assets
       let assetFiles = []
       try {
-        const assetsResponse = await fetch(`/api/projects/${currentProjectId}/assets`)
+        const assetsResponse = await fetch(`${basePath}/assets`)
         if (assetsResponse.ok) {
           const assetsData = await assetsResponse.json()
           // Transform assets to match code_files format (with a marker for assets)
@@ -178,9 +179,10 @@ export default function useFileManagement(currentProjectId, user) {
       setIsLoadingFiles(false)
       isLoadingRef.current = false
     }
-  }, [currentProjectId, loadedProjectId])
+  }, [currentProjectId, loadedProjectId, isAdminMode])
 
   const handleFileSave = async (selectedFile, content) => {
+    if (isAdminMode) return
     if (!selectedFile || !currentProjectId) {
       console.error('No file selected or project ID available')
       return
@@ -226,6 +228,7 @@ export default function useFileManagement(currentProjectId, user) {
 
   // Function to delete an asset
   const handleAssetDelete = async (file) => {
+    if (isAdminMode) return
     if (!file || !file.isAsset || !currentProjectId) {
       console.error('Invalid file or no project ID available')
       return
@@ -265,6 +268,7 @@ export default function useFileManagement(currentProjectId, user) {
 
   // Function to delete a regular code file
   const handleFileDelete = async (file) => {
+    if (isAdminMode) return
     if (!file || file.isAsset || !currentProjectId) {
       console.error('Invalid file or no project ID available')
       return
@@ -304,6 +308,7 @@ export default function useFileManagement(currentProjectId, user) {
 
   // Function to create a new file
   const handleFileCreate = async (fileName) => {
+    if (isAdminMode) return
     if (!fileName || !currentProjectId) {
       console.error('Invalid file name or no project ID available')
       return

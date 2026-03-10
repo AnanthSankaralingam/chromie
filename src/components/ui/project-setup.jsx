@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 export default function useProjectSetup(user, isLoading) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const [isAdminMode, setIsAdminMode] = useState(false)
   const [isSettingUpProject, setIsSettingUpProject] = useState(false)
   const [projectSetupError, setProjectSetupError] = useState(null)
   const [currentProjectId, setCurrentProjectId] = useState(null)
@@ -33,14 +34,15 @@ export default function useProjectSetup(user, isLoading) {
   }
 
   // Helper function to fetch project details with caching
-  const fetchProjectDetails = async (projectId, skipCache = false) => {
+  const fetchProjectDetails = async (projectId, skipCache = false, useAdminApi = false) => {
     // Return cached data if available and not skipping cache
     if (!skipCache && projectDetailsCache.current.has(projectId)) {
       return projectDetailsCache.current.get(projectId)
     }
 
+    const url = useAdminApi ? `/api/admin/projects/${projectId}` : `/api/projects/${projectId}`
     try {
-      const response = await fetchWithTimeout(`/api/projects/${projectId}`)
+      const response = await fetchWithTimeout(url)
       if (response.ok) {
         const data = await response.json()
         const project = data.project
@@ -126,15 +128,34 @@ export default function useProjectSetup(user, isLoading) {
     // Priority: URL parameter > session storage > most recent project
     if (projectIdFromUrl) {
       try {
-        setCurrentProjectId(projectIdFromUrl)
-        sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
-        const projectDetails = await fetchProjectDetails(projectIdFromUrl)
+        const adminParam = urlParams.get('admin') === '1'
+        let useAdminApi = false
+        if (adminParam && user) {
+          const meRes = await fetchWithTimeout('/api/admin/me')
+          if (meRes.ok) {
+            const { isAdmin } = await meRes.json()
+            if (isAdmin) {
+              useAdminApi = true
+            }
+          }
+        }
+        const projectDetails = await fetchProjectDetails(projectIdFromUrl, false, useAdminApi)
         if (projectDetails) {
+          // Set admin mode and project id together so file-management uses correct API
+          if (useAdminApi) setIsAdminMode(true)
+          setCurrentProjectId(projectIdFromUrl)
+          sessionStorage.setItem('chromie_current_project_id', projectIdFromUrl)
           setCurrentProjectName(projectDetails.name)
           setCurrentProjectHasGithubRepo(!!projectDetails.github_repo_full_name)
+          setProjectSetupError(null)
+        } else if (useAdminApi) {
+          setProjectSetupError('Project not found or access denied')
+        } else if (adminParam) {
+          setProjectSetupError('Admin access required to view this project')
+        } else {
+          setProjectSetupError('Project not found')
         }
         setIsSettingUpProject(false)
-        setProjectSetupError(null)
       } catch (err) {
         const isTimeout = err?.name === 'AbortError'
         setProjectSetupError(isTimeout ? 'Request timed out. Please try again.' : 'Failed to load project')
@@ -238,6 +259,7 @@ export default function useProjectSetup(user, isLoading) {
     currentProjectId,
     currentProjectName,
     currentProjectHasGithubRepo,
+    isAdminMode,
     isProjectLimitModalOpen,
     projectLimitDetails,
     setProjectLimitDetails,
