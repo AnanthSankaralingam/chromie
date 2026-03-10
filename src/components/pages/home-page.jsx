@@ -521,14 +521,14 @@ const [inputFocused, setInputFocused] = useState(false)
           </div>
         </main>
 
+        {/* Featured Creations Section */}
+        <FeaturedCreationsSection />
+
         {/* How It Works Section */}
         <HowItWorksSection />
 
         {/* Trusted By Section */}
         <TrustedBySection />
-
-        {/* Featured Creations Section */}
-        <FeaturedCreationsSection />
 
         {/* Pricing Section */}
         <PricingSection />
