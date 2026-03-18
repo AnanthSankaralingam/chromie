@@ -58,13 +58,13 @@ export default function HowItWorksSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-10 md:mb-12"
         >
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
-            How it works
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500 mb-3">
+            how it works
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
             from idea to extension in minutes
           </h2>
-          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
+          <p className="text-sm md:text-base text-zinc-400 max-w-xl mx-auto">
             describe your extension. test it in the app. download, share or publish.
           </p>
         </motion.div>
@@ -78,7 +78,7 @@ export default function HowItWorksSection() {
           transition={{ duration: 0.6 }}
           className="relative"
         >
-          <div className="relative w-full rounded-2xl overflow-hidden border border-slate-700/50 bg-slate-900/50 shadow-2xl shadow-slate-950/50 aspect-video">
+          <div className="relative w-full rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0f1117] aspect-video">
             {isVisible && embedUrl ? (
               <iframe
                 title="chromie demo"
@@ -88,11 +88,11 @@ export default function HowItWorksSection() {
                 allowFullScreen
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-                <div className="w-16 h-16 rounded-full bg-slate-700/60 flex items-center justify-center mb-4">
-                  <Play className="w-8 h-8 text-slate-400 ml-1" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0f1117]">
+                <div className="w-16 h-16 rounded-full bg-white/[0.06] flex items-center justify-center mb-4">
+                  <Play className="w-8 h-8 text-zinc-400 ml-1" />
                 </div>
-                <p className="text-sm text-slate-500">watch the demo</p>
+                <p className="text-sm text-zinc-600">watch the demo</p>
               </div>
             )}
           </div>

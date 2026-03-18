@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 
 const INITIAL_GREETING = {
   role: "assistant",
   content: "hi! i'm **chromie**, your chrome extension assistant. tell me what you'd like in your extension.",
 }
 
-export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = false) {
+export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = false, autoGeneratePrompt = null) {
   const [inputMessage, setInputMessage] = useState("")
   const [messages, setMessages] = useState([INITIAL_GREETING])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -57,22 +57,22 @@ export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = fals
   const [taskListGenId, setTaskListGenId] = useState(0)
 
   // Wraps the raw setter — increments genId when a new non-empty task list starts
-  const setTaskList = (newList) => {
+  const setTaskList = useCallback((newList) => {
     setTaskListRaw(newList)
     if (Array.isArray(newList) && newList.length > 0) {
       setTaskListGenId(id => id + 1)
     }
-  }
+  }, [])
 
   // Helper to update task progress (extra = optional { content } for completed tasks)
-  const setTaskProgress = (taskIdOrFileName, status, matchByFileName = false, extra = {}) => {
+  const setTaskProgress = useCallback((taskIdOrFileName, status, matchByFileName = false, extra = {}) => {
     setTaskListRaw(prev => prev.map(task => {
       if (matchByFileName ? task.fileName === taskIdOrFileName : task.id === taskIdOrFileName) {
         return { ...task, status, ...extra }
       }
       return task
     }))
-  }
+  }, [])
 
   // Load messages from database on mount or project change
   useEffect(() => {
@@ -93,12 +93,18 @@ export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = fals
 
         const data = await response.json()
         const savedMessages = data.messages || []
-        
+
         if (savedMessages.length > 0) {
           // Include initial greeting, then saved messages
           setMessages([INITIAL_GREETING, ...savedMessages])
+        } else if (autoGeneratePrompt) {
+          // New project with auto-generate: add user message in load flow so it can't be overwritten by race
+          setMessages([
+            INITIAL_GREETING,
+            { role: "user", content: autoGeneratePrompt },
+          ])
         }
-        
+
         setMessagesLoaded(true)
       } catch (error) {
         setMessagesLoaded(true)
@@ -106,7 +112,7 @@ export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = fals
     }
 
     loadMessages()
-  }, [projectId, isAdminMode])
+  }, [projectId, isAdminMode, messagesLoaded, autoGeneratePrompt])
 
   // Reset conversation state on project change
   useEffect(() => {
@@ -216,6 +222,7 @@ export function useChatState(projectId, hasGeneratedCodeProp, isAdminMode = fals
     setInputMessage,
     messages,
     setMessages,
+    messagesLoaded,
     isGenerating,
     setIsGenerating,
     hasGeneratedCode,

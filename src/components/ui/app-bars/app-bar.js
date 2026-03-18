@@ -102,7 +102,7 @@ export default function AppBar() {
 
   return (
     <>
-      <header className="border-b border-white/10 px-6 py-4 bg-transparent backdrop-blur-sm">
+      <header className="border-b border-white/[0.06] px-6 py-4 bg-transparent backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 transition-colors [&>span]:hover:opacity-90">
             <Image src="/chromie-logo-1.png" alt="Chromie" width={32} height={32} className="shrink-0 opacity-90 hover:opacity-100" />
@@ -117,28 +117,28 @@ export default function AppBar() {
               <a
                 href="#featured-creations"
                 onClick={handleFeaturedCreationsClick}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 gallery
               </a>
               <a
                 href="#pricing"
                 onClick={handlePricingClick}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 pricing
               </a>
               <a
                 href="#blog"
                 onClick={handleBlogClick}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 blog
               </a>
               <a
                 href="#contact"
                 onClick={handleContactClick}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 contact
               </a>
@@ -167,7 +167,7 @@ export default function AppBar() {
                 </Link>
               ) : (
                 <Button
-                  className="hidden md:inline-flex bg-blue-600 hover:bg-blue-700 text-white"
+                  className="hidden md:inline-flex bg-transparent border border-white/20 text-white hover:bg-white/5 hover:border-white/30 transition-all"
                   onClick={handleGetStarted}
                 >
                   get started
@@ -177,7 +177,7 @@ export default function AppBar() {
           </div>
         </div>
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 mt-3 pt-3 px-2">
+          <div className="md:hidden border-t border-white/[0.06] mt-3 pt-3 px-2">
             <div className="flex flex-col space-y-3">
               <a
                 href="#featured-creations"
@@ -185,7 +185,7 @@ export default function AppBar() {
                   handleFeaturedCreationsClick(e)
                   setIsMobileMenuOpen(false)
                 }}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 gallery
               </a>
@@ -195,7 +195,7 @@ export default function AppBar() {
                   handlePricingClick(e)
                   setIsMobileMenuOpen(false)
                 }}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 pricing
               </a>
@@ -205,7 +205,7 @@ export default function AppBar() {
                   handleBlogClick(e)
                   setIsMobileMenuOpen(false)
                 }}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 blog
               </a>
@@ -215,13 +215,13 @@ export default function AppBar() {
                   handleContactClick(e)
                   setIsMobileMenuOpen(false)
                 }}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
               >
                 contact
               </a>
               {!user && (
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-transparent border border-white/20 text-white hover:bg-white/5 hover:border-white/30 transition-all"
                   onClick={() => { setIsMobileMenuOpen(false); handleGetStarted() }}
                 >
                   get started

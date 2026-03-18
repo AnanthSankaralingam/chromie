@@ -153,16 +153,16 @@ export default function FeaturedCreationsSection() {
       id="featured-creations"
       className="relative z-10 w-full"
     >
-      <div className="max-w-6xl mx-auto px-6 pt-10 pb-16 md:pt-12 md:pb-20">
+      <div className="max-w-6xl mx-auto px-6 pt-6 pb-16 md:pt-8 md:pb-20">
         {/* Header */}
         <div className="text-center mb-10 md:mb-12">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-3">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500 mb-3">
             gallery
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-50 mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
             featured creations
           </h2>
-          <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto">
+          <p className="text-sm md:text-base text-zinc-400 max-w-xl mx-auto">
             discover extensions built with chromie. curated projects from teams, founders, and
             builders shipping in the browser.
           </p>
@@ -171,18 +171,18 @@ export default function FeaturedCreationsSection() {
         {/* Content */}
         {state.loading ? (
           <div className="flex justify-center py-10">
-            <div className="h-8 w-8 rounded-full border-2 border-slate-500 border-t-transparent animate-spin" />
+            <div className="h-8 w-8 rounded-full border-2 border-white/10 border-t-white/30 animate-spin" />
           </div>
         ) : state.error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-sm text-slate-400">
+          <div className="flex flex-col items-center justify-center py-8 text-sm text-zinc-400">
             <p>{state.error}</p>
           </div>
         ) : visibleProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-sm text-slate-400">
+          <div className="flex flex-col items-center justify-center py-10 text-sm text-zinc-400">
             <p>no featured creations yet.</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Add project IDs to the <code className="text-xs text-slate-300">featured_projects</code>{" "}
-              table in Supabase to populate this section.
+            <p className="mt-1 text-xs text-zinc-600">
+              add project IDs to the <code className="text-xs text-zinc-400">featured_projects</code>{" "}
+              table in supabase to populate this section.
             </p>
           </div>
         ) : (
@@ -197,7 +197,7 @@ export default function FeaturedCreationsSection() {
             {visibleProjects.map((project) => (
               <Dialog key={project.id}>
                 <article
-                  className="group relative overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-950/60 shadow-[0_18px_60px_rgba(15,23,42,0.7)] hover:-translate-y-1.5 hover:shadow-[0_24px_80px_rgba(15,23,42,0.9)] transition-all duration-300"
+                  className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1117] hover:border-white/[0.14] transition-all duration-200"
                 >
                   {/* Hero area */}
                   <div className="relative h-52 bg-slate-900">
@@ -225,27 +225,27 @@ export default function FeaturedCreationsSection() {
                   </div>
 
                   {/* Meta row */}
-                  <div className="flex items-center justify-between px-5 py-4 bg-slate-950/90">
+                  <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.06]">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-medium text-slate-100">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] text-xs font-medium text-zinc-100">
                         {project.name?.charAt(0)?.toLowerCase() ?? "p"}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs font-medium text-slate-100">
+                        <span className="text-xs font-medium text-zinc-200">
                           {(project.name || "chromie project")?.toLowerCase()}
                         </span>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-zinc-600">
                           featured
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-3 text-[11px] text-zinc-600">
                       {project.demoVideoUrl && (
                         <DialogTrigger asChild>
                           <button
                             type="button"
-                            className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800 hover:border-slate-500 transition-colors"
+                            className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs font-medium text-zinc-300 hover:bg-white/[0.08] hover:border-white/20 transition-colors"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
@@ -255,7 +255,7 @@ export default function FeaturedCreationsSection() {
                       <Button
                         size="sm"
                         variant="default"
-                        className="rounded-full bg-slate-50 text-slate-900 hover:bg-white px-4 py-1.5 text-xs font-medium"
+                        className="rounded-full bg-white text-[#080a0f] hover:bg-zinc-100 px-4 py-1.5 text-xs font-medium"
                         onClick={() => handleForkProject(project.id)}
                       >
                         fork project
@@ -265,9 +265,9 @@ export default function FeaturedCreationsSection() {
                 </article>
 
                 {project.demoVideoUrl && (
-                  <DialogContent className="max-w-3xl bg-slate-950 border-slate-800">
+                  <DialogContent className="max-w-3xl bg-[#0f1117] border-white/[0.08]">
                     <DialogHeader className="mb-2">
-                      <DialogTitle className="text-sm font-medium text-slate-100">
+                      <DialogTitle className="text-sm font-medium text-zinc-200">
                         {(project.name || "featured project").toLowerCase()} demo
                       </DialogTitle>
                     </DialogHeader>

@@ -282,12 +282,6 @@ function BuilderPageContent() {
     }
   }
 
-  // Trigger auto-generation when both prompt and project are ready
-  useEffect(() => {
-    if (autoGeneratePrompt && !projectSetup.isSettingUpProject && projectSetup.currentProjectId) {
-      // Auto-generation conditions met
-    }
-  }, [autoGeneratePrompt, projectSetup.isSettingUpProject, projectSetup.currentProjectId])
 
 
   // Track when user returns from testing to trigger download button highlight
@@ -308,22 +302,21 @@ function BuilderPageContent() {
   }, [testExtension.isTestModalOpen, hasGeneratedCode])
 
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = useCallback((file) => {
     setSelectedFile(file)
-  }
+  }, [])
 
-  const handleFileSave = async (content) => {
+  const handleFileSave = useCallback(async (content) => {
     if (!selectedFile) return
     await fileManagement.handleFileSave(selectedFile, content)
-    // Update the selected file content
     setSelectedFile(prev => ({ ...prev, content: content }))
-  }
+  }, [selectedFile, fileManagement.handleFileSave])
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     sessionStorage.removeItem('chromie_current_project_id')
     await supabase.auth.signOut()
     window.location.href = '/'
-  }
+  }, [supabase])
 
   const handleCreateAITestAgent = async (opts = null) => {
     if (!projectSetup.currentProjectId) {
@@ -621,17 +614,15 @@ function BuilderPageContent() {
   }
 
   // Handle solving test errors in chat
-  const handleSolveErrorInChat = (errorMessage) => {
+  const handleSolveErrorInChat = useCallback((errorMessage) => {
     if (setInputMessageRef.current) {
-      // Sanitize error message to replace internal names
       const sanitizedMessage = errorMessage
         .replace(/Hyperbrowser/gi, 'Testing Browser')
         .replace(/BrowserBase/gi, 'Testing Browser')
       setInputMessageRef.current(`Debug this: ${sanitizedMessage}`)
     }
-    // Close the test modal
     testExtension.handleCloseTestModal()
-  }
+  }, [testExtension.handleCloseTestModal])
 
   // Handle logs captured from test session
   const handleSessionLogsCapture = useCallback((logs) => {
