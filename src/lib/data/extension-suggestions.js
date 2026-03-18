@@ -3,35 +3,35 @@ export const extensionSuggestions = [
   {
     id: "rewards-tracker",
     title: "Loyalty rewards tracker",
-    description: "an extension that helps users track and manage their loyalty points and rewards.",
+    description: "helps users track and manage their loyalty points and rewards.",
     category: "Travel",
     keywords: ["rewards", "loyalty", "points", "cashback", "membership", "travel", "tracking"]
   },
   {
     id: "data-extractor",
     title: "Web data extraction tool",
-    description: "an extension that notifies employees when they have redeemable rewards.",
+    description: "notifies employees when they have redeemable rewards.",
     category: "HR",
     keywords: ["data", "extraction", "scraping", "business", "intelligence", "export", "analysis"]
   },
   {
     id: "note-taker",
     title: "Quick note taker",
-    description: "an extension that lets you save notes and highlights from any webpage.",
+    description: "lets you save notes and highlights from any webpage.",
     category: "Productivity",
     keywords: ["notes", "highlight", "save", "bookmark", "writing", "research", "clipboard"]
   },
   {
     id: "meeting-scheduler",
     title: "Smart meeting scheduler",
-    description: "an extension that integrates with calendar platforms to allow users to schedule meetings.",
+    description: "integrates with calendar platforms to allow users to schedule meetings.",
     category: "Productivity",
     keywords: ["scheduling", "meetings", "calendar", "availability", "timezone", "appointments", "coordination"]
   },
   {
     id: "ad-blocker",
     title: "Ad and tracker blocker",
-    description: "an extension that blocks ads, pop-ups, and tracking scripts while you browse.",
+    description: "blocks ads, pop-ups, and tracking scripts while you browse.",
     category: "Privacy",
     keywords: ["ad blocker", "ads", "privacy", "tracker", "popup", "blocking", "security"]
   }

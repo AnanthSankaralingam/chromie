@@ -56,22 +56,34 @@ export default function BlogSection() {
               className={featuredPosts.length === 1 ? 'max-w-md w-full' : ''}
             >
               <Link href={`/blog/${post.slug}`}>
-                <div className="group relative h-full bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-gray-500/50 transition-all duration-300 overflow-hidden cursor-pointer p-6 flex flex-col">
+                <div className="group relative h-full bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-gray-500/50 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col">
+                  {/* Cover image area */}
+                  <div className="relative h-36 w-full overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 shrink-0">
+                    {post.coverImage ? (
+                      <img
+                        src={post.coverImage}
+                        alt=""
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-gray-700/60 via-gray-800/80 to-gray-900" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {iconImage ? (
+                            <img src={iconImage} alt="" className="w-12 h-12 object-contain opacity-60" />
+                          ) : (
+                            <Icon className="w-10 h-10 text-gray-500" />
+                          )}
+                        </div>
+                      </>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
+                  </div>
+
                   {/* Hover gradient effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-600/0 to-gray-400/0 group-hover:from-gray-600/10 group-hover:to-gray-400/10 transition-all duration-300" />
                   
-                  <div className="relative flex flex-col h-full">
-                    {/* Icon */}
-                    <div className="mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-600/20 to-gray-400/20 rounded-lg flex items-center justify-center border border-gray-500/30 group-hover:scale-110 transition-transform duration-300 overflow-hidden">
-                        {iconImage ? (
-                          <img src={iconImage} alt="" className="w-8 h-8 object-contain" />
-                        ) : (
-                          <Icon className="w-6 h-6 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-
+                  <div className="relative flex flex-col flex-1 p-6">
                     {/* Date */}
                     <div className="text-sm text-gray-400 mb-3">
                       {String(post.date).toLowerCase()}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Send, LoaderIcon, Sparkles } from "lucide-react"
+import { Send, LoaderIcon, Sparkles, Code2, FlaskConical, Rocket } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -10,7 +10,6 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
-import TrustedBySection from "@/components/ui/sections/trusted-by-section"
 import BlogSection from "@/components/ui/sections/blog-section"
 import PricingSection from "@/components/ui/sections/pricing-section"
 import ContactSection from "@/components/ui/sections/contact-section"
@@ -517,6 +516,50 @@ const [inputFocused, setInputFocused] = useState(false)
                   </div>
                 </div>
               </motion.form>
+
+              {/* Value props */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, duration: 0.5 }}
+                className="flex flex-wrap items-center justify-center gap-3"
+              >
+                {[
+                  { icon: Code2, label: "no chrome api knowledge needed" },
+                  { icon: FlaskConical, label: "built-in testing" },
+                  { icon: Rocket, label: "one-click deploy" },
+                ].map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-800/40 border border-slate-700/40 rounded-full px-3 py-1.5"
+                  >
+                    <Icon className="w-3 h-3 shrink-0" />
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* Trusted by — inline social proof */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.75, duration: 0.6 }}
+                className="flex flex-col items-center gap-4 pt-12"
+              >
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-600">trusted by</p>
+                <div className="flex items-center justify-center gap-16 md:gap-24">
+                  <a href="https://www.youtube.com/watch?v=SCteMclpA38" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
+                    <img src="/promptly-logo-128.png" alt="Promptly AI" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen" }} />
+                  </a>
+                  <a href="https://chromewebstore.google.com/detail/omnispeech-ai-deepfake-de/fdaalloapkmfoeelgbhdedlbiplcoahp/" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
+                    <img src="/omnispeech_logo.png" alt="Omnispeech" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen" }} />
+                  </a>
+                  <a href="https://qtr.ai/" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
+                    <img src="/QTR-Logo.png" alt="QTR" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen", filter: "brightness(0) invert(1)" }} />
+                  </a>
+                </div>
+              </motion.div>
+
             </motion.div>
           </div>
         </main>
@@ -526,9 +569,6 @@ const [inputFocused, setInputFocused] = useState(false)
 
         {/* How It Works Section */}
         <HowItWorksSection />
-
-        {/* Trusted By Section */}
-        <TrustedBySection />
 
         {/* Pricing Section */}
         <PricingSection />
