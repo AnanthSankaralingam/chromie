@@ -335,7 +335,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.05] mx-auto whitespace-nowrap"
+                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.05] mx-auto max-w-4xl"
                 >
                   build powerful chrome extensions.
                 </motion.h1>
