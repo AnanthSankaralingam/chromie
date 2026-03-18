@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Send, LoaderIcon, Sparkles, Code2, FlaskConical, Rocket } from "lucide-react"
+import { Send, LoaderIcon, Sparkles, RefreshCw } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useRouter } from "next/navigation"
 import AuthModal from "@/components/ui/modals/modal-auth"
@@ -30,19 +30,27 @@ export default function HomePage() {
   const [isProjectLimitModalOpen, setIsProjectLimitModalOpen] = useState(false)
   const [projectLimitDetails, setProjectLimitDetails] = useState(null)
   const [isTokenLimitModalOpen, setIsTokenLimitModalOpen] = useState(false)
-const [inputFocused, setInputFocused] = useState(false)
-  const [placeholderText, setPlaceholderText] = useState("")
-  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0)
+  const [inputFocused, setInputFocused] = useState(false)
   const router = useRouter()
   const textareaRef = useRef(null)
   const { toast } = useToast()
 
-  // Typing suggestions for placeholder - extracted from extension suggestions data
-  // Descriptions already have no prefix, "An extension that " is added during typing
-  const typingSuggestions = useMemo(() =>
-    extensionSuggestions.map(suggestion => suggestion.description),
-    []
-  )
+  const pickRandom = (exclude = []) => {
+    const pool = extensionSuggestions.filter(s => !exclude.includes(s.id))
+    const shuffled = [...pool].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, 3)
+  }
+
+  const [visibleSuggestions, setVisibleSuggestions] = useState(() => pickRandom())
+
+  const handleRefreshSuggestions = () => {
+    setVisibleSuggestions(prev => pickRandom(prev.map(s => s.id)))
+  }
+
+  const handleSuggestionClick = (suggestion) => {
+    setPrompt(suggestion.prompt)
+    textareaRef.current?.focus()
+  }
 
   // Auto-resize textarea hook
   const adjustHeight = useCallback((reset = false) => {
@@ -210,56 +218,6 @@ const [inputFocused, setInputFocused] = useState(false)
     }
   }
 
-  // Typing animation effect for placeholder
-  useEffect(() => {
-    // Only run typing animation when prompt is empty
-    if (prompt) {
-      setPlaceholderText("")
-      return
-    }
-
-    const currentText = typingSuggestions[currentSuggestionIndex]
-    if (!currentText) return
-
-    let charIndex = 0
-    let isTyping = true
-    let pauseTimeout = null
-    let deleteInterval = null
-
-    const typingInterval = setInterval(() => {
-      if (isTyping) {
-        // Typing phase
-        if (charIndex <= currentText.length) {
-          setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
-          charIndex++
-        } else {
-          // Finished typing, pause before deleting
-          clearInterval(typingInterval)
-          pauseTimeout = setTimeout(() => {
-            isTyping = false
-            // Start deleting
-            deleteInterval = setInterval(() => {
-              if (charIndex > 0) {
-                charIndex--
-                setPlaceholderText('An extension that ' + currentText.slice(0, charIndex))
-              } else {
-                // Finished deleting, move to next suggestion
-                clearInterval(deleteInterval)
-                setCurrentSuggestionIndex((prev) => (prev + 1) % typingSuggestions.length)
-              }
-            }, 2)
-          }, 1000) // Pause for 1 second
-        }
-      }
-    }, 8) // Typing speed
-
-    return () => {
-      clearInterval(typingInterval)
-      if (pauseTimeout) clearTimeout(pauseTimeout)
-      if (deleteInterval) clearInterval(deleteInterval)
-    }
-  }, [prompt, currentSuggestionIndex, typingSuggestions])
-
   // Restore prompt from URL params or sessionStorage on component mount
   useEffect(() => {
     const restorePrompt = () => {
@@ -339,98 +297,86 @@ const [inputFocused, setInputFocused] = useState(false)
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-neutral-500" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080a0f]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/10 border-t-white/30" />
       </div>
     )
   }
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden flex flex-col">
+      <div className="min-h-screen bg-[#080a0f] text-white relative overflow-hidden flex flex-col">
         {/* Header */}
         <AppBar />
 
-        {/* Animated Background Blobs */}
+        {/* Flickering Grid Background */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          {/* Flickering Grid Background */}
           <FlickeringGrid
             className="absolute inset-0 z-0"
             squareSize={4}
             gridGap={6}
             color="rgb(156, 163, 175)"
-            maxOpacity={0.15}
+            maxOpacity={0.08}
             flickerChance={2.0}
-          />
-          
-          <motion.div 
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.15, 0.25, 0.15],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div 
-            className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/15 rounded-full filter blur-[140px] z-10"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.2, 0.1],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
           />
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 flex items-center justify-center px-4 sm:px-6 pt-8 sm:pt-12 pb-16 sm:pb-20 relative z-10">
-          <div className="w-full max-w-3xl mx-auto">
+        <main className="flex-1 flex items-center justify-center px-4 sm:px-6 pt-8 sm:pt-12 pb-8 sm:pb-10 relative z-10">
+          <div className="w-full max-w-5xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              {/* Title Section with consistent styling */}
-              <div className="text-center mb-8 sm:mb-12">
+              {/* Title Section */}
+              <div className="text-center mb-4 sm:mb-6">
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.6 }}
-                  className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-slate-50 mb-3 leading-tight max-w-3xl mx-auto"
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-[1.05] mx-auto whitespace-nowrap"
                 >
                   build powerful chrome extensions.
                 </motion.h1>
                 <motion.p
-                  className="text-sm md:text-base text-slate-400 max-w-xl mx-auto"
+                  className="text-sm md:text-base text-zinc-400 max-w-xl mx-auto mb-5"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25 }}
                 >
                   automate tasks, extend your product, or build something new.
                 </motion.p>
+                <motion.p
+                  className="flex items-center justify-center gap-2.5 text-xs text-zinc-600 mt-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                >
+                  <span>no chrome knowledge needed</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>integrate any sites and apis</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>built-in testing</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>one-click deploy</span>
+                </motion.p>
               </div>
 
               {/* Chat Input Form */}
+              <div className="max-w-3xl mx-auto">
               <motion.form
                 onSubmit={handleSubmit}
-                className="relative mb-8"
+                className="relative mb-4"
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.35, duration: 0.5 }}
               >
                 <div className={cn(
-                  "relative backdrop-blur-xl bg-slate-800/30 rounded-2xl border transition-all duration-300 shadow-2xl",
+                  "relative bg-[#0f1117] rounded-2xl border transition-all duration-200",
                   inputFocused 
-                    ? "border-gray-500/60 shadow-gray-500/20" 
-                    : "border-slate-700/40 hover:border-slate-600/60"
+                    ? "border-white/20" 
+                    : "border-white/[0.08] hover:border-white/[0.14]"
                 )}>
                   <div className="p-6">
                     <textarea
@@ -440,7 +386,7 @@ const [inputFocused, setInputFocused] = useState(false)
                       onKeyDown={handleKeyDown}
                       onFocus={handleTextareaFocus}
                       onBlur={handleTextareaBlur}
-                      placeholder={placeholderText || "describe your extension..."}
+                      placeholder="describe your extension idea. chromie will bring it to life..."
                       disabled={isGenerating || isOptimizing}
                       maxLength={INPUT_LIMITS.PROMPT}
                       className={cn(
@@ -450,7 +396,7 @@ const [inputFocused, setInputFocused] = useState(false)
                         "border-none",
                         "text-white text-base md:text-lg leading-relaxed",
                         "focus:outline-none focus:ring-0",
-                        "placeholder:text-slate-500",
+                        "placeholder:text-zinc-600",
                         "min-h-[80px]",
                         "disabled:opacity-50 disabled:cursor-not-allowed"
                       )}
@@ -461,8 +407,8 @@ const [inputFocused, setInputFocused] = useState(false)
                   </div>
 
                   <div className="px-6 pb-6 flex items-center justify-between gap-4">
-                    <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
-                      <kbd className="px-2 py-1.5 bg-slate-700/60 rounded-md border border-slate-600/50 font-mono">Enter</kbd>
+                    <div className="hidden sm:flex items-center gap-2 text-xs text-zinc-600">
+                      <kbd className="px-2 py-1.5 bg-white/[0.05] rounded-md border border-white/[0.08] font-mono">enter</kbd>
                       <span>to send</span>
                     </div>
 
@@ -474,10 +420,10 @@ const [inputFocused, setInputFocused] = useState(false)
                         size="lg"
                         title="optimize prompt"
                         className={cn(
-                          "font-semibold transition-all duration-300 px-4 py-2.5 rounded-full text-xs md:text-sm",
+                          "font-medium transition-all duration-200 px-4 py-2.5 rounded-full text-xs md:text-sm",
                           prompt.trim() && !isOptimizing && !isGenerating
-                            ? "bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 shadow-md hover:shadow-lg hover:scale-105"
-                            : "bg-slate-700/40 text-slate-500 cursor-not-allowed border border-slate-700/40"
+                            ? "bg-transparent text-zinc-300 border border-white/[0.12] hover:bg-white/[0.06] hover:border-white/20 hover:text-white"
+                            : "bg-transparent text-zinc-700 cursor-not-allowed border border-white/[0.06]"
                         )}
                       >
                         {isOptimizing ? (
@@ -494,10 +440,10 @@ const [inputFocused, setInputFocused] = useState(false)
                         disabled={isGenerating || isOptimizing || !prompt.trim()}
                         size="lg"
                         className={cn(
-                          "font-semibold transition-all duration-300 px-6 py-2.5 rounded-full text-xs md:text-sm",
+                          "font-medium transition-all duration-200 px-6 py-2.5 rounded-full text-xs md:text-sm",
                           prompt.trim() && !isGenerating && !isOptimizing
-                            ? "bg-slate-50 text-slate-900 hover:bg-white shadow-lg shadow-slate-500/30 hover:shadow-slate-500/40 hover:scale-105"
-                            : "bg-slate-700/40 text-slate-500 cursor-not-allowed"
+                            ? "bg-white text-[#080a0f] hover:bg-zinc-100"
+                            : "bg-white/10 text-zinc-600 cursor-not-allowed border-0"
                         )}
                       >
                         {isGenerating ? (
@@ -517,36 +463,50 @@ const [inputFocused, setInputFocused] = useState(false)
                 </div>
               </motion.form>
 
-              {/* Value props */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, duration: 0.5 }}
-                className="flex flex-wrap items-center justify-center gap-3"
-              >
-                {[
-                  { icon: Code2, label: "no chrome api knowledge needed" },
-                  { icon: FlaskConical, label: "built-in testing" },
-                  { icon: Rocket, label: "one-click deploy" },
-                ].map(({ icon: Icon, label }) => (
-                  <div
-                    key={label}
-                    className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-800/40 border border-slate-700/40 rounded-full px-3 py-1.5"
-                  >
-                    <Icon className="w-3 h-3 shrink-0" />
-                    <span>{label}</span>
+              {/* Example prompts */}
+              {!prompt && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45, duration: 0.4 }}
+                  className="flex flex-col items-center gap-3 mt-5 mb-10"
+                >
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <span>try an example prompt</span>
+                    <button
+                      type="button"
+                      onClick={handleRefreshSuggestions}
+                      className="hover:text-zinc-300 transition-colors"
+                      aria-label="Refresh suggestions"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </button>
                   </div>
-                ))}
-              </motion.div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {visibleSuggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleSuggestionClick(s)}
+                        className="text-xs text-zinc-400 border border-white/[0.1] rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-zinc-200 hover:border-white/20 transition-all duration-150"
+                      >
+                        {s.title}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              </div>
 
               {/* Trusted by — inline social proof */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.75, duration: 0.6 }}
-                className="flex flex-col items-center gap-4 pt-12"
+                className="flex flex-col items-center gap-4 pt-6"
               >
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-600">trusted by</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">trusted by</p>
                 <div className="flex items-center justify-center gap-16 md:gap-24">
                   <a href="https://www.youtube.com/watch?v=SCteMclpA38" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
                     <img src="/promptly-logo-128.png" alt="Promptly AI" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen" }} />
@@ -580,26 +540,26 @@ const [inputFocused, setInputFocused] = useState(false)
         <ContactSection />
 
         {/* Footer */}
-        <footer className="relative z-20 px-6 py-5 border-t border-slate-800/50 mt-auto">
+        <footer className="relative z-20 px-6 py-5 border-t border-white/[0.06] mt-auto">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-zinc-600">
               © 2026 chromie.dev
             </div>
 
             <div className="flex items-center gap-3 text-xs">
               <a
                 href="/privacy"
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-zinc-500 hover:text-white transition-colors"
               >
-                Privacy Policy
+                privacy policy
               </a>
               <a
                 href="https://linkedin.com/company/chromie-dev"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-zinc-500 hover:text-white transition-colors"
               >
-                LinkedIn
+                linkedin
               </a>
             </div>
           </div>

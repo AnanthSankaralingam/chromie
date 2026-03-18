@@ -1,30 +1,28 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 /**
  * Hook to manage URL parameters for auto-generation
+ * Uses useSearchParams for reliable client-side navigation (router.push from home)
  * @param {boolean} hasProcessedAutoGenerate - Whether auto-generate has been processed
  * @returns {Object} - Auto-generate state and handlers
  */
 export function useAutoGenerateParams(hasProcessedAutoGenerate) {
+  const searchParams = useSearchParams()
   const [autoGeneratePrompt, setAutoGeneratePrompt] = useState(null)
 
-  // Check for autoGenerate prompt in URL
+  // Check for autoGenerate prompt in URL — useSearchParams ensures we get it on client-side nav
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const autoGenerateFromUrl = urlParams.get('autoGenerate')
-      
-      if (autoGenerateFromUrl) {
-        try {
-          setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
-        } catch (error) {
-          // If URI is malformed, use the original value
-          console.warn('Failed to decode autoGenerate URL parameter:', error)
-          setAutoGeneratePrompt(autoGenerateFromUrl)
-        }
+    const autoGenerateFromUrl = searchParams.get('autoGenerate')
+    if (autoGenerateFromUrl) {
+      try {
+        setAutoGeneratePrompt(decodeURIComponent(autoGenerateFromUrl))
+      } catch (error) {
+        console.warn('Failed to decode autoGenerate URL parameter:', error)
+        setAutoGeneratePrompt(autoGenerateFromUrl)
       }
     }
-  }, [])
+  }, [searchParams])
 
   // Clear autoGenerate URL parameter after successful generation
   useEffect(() => {
