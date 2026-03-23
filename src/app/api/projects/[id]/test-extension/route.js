@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
+import { isAdmin } from "@/lib/api/admin-auth"
 import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { buildExtension } from "@/lib/build/esbuild-service.js"
 import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
@@ -32,34 +34,62 @@ export async function POST(request, { params }) {
     // Always await pinning to capture the Chrome extension ID
     const awaitPinExtension = body?.awaitPinExtension !== false
 
-    // Verify project ownership
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single()
+    const userIsAdmin = await isAdmin(supabase, user)
+    const service = createServiceClient()
 
-    if (projectError || !project) {
+    let project = null
+    /** Service client when admin reads another user's project (RLS-safe). */
+    let db = supabase
+
+    if (userIsAdmin && service) {
+      const { data: p, error: adminProjectErr } = await service
+        .from("projects")
+        .select("id, user_id")
+        .eq("id", id)
+        .maybeSingle()
+      if (!adminProjectErr && p) {
+        project = p
+        db = p.user_id === user.id ? supabase : service
+      }
+    }
+    if (!project) {
+      const { data: p, error: projectError } = await supabase
+        .from("projects")
+        .select("id, user_id")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+      if (!projectError && p) {
+        project = p
+        db = supabase
+      }
+    }
+
+    if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Check credit limit for browser testing (1 credit per use). We only charge after
-    // a successful build + session creation, but still enforce the limit up-front.
+    const adminViewingOther = userIsAdmin && project.user_id !== user.id
     const browserTestCredits = CREDIT_COSTS.BROWSER_TESTING
-    const limitCheck = await checkLimit(user.id, 'credits', browserTestCredits, supabase)
-    if (!limitCheck.allowed) {
-      return NextResponse.json(
-        formatLimitError(limitCheck, 'credits'),
-        { status: 429 }
-      )
+
+    let userPlan = "free"
+    if (!adminViewingOther) {
+      // Check credit limit for browser testing (1 credit per use). We only charge after
+      // a successful build + session creation, but still enforce the limit up-front.
+      const limitCheck = await checkLimit(user.id, "credits", browserTestCredits, supabase)
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          formatLimitError(limitCheck, "credits"),
+          { status: 429 }
+        )
+      }
+      userPlan = limitCheck.plan
+    } else {
+      userPlan = "admin"
     }
 
-    // Extract user plan from limit check
-    const userPlan = limitCheck.plan
-
     // Load existing extension files for this project
-    const { data: files, error: filesError } = await supabase
+    const { data: files, error: filesError } = await db
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", id)
@@ -71,7 +101,7 @@ export async function POST(request, { params }) {
     }
 
     // Also fetch project assets (custom icons, etc.)
-    const { data: assets, error: assetsError } = await supabase
+    const { data: assets, error: assetsError } = await db
       .from("project_assets")
       .select("file_path, content_base64")
       .eq("project_id", id)
@@ -93,7 +123,7 @@ export async function POST(request, { params }) {
     console.log(`[test-extension] Upserting ${placeholders.length} placeholder files: ${placeholders.map(f => f.file_path).join(', ')}`)
     for (const file of placeholders) {
       console.log(`[test-extension]   - upserting: ${file.file_path}`)
-      await supabase.from("code_files").upsert(
+      await db.from("code_files").upsert(
         { project_id: id, file_path: file.file_path, content: file.content, last_used_at: new Date().toISOString() },
         { onConflict: "project_id,file_path" }
       )
@@ -136,7 +166,7 @@ export async function POST(request, { params }) {
       extensionFiles,
       id,
       user.id,
-      supabase,
+      db,
       { awaitPinExtension, viewport }
     )
     console.log(`[test-extension] createTestSession completed in ${Date.now() - sessionStart}ms`)
@@ -146,7 +176,7 @@ export async function POST(request, { params }) {
       console.log("[test-extension] ✅ Got Chrome extension ID from session:", session.chromeExtensionId)
       
       try {
-        const { error: storeError } = await supabase
+        const { error: storeError } = await db
           .from("code_files")
           .upsert(
             {
@@ -175,16 +205,18 @@ export async function POST(request, { params }) {
 
     // Charge 1 credit only after we have successfully built the extension and
     // created a Testing Browser session. This avoids charging for failed builds.
-    try {
+    // Skip billing when an admin opens the simulated browser for another user's project.
+    if (!adminViewingOther) {
+      try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-      let db = supabase
+      let usageDb = supabase
       if (supabaseUrl && serviceKey) {
-        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-        db = createServiceClient(supabaseUrl, serviceKey)
+        const { createClient: createSbService } = await import('@supabase/supabase-js')
+        usageDb = createSbService(supabaseUrl, serviceKey)
       }
 
-      const { data: existingUsage, error: fetchError } = await db
+      const { data: existingUsage, error: fetchError } = await usageDb
         .from('token_usage')
         .select('id, total_credits, total_tokens, monthly_reset, model')
         .eq('user_id', user.id)
@@ -215,7 +247,7 @@ export async function POST(request, { params }) {
         }
 
         if (existingUsage?.id) {
-          const { error: updateError } = await db
+          const { error: updateError } = await usageDb
             .from('token_usage')
             .update({
               total_credits: newTotalCredits,
@@ -230,7 +262,7 @@ export async function POST(request, { params }) {
             console.log(`✅ Charged ${browserTestCredits} credit(s) for browser testing session creation`)
           }
         } else {
-          const { error: insertError } = await db
+          const { error: insertError } = await usageDb
             .from('token_usage')
             .insert({
               user_id: user.id,
@@ -247,9 +279,10 @@ export async function POST(request, { params }) {
           }
         }
       }
-    } catch (updateError) {
-      console.error('Error charging credit after test session creation:', updateError)
-      // Non-fatal: the session is already running; we just skip charging on failure.
+      } catch (updateError) {
+        console.error('Error charging credit after test session creation:', updateError)
+        // Non-fatal: the session is already running; we just skip charging on failure.
+      }
     }
 
     return NextResponse.json({

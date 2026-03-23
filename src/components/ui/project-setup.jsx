@@ -61,7 +61,7 @@ export default function useProjectSetup(user, isLoading) {
     try {
       if (!currentProjectId) return
       // Skip cache to force fresh fetch from API
-      const project = await fetchProjectDetails(currentProjectId, true)
+      const project = await fetchProjectDetails(currentProjectId, true, isAdminMode)
       if (project) {
         setCurrentProjectName(project.name)
         setCurrentProjectHasGithubRepo(!!project.github_repo_full_name)
