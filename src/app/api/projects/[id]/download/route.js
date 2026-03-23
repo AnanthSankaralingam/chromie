@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { createClient as createServiceClient } from "@supabase/supabase-js"
 import JSZip from "jszip"
 import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
 import { buildExtension } from "@/lib/build/esbuild-service.js"
 import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
+import { isAdmin } from "@/lib/api/admin-auth"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export async function GET(request, { params }) {
   const supabase = await createClient()
@@ -21,20 +22,43 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Verify project ownership
-    const { data: project, error: projectError } = await supabase
-      .from("projects")
-      .select("id, name")
-      .eq("id", projectId)
-      .eq("user_id", user.id)
-      .single()
+    const service = createServiceClient()
+    const userIsAdmin = await isAdmin(supabase, user)
 
-    if (projectError || !project) {
+    /** DB client for code_files / assets: service role when admin views another user's project (bypasses RLS). */
+    let db = supabase
+    let project = null
+
+    if (userIsAdmin && service) {
+      const { data: p, error: adminProjectErr } = await service
+        .from("projects")
+        .select("id, name, user_id")
+        .eq("id", projectId)
+        .maybeSingle()
+      if (!adminProjectErr && p) {
+        project = p
+        db = p.user_id === user.id ? supabase : service
+      }
+    }
+    if (!project) {
+      const { data: p, error: projectError } = await supabase
+        .from("projects")
+        .select("id, name, user_id")
+        .eq("id", projectId)
+        .eq("user_id", user.id)
+        .maybeSingle()
+      if (!projectError && p) {
+        project = p
+        db = supabase
+      }
+    }
+
+    if (!project) {
       return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
     }
 
     // Get project files
-    const { data: files, error: filesError } = await supabase
+    const { data: files, error: filesError } = await db
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", projectId)
@@ -66,7 +90,7 @@ export async function GET(request, { params }) {
     if (placeholders.length > 0) {
       for (const file of placeholders) {
         try {
-          await supabase
+          await db
             .from("code_files")
             .upsert(
               {
@@ -178,7 +202,7 @@ export async function GET(request, { params }) {
     console.log('[download] required icon paths', iconPaths)
 
     // First, fetch custom assets from project_assets (including custom icons)
-    const { data: projectAssets, error: assetsError } = await supabase
+    const { data: projectAssets, error: assetsError } = await db
       .from("project_assets")
       .select("file_path, content_base64")
       .eq("project_id", projectId)
@@ -209,16 +233,10 @@ export async function GET(request, { params }) {
 
     // Fetch remaining icons from shared_icons
     if (iconsToFetchFromShared.length > 0) {
-      const SUPABASE_URL = process.env.SUPABASE_URL
-      const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-      
-      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      const serviceSupabase = createServiceClient()
+      if (!serviceSupabase) {
         return NextResponse.json({ error: "Server configuration error: missing Supabase credentials" }, { status: 500 })
       }
-
-      const serviceSupabase = createServiceClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false }
-      })
 
       const { data: iconRows, error: iconError } = await serviceSupabase
         .from('shared_icons')

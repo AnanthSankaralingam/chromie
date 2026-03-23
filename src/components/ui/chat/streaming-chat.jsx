@@ -505,7 +505,7 @@ export default function StreamingChat({
 
       {isAdminMode && (
         <div className="mx-8 mb-2 px-4 py-2 bg-amber-500/20 border border-amber-500/50 rounded-lg text-amber-200 text-sm">
-          Viewing as admin (read-only) — chat input and generation disabled; files are view-only
+          Viewing as admin (read-only) — chat input and generation disabled; files are view-only. Test (simulated browser) and Download zip still work from the header.
         </div>
       )}
 
