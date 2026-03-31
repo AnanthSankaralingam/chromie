@@ -6,7 +6,15 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: 15,
     max_privacy_policies: 0,
     max_demo_replays: 1,
-    reset_type: 'monthly'
+    reset_type: 'daily'
+  },
+  starter: {
+    monthly_credits: 100,
+    max_projects: Infinity,
+    monthly_browser_minutes: Infinity,
+    max_privacy_policies: 0,
+    max_demo_replays: Infinity,
+    reset_type: 'never'
   },
   pro: {
     monthly_credits: 500,
@@ -89,6 +97,9 @@ export const SHARE_RATE_LIMITS = {
   DEFAULT_SHARE_EXPIRY_DAYS: 30,
   MAX_SHARE_EXPIRY_DAYS: 365
 }
+
+/** ISO time used for admin-owned share links (profiles.is_admin); treated as non-expiring in UI. */
+export const ADMIN_SHARE_EXPIRES_AT = '2099-12-31T23:59:59.999Z'
 
 // Subscription plans
 export const SUBSCRIPTION_PLANS = ['free', 'pro']

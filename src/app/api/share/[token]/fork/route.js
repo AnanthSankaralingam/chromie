@@ -3,10 +3,10 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import {
   validateShareToken,
-  isShareExpired,
   securityLog,
   isSuspiciousUserAgent
 } from "@/lib/validation"
+import { resolveShareAccess } from "@/lib/share-link-access"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 
 export async function POST(request, { params }) {
@@ -63,42 +63,29 @@ export async function POST(request, { params }) {
   }
 
   try {
-    // Get shared project details (check if not expired)
-    const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_links")
-      .select(`
+    const resolved = await resolveShareAccess(
+      supabase,
+      token,
+      `
         id,
         project_id,
         created_at,
         view_count,
         is_active,
         expires_at
-      `)
-      .eq("share_token", token)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .single()
-
-    if (shareError || !sharedProject) {
-      securityLog('warn', 'Share token not found for fork', {
-        token: token?.substring(0, 8) + '...',
-        error: shareError?.message,
+      `,
+      user
+    )
+    if (!resolved.ok) {
+      securityLog(resolved.status === 410 ? "info" : "warn", "Share token not accessible for fork", {
+        token: token?.substring(0, 8) + "...",
+        status: resolved.status,
         userAgent,
-        clientIP
+        clientIP,
       })
-      return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+      return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
-
-    // Check if share has expired
-    if (isShareExpired(sharedProject.expires_at)) {
-      securityLog('info', 'Expired share token fork attempt', {
-        token: token?.substring(0, 8) + '...',
-        expiresAt: sharedProject.expires_at,
-        userAgent,
-        clientIP
-      })
-      return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
-    }
+    const sharedProject = resolved.sharedProject
 
     // Get original project details
     const { data: originalProject, error: projectError } = await supabase

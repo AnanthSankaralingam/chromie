@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { securityLog } from "@/lib/validation"
+import { extendActiveAdminSharesIfNeeded } from "@/lib/api/admin-auth"
 
 // GET: Get all shares for the authenticated user
 export async function GET(request) {
@@ -14,6 +15,8 @@ export async function GET(request) {
   if (userError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  await extendActiveAdminSharesIfNeeded(supabase, user)
 
   try {
     // First, get user's project IDs

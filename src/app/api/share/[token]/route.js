@@ -3,10 +3,10 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { NextResponse } from "next/server"
 import { 
   validateShareToken, 
-  isShareExpired,
   securityLog, 
   isSuspiciousUserAgent 
 } from "@/lib/validation"
+import { resolveShareAccess } from "@/lib/share-link-access"
 
 // GET: Get project details for a share token (public access)
 export async function GET(request, { params }) {
@@ -47,11 +47,15 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 
+  const {
+    data: { user: viewerUser },
+  } = await supabase.auth.getUser()
+
   try {
-    // Get shared project details (check if not expired)
-    const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_links")
-      .select(`
+    const resolved = await resolveShareAccess(
+      supabase,
+      token,
+      `
         id,
         project_id,
         created_at,
@@ -59,21 +63,19 @@ export async function GET(request, { params }) {
         view_count,
         is_active,
         expires_at
-      `)
-      .eq("share_token", token)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .single()
-
-    if (shareError || !sharedProject) {
-      securityLog('warn', 'Share token not found', {
-        token: token?.substring(0, 8) + '...',
-        error: shareError?.message,
+      `,
+      viewerUser
+    )
+    if (!resolved.ok) {
+      securityLog(resolved.status === 410 ? "info" : "warn", "Share token not accessible", {
+        token: token?.substring(0, 8) + "...",
+        status: resolved.status,
         userAgent,
-        clientIP
+        clientIP,
       })
-      return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+      return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
+    const sharedProject = resolved.sharedProject
 
     // Get project details (now works with proper RLS policies)
     const { data: project, error: projectError } = await supabase
@@ -120,17 +122,6 @@ export async function GET(request, { params }) {
         clientIP
       })
       return NextResponse.json({ error: "Author information not found" }, { status: 404 })
-    }
-
-    // Check if share has expired
-    if (isShareExpired(sharedProject.expires_at)) {
-      securityLog('info', 'Expired share token accessed', {
-        token: token?.substring(0, 8) + '...',
-        expiresAt: sharedProject.expires_at,
-        userAgent,
-        clientIP
-      })
-      return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
 
     // Get project files (now works with proper RLS policies)
@@ -266,10 +257,10 @@ export async function POST(request, { params }) {
   }
 
   try {
-    // Get shared project details (check if not expired)
-    const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_links")
-      .select(`
+    const resolved = await resolveShareAccess(
+      supabase,
+      token,
+      `
         id,
         project_id,
         created_at,
@@ -277,15 +268,13 @@ export async function POST(request, { params }) {
         view_count,
         is_active,
         expires_at
-      `)
-      .eq("share_token", token)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .single()
-
-    if (shareError || !sharedProject) {
-      return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+      `,
+      user
+    )
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
+    const sharedProject = resolved.sharedProject
 
     // Get project details (now works with proper RLS policies)
     const { data: project, error: projectError } = await supabase
@@ -300,11 +289,6 @@ export async function POST(request, { params }) {
 
     if (projectError || !project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
-    }
-
-    // Check if share has expired
-    if (sharedProject.expires_at && new Date() > new Date(sharedProject.expires_at)) {
-      return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
     }
 
     // Increment download count
