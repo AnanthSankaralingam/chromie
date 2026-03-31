@@ -13,6 +13,7 @@ import {
   isSuspiciousUserAgent 
 } from "@/lib/validation"
 import { resolveShareAccess } from "@/lib/share-link-access"
+import { createServiceClient as getSupabaseService } from "@/lib/supabase/service"
 
 // GET: Download the extension zip file (requires authentication)
 export async function GET(request, { params }) {
@@ -114,8 +115,9 @@ export async function GET(request, { params }) {
     }
     const sharedProject = resolved.sharedProject
 
-    // Get project details (now works with proper RLS policies)
-    const { data: project, error: projectError } = await supabase
+    const db = getSupabaseService() ?? supabase
+
+    const { data: project, error: projectError } = await db
       .from("projects")
       .select(`
         id,
@@ -141,8 +143,7 @@ export async function GET(request, { params }) {
       }, { status: 429 })
     }
 
-    // Get project files (now works with proper RLS policies)
-    const { data: files, error: filesError } = await supabase
+    const { data: files, error: filesError } = await db
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
@@ -357,8 +358,7 @@ export async function GET(request, { params }) {
     // Generate zip buffer
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
 
-    // Increment download count
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from("shared_links")
       .update({ download_count: sharedProject.download_count + 1 })
       .eq("id", sharedProject.id)

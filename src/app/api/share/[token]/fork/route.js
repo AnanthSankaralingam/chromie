@@ -7,6 +7,7 @@ import {
   isSuspiciousUserAgent
 } from "@/lib/validation"
 import { resolveShareAccess } from "@/lib/share-link-access"
+import { createServiceClient as getSupabaseService } from "@/lib/supabase/service"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 
 export async function POST(request, { params }) {
@@ -86,9 +87,9 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
     const sharedProject = resolved.sharedProject
+    const db = getSupabaseService() ?? supabase
 
-    // Get original project details
-    const { data: originalProject, error: projectError } = await supabase
+    const { data: originalProject, error: projectError } = await db
       .from("projects")
       .select(`
         id,
@@ -195,8 +196,7 @@ export async function POST(request, { params }) {
 
     console.log("Successfully created forked project:", newProject.id)
 
-    // Get all files from original project
-    const { data: originalFiles, error: filesError } = await supabase
+    const { data: originalFiles, error: filesError } = await db
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)

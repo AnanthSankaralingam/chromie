@@ -94,7 +94,8 @@ async function handleCheckoutSessionCompleted(session) {
   
   // Map Stripe price IDs to plans (get actual IDs from Stripe dashboard)
   const PRICE_ID_MAP = {
-    'price_XXXPRO': 'pro'
+    'price_XXXPRO': 'pro',
+    'price_XXXSTARTER': 'starter' // TODO: replace with actual Stripe price ID for $15 starter pack
   }
   
   const plan = PRICE_ID_MAP[priceId] || 'pro'

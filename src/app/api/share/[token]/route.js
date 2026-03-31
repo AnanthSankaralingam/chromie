@@ -77,8 +77,11 @@ export async function GET(request, { params }) {
     }
     const sharedProject = resolved.sharedProject
 
-    // Get project details (now works with proper RLS policies)
-    const { data: project, error: projectError } = await supabase
+    const serviceSupabase = createServiceClient()
+    const db = serviceSupabase ?? supabase
+
+    // Public share page: anonymous users cannot read others' projects/files via RLS — use service role after token check
+    const { data: project, error: projectError } = await db
       .from("projects")
       .select(`
         id,
@@ -102,8 +105,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    // Get profile details (now works with proper RLS policies)
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await db
       .from("profiles")
       .select(`
         name,
@@ -124,8 +126,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Author information not found" }, { status: 404 })
     }
 
-    // Get project files (now works with proper RLS policies)
-    const { data: files, error: filesError } = await supabase
+    const { data: files, error: filesError } = await db
       .from("code_files")
       .select("file_path, content")
       .eq("project_id", sharedProject.project_id)
@@ -136,8 +137,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Failed to fetch project files" }, { status: 500 })
     }
 
-    // Update view count and last accessed timestamp
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from("shared_links")
       .update({
         view_count: sharedProject.view_count ? sharedProject.view_count + 1 : 1,

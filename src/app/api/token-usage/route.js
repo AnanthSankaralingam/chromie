@@ -129,23 +129,43 @@ export async function POST(request) {
     }
 
     const now = new Date()
-    // Use beginning of current month as the reset anchor
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    // Determine if free tier (no active purchases) — free tier uses daily reset
+    const { data: activePurchases } = await db
+      .from('purchases')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .limit(1)
+    const isFreeTier = !activePurchases || activePurchases.length === 0
+
+    // Use beginning of current period as the reset anchor
     let effectiveMonthlyReset = existingUsage?.monthly_reset
     if (!effectiveMonthlyReset) {
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      effectiveMonthlyReset = firstDayOfMonth.toISOString()
+      effectiveMonthlyReset = isFreeTier
+        ? startOfToday.toISOString()
+        : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     }
 
     const monthlyResetDate = effectiveMonthlyReset ? new Date(effectiveMonthlyReset) : null
     let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
+    if (monthlyResetDate && !isFreeTier) {
       resetDatePlusOneMonth = new Date(monthlyResetDate)
       resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
     }
 
-    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
+    // Free tier resets daily; paid plans reset monthly
+    const isResetDue = isFreeTier
+      ? (monthlyResetDate ? monthlyResetDate < startOfToday : false)
+      : (monthlyResetDate ? now >= resetDatePlusOneMonth : false)
 
-    // Determine new totals and monthly_reset state
+    // Compute the new reset anchor for when a reset occurs
+    const newResetAnchor = isFreeTier
+      ? startOfToday.toISOString()
+      : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    // Determine new totals and reset anchor
     let newTotalCredits
     let newTotalTokens
     let newTotalBrowserMinutes
@@ -156,24 +176,21 @@ export async function POST(request) {
       newTotalCredits = creditsThisRequest
       newTotalTokens = tokensThisRequest
       newTotalBrowserMinutes = browserMinutesThisRequest
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      newMonthlyReset = firstDayOfMonth.toISOString()
+      newMonthlyReset = newResetAnchor
     } else if (!existingUsage.monthly_reset) {
-      // No monthly_reset set yet; set to beginning of current month and continue accumulating
+      // No reset date set yet; set anchor and continue accumulating
       newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
       newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      newMonthlyReset = firstDayOfMonth.toISOString()
+      newMonthlyReset = newResetAnchor
     } else if (isResetDue) {
-      // New monthly period started; reset total to current request
+      // New period started; reset total to current request only
       newTotalCredits = creditsThisRequest
       newTotalTokens = tokensThisRequest
       newTotalBrowserMinutes = browserMinutesThisRequest
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      newMonthlyReset = firstDayOfMonth.toISOString()
+      newMonthlyReset = newResetAnchor
     } else {
-      // Same monthly period; accumulate
+      // Same period; accumulate
       newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
       newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
       newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest

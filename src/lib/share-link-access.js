@@ -1,11 +1,15 @@
 import { isShareExpired, securityLog } from "@/lib/validation"
 import { isAdmin } from "@/lib/api/admin-auth"
+import { createServiceClient } from "@/lib/supabase/service"
 
 /**
  * Load a share row by token (active only). Does not filter by expiry.
+ * Uses the service role when available so anonymous visitors can open public share URLs (RLS is owner-only otherwise).
  */
 export async function fetchActiveShareByToken(supabase, token, select) {
-  const { data, error } = await supabase
+  const service = createServiceClient()
+  const db = service ?? supabase
+  const { data, error } = await db
     .from("shared_links")
     .select(select)
     .eq("share_token", token)
