@@ -361,6 +361,8 @@ export default function ProfilePage() {
   const getTimeRemaining = (expiryDate) => {
     const now = new Date()
     const expiry = new Date(expiryDate)
+    // Admin never-expire sentinel (see ADMIN_SHARE_EXPIRES_AT)
+    if (expiry.getFullYear() >= 2090) return 'Does not expire'
     const diff = expiry - now
 
     if (diff <= 0) return 'Expired'

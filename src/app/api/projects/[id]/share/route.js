@@ -10,6 +10,10 @@ import {
   generateSecureToken,
   checkPaidPlan,
 } from "@/lib/validation"
+import {
+  extendActiveAdminSharesIfNeeded,
+  getShareExpiresAtForInsert,
+} from "@/lib/api/admin-auth"
 
 // Generate a secure random token
 function generateShareToken() {
@@ -121,6 +125,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
     }
 
+    await extendActiveAdminSharesIfNeeded(supabase, user)
+
     // Check if share already exists and is not expired
     const { data: existingShare } = await supabase
       .from("shared_links")
@@ -180,18 +186,21 @@ export async function POST(request, { params }) {
 
     // Generate new share token
     const shareToken = generateShareToken()
+    const adminExpiresAt = await getShareExpiresAtForInsert(supabase, user)
+    const insertRow = {
+      project_id: projectId,
+      user_id: user.id,
+      share_token: shareToken,
+      is_active: true,
+      download_count: 0,
+      view_count: 0,
+    }
+    if (adminExpiresAt) insertRow.expires_at = adminExpiresAt
 
     // Create new share
     const { data: share, error: shareError } = await supabase
       .from("shared_links")
-      .insert({
-        project_id: projectId,
-        user_id: user.id,
-        share_token: shareToken,
-        is_active: true,
-        download_count: 0,
-        view_count: 0
-      })
+      .insert(insertRow)
       .select("id, share_token, created_at, view_count, download_count, expires_at")
       .single()
 
@@ -268,6 +277,8 @@ export async function GET(request, { params }) {
     if (projectError || !project) {
       return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 404 })
     }
+
+    await extendActiveAdminSharesIfNeeded(supabase, user)
 
     // Get existing share (check if not expired)
     const { data: share, error: shareError } = await supabase

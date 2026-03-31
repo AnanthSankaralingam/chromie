@@ -5,16 +5,21 @@ import { hyperbrowserService } from "@/lib/hyperbrowser-service"
 import { buildExtension } from "@/lib/build/esbuild-service.js"
 import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { BROWSER_SESSION_CONFIG } from "@/lib/constants"
+import { resolveShareAccess } from "@/lib/share-link-access"
 
 export async function POST(request, { params }) {
   const { token } = await params
 
   try {
-    // Get shared project details (check if not expired)
     const supabase = await createClient()
-    const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_links")
-      .select(`
+    const {
+      data: { user: viewerUser },
+    } = await supabase.auth.getUser()
+
+    const resolved = await resolveShareAccess(
+      supabase,
+      token,
+      `
         id,
         project_id,
         created_at,
@@ -22,20 +27,13 @@ export async function POST(request, { params }) {
         view_count,
         is_active,
         expires_at
-      `)
-      .eq("share_token", token)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .single()
-
-    if (shareError || !sharedProject) {
-      return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+      `,
+      viewerUser
+    )
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
-
-    // Check if share has expired
-    if (sharedProject.expires_at && new Date() > new Date(sharedProject.expires_at)) {
-      return NextResponse.json({ error: "Share link has expired" }, { status: 410 })
-    }
+    const sharedProject = resolved.sharedProject
 
     // Get project files (using service role to bypass RLS for shared project access)
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
@@ -144,18 +142,14 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
     }
 
-    // Verify the share token is still valid
     const supabase = await createClient()
-    const { data: sharedProject, error: shareError } = await supabase
-      .from("shared_links")
-      .select("id")
-      .eq("share_token", token)
-      .eq("is_active", true)
-      .gt("expires_at", new Date().toISOString())
-      .single()
+    const {
+      data: { user: viewerUser },
+    } = await supabase.auth.getUser()
 
-    if (shareError || !sharedProject) {
-      return NextResponse.json({ error: "Share link not found or expired" }, { status: 404 })
+    const resolved = await resolveShareAccess(supabase, token, "id", viewerUser)
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.message }, { status: resolved.status })
     }
 
     // Log session duration for shared extensions (but don't charge since not logged in)

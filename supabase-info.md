@@ -173,7 +173,7 @@ Stores shareable links for projects with expiration and access tracking.
 | `project_id`       | uuid         | FK → `projects.id`, ON DELETE CASCADE                      |
 | `user_id`          | uuid         | FK → `profiles.id`, ON DELETE CASCADE                      |
 | `share_token`      | text         | NOT NULL, UNIQUE, secure random token for sharing           |
-| `expires_at`       | timestamptz  | NOT NULL, DEFAULT (now() + '7 days'::interval)             |
+| `expires_at`       | timestamptz  | NOT NULL, DEFAULT (now() + '7 days'::interval). Admins (`profiles.is_admin`) get `2099-12-31` via app when creating shares; existing admin links are extended in API. |
 | `download_count`   | integer      | DEFAULT 0, tracks number of downloads                      |
 | `view_count`       | integer      | DEFAULT 0, tracks number of page views                     |
 | `is_active`        | boolean      | DEFAULT true, for soft deletion                             |
