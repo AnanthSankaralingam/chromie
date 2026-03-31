@@ -107,22 +107,18 @@ export async function getUserLimits(userId, supabase) {
     }
   }
   
-  // Free tier - only limit credits, not projects or browser minutes
-  const monthlyResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
-  let resetDatePlusOneMonth = null
-  if (monthlyResetDate) {
-    resetDatePlusOneMonth = new Date(monthlyResetDate)
-    resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-  }
-  const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
-  
+  // Free tier - daily reset, only credits are limited
+  const lastResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const isResetDue = lastResetDate ? lastResetDate < startOfToday : false
+
   return {
     plan: 'free',
     purchaseType: 'free',
     limits: {
       credits: PLAN_LIMITS.free.monthly_credits,
-      browserMinutes: Infinity, // Unlimited for all plans (only credits are limited)
-      projects: Infinity // Unlimited for all plans (only credits are limited)
+      browserMinutes: Infinity,
+      projects: Infinity
     },
     usage: {
       credits: isResetDue ? 0 : (usage?.total_credits || 0),
@@ -130,8 +126,8 @@ export async function getUserLimits(userId, supabase) {
       projects: profile?.project_count || 0
     },
     hasActivePro: false,
-    resetDate: monthlyResetDate,
-    resetType: 'monthly'
+    resetDate: lastResetDate,
+    resetType: 'daily'
   }
 }
 

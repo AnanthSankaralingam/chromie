@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Check, X, Star, ChevronDown, ChevronUp, Play } from "lucide-react"
+import { Check, X, Star, ChevronDown, ChevronUp, Play, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -49,7 +49,7 @@ const plans = [
     href: "/builder",
     featured: false,
     features: {
-      credits: "10 credits",
+      credits: "10 credits/day",
       browserTesting: true,
       privateSharing: false,
       githubExport: false,
@@ -139,14 +139,6 @@ function PricingCard({ plan, index }) {
           plan.featured && "border-white/40 shadow-[0_0_40px_rgba(255,255,255,0.12),0_0_80px_rgba(255,255,255,0.06)]"
         )}
       >
-        {/* Diagonal sale banner - top right */}
-        {plan.saleBanner && (
-          <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 right-0 transform rotate-45 translate-x-10 translate-y-6 bg-amber-500 text-slate-900 text-xs font-bold py-1 px-10 shadow-lg">
-              sale
-            </div>
-          </div>
-        )}
         {/* Plan title + badge */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <h3 className="text-xl font-bold text-white">{plan.title}</h3>
@@ -267,6 +259,59 @@ export default function PricingSection() {
             <PricingCard key={plan.id} plan={plan} index={index} />
           ))}
         </div>
+
+        {/* Starter Pack */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-20"
+        >
+          <p className="text-sm text-zinc-400 text-center mb-4">or, just need more credits?</p>
+          <div className="relative rounded-2xl border border-white/[0.08] bg-[#0f1117] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                <Zap className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-base font-semibold text-white">starter pack</h3>
+                  <span className="text-xs font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">one-time</span>
+                </div>
+                <p className="text-sm text-zinc-400 max-w-md">
+                  need more credits without a subscription? get 100 credits that never expire — pay once, use whenever.
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
+                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                    100 credits, no expiry
+                  </li>
+                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
+                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                    unlimited projects
+                  </li>
+                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
+                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                    no subscription needed
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-white">$15</span>
+                <span className="text-sm text-zinc-500">one-time</span>
+              </div>
+              <Button
+                onClick={() => window.open('https://buy.stripe.com/8x228q249e8oc07au27kc06', '_blank')}
+                className="bg-white text-[#080a0f] hover:bg-zinc-100 font-medium transition-all duration-200 px-6"
+              >
+                buy now
+              </Button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* FAQ Section */}
         <motion.div

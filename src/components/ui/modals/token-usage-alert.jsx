@@ -24,23 +24,39 @@ export default function TokenUsageAlert({ isOpen, onClose }) {
           </div>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="py-4 space-y-3">
           <p className="text-sm text-slate-300">
-            To continue generating extensions, please upgrade your plan or wait until your credit quota resets.
+            You&apos;ve used all 10 free credits for today. Your daily allowance resets at midnight — or get more credits right now.
           </p>
-          <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-gray-500/10 to-gray-500/10 rounded-lg border border-gray-400/20">
-            <CreditCard className="h-5 w-5 text-gray-400" />
+          <div className="flex items-center space-x-3 p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+            <CreditCard className="h-5 w-5 text-amber-400 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">Upgrade your plan</p>
-              <p className="text-xs text-slate-400">Get more credits and features</p>
+              <p className="text-sm font-medium text-white">Starter Pack — $15 one-time</p>
+              <p className="text-xs text-slate-400">100 credits, no subscription, never expire</p>
             </div>
             <Link href="/#pricing">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
-                className="bg-gradient-to-r from-gray-500 to-gray-400 hover:from-gray-600 hover:to-gray-500 text-white"
+                className="bg-amber-500 hover:bg-amber-400 text-black font-medium"
               >
-                View pricing
+                Get credits
+              </Button>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-3 p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
+            <CreditCard className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white">Pro — $9.99/month</p>
+              <p className="text-xs text-slate-400">500 credits/month + all features</p>
+            </div>
+            <Link href="/#pricing">
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-white text-black hover:bg-zinc-100 font-medium"
+              >
+                Upgrade
               </Button>
             </Link>
           </div>
