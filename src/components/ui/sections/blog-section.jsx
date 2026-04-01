@@ -41,8 +41,8 @@ export default function BlogSection() {
           </p>
         </motion.div>
 
-        {/* Featured Posts Grid - center when single post, grid when multiple */}
-        <div className={`mb-12 ${featuredPosts.length === 1 ? 'flex justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
+        {/* Featured posts: flex wrap so last incomplete row stays centered */}
+        <div className="mb-12 flex flex-wrap justify-center gap-8">
           {featuredPosts.map((post, index) => {
             const Icon = iconMap[post.icon] || TestTube
             const iconImage = post.iconImage
@@ -53,7 +53,11 @@ export default function BlogSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={featuredPosts.length === 1 ? 'max-w-md w-full' : ''}
+              className={
+                featuredPosts.length === 1
+                  ? "min-w-0 w-full max-w-md"
+                  : "min-w-0 w-full max-w-md md:w-[calc((100%-2rem)/2)] md:max-w-none lg:w-[calc((100%-4rem)/3)]"
+              }
             >
               <Link href={`/blog/${post.slug}`}>
                 <div className="group relative h-full bg-[#0f1117] rounded-xl border border-white/[0.08] hover:border-white/[0.15] transition-all duration-200 overflow-hidden cursor-pointer flex flex-col">

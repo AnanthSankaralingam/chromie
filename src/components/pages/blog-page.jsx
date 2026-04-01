@@ -127,11 +127,20 @@ export default function BlogPage() {
           </div>
         </div> */}
 
-        {/* Blog Posts Grid */}
+        {/* Blog posts: flex wrap so incomplete rows stay centered */}
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-wrap justify-center gap-8">
             {blogPostsData.map((post, index) => (
-              <BlogPostCard key={post.id} post={post} index={index} />
+              <div
+                key={post.id}
+                className={
+                  blogPostsData.length === 1
+                    ? "min-w-0 w-full max-w-md"
+                    : "min-w-0 w-full max-w-md md:w-[calc((100%-2rem)/2)] md:max-w-none lg:w-[calc((100%-4rem)/3)]"
+                }
+              >
+                <BlogPostCard post={post} index={index} />
+              </div>
             ))}
           </div>
         </div>

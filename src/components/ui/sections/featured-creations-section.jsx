@@ -186,19 +186,20 @@ export default function FeaturedCreationsSection() {
             </p>
           </div>
         ) : (
-          <div
-            className={cn(
-              "grid gap-6",
-              visibleProjects.length === 1
-                ? "grid-cols-1 place-items-center"
-                : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-            )}
-          >
+          <div className="flex flex-wrap justify-center gap-6">
             {visibleProjects.map((project) => (
-              <Dialog key={project.id}>
-                <article
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1117] hover:border-white/[0.14] transition-all duration-200"
-                >
+              <div
+                key={project.id}
+                className={cn(
+                  "min-w-0 w-full max-w-md",
+                  visibleProjects.length > 1 &&
+                    "md:w-[calc((100%-1.5rem)/2)] md:max-w-none lg:w-[calc((100%-3rem)/3)]"
+                )}
+              >
+                <Dialog>
+                  <article
+                    className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1117] hover:border-white/[0.14] transition-all duration-200"
+                  >
                   {/* Hero area */}
                   <div className="relative h-52 bg-slate-900">
                     {project.demoVideoUrl ? (
@@ -302,6 +303,7 @@ export default function FeaturedCreationsSection() {
                   </DialogContent>
                 )}
               </Dialog>
+              </div>
             ))}
           </div>
         )}
