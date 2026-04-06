@@ -27,7 +27,7 @@ import { loadTemplateFiles } from "@/lib/codegen/planning-handlers/template-load
 import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/codegen/file-analysis";
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
-import { DEFAULT_MODEL, FOLLOWUP_MODEL, DEFAULT_PROVIDER, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
+import { FOLLOWUP_MODEL, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
 import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
 import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
 import { callFollowupMetaPlanner } from '@/lib/codegen/followup-handlers/followup-meta-planner-bridge.js'
@@ -860,6 +860,7 @@ async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnaly
     existingFiles: requirementsAnalysis.relevantFiles,
     sessionId,
     modelOverride,
+    planningDifficulty: requirementsAnalysis.planningDifficulty || 0,
     supabase,
     saveAllFilesOnComplete: isTemplateAdaptation,
   })) {

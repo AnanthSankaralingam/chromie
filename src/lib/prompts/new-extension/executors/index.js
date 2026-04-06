@@ -7,7 +7,7 @@
 import { TASK_EXECUTOR_PROMPT } from './task-executor-prompt.js'
 import { getFrontendModuleForFile } from './frontend-modules/index.js'
 import { llmService } from '@/lib/services/llm-service.js'
-import { DEFAULT_MODEL, HTML_CODEGEN_MODEL } from '@/lib/constants.js'
+import { DEFAULT_MODEL, HTML_CODEGEN_MODEL, MODEL_SELECTION } from '@/lib/constants.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES, NPM_PACKAGE_IMPORT_GUIDANCE } from '../one-shot/shared-content.js'
 
@@ -149,18 +149,16 @@ function buildContextSections(task, executionContext) {
   return parts.join('\n\n')
 }
 
-const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview'
-const FAST_FILE_EXTENSIONS = new Set(['css', 'json'])
-
 /**
  * Picks the model for a given file.
- * CSS and JSON files use Gemini Flash (fast, cheap).
+ * CSS and JSON can be configured separately in MODEL_SELECTION.
  * All other files use the caller-supplied override or the default model.
  */
 function getModelForFile(fileName, modelOverride) {
   const ext = (fileName || '').split('.').pop().toLowerCase()
   if (ext === 'html') return HTML_CODEGEN_MODEL
-  if (FAST_FILE_EXTENSIONS.has(ext)) return GEMINI_FLASH_MODEL
+  if (ext === 'css') return MODEL_SELECTION.TASK_EXECUTOR_CSS
+  if (ext === 'json') return MODEL_SELECTION.TASK_EXECUTOR_JSON
   return modelOverride || DEFAULT_MODEL
 }
 

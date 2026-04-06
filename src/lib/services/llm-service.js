@@ -2,6 +2,7 @@
 // Unified LLM service that provides a consistent interface across different providers
 import { ProviderRegistry } from './provider-registry.js'
 import { ChatMessagesService } from './chat-messages-service.js'
+import { MODEL_SELECTION } from '@/lib/constants.js'
 
 export class LLMService {
   constructor() {
@@ -16,12 +17,12 @@ export class LLMService {
       'openai': ['gemini', 'ionrouter', 'anthropic']
     }
     
-    // Define default models for fallback providers
+    // Fallback models are explicit per provider (centralized in constants.js)
     this.defaultModels = {
-      'gemini': 'gemini-3-flash-preview',
-      'ionrouter': 'kimi-k2.5',
-      'anthropic': 'claude-haiku-4-5-20251001',
-      'openai': 'gpt-4o-mini'
+      gemini: MODEL_SELECTION.LLM_SERVICE_FALLBACK_GEMINI,
+      ionrouter: MODEL_SELECTION.LLM_SERVICE_FALLBACK_IONROUTER,
+      anthropic: MODEL_SELECTION.LLM_SERVICE_FALLBACK_ANTHROPIC,
+      openai: MODEL_SELECTION.LLM_SERVICE_OPENAI_FALLBACK
     }
   }
 

@@ -39,9 +39,12 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
     console.log(`📸 [followup-meta-planner-bridge] Passing ${images.length} images to followup meta planner`)
   }
 
+  const planningModel = PLANNING_MODELS.META_PLANNER
+  const planningProvider = llmService.getProviderFromModel(planningModel)
+
   const response = await llmService.createResponse({
-    provider: 'anthropic',
-    model: PLANNING_MODELS.META_PLANNER,
+    provider: planningProvider,
+    model: planningModel,
     input,
     session_id: sessionId,
     temperature: 0.2,

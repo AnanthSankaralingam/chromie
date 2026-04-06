@@ -157,6 +157,57 @@ export class HyperbrowserService {
     }
   }
 
+  getExtensionEntryHtmlPaths(filesArray = []) {
+    const htmlPaths = new Set()
+    const normalizedPaths = new Set(
+      (filesArray || [])
+        .map((f) => (f?.file_path || f?.path || f?.name || '').trim())
+        .filter(Boolean)
+    )
+
+    const addIfExistingHtml = (candidatePath) => {
+      if (!candidatePath || typeof candidatePath !== "string") return
+      const normalized = candidatePath.trim().replace(/^\/+/, "")
+      if (!normalized.toLowerCase().endsWith(".html")) return
+      if (normalizedPaths.has(normalized)) htmlPaths.add(normalized)
+    }
+
+    const manifestFile = (filesArray || []).find((f) => (f?.file_path || f?.path || f?.name) === "manifest.json")
+    if (manifestFile?.content) {
+      try {
+        const manifest = JSON.parse(manifestFile.content)
+        addIfExistingHtml(manifest?.options_page)
+        addIfExistingHtml(manifest?.options_ui?.page)
+        addIfExistingHtml(manifest?.side_panel?.default_path)
+        addIfExistingHtml(manifest?.action?.default_popup)
+      } catch (err) {
+        console.warn("[HYPERBROWSER-SERVICE] ⚠️ Could not parse manifest.json for auto-open pages:", err?.message || err)
+      }
+    }
+
+    return Array.from(htmlPaths)
+  }
+
+  async openExtensionEntryTabs({ sessionId, chromeExtensionId, htmlPaths }) {
+    if (!sessionId || !chromeExtensionId || !Array.isArray(htmlPaths) || htmlPaths.length === 0) return
+
+    try {
+      const { browser } = await getPuppeteerContextUtil(sessionId, this.apiKey)
+      for (const relPath of htmlPaths) {
+        const targetUrl = `chrome-extension://${chromeExtensionId}/${relPath}`
+        try {
+          const newPage = await browser.newPage()
+          await newPage.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15000 })
+          console.log(`[HYPERBROWSER-SERVICE] ✅ Opened extension entry tab: ${targetUrl}`)
+        } catch (tabErr) {
+          console.warn(`[HYPERBROWSER-SERVICE] ⚠️ Failed to open extension entry tab ${targetUrl}:`, tabErr?.message || tabErr)
+        }
+      }
+    } catch (err) {
+      console.warn("[HYPERBROWSER-SERVICE] ⚠️ Failed to open extension entry tabs:", err?.message || err)
+    }
+  }
+
   /**
    * Create a new browser session with extension loaded
    * @param {Object} extensionFiles - The extension files to load
@@ -183,6 +234,10 @@ export class HyperbrowserService {
         : typeof extensionFiles === "object" && Object.keys(extensionFiles).length > 0
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
+      const extensionEntryHtmlPaths = this.getExtensionEntryHtmlPaths(filesArray)
+      if (extensionEntryHtmlPaths.length > 0) {
+        console.log("[HYPERBROWSER-SERVICE] 🎯 Extension entry HTML files detected:", extensionEntryHtmlPaths)
+      }
 
       // Run extension upload and profile lookup in PARALLEL - no reason to wait for one before the other
       console.log("[HYPERBROWSER-SERVICE] ⚡ Starting parallel extension upload + profile lookup...")
@@ -323,6 +378,11 @@ export class HyperbrowserService {
                 chromeExtensionId: pinResult.chromeExtensionId,
                 hyperbrowserExtensionId: result.hyperbrowserExtensionId,
                 source: "pin-extension",
+              })
+              await this.openExtensionEntryTabs({
+                sessionId: session.id,
+                chromeExtensionId: pinResult.chromeExtensionId,
+                htmlPaths: extensionEntryHtmlPaths,
               })
             }
 

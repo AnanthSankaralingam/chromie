@@ -8,9 +8,6 @@ import { META_PLANNER_PROMPT } from '@/lib/prompts/new-extension/planning/meta-p
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
 
-// Split at ## Input to isolate the static (cacheable) portion of the prompt.
-const STATIC_SYSTEM_PROMPT = META_PLANNER_PROMPT.split('## Input')[0].trimEnd()
-
 function buildDynamicSection(featureRequest, planningSummary) {
   return `## Input\n\n<user_request>\n${featureRequest}\n</user_request>\n\n<planning_summary>\n${planningSummary}\n</planning_summary>`
 }
@@ -105,7 +102,7 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
  * @returns {Promise<{metaPlan: Object, tokenUsage: Object}>}
  */
 export async function callMetaPlanner(featureRequest, planningSummary) {
-  console.log('🧠 [meta-planner-bridge] Calling Meta Planner with prompt caching')
+  console.log('🧠 [meta-planner-bridge] Calling Meta Planner')
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -113,17 +110,7 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
     model: PLANNING_MODELS.META_PLANNER,
     max_tokens: 4096,
     temperature: 0.2,
-    system: [
-      {
-        type: 'text',
-        text: STATIC_SYSTEM_PROMPT,
-        cache_control: { type: 'ephemeral' }
-      },
-      {
-        type: 'text',
-        text: buildDynamicSection(featureRequest, planningSummary)
-      }
-    ],
+    system: `${META_PLANNER_PROMPT}\n\n${buildDynamicSection(featureRequest, planningSummary)}`,
     messages: [
       { role: 'user', content: 'Generate the task graph.' }
     ]
@@ -132,9 +119,7 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
   const outputText = response.content?.[0]?.text || ''
   const tokenUsage = {
     input_tokens: response.usage?.input_tokens ?? 0,
-    output_tokens: response.usage?.output_tokens ?? 0,
-    cache_creation_input_tokens: response.usage?.cache_creation_input_tokens ?? 0,
-    cache_read_input_tokens: response.usage?.cache_read_input_tokens ?? 0
+    output_tokens: response.usage?.output_tokens ?? 0
   }
 
   // Parse JSON from response

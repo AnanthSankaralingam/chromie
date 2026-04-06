@@ -5,7 +5,7 @@
 
 import { llmService } from "@/lib/services/llm-service"
 import { selectUnifiedSchema } from "@/lib/response-schemas/unified-schemas"
-import { DEFAULT_MODEL, FOLLOWUP_MODEL, FIREWORKS_CODEGEN_MAX_TOKENS } from "@/lib/constants"
+import { DEFAULT_MODEL, FOLLOWUP_MODEL, CODE_PATCH_MODEL, FIREWORKS_CODEGEN_MAX_TOKENS } from "@/lib/constants"
 import { REQUEST_TYPES } from "@/lib/prompts/request-types"
 import { containsPatch } from "@/lib/codegen/patching-handlers/patch-applier"
 import { extractJsonContent, parseJsonWithRetry } from "@/lib/codegen/output-handlers/json-extractor"
@@ -296,7 +296,11 @@ export async function* generateExtensionCodeStream(codingPrompt, replacements, s
 
   yield { type: "generating_code", content: "Starting code generation..." }
 
-  const modelUsed = modelOverride || (requestType === REQUEST_TYPES.ADD_TO_EXISTING ? FOLLOWUP_MODEL : DEFAULT_MODEL)
+  const modelUsed = modelOverride || (
+    usePatchingMode
+      ? CODE_PATCH_MODEL
+      : (requestType === REQUEST_TYPES.ADD_TO_EXISTING ? FOLLOWUP_MODEL : DEFAULT_MODEL)
+  )
   const provider = getProviderFromModel(modelUsed)
   
   // Skip schema for patching mode
