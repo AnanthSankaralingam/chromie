@@ -9,7 +9,7 @@ export default function SessionProviderClient({ children }) {
   const [user, setUser] = useState(null)
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const SESSION_TIMEOUT_MS = 10000

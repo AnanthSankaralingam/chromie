@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useSession } from '@/components/SessionProviderClient'
+import { useBillingPlan } from '@/components/BillingPlanProviderClient'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,9 +26,8 @@ export default function ProfilePage() {
   const { user, supabase } = useSession()
   const router = useRouter()
   const [projects, setProjects] = useState([])
-  const [billing, setBilling] = useState(null)
+  const { billing, isLoading: billingLoading } = useBillingPlan()
   const [loading, setLoading] = useState(true)
-  const [billingLoading, setBillingLoading] = useState(true)
   const [editingProject, setEditingProject] = useState(null)
   const [newProjectName, setNewProjectName] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -140,25 +140,9 @@ export default function ProfilePage() {
     }
   }
 
-  // Fetch user's billing information
-  const fetchBilling = async () => {
-    try {
-      const response = await fetch('/api/billing/status')
-      if (response.ok) {
-        const data = await response.json()
-        setBilling(data.billing)
-      }
-    } catch (error) {
-      console.error('Error fetching billing:', error)
-    } finally {
-      setBillingLoading(false)
-    }
-  }
-
   useEffect(() => {
     if (user) {
       fetchProjects()
-      fetchBilling()
       fetchShares()
       fetchGithubStatus()
       fetchPrivacyPolicies()
