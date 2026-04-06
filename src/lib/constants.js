@@ -37,36 +37,45 @@ export const CREDIT_COSTS = {
 // Default plan for users without billing info
 export const DEFAULT_PLAN = 'free'
 
-// Unified LLM Service defaults (ionrouter Kimi when IONROUTER_API_KEY set, else Gemini)
-export const DEFAULT_MODEL = process.env.IONROUTER_API_KEY ? 'kimi-k2.5' : 'gemini-3-flash-preview'
-export const FOLLOWUP_MODEL = 'gemini-3-flash-preview'
-export const DEFAULT_PROVIDER = 'ionrouter'
-// Dedicated fast model for HTML file generation in the task-graph executor
-export const HTML_CODEGEN_MODEL = 'gemini-3.1-flash-lite-preview'
+// Supported providers
+export const SUPPORTED_PROVIDERS = {
+  GEMINI: 'gemini',
+  OPENAI: 'openai',
+  ANTHROPIC: 'anthropic',
+  IONROUTER: 'ionrouter'
+}
+
+// Centralized model selection for codegen/planning flows.
+// Update values here to switch models globally by use case.
+export const MODEL_SELECTION = {
+  CODEGEN_DEFAULT: process.env.IONROUTER_API_KEY ? 'kimi-k2.5' : 'gemini-3-flash-preview',
+  CODEGEN_FOLLOWUP: 'gemini-3-flash-preview',
+  CODE_PATCH_DEFAULT: 'gemini-3-flash-preview',
+  CODE_PATCH_FALLBACK: 'gemini-3-flash-preview',
+  TASK_EXECUTOR_HTML: 'gemini-3.1-flash-lite-preview',
+  TASK_EXECUTOR_CSS: 'gemini-3-flash-preview',
+  FOLLOWUP_PATCH_CSS_FAST: 'gemini-3.1-flash-preview',
+  FOLLOWUP_PATCH_CSS_COMPLEX: 'gemini-3-flash-preview',
+  TASK_EXECUTOR_JSON: 'gemini-3-flash-preview',
+  HYPERAGENT_SCRIPT: 'claude-haiku-4-5-20251001',
+  LLM_SERVICE_FALLBACK_GEMINI: 'gemini-3-flash-preview',
+  LLM_SERVICE_FALLBACK_IONROUTER: 'kimi-k2.5',
+  LLM_SERVICE_FALLBACK_ANTHROPIC: 'claude-haiku-4-5-20251001',
+  LLM_SERVICE_OPENAI_FALLBACK: 'gpt-5.4-mini',
+}
+
+// Legacy exports kept for compatibility with existing imports.
+export const DEFAULT_MODEL = MODEL_SELECTION.CODEGEN_DEFAULT
+export const FOLLOWUP_MODEL = MODEL_SELECTION.CODEGEN_FOLLOWUP
+export const CODE_PATCH_MODEL = MODEL_SELECTION.CODE_PATCH_DEFAULT
+export const DEFAULT_PROVIDER = SUPPORTED_PROVIDERS.IONROUTER
+export const HTML_CODEGEN_MODEL = MODEL_SELECTION.TASK_EXECUTOR_HTML
 export const RESPONSE_STORE_DEFAULT = true
 export const CONTEXT_WINDOW_MAX_TOKENS_DEFAULT = 1000000
 
 // Kimi K2.5 (ionrouter): higher limits require streaming (non-streaming capped at 4096)
 export const FIREWORKS_CODEGEN_MAX_TOKENS = 32768
 
-// Supported providers
-export const SUPPORTED_PROVIDERS = {
-  GEMINI: 'gemini',
-  OPENAI: 'openai',
-  ANTHROPIC: 'anthropic'
-}
-
-// Default models for each provider
-export const DEFAULT_MODELS = {
-  gemini: 'gemini-3-flash-preview',
-  ionrouter: 'kimi-k2.5',
-  openai: 'o3',
-  anthropic: 'claude-haiku-4-5-20251001'
-}
-
-// Frontend type selection confidence threshold
-// When the LLM's confidence in its frontend type selection is below this threshold,
-// the user will be prompted to confirm or override the selection
 export const FRONTEND_CONFIDENCE_THRESHOLD = 0.8
 
 // Follow-up difficulty threshold — at or above this score, the meta planner flow is used
@@ -75,13 +84,13 @@ export const FOLLOWUP_DIFFICULTY_THRESHOLD = 0.6
 // Planning phase model configuration
 export const PLANNING_MODELS = {
   DEFAULT: 'claude-haiku-4-5-20251001', // Used for use-case and frontend-selection prompts
-  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929', // Used for external-resources prompt
-  META_PLANNER: 'claude-sonnet-4-5-20250929' // Used for meta planner task graph generation
+  EXTERNAL_RESOURCES: 'claude-sonnet-4-5-20250929', 
+  META_PLANNER: 'claude-sonnet-4-6'  
 }
 
 // Browser session configuration
 export const BROWSER_SESSION_CONFIG = {
-  SESSION_DURATION_MINUTES: 3, // Maximum session duration
+  SESSION_DURATION_MINUTES: 3.25, // Maximum session duration
   WARNING_TIME_MINUTES: 2.5, // Warning before session expires
   CLEANUP_INTERVAL_MINUTES: 1.5 // How often to clean up expired sessions
 }

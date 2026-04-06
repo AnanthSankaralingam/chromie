@@ -31,10 +31,17 @@ async function updateManifestIcons(supabase, projectId, iconBaseName) {
 
     console.log('📄 Found manifest.json, updating icons...')
     const manifest = JSON.parse(manifestFile.content)
-    manifest.icons = {
+    const iconMap = {
       "16": `icons/${iconBaseName}-16.png`,
       "48": `icons/${iconBaseName}-48.png`,
       "128": `icons/${iconBaseName}-128.png`
+    }
+
+    manifest.icons = iconMap
+
+    // Ensure toolbar icon uses the new primary icon set as well.
+    if (manifest.action && typeof manifest.action === 'object') {
+      manifest.action.default_icon = iconMap
     }
 
     const { error: updateError } = await supabase

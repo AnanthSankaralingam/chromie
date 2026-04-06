@@ -1,5 +1,5 @@
 import { llmService } from "@/lib/services/llm-service"
-import { DEFAULT_MODEL } from "@/lib/constants"
+import { MODEL_SELECTION } from "@/lib/constants"
 
 /**
  * Generates a BrowserUse test script for a Chrome extension
@@ -309,10 +309,13 @@ CRITICAL INSTRUCTIONS:
 - The very first line of your response MUST be the import statement`
 
   try {
+    const model = MODEL_SELECTION.HYPERAGENT_SCRIPT
+    const provider = llmService.getProviderFromModel(model)
+
     // Use the LLM service to generate the test script
     const response = await llmService.createResponse({
-      provider: 'anthropic',
-      model: 'claude-haiku-4-5-20251001',
+      provider,
+      model,
       input: prompt,
       store: false,
       temperature: 0.3, // Very low temperature for code generation only

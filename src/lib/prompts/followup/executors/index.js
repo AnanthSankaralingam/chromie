@@ -5,7 +5,7 @@
 
 import { TASK_EXECUTOR_FOLLOWUP_PROMPT } from './task-executor-prompt.js'
 import { llmService } from '@/lib/services/llm-service.js'
-import { DEFAULT_MODEL } from '@/lib/constants.js'
+import { CODE_PATCH_MODEL, MODEL_SELECTION } from '@/lib/constants.js'
 import {
   CONSOLE_LOGGING_REQUIREMENTS,
   ICON_CONFIGURATION,
@@ -23,6 +23,18 @@ function getFileType(fileName) {
   if (ext === 'html') return 'html'
   if (ext === 'css') return 'css'
   return ext
+}
+
+function getFollowupModelForFile(fileName, modelOverride, planningDifficulty = 0) {
+  if (modelOverride) return modelOverride
+  const type = getFileType(fileName)
+  if (type === 'css') {
+    const cssModel = planningDifficulty >= 0.7
+      ? MODEL_SELECTION.FOLLOWUP_PATCH_CSS_COMPLEX
+      : MODEL_SELECTION.FOLLOWUP_PATCH_CSS_FAST
+    return cssModel || MODEL_SELECTION.CODE_PATCH_FALLBACK
+  }
+  return CODE_PATCH_MODEL || MODEL_SELECTION.CODE_PATCH_FALLBACK
 }
 
 /**
@@ -104,7 +116,7 @@ function buildContextSections(task, workingFiles) {
  * @returns {Promise<{fileName: string, patchOutput: string, tokenUsage: Object}>}
  */
 export async function executeFollowupTask(task, executionContext) {
-  const { followupPlan, workingFiles, modelOverride } = executionContext
+  const { followupPlan, workingFiles, modelOverride, planningDifficulty = 0 } = executionContext
 
   const summary = followupPlan.summary?.purpose || ''
   const architecture = followupPlan.summary?.approach || ''
@@ -128,7 +140,7 @@ export async function executeFollowupTask(task, executionContext) {
     .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
     .replace('{{NPM_PACKAGE_IMPORT_GUIDANCE}}', injections.NPM_PACKAGE_IMPORT_GUIDANCE)
 
-  const model = modelOverride || DEFAULT_MODEL
+  const model = getFollowupModelForFile(task.file_name, modelOverride, planningDifficulty)
   const provider = llmService.getProviderFromModel(model)
 
   console.log(`🔨 [followup-task-executor] Patching ${task.file_name} with ${model}`)

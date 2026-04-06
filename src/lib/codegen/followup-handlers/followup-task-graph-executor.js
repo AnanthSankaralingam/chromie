@@ -11,7 +11,18 @@ import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.
 import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
 import { executeToolCall } from '@/lib/codegen/followup-handlers/tool-executor.js'
 import { llmService } from '@/lib/services/llm-service.js'
-import { DEFAULT_MODEL } from '@/lib/constants.js'
+import { CODE_PATCH_MODEL, MODEL_SELECTION } from '@/lib/constants.js'
+
+function getRepairModelForFile(fileName, modelOverride, planningDifficulty = 0) {
+  if (modelOverride) return modelOverride
+  if ((fileName || '').toLowerCase().endsWith('.css')) {
+    const cssModel = planningDifficulty >= 0.7
+      ? MODEL_SELECTION.FOLLOWUP_PATCH_CSS_COMPLEX
+      : MODEL_SELECTION.FOLLOWUP_PATCH_CSS_FAST
+    return cssModel || MODEL_SELECTION.CODE_PATCH_FALLBACK
+  }
+  return CODE_PATCH_MODEL || MODEL_SELECTION.CODE_PATCH_FALLBACK
+}
 
 /**
  * Topologically sorts the task graph by dependencies (DFS).
@@ -75,6 +86,7 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
     existingFiles,
     sessionId,
     modelOverride,
+    planningDifficulty = 0,
     supabase,
     saveAllFilesOnComplete = false,
   } = executionContext
@@ -135,7 +147,8 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
       followupPlan,
       userRequest,
       workingFiles,
-      modelOverride
+      modelOverride,
+      planningDifficulty,
     })
 
     // Accumulate token usage
@@ -168,7 +181,7 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
         workingFiles['manifest.json'] || null
       )
 
-      const repairModel = modelOverride || DEFAULT_MODEL
+      const repairModel = getRepairModelForFile(task.file_name, modelOverride, planningDifficulty)
       const repairProvider = llmService.getProviderFromModel(repairModel)
       const repairResponse = await llmService.createResponse({
         provider: repairProvider,
@@ -216,7 +229,7 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
         workingFiles['manifest.json'] || null
       )
 
-      const eslintRepairModel = modelOverride || DEFAULT_MODEL
+      const eslintRepairModel = getRepairModelForFile(task.file_name, modelOverride, planningDifficulty)
       const eslintRepairProvider = llmService.getProviderFromModel(eslintRepairModel)
       const eslintRepairResponse = await llmService.createResponse({
         provider: eslintRepairProvider,
