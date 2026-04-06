@@ -8,6 +8,39 @@ import { META_PLANNER_PROMPT } from '@/lib/prompts/new-extension/planning/meta-p
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
 
+const META_PLANNER_WEB_SEARCH_TOOL = {
+  type: 'web_search_20260209',
+  name: 'web_search',
+  max_uses: 3
+}
+
+function parsePlannerJsonFromText(outputText) {
+  const text = typeof outputText === 'string' ? outputText : ''
+  const candidates = []
+
+  const fencedJsonMatches = [...text.matchAll(/```json\s*([\s\S]*?)\s*```/gi)].map(m => m[1]?.trim()).filter(Boolean)
+  const fencedAnyMatches = [...text.matchAll(/```\s*([\s\S]*?)\s*```/g)].map(m => m[1]?.trim()).filter(Boolean)
+  candidates.push(...fencedJsonMatches, ...fencedAnyMatches)
+
+  const extracted = extractJsonContent(text)
+  if (extracted) candidates.push(extracted)
+  if (text) candidates.push(text)
+
+  // Try the most likely task-graph candidates first.
+  const prioritized = [...new Set(candidates)].sort((a, b) => {
+    const aHasTaskGraph = /"task_graph"\s*:/.test(a)
+    const bHasTaskGraph = /"task_graph"\s*:/.test(b)
+    if (aHasTaskGraph !== bHasTaskGraph) return aHasTaskGraph ? -1 : 1
+    return b.length - a.length
+  })
+
+  for (const candidate of prioritized) {
+    const parsed = parseJsonWithRetry(candidate)
+    if (parsed && typeof parsed === 'object') return parsed
+  }
+  return null
+}
+
 function buildDynamicSection(featureRequest, planningSummary) {
   return `## Input\n\n<user_request>\n${featureRequest}\n</user_request>\n\n<planning_summary>\n${planningSummary}\n</planning_summary>`
 }
@@ -111,22 +144,40 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
     max_tokens: 4096,
     temperature: 0.2,
     system: `${META_PLANNER_PROMPT}\n\n${buildDynamicSection(featureRequest, planningSummary)}`,
+    tools: [META_PLANNER_WEB_SEARCH_TOOL],
     messages: [
       { role: 'user', content: 'Generate the task graph.' }
     ]
   })
 
-  const outputText = response.content?.[0]?.text || ''
+  const responseBlocks = Array.isArray(response.content) ? response.content : []
+  const webSearchToolCalls = responseBlocks.filter(
+    (block) => block?.type === 'server_tool_use' && block?.name === 'web_search'
+  ).length
+  const webSearchToolResults = responseBlocks.filter(
+    (block) => block?.type === 'web_search_tool_result'
+  ).length
+  const webSearchRequests = response.usage?.server_tool_use?.web_search_requests ?? 0
+  console.log('🔎 [meta-planner-bridge] web search usage:', {
+    webSearchRequests,
+    webSearchToolCalls,
+    webSearchToolResults
+  })
+
+  const outputText = responseBlocks
+    .filter((block) => block?.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
   const tokenUsage = {
     input_tokens: response.usage?.input_tokens ?? 0,
     output_tokens: response.usage?.output_tokens ?? 0
   }
 
-  // Parse JSON from response
-  const jsonContent = extractJsonContent(outputText)
-  const metaPlan = parseJsonWithRetry(jsonContent)
+  // Parse JSON from response text blocks (tool use blocks may appear before text).
+  const metaPlan = parsePlannerJsonFromText(outputText)
 
   if (!metaPlan) {
+    console.error('❌ [meta-planner-bridge] Could not parse planner JSON. Raw output excerpt:', outputText.slice(0, 800))
     throw new Error('Meta Planner returned invalid JSON')
   }
 

@@ -325,7 +325,8 @@ export async function POST(request) {
             sessionId: projectId,
             existingFiles,
             userProvidedUrl: skipScraping ? null : (userProvidedUrl || null),
-            userProvidedApis: userProvidedApis || null,
+            // Preserve [] to represent "user explicitly chose no APIs".
+            userProvidedApis: (userProvidedApis ?? null),
             skipScraping: !!skipScraping,
             conversationTokenTotal,
             modelOverride,

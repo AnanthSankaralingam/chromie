@@ -90,7 +90,8 @@ export function buildGeneratePayload({
     payload.skipScraping = skipScraping
   }
 
-  if (userProvidedApis) {
+  // Preserve explicit empty array (user removed all APIs to continue without them).
+  if (userProvidedApis !== undefined && userProvidedApis !== null) {
     payload.userProvidedApis = userProvidedApis
   }
 
