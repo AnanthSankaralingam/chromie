@@ -514,6 +514,9 @@ export default function HomePage() {
                   <a href="https://chromewebstore.google.com/detail/omnispeech-ai-deepfake-de/fdaalloapkmfoeelgbhdedlbiplcoahp/" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
                     <img src="/omnispeech_logo.png" alt="Omnispeech" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen" }} />
                   </a>
+                  <a href="https://www.getion.ai/" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
+                    <img src="/ion-logo-128.jpeg" alt="ION" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen" }} />
+                  </a>
                   <a href="https://qtr.ai/" target="_blank" rel="noopener noreferrer" className="opacity-75 hover:opacity-100 transition-opacity">
                     <img src="/QTR-Logo.png" alt="QTR" className="h-8 md:h-10 object-contain" style={{ mixBlendMode: "screen", filter: "brightness(0) invert(1)" }} />
                   </a>
