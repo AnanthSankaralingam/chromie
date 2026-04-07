@@ -8,6 +8,84 @@ import { META_PLANNER_PROMPT } from '@/lib/prompts/new-extension/planning/meta-p
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
 import { PLANNING_MODELS } from '@/lib/constants.js'
 
+const META_PLANNER_WEB_SEARCH_TOOL = {
+  type: 'web_search_20260209',
+  name: 'web_search',
+  max_uses: 2
+}
+
+function tryParseJsonCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'string') return null
+  try {
+    return JSON.parse(candidate)
+  } catch {
+    return null
+  }
+}
+
+function parsePlannerJsonFromText(outputText) {
+  const text = typeof outputText === 'string' ? outputText : ''
+  const candidates = []
+
+  const fencedJsonMatches = [...text.matchAll(/```json\s*([\s\S]*?)\s*```/gi)].map(m => m[1]?.trim()).filter(Boolean)
+  const fencedAnyMatches = [...text.matchAll(/```\s*([\s\S]*?)\s*```/g)].map(m => m[1]?.trim()).filter(Boolean)
+  candidates.push(...fencedJsonMatches, ...fencedAnyMatches)
+
+  const extracted = extractJsonContent(text)
+  if (extracted) candidates.push(extracted)
+  if (text) candidates.push(text)
+
+  // Prefer plain JSON payloads over markdown/codefenced variants.
+  const prioritized = [...new Set(candidates)].sort((a, b) => scoreCandidate(b) - scoreCandidate(a))
+
+  console.log('🧪 [meta-planner-bridge] JSON candidate stats:', {
+    totalCandidates: prioritized.length,
+    fencedJsonMatches: fencedJsonMatches.length,
+    fencedAnyMatches: fencedAnyMatches.length,
+    hasExtractedJson: Boolean(extracted),
+    textLength: text.length,
+    taskGraphCandidateCount: prioritized.filter(c => /"task_graph"\s*:/.test(c)).length
+  })
+
+  for (let i = 0; i < prioritized.length; i++) {
+    const candidate = prioritized[i]
+    const parsed = tryParseJsonCandidate(candidate)
+    if (parsed && typeof parsed === 'object') {
+      console.log('✅ [meta-planner-bridge] Parsed planner JSON candidate:', {
+        candidateIndex: i,
+        candidateLength: candidate.length,
+        containsTaskGraphKey: /"task_graph"\s*:/.test(candidate),
+        startsWithFence: candidate.trim().startsWith('```')
+      })
+      return parsed
+    }
+  }
+
+  // Recovery path: use tolerant parser only once on the best candidate to avoid noisy logs.
+  const fallbackCandidate = prioritized[0] || ''
+  const recovered = parseJsonWithRetry(fallbackCandidate)
+  if (recovered && typeof recovered === 'object') {
+    console.log('✅ [meta-planner-bridge] Parsed planner JSON via recovery on top candidate:', {
+      candidateLength: fallbackCandidate.length,
+      containsTaskGraphKey: /"task_graph"\s*:/.test(fallbackCandidate)
+    })
+    return recovered
+  }
+  return null
+}
+
+function scoreCandidate(candidate) {
+  const text = typeof candidate === 'string' ? candidate.trim() : ''
+  if (!text) return -100
+  let score = 0
+  if (/"task_graph"\s*:/.test(text)) score += 100
+  if (/"summary"\s*:/.test(text)) score += 25
+  if (text.startsWith('{')) score += 20
+  if (!text.startsWith('```')) score += 15
+  score += Math.min(text.length / 2000, 10)
+  return score
+}
+
 function buildDynamicSection(featureRequest, planningSummary) {
   return `## Input\n\n<user_request>\n${featureRequest}\n</user_request>\n\n<planning_summary>\n${planningSummary}\n</planning_summary>`
 }
@@ -106,27 +184,136 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const response = await client.messages.create({
+  const stream = await client.messages.create({
     model: PLANNING_MODELS.META_PLANNER,
     max_tokens: 4096,
     temperature: 0.2,
     system: `${META_PLANNER_PROMPT}\n\n${buildDynamicSection(featureRequest, planningSummary)}`,
+    tools: [META_PLANNER_WEB_SEARCH_TOOL],
+    stream: true,
     messages: [
       { role: 'user', content: 'Generate the task graph.' }
     ]
   })
 
-  const outputText = response.content?.[0]?.text || ''
-  const tokenUsage = {
-    input_tokens: response.usage?.input_tokens ?? 0,
-    output_tokens: response.usage?.output_tokens ?? 0
+  const textByIndex = new Map()
+  const toolUseByIndex = new Map()
+  const responseBlocks = []
+  let usageInputTokens = 0
+  let usageOutputTokens = 0
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_start') {
+      const block = event.content_block
+      if (!block) continue
+
+      if (block.type === 'text') {
+        textByIndex.set(event.index, block.text || '')
+      }
+
+      if (block.type === 'server_tool_use' && block.name === 'web_search') {
+        const query = block.input?.query || null
+        console.log('🔎 [meta-planner-bridge] web search started', {
+          toolUseId: block.id || null,
+          query
+        })
+        toolUseByIndex.set(event.index, {
+          id: block.id || null,
+          name: block.name,
+          query: query || ''
+        })
+        responseBlocks.push({
+          type: 'server_tool_use',
+          name: block.name,
+          input: block.input || {}
+        })
+      }
+
+      if (block.type === 'web_search_tool_result') {
+        const content = Array.isArray(block.content) ? block.content : []
+        const resultCount = content.filter(item => item?.type === 'web_search_result').length
+        const errorEntry = content.find(item => item?.type === 'web_search_tool_result_error')
+        console.log('🔎 [meta-planner-bridge] web search result received', {
+          toolUseId: block.tool_use_id || null,
+          resultCount,
+          errorCode: errorEntry?.error_code || null
+        })
+        responseBlocks.push({
+          type: 'web_search_tool_result',
+          content
+        })
+      }
+    }
+
+    if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+      const prev = textByIndex.get(event.index) || ''
+      textByIndex.set(event.index, prev + (event.delta.text || ''))
+    }
+
+    if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+      const toolUse = toolUseByIndex.get(event.index)
+      if (toolUse && typeof event.delta.partial_json === 'string') {
+        toolUse.query += event.delta.partial_json
+      }
+    }
+
+    if (event.type === 'message_delta' && event.usage) {
+      usageInputTokens = event.usage.input_tokens ?? usageInputTokens
+      usageOutputTokens = event.usage.output_tokens ?? usageOutputTokens
+    }
   }
 
-  // Parse JSON from response
-  const jsonContent = extractJsonContent(outputText)
-  const metaPlan = parseJsonWithRetry(jsonContent)
+  for (const [index, text] of textByIndex.entries()) {
+    responseBlocks.push({ type: 'text', index, text })
+  }
+  responseBlocks.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+
+  const webSearchToolCalls = responseBlocks.filter(
+    (block) => block?.type === 'server_tool_use' && block?.name === 'web_search'
+  ).length
+  const webSearchToolResults = responseBlocks.filter(
+    (block) => block?.type === 'web_search_tool_result'
+  ).length
+  const webSearchRequests = webSearchToolCalls
+  const webSearchQueries = responseBlocks
+    .filter((block) => block?.type === 'server_tool_use' && block?.name === 'web_search')
+    .map((block) => block?.input?.query)
+    .filter(Boolean)
+  const webSearchErrors = responseBlocks
+    .filter((block) => block?.type === 'web_search_tool_result')
+    .map((block) => {
+      const content = block?.content
+      if (!content) return null
+      const payload = Array.isArray(content) ? content[0] : content
+      return payload?.type === 'web_search_tool_result_error' ? payload.error_code : null
+    })
+    .filter(Boolean)
+  const webSearchResultCounts = responseBlocks
+    .filter((block) => block?.type === 'web_search_tool_result')
+    .map((block) => (Array.isArray(block?.content) ? block.content.filter(item => item?.type === 'web_search_result').length : 0))
+  console.log('🔎 [meta-planner-bridge] web search usage:', {
+    webSearchRequests,
+    webSearchToolCalls,
+    webSearchToolResults,
+    webSearchQueries,
+    webSearchResultCounts,
+    webSearchErrors
+  })
+
+  const outputText = responseBlocks
+    .filter((block) => block?.type === 'text')
+    .map((block) => block.text)
+    .join('\n')
+  const tokenUsage = {
+    input_tokens: usageInputTokens,
+    output_tokens: usageOutputTokens
+  }
+
+  // Parse JSON from response text blocks (tool use blocks may appear before text).
+  const metaPlan = parsePlannerJsonFromText(outputText)
 
   if (!metaPlan) {
+    console.error('❌ [meta-planner-bridge] Could not parse planner JSON. Raw output excerpt:', outputText.slice(0, 800))
     throw new Error('Meta Planner returned invalid JSON')
   }
 

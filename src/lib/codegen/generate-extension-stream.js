@@ -610,10 +610,12 @@ export async function* generateChromeExtensionStream({
       // Signal that all user inputs are confirmed and we're about to build the task graph
       yield { type: 'planning_progress', phase: 'analysis', content: 'Finalizing extension plan...' }
 
-      // Call meta planner (Haiku)
+      // Call meta planner (Claude + web search tool when needed)
+      yield { type: 'planning_progress', phase: 'web_search', content: 'Searching the web for latest...' }
       const { metaPlan, tokenUsage: metaPlannerTokenUsage } = await callMetaPlanner(
         featureRequest, planningSummary
       )
+      yield { type: 'planning_progress', phase: 'planning', content: 'Web research complete. Building final plan...' }
 
       // Phase 1 complete — hand off the plan to the client so it can start Phase 2
       // in a fresh request, avoiding Vercel's 5-minute function timeout on long generations.
@@ -845,6 +847,7 @@ export async function* generateChromeExtensionStream({
  * then executes the resulting task graph.
  */
 async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images = null, isTemplateAdaptation = false }) {
+  yield { type: 'planning_progress', phase: 'web_search', content: 'Searching the web for latest docs and references...' }
   const { followupPlan } = await callFollowupMetaPlanner(
     featureRequest,
     requirementsAnalysis.relevantFiles,
@@ -853,6 +856,7 @@ async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnaly
     images,
     sessionId
   )
+  yield { type: 'planning_progress', phase: 'planning', content: 'Web research complete. Finalizing plan...' }
   yield { type: 'generation_starting', content: 'generation_starting' }
   yield { type: 'phase', phase: 'implementing', content: 'Generating extension files...' }
   for await (const event of executeFollowupTaskGraph(followupPlan, {
