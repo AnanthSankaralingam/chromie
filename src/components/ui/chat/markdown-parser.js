@@ -17,8 +17,8 @@ export const parseMarkdown = (text) => {
 
   // Step 4: Markdown replacements
   let html = normalized
-    .replace(/^### (.*)$/gim, '<h3 class="text-lg font-semibold mb-2 text-white border-b border-slate-600 pb-1">$1</h3>')
-    .replace(/^## (.*)$/gim, '<h2 class="text-xl font-bold mb-3 text-white border-b border-slate-600 pb-1">$1</h2>')
+    .replace(/^### (.*)$/gim, '<h3 class="text-lg font-semibold mt-5 mb-2 text-white border-b border-slate-600 pb-1">$1</h3>')
+    .replace(/^## (.*)$/gim, '<h2 class="text-xl font-bold mt-6 mb-3 text-white border-b border-slate-600 pb-1">$1</h2>')
     .replace(/^# (.*)$/gim, '<h1 class="text-2xl font-bold mb-4 text-white border-b border-slate-600 pb-1">$1</h1>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em class="italic text-slate-300">$1</em>')
@@ -29,9 +29,9 @@ export const parseMarkdown = (text) => {
       return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-300 underline transition-colors">${text}</a>`
     })
     .replace(/^> (.*)$/gim, '<blockquote class="border-l-4 border-gray-500 pl-4 py-2 my-3 bg-gray-500/10 italic text-slate-300">$1</blockquote>')
-    .replace(/^\* (.*)$/gim, '<li class="ml-4 mb-1">• $1</li>')
-    .replace(/^- (.*)$/gim, '<li class="ml-4 mb-1">• $1</li>')
-    .replace(/^(\d+)\. (.*)$/gim, '<li class="ml-4 mb-1">$1. $2</li>')
+    .replace(/^\* (.*)$/gim, '<li class="ml-2 mb-1">• $1</li>')
+    .replace(/^- (.*)$/gim, '<li class="ml-2 mb-1">• $1</li>')
+    .replace(/^(\d+)\. (.*)$/gim, '<li class="ml-2 mb-1">$1. $2</li>')
 
   // Step 5: group list items
   html = html

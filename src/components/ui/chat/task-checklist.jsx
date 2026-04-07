@@ -30,7 +30,7 @@ export function TaskChecklist({ tasks }) {
   }
 
   return (
-    <div className="bg-slate-800/40 rounded-lg p-4 my-3 border border-slate-600/40">
+    <div>
       <button
         type="button"
         className="flex items-center gap-2 w-full text-left"

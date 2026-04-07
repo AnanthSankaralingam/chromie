@@ -295,7 +295,7 @@ async function callExternalResourcesPrompt(featureRequest, options = {}) {
       onProgress?.({
         type: 'planning_progress',
         phase: 'tavily',
-        content: 'Gathering web context (Tavily) for APIs & sites…',
+        content: 'Gathering web context for APIs & sites…',
       })
       const tavilySpec = buildTavilyQueryForExternalResources(featureRequest, result)
       console.log(
