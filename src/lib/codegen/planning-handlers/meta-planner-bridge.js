@@ -11,7 +11,7 @@ import { PLANNING_MODELS } from '@/lib/constants.js'
 const META_PLANNER_WEB_SEARCH_TOOL = {
   type: 'web_search_20260209',
   name: 'web_search',
-  max_uses: 2
+  max_uses: 1
 }
 
 function tryParseJsonCandidate(candidate) {
