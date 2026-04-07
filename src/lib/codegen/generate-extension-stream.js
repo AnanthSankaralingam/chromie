@@ -28,9 +28,9 @@ import { analyzeExtensionFiles, formatFileSummariesForPlanning } from "@/lib/cod
 import { callFollowUpPlanning, selectFollowUpPrompt, filterRelevantFiles } from "@/lib/codegen/followup-handlers/followup-orchestrator";
 import { llmService } from "@/lib/services/llm-service";
 import { FOLLOWUP_MODEL, FRONTEND_CONFIDENCE_THRESHOLD, FOLLOWUP_DIFFICULTY_THRESHOLD } from "@/lib/constants";
-import { formatPlanningSummaryForMetaPlanner, callMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
+import { formatPlanningSummaryForMetaPlanner, streamMetaPlanner } from '@/lib/codegen/planning-handlers/meta-planner-bridge.js'
 import { executeTaskGraph } from '@/lib/codegen/task-graph-executor.js'
-import { callFollowupMetaPlanner } from '@/lib/codegen/followup-handlers/followup-meta-planner-bridge.js'
+import { streamFollowupMetaPlanner } from '@/lib/codegen/followup-handlers/followup-meta-planner-bridge.js'
 import { executeFollowupTaskGraph } from '@/lib/codegen/followup-handlers/followup-task-graph-executor.js'
 
 /**
@@ -610,12 +610,16 @@ export async function* generateChromeExtensionStream({
       // Signal that all user inputs are confirmed and we're about to build the task graph
       yield { type: 'planning_progress', phase: 'analysis', content: 'Finalizing extension plan...' }
 
-      // Call meta planner (Claude + web search tool when needed)
-      yield { type: 'planning_progress', phase: 'web_search', content: 'Searching the web for latest...' }
-      const { metaPlan, tokenUsage: metaPlannerTokenUsage } = await callMetaPlanner(
-        featureRequest, planningSummary
-      )
-      yield { type: 'planning_progress', phase: 'planning', content: 'Web research complete. Building final plan...' }
+      let metaPlan
+      let metaPlannerTokenUsage
+      for await (const chunk of streamMetaPlanner(featureRequest, planningSummary)) {
+        if (chunk.type === 'meta_planner_result') {
+          metaPlan = chunk.metaPlan
+          metaPlannerTokenUsage = chunk.tokenUsage
+        } else if (chunk.type === 'planning_progress') {
+          yield chunk
+        }
+      }
 
       // Phase 1 complete — hand off the plan to the client so it can start Phase 2
       // in a fresh request, avoiding Vercel's 5-minute function timeout on long generations.
@@ -847,16 +851,22 @@ export async function* generateChromeExtensionStream({
  * then executes the resulting task graph.
  */
 async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnalysis, sessionId, modelOverride, supabase, images = null, isTemplateAdaptation = false }) {
-  yield { type: 'planning_progress', phase: 'web_search', content: 'Searching the web for latest docs and references...' }
-  const { followupPlan } = await callFollowupMetaPlanner(
+  let followupPlan
+  for await (const chunk of streamFollowupMetaPlanner(
     featureRequest,
     requirementsAnalysis.relevantFiles,
     requirementsAnalysis.fileSummaries,
     requirementsAnalysis.planningJustification,
     images,
     sessionId
-  )
-  yield { type: 'planning_progress', phase: 'planning', content: 'Web research complete. Finalizing plan...' }
+  )) {
+    if (chunk.type === 'followup_meta_planner_result') {
+      followupPlan = chunk.followupPlan
+    } else if (chunk.type === 'planning_progress') {
+      yield chunk
+    }
+  }
+  yield { type: 'planning_progress', phase: 'planning', content: 'Plan ready. Starting implementation…' }
   yield { type: 'generation_starting', content: 'generation_starting' }
   yield { type: 'phase', phase: 'implementing', content: 'Generating extension files...' }
   for await (const event of executeFollowupTaskGraph(followupPlan, {

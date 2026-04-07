@@ -68,6 +68,21 @@ function parsePlannerJsonFromText(outputText) {
   return null
 }
 
+function tryExtractQueryFromPartialToolInput(accumulated) {
+  if (!accumulated || typeof accumulated !== 'string') return null
+  try {
+    const o = JSON.parse(accumulated)
+    if (o && typeof o.query === 'string' && o.query.trim()) return o.query.trim()
+  } catch {
+    /* partial */
+  }
+  const m = accumulated.match(/"query"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+  if (m) {
+    return m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim() || null
+  }
+  return null
+}
+
 function parseImageToAnthropicFormat(image) {
   const dataUrl = image?.data || image?.url
   if (!dataUrl || typeof dataUrl !== 'string') return null
@@ -91,16 +106,10 @@ function parseImageToAnthropicFormat(image) {
 }
 
 /**
- * Calls the Followup Meta Planner to produce a patch task graph from the existing extension state.
- * @param {string} userRequest - The user's follow-up request
- * @param {Object} relevantFiles - Selected existing files (path → content) — used downstream by the executor, not sent to the planner
- * @param {Object} fileAnalysis - Raw result from analyzeExtensionFiles (passed to formatFileSummariesForPlanning)
- * @param {string} planningJustification - Justification from the pre-planning agent
- * @param {Array<Object>|null} images - Optional image attachments for multimodal planning
- * @param {string|null} sessionId - Session/project identifier for conversation history
- * @returns {Promise<{followupPlan: Object, tokenUsage: Object}>}
+ * Streams follow-up Meta Planner progress for SSE (live web search lines).
+ * Yields `planning_progress` chunks, then `{ type: 'followup_meta_planner_result', followupPlan, tokenUsage }`.
  */
-export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
+export async function* streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
   void sessionId
   const fileSummaries = formatFileSummariesForFollowupPlanner(fileAnalysis)
   console.log('📊 [followup-meta-planner-bridge] File summaries:\n', fileSummaries)
@@ -121,6 +130,12 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
     console.log(`📸 [followup-meta-planner-bridge] Passing ${images.length} images to followup meta planner`)
   }
 
+  yield {
+    type: 'planning_progress',
+    phase: 'meta_planner',
+    content: 'Running follow-up planner…',
+  }
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const stream = await client.messages.create({
@@ -133,9 +148,15 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
   })
 
   const textByIndex = new Map()
+  const toolUseByIndex = new Map()
   const responseBlocks = []
   let usageInputTokens = 0
   let usageOutputTokens = 0
+
+  let webSearchRound = 0
+  let lastQueryEmitAt = 0
+  let lastEmittedQuery = ''
+  let yieldedSynthesisLine = false
 
   for await (const event of stream) {
     if (event.type === 'content_block_start') {
@@ -147,10 +168,16 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
       }
 
       if (block.type === 'server_tool_use' && block.name === 'web_search') {
+        webSearchRound += 1
         const query = block.input?.query || null
         console.log('🔎 [followup-meta-planner-bridge] web search started', {
           toolUseId: block.id || null,
           query
+        })
+        toolUseByIndex.set(event.index, {
+          id: block.id || null,
+          name: block.name,
+          inputJson: ''
         })
         responseBlocks.push({
           type: 'server_tool_use',
@@ -158,28 +185,87 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
           name: block.name,
           input: block.input || {}
         })
+        const line = query
+          ? `Search ${webSearchRound}: ${query}`
+          : `Web search ${webSearchRound}…`
+        lastEmittedQuery = query || ''
+        yield {
+          type: 'planning_progress',
+          phase: 'web_search',
+          content: line,
+          webSearchQuery: query || undefined,
+          webSearchRound,
+          webSearchStep: 'started',
+        }
+        lastQueryEmitAt = Date.now()
       }
 
       if (block.type === 'web_search_tool_result') {
         const contentItems = Array.isArray(block.content) ? block.content : []
         const resultCount = contentItems.filter(item => item?.type === 'web_search_result').length
         const errorEntry = contentItems.find(item => item?.type === 'web_search_tool_result_error')
+        const errorCode = errorEntry?.error_code || null
         console.log('🔎 [followup-meta-planner-bridge] web search result received', {
           toolUseId: block.tool_use_id || null,
           resultCount,
-          errorCode: errorEntry?.error_code || null
+          errorCode
         })
         responseBlocks.push({
           type: 'web_search_tool_result',
           index: event.index,
           content: contentItems
         })
+        const summary = errorCode
+          ? `Search ${webSearchRound}: issue (${errorCode})`
+          : `Search ${webSearchRound}: ${resultCount} result(s) — reading…`
+        yield {
+          type: 'planning_progress',
+          phase: 'web_search',
+          content: summary,
+          webSearchQuery: lastEmittedQuery || undefined,
+          webSearchRound,
+          webSearchStep: 'results',
+          webSearchResultCount: resultCount,
+          webSearchError: errorCode || undefined,
+        }
       }
     }
 
     if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+      const deltaText = event.delta.text || ''
+      if (!yieldedSynthesisLine && deltaText.length > 0) {
+        yieldedSynthesisLine = true
+        yield {
+          type: 'planning_progress',
+          phase: 'planning',
+          content:
+            webSearchRound > 0
+              ? 'Composing patch plan from search results…'
+              : 'Writing patch plan…',
+        }
+      }
       const prev = textByIndex.get(event.index) || ''
-      textByIndex.set(event.index, prev + (event.delta.text || ''))
+      textByIndex.set(event.index, prev + deltaText)
+    }
+
+    if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+      const toolUse = toolUseByIndex.get(event.index)
+      if (toolUse && typeof event.delta.partial_json === 'string') {
+        toolUse.inputJson += event.delta.partial_json
+        const q = tryExtractQueryFromPartialToolInput(toolUse.inputJson)
+        if (q && q !== lastEmittedQuery && (Date.now() - lastQueryEmitAt > 120 || q.length > lastEmittedQuery.length + 8)) {
+          lastEmittedQuery = q
+          lastQueryEmitAt = Date.now()
+          yield {
+            type: 'planning_progress',
+            phase: 'web_search',
+            content: `Search ${webSearchRound}: ${q}`,
+            webSearchQuery: q,
+            webSearchRound,
+            webSearchStep: 'query_stream',
+          }
+        }
+      }
     }
 
     if (event.type === 'message_delta' && event.usage) {
@@ -234,7 +320,12 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
     output_tokens: usageOutputTokens
   }
 
-  // Parse JSON from response text blocks (tool use blocks may appear before text).
+  yield {
+    type: 'planning_progress',
+    phase: 'planning',
+    content: 'Validating patch plan…',
+  }
+
   const followupPlan = parsePlannerJsonFromText(outputText)
 
   if (!followupPlan) {
@@ -242,12 +333,10 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
     throw new Error('Followup Meta Planner returned invalid JSON')
   }
 
-  // Validate task_graph exists and is non-empty
   if (!followupPlan.task_graph || !Array.isArray(followupPlan.task_graph)) {
     throw new Error('Followup Meta Planner response missing task_graph array')
   }
 
-  // Validate dependency IDs reference valid tasks
   const taskIds = new Set(followupPlan.task_graph.map(t => t.id))
   for (const task of followupPlan.task_graph) {
     if (task.dependencies) {
@@ -263,5 +352,24 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
   console.log('🧠 [followup-meta-planner-bridge] Plan:\n', JSON.stringify(followupPlan, null, 2))
   console.log('🧠 [followup-meta-planner-bridge] tokenUsage:', tokenUsage)
 
-  return { followupPlan, tokenUsage }
+  yield { type: 'followup_meta_planner_result', followupPlan, tokenUsage }
+}
+
+/**
+ * Calls the Followup Meta Planner to produce a patch task graph from the existing extension state.
+ * @param {string} userRequest - The user's follow-up request
+ * @param {Object} relevantFiles - Selected existing files (path → content) — used downstream by the executor, not sent to the planner
+ * @param {Object} fileAnalysis - Raw result from analyzeExtensionFiles (passed to formatFileSummariesForPlanning)
+ * @param {string} planningJustification - Justification from the pre-planning agent
+ * @param {Array<Object>|null} images - Optional image attachments for multimodal planning
+ * @param {string|null} sessionId - Session/project identifier for conversation history
+ * @returns {Promise<{followupPlan: Object, tokenUsage: Object}>}
+ */
+export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
+  for await (const chunk of streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images, sessionId)) {
+    if (chunk.type === 'followup_meta_planner_result') {
+      return { followupPlan: chunk.followupPlan, tokenUsage: chunk.tokenUsage }
+    }
+  }
+  throw new Error('Follow-up meta planner stream ended without result')
 }

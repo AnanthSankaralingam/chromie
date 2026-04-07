@@ -1,6 +1,10 @@
 import { llmService } from '@/lib/services/llm-service.js'
 import { USE_CASE_CHROME_APIS_PROMPT, USE_CASES_CHROME_APIS_PREFILL } from '@/lib/prompts/new-extension/planning/use-case.js'
-import { EXTERNAL_RESOURCES_PROMPT, EXTERNAL_RESOURCES_PREFILL } from '@/lib/prompts/new-extension/planning/external-resources.js'
+import {
+  EXTERNAL_RESOURCES_PROMPT,
+  EXTERNAL_RESOURCES_PREFILL,
+  EXTERNAL_RESOURCES_REFINEMENT_PROMPT,
+} from '@/lib/prompts/new-extension/planning/external-resources.js'
 import { getWhitelistForPrompt, validatePackages } from '@/lib/build/package-whitelist.js'
 import { FRONTEND_SELECTION_PROMPT, FRONTEND_SELECTION_PREFILL } from '@/lib/prompts/new-extension/planning/frontend-selection.js'
 import { TEMPLATE_MATCHER_PROMPT, TEMPLATE_MATCHER_PREFILL } from '@/lib/prompts/new-extension/planning/template-selection.js'
@@ -14,6 +18,12 @@ import { isWorkspaceAPI, collectWorkspaceScopes } from '@/lib/utils/google-works
 import { generateApiKeyInstructions } from '@/lib/prompts/instructions/api-key-instructions.js'
 import { getWorkspaceAuthInstructions } from '@/lib/prompts/instructions/workspace-auth-instructions.js'
 import { formatNpmPackagesSection } from '@/lib/prompts/new-extension/one-shot/shared-content.js'
+import {
+  shouldAugmentExternalResourcesWithTavily,
+  buildTavilyQueryForExternalResources,
+  fetchTavilySearchForPlanning,
+  formatTavilyContextForPrompt,
+} from '@/lib/services/tavily-search.js'
 
 const PLANNING_MODEL = PLANNING_MODELS.DEFAULT
 const EXTERNAL_RESOURCES_MODEL = PLANNING_MODELS.EXTERNAL_RESOURCES
@@ -23,6 +33,10 @@ const PLANNING_PROVIDER = 'anthropic'
 const EXTERNAL_RESOURCES_STATIC = EXTERNAL_RESOURCES_PROMPT.split('<user_request>')[0].trimEnd()                                                                                                                                  
 const TEMPLATE_MATCHER_STATIC = TEMPLATE_MATCHER_PROMPT.split('<user_request>')[0].trimEnd()      
 
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 /**
  * Streaming version of orchestratePlanning that yields planning_progress events in real-time.
@@ -37,14 +51,42 @@ export async function* orchestratePlanningStream(featureRequest) {
   console.log('📝 Feature Request:', featureRequest.substring(0, 150) + '...')
 
   try {
-    // Step 1: Parallel calls — research Chrome APIs and external resources
+    // Step 1: Parallel calls — research Chrome APIs and external resources (stream Tavily sub-steps from external-resources)
     yield { type: 'planning_progress', phase: 'analysis', content: 'Researching Chrome APIs and external resources...' }
     console.log('🔄 [Planning Orchestrator] Making parallel calls to use-case and external-resources prompts...')
 
-    const [useCaseResponse, externalResourcesResponse] = await Promise.all([
+    const externalProgressQueue = []
+    let step1Done = false
+    let step1Error = null
+    let step1Pair = null
+
+    const step1Promise = Promise.all([
       callUseCasePrompt(featureRequest),
-      callExternalResourcesPrompt(featureRequest)
+      callExternalResourcesPrompt(featureRequest, {
+        onProgress: (evt) => externalProgressQueue.push(evt),
+      }),
     ])
+      .then((pair) => {
+        step1Pair = pair
+        step1Done = true
+      })
+      .catch((e) => {
+        step1Error = e
+        step1Done = true
+      })
+
+    while (!step1Done || externalProgressQueue.length > 0) {
+      await Promise.race([step1Promise, sleep(45)])
+      while (externalProgressQueue.length > 0) {
+        yield externalProgressQueue.shift()
+      }
+    }
+
+    if (step1Error) {
+      throw step1Error
+    }
+
+    const [useCaseResponse, externalResourcesResponse] = step1Pair
 
     console.log('📊 Use Case Result:', JSON.stringify(useCaseResponse.result, null, 2))
     console.log('📊 External Resources Result:', JSON.stringify(externalResourcesResponse.result, null, 2))
@@ -219,9 +261,12 @@ async function callUseCasePrompt(featureRequest) {
 /**
  * Call the external resources detection prompt
  * @param {string} featureRequest - User's feature request
+ * @param {Object} [options]
+ * @param {(evt: { type: 'planning_progress', phase: string, content: string }) => void} [options.onProgress] - Tavily / refinement UX (optional)
  * @returns {Promise<Object>} External resources result and token usage
  */
-async function callExternalResourcesPrompt(featureRequest) {
+async function callExternalResourcesPrompt(featureRequest, options = {}) {
+  const { onProgress } = options
   const prompt = EXTERNAL_RESOURCES_PROMPT
     .replace('{USER_REQUEST}', featureRequest)
     .replace('{WHITELISTED_PACKAGES}', getWhitelistForPrompt())
@@ -238,7 +283,74 @@ async function callExternalResourcesPrompt(featureRequest) {
       max_output_tokens: 256
     })
 
-    const result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
+    let result = parseJsonResponse(response.output_text, EXTERNAL_RESOURCES_PREFILL)
+    let tokenUsage = {
+      prompt_tokens: response.usage?.prompt_tokens || 0,
+      completion_tokens: response.usage?.completion_tokens || 0,
+      total_tokens: response.usage?.total_tokens || 0
+    }
+
+    // Tavily: second pass when heuristic indicates low confidence / missing resources
+    if (shouldAugmentExternalResourcesWithTavily(result, featureRequest)) {
+      onProgress?.({
+        type: 'planning_progress',
+        phase: 'tavily',
+        content: 'Gathering web context (Tavily) for APIs & sites…',
+      })
+      const tavilySpec = buildTavilyQueryForExternalResources(featureRequest, result)
+      console.log(
+        '🔭 [Planning Orchestrator] Tavily:',
+        tavilySpec.mode,
+        tavilySpec.searchDepth,
+        tavilySpec.query.slice(0, 160) + (tavilySpec.query.length > 160 ? '…' : '')
+      )
+      const tavily = await fetchTavilySearchForPlanning(tavilySpec.query, {
+        searchDepth: tavilySpec.searchDepth,
+        maxResults: tavilySpec.maxResults,
+      })
+      const tavilyContext = formatTavilyContextForPrompt(tavily)
+      if (tavilyContext) {
+        onProgress?.({
+          type: 'planning_progress',
+          phase: 'tavily',
+          content: 'Refining external resources with search results…',
+        })
+        try {
+          const priorStr = JSON.stringify(result)
+          const priorJson =
+            priorStr.length > 12000 ? priorStr.slice(0, 12000) + '\n... [truncated]' : priorStr
+          const refinementPrompt = EXTERNAL_RESOURCES_REFINEMENT_PROMPT
+            .replace('{WHITELISTED_PACKAGES}', getWhitelistForPrompt())
+            .replace('{USER_REQUEST}', featureRequest)
+            .replace('{PRIOR_JSON}', priorJson)
+            .replace('{TAVILY_CONTEXT}', tavilyContext)
+
+          const response2 = await llmService.createResponse({
+            provider: PLANNING_PROVIDER,
+            model: EXTERNAL_RESOURCES_MODEL,
+            input: [
+              { role: 'user', content: refinementPrompt },
+              { role: 'assistant', content: EXTERNAL_RESOURCES_PREFILL }
+            ],
+            temperature: 0.35,
+            max_output_tokens: 512
+          })
+          const refined = parseJsonResponse(response2.output_text, EXTERNAL_RESOURCES_PREFILL)
+          result = refined
+          result.tavily_augmented = true
+          tokenUsage = {
+            prompt_tokens: tokenUsage.prompt_tokens + (response2.usage?.prompt_tokens || 0),
+            completion_tokens: tokenUsage.completion_tokens + (response2.usage?.completion_tokens || 0),
+            total_tokens: tokenUsage.total_tokens + (response2.usage?.total_tokens || 0)
+          }
+          console.log('✅ [Planning Orchestrator] External resources refined with Tavily context')
+        } catch (refineErr) {
+          console.warn('⚠️ [Planning Orchestrator] Tavily refinement pass failed, using first pass:', refineErr?.message || refineErr)
+        }
+      } else {
+        console.log('ℹ️ [Planning Orchestrator] Tavily returned no usable context; skipping refinement')
+      }
+    }
 
     // Apply scraping_intent threshold: only use when confidence >= 0.8
     const SCRAPING_INTENT_THRESHOLD = 0.8
@@ -300,11 +412,7 @@ async function callExternalResourcesPrompt(featureRequest) {
 
     return {
       result,
-      tokenUsage: {
-        prompt_tokens: response.usage?.prompt_tokens || 0,
-        completion_tokens: response.usage?.completion_tokens || 0,
-        total_tokens: response.usage?.total_tokens || 0
-      }
+      tokenUsage
     }
   } catch (error) {
     console.error('❌ [Planning Orchestrator] Error calling external-resources prompt:', error)

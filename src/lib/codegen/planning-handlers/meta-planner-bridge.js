@@ -86,6 +86,22 @@ function scoreCandidate(candidate) {
   return score
 }
 
+/** Best-effort query string from streaming tool input JSON (may be partial). */
+function tryExtractQueryFromPartialToolInput(accumulated) {
+  if (!accumulated || typeof accumulated !== 'string') return null
+  try {
+    const o = JSON.parse(accumulated)
+    if (o && typeof o.query === 'string' && o.query.trim()) return o.query.trim()
+  } catch {
+    /* partial JSON */
+  }
+  const m = accumulated.match(/"query"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+  if (m) {
+    return m[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim() || null
+  }
+  return null
+}
+
 function buildDynamicSection(featureRequest, planningSummary) {
   return `## Input\n\n<user_request>\n${featureRequest}\n</user_request>\n\n<planning_summary>\n${planningSummary}\n</planning_summary>`
 }
@@ -174,13 +190,17 @@ export function formatPlanningSummaryForMetaPlanner(planningResult, scrapedWebpa
 }
 
 /**
- * Calls the Meta Planner to produce a task graph from the planning summary.
- * @param {string} featureRequest - The user's feature request
- * @param {string} planningSummary - Readable planning summary from formatPlanningSummaryForMetaPlanner
- * @returns {Promise<{metaPlan: Object, tokenUsage: Object}>}
+ * Streams Meta Planner progress (including live web search steps) for SSE clients.
+ * Yields `{ type: 'planning_progress', ... }` chunks, then a final `{ type: 'meta_planner_result', metaPlan, tokenUsage }`.
  */
-export async function callMetaPlanner(featureRequest, planningSummary) {
-  console.log('🧠 [meta-planner-bridge] Calling Meta Planner')
+export async function* streamMetaPlanner(featureRequest, planningSummary) {
+  console.log('🧠 [meta-planner-bridge] Calling Meta Planner (streaming)')
+
+  yield {
+    type: 'planning_progress',
+    phase: 'meta_planner',
+    content: 'Running meta planner…',
+  }
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -202,6 +222,12 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
   let usageInputTokens = 0
   let usageOutputTokens = 0
 
+  let webSearchRound = 0
+  let lastQueryEmitAt = 0
+  let lastEmittedQuery = ''
+  /** After tool results, the model may take several seconds to stream JSON — signal first text output so the UI does not look stuck. */
+  let yieldedSynthesisLine = false
+
   for await (const event of stream) {
     if (event.type === 'content_block_start') {
       const block = event.content_block
@@ -212,6 +238,7 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
       }
 
       if (block.type === 'server_tool_use' && block.name === 'web_search') {
+        webSearchRound += 1
         const query = block.input?.query || null
         console.log('🔎 [meta-planner-bridge] web search started', {
           toolUseId: block.id || null,
@@ -220,40 +247,92 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
         toolUseByIndex.set(event.index, {
           id: block.id || null,
           name: block.name,
-          query: query || ''
+          inputJson: ''
         })
         responseBlocks.push({
           type: 'server_tool_use',
           name: block.name,
           input: block.input || {}
         })
+        const line = query
+          ? `Search ${webSearchRound}: ${query}`
+          : `Web search ${webSearchRound}…`
+        lastEmittedQuery = query || ''
+        yield {
+          type: 'planning_progress',
+          phase: 'web_search',
+          content: line,
+          webSearchQuery: query || undefined,
+          webSearchRound,
+          webSearchStep: 'started',
+        }
+        lastQueryEmitAt = Date.now()
       }
 
       if (block.type === 'web_search_tool_result') {
         const content = Array.isArray(block.content) ? block.content : []
         const resultCount = content.filter(item => item?.type === 'web_search_result').length
         const errorEntry = content.find(item => item?.type === 'web_search_tool_result_error')
+        const errorCode = errorEntry?.error_code || null
         console.log('🔎 [meta-planner-bridge] web search result received', {
           toolUseId: block.tool_use_id || null,
           resultCount,
-          errorCode: errorEntry?.error_code || null
+          errorCode
         })
         responseBlocks.push({
           type: 'web_search_tool_result',
           content
         })
+        const summary = errorCode
+          ? `Search ${webSearchRound}: issue (${errorCode})`
+          : `Search ${webSearchRound}: ${resultCount} result(s) — reading…`
+        yield {
+          type: 'planning_progress',
+          phase: 'web_search',
+          content: summary,
+          webSearchQuery: lastEmittedQuery || undefined,
+          webSearchRound,
+          webSearchStep: 'results',
+          webSearchResultCount: resultCount,
+          webSearchError: errorCode || undefined,
+        }
       }
     }
 
     if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+      const deltaText = event.delta.text || ''
+      if (!yieldedSynthesisLine && deltaText.length > 0) {
+        yieldedSynthesisLine = true
+        yield {
+          type: 'planning_progress',
+          phase: 'planning',
+          content:
+            webSearchRound > 0
+              ? 'Composing build plan from search results…'
+              : 'Writing task graph…',
+        }
+      }
       const prev = textByIndex.get(event.index) || ''
-      textByIndex.set(event.index, prev + (event.delta.text || ''))
+      textByIndex.set(event.index, prev + deltaText)
     }
 
     if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
       const toolUse = toolUseByIndex.get(event.index)
       if (toolUse && typeof event.delta.partial_json === 'string') {
-        toolUse.query += event.delta.partial_json
+        toolUse.inputJson += event.delta.partial_json
+        const q = tryExtractQueryFromPartialToolInput(toolUse.inputJson)
+        if (q && q !== lastEmittedQuery && (Date.now() - lastQueryEmitAt > 120 || q.length > lastEmittedQuery.length + 8)) {
+          lastEmittedQuery = q
+          lastQueryEmitAt = Date.now()
+          yield {
+            type: 'planning_progress',
+            phase: 'web_search',
+            content: `Search ${webSearchRound}: ${q}`,
+            webSearchQuery: q,
+            webSearchRound,
+            webSearchStep: 'query_stream',
+          }
+        }
       }
     }
 
@@ -309,6 +388,12 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
     output_tokens: usageOutputTokens
   }
 
+  yield {
+    type: 'planning_progress',
+    phase: 'planning',
+    content: 'Validating and normalizing plan…',
+  }
+
   // Parse JSON from response text blocks (tool use blocks may appear before text).
   const metaPlan = parsePlannerJsonFromText(outputText)
 
@@ -342,7 +427,22 @@ export async function callMetaPlanner(featureRequest, planningSummary) {
   console.log('🧠 [meta-planner-bridge] Raw meta plan output:\n', JSON.stringify(normalizedMetaPlan, null, 2))
   console.log('🧠 [meta-planner-bridge] tokenUsage:', tokenUsage)
 
-  return { metaPlan: normalizedMetaPlan, tokenUsage }
+  yield { type: 'meta_planner_result', metaPlan: normalizedMetaPlan, tokenUsage }
+}
+
+/**
+ * Calls the Meta Planner to produce a task graph from the planning summary.
+ * @param {string} featureRequest - The user's feature request
+ * @param {string} planningSummary - Readable planning summary from formatPlanningSummaryForMetaPlanner
+ * @returns {Promise<{metaPlan: Object, tokenUsage: Object}>}
+ */
+export async function callMetaPlanner(featureRequest, planningSummary) {
+  for await (const chunk of streamMetaPlanner(featureRequest, planningSummary)) {
+    if (chunk.type === 'meta_planner_result') {
+      return { metaPlan: chunk.metaPlan, tokenUsage: chunk.tokenUsage }
+    }
+  }
+  throw new Error('Meta Planner stream ended without result')
 }
 
 /**
