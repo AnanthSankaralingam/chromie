@@ -115,4 +115,47 @@ Return only valid JSON. No markdown, no explanation. Extract ALL domains from UR
 export const EXTERNAL_RESOURCES_PREFILL = `{
   "external_apis": [`
 
+/**
+ * Second pass after Tavily web research — same JSON schema as the main external-resources prompt.
+ */
+export const EXTERNAL_RESOURCES_REFINEMENT_PROMPT = `You already produced a first-pass JSON analysis for external resources. Below is fresh web research (Tavily) with summaries and page snippets.
+
+Your job: output the SAME JSON schema again, refined. Use research to:
+- Add or correct external API base URLs (https only, real documented endpoints).
+- Add domains to webpages_to_scrape when the user targets specific sites.
+- Adjust npm_packages only from the whitelist.
+- Update scraping_intent and scraping_intent_confidence when research clarifies niche vs generic scraping.
+- Set no_external_needed to true only if all arrays are still empty and research confirms nothing external is needed.
+
+If research is irrelevant or empty, keep the first-pass reasoning unless you see a clear correction.
+
+<output_schema>
+{
+  "external_apis": [ { "name": "string", "purpose": "string", "endpoint_url": "string" } ],
+  "webpages_to_scrape": ["array of domains"],
+  "no_external_needed": "boolean",
+  "scraping_intent": "string",
+  "scraping_intent_confidence": "number 0-1",
+  "npm_packages": [ { "name": "string (must be from whitelist)", "purpose": "string" } ]
+}
+</output_schema>
+
+Return only valid JSON. No markdown.
+
+<whitelisted_packages>
+{WHITELISTED_PACKAGES}
+</whitelisted_packages>
+
+<first_pass_json>
+{PRIOR_JSON}
+</first_pass_json>
+
+<web_research>
+{TAVILY_CONTEXT}
+</web_research>
+
+<user_request>
+{USER_REQUEST}
+</user_request>`
+
 export const EXTERNAL_RESOURCES_PROMPT_TEMPLATE = EXTERNAL_RESOURCES_PROMPT

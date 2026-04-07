@@ -614,9 +614,11 @@ export default function StreamingChat({
                       <span className="text-xs text-slate-300 uppercase tracking-wide">
                         {currentPlanningPhase === "analysis" && "Planning"}
                         {currentPlanningPhase === "documentation" && "Documentation"}
+                        {currentPlanningPhase === "meta_planner" && "Build plan"}
                         {currentPlanningPhase === "web_search" && "Web Search"}
+                        {currentPlanningPhase === "tavily" && "Research"}
                         {currentPlanningPhase === "scraping" && "Web Analysis"}
-                        {!["analysis", "documentation", "web_search", "scraping"].includes(currentPlanningPhase) && "Planning"}
+                        {!["analysis", "documentation", "meta_planner", "web_search", "tavily", "scraping"].includes(currentPlanningPhase) && "Planning"}
                       </span>
                       <span className="text-sm text-white font-medium">{planningProgress}</span>
                     </div>
