@@ -12,7 +12,16 @@ import { formatFileSummariesForFollowupPlanner } from '@/lib/codegen/file-analys
 const FOLLOWUP_META_PLANNER_WEB_SEARCH_TOOL = {
   type: 'web_search_20260209',
   name: 'web_search',
-  max_uses: 3
+  max_uses: 2
+}
+
+function tryParseJsonCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'string') return null
+  try {
+    return JSON.parse(candidate)
+  } catch {
+    return parseJsonWithRetry(candidate)
+  }
 }
 
 function parsePlannerJsonFromText(outputText) {
@@ -34,9 +43,27 @@ function parsePlannerJsonFromText(outputText) {
     return b.length - a.length
   })
 
-  for (const candidate of prioritized) {
-    const parsed = parseJsonWithRetry(candidate)
-    if (parsed && typeof parsed === 'object') return parsed
+  console.log('🧪 [followup-meta-planner-bridge] JSON candidate stats:', {
+    totalCandidates: prioritized.length,
+    fencedJsonMatches: fencedJsonMatches.length,
+    fencedAnyMatches: fencedAnyMatches.length,
+    hasExtractedJson: Boolean(extracted),
+    textLength: text.length,
+    taskGraphCandidateCount: prioritized.filter(c => /"task_graph"\s*:/.test(c)).length
+  })
+
+  for (let i = 0; i < prioritized.length; i++) {
+    const candidate = prioritized[i]
+    const parsed = tryParseJsonCandidate(candidate)
+    if (parsed && typeof parsed === 'object') {
+      console.log('✅ [followup-meta-planner-bridge] Parsed planner JSON candidate:', {
+        candidateIndex: i,
+        candidateLength: candidate.length,
+        containsTaskGraphKey: /"task_graph"\s*:/.test(candidate),
+        startsWithFence: candidate.trim().startsWith('```')
+      })
+      return parsed
+    }
   }
   return null
 }
@@ -96,35 +123,115 @@ export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAn
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const response = await client.messages.create({
+  const stream = await client.messages.create({
     model: PLANNING_MODELS.META_PLANNER,
     messages: [{ role: 'user', content }],
     temperature: 0.2,
     max_tokens: 4096,
-    tools: [FOLLOWUP_META_PLANNER_WEB_SEARCH_TOOL]
+    tools: [FOLLOWUP_META_PLANNER_WEB_SEARCH_TOOL],
+    stream: true
   })
 
-  const responseBlocks = Array.isArray(response.content) ? response.content : []
+  const textByIndex = new Map()
+  const responseBlocks = []
+  let usageInputTokens = 0
+  let usageOutputTokens = 0
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_start') {
+      const block = event.content_block
+      if (!block) continue
+
+      if (block.type === 'text') {
+        textByIndex.set(event.index, block.text || '')
+      }
+
+      if (block.type === 'server_tool_use' && block.name === 'web_search') {
+        const query = block.input?.query || null
+        console.log('🔎 [followup-meta-planner-bridge] web search started', {
+          toolUseId: block.id || null,
+          query
+        })
+        responseBlocks.push({
+          type: 'server_tool_use',
+          index: event.index,
+          name: block.name,
+          input: block.input || {}
+        })
+      }
+
+      if (block.type === 'web_search_tool_result') {
+        const contentItems = Array.isArray(block.content) ? block.content : []
+        const resultCount = contentItems.filter(item => item?.type === 'web_search_result').length
+        const errorEntry = contentItems.find(item => item?.type === 'web_search_tool_result_error')
+        console.log('🔎 [followup-meta-planner-bridge] web search result received', {
+          toolUseId: block.tool_use_id || null,
+          resultCount,
+          errorCode: errorEntry?.error_code || null
+        })
+        responseBlocks.push({
+          type: 'web_search_tool_result',
+          index: event.index,
+          content: contentItems
+        })
+      }
+    }
+
+    if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+      const prev = textByIndex.get(event.index) || ''
+      textByIndex.set(event.index, prev + (event.delta.text || ''))
+    }
+
+    if (event.type === 'message_delta' && event.usage) {
+      usageInputTokens = event.usage.input_tokens ?? usageInputTokens
+      usageOutputTokens = event.usage.output_tokens ?? usageOutputTokens
+    }
+  }
+
+  for (const [index, text] of textByIndex.entries()) {
+    responseBlocks.push({ type: 'text', index, text })
+  }
+  responseBlocks.sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+
   const webSearchToolCalls = responseBlocks.filter(
     (block) => block?.type === 'server_tool_use' && block?.name === 'web_search'
   ).length
   const webSearchToolResults = responseBlocks.filter(
     (block) => block?.type === 'web_search_tool_result'
   ).length
-  const webSearchRequests = response.usage?.server_tool_use?.web_search_requests ?? 0
+  const webSearchRequests = webSearchToolCalls
+  const webSearchQueries = responseBlocks
+    .filter((block) => block?.type === 'server_tool_use' && block?.name === 'web_search')
+    .map((block) => block?.input?.query)
+    .filter(Boolean)
+  const webSearchErrors = responseBlocks
+    .filter((block) => block?.type === 'web_search_tool_result')
+    .map((block) => {
+      const contentValue = block?.content
+      if (!contentValue) return null
+      const payload = Array.isArray(contentValue) ? contentValue[0] : contentValue
+      return payload?.type === 'web_search_tool_result_error' ? payload.error_code : null
+    })
+    .filter(Boolean)
+  const webSearchResultCounts = responseBlocks
+    .filter((block) => block?.type === 'web_search_tool_result')
+    .map((block) => (Array.isArray(block?.content) ? block.content.filter(item => item?.type === 'web_search_result').length : 0))
   console.log('🔎 [followup-meta-planner-bridge] web search usage:', {
     webSearchRequests,
     webSearchToolCalls,
-    webSearchToolResults
+    webSearchToolResults,
+    webSearchQueries,
+    webSearchResultCounts,
+    webSearchErrors
   })
 
-  const outputText = response.content
+  const outputText = responseBlocks
     ?.filter(block => block.type === 'text')
     .map(block => block.text)
-    .join('') || ''
+    .join('\n') || ''
   const tokenUsage = {
-    input_tokens: response.usage?.input_tokens ?? 0,
-    output_tokens: response.usage?.output_tokens ?? 0
+    input_tokens: usageInputTokens,
+    output_tokens: usageOutputTokens
   }
 
   // Parse JSON from response text blocks (tool use blocks may appear before text).
