@@ -6,7 +6,7 @@ import { AIInputWithSearch } from "@/components/ui/ai-input-with-search"
 import { useBuilderChat } from "@/components/ui/chat/builder-chat-context"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import ClearChatSuggestionModal from "@/components/ui/modals/clear-chat-suggestion-modal"
-import ChatMessage from "@/components/ui/chat/chat-message"
+import ChatMessage, { ChatMessageContent } from "@/components/ui/chat/chat-message"
 import { ChatBubble, ChatBubbleMessage, ChatBubbleAvatar } from "@/components/ui/chat-bubble"
 import { MessageLoading } from "@/components/ui/message-loading"
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ui/conversation"
@@ -520,7 +520,6 @@ export default function StreamingChat({
               const lastMsg = filteredForRender[filteredForRender.length - 1]
               const lastIsInputRequest = isInputRequest(lastMsg)
               const hasPlanningOrTyping = (planningProgress && currentPlanningPhase) || (isGenerating && !(taskList && taskList.length > 0))
-              // When planning/typing is active and last message is an input request, defer it so it renders at bottom (after Planning)
               const messagesToRender = lastIsInputRequest && hasPlanningOrTyping
                 ? filteredForRender.slice(0, -1)
                 : filteredForRender
@@ -529,130 +528,122 @@ export default function StreamingChat({
                 ? (() => { let count = 0; for (let i = 0; i < messages.length; i++) { if (!messages[i].isThinking) { if (count === filteredForRender.length - 1) return i; count++ } } return -1 })()
                 : -1
 
+              // Group consecutive assistant messages into single bubbles
+              const groups = []
+              let currentAiGroup = null
+              messagesToRender.forEach((message, index) => {
+                if (message.role === 'assistant') {
+                  if (!currentAiGroup) {
+                    currentAiGroup = { isAi: true, items: [] }
+                    groups.push(currentAiGroup)
+                  }
+                  currentAiGroup.items.push({ message, index })
+                } else {
+                  currentAiGroup = null
+                  groups.push({ isAi: false, message, index })
+                }
+              })
+
+              const hasLiveTyping = isGenerating && !(planningProgress && currentPlanningPhase) && !(taskList && taskList.length > 0)
+              const hasLivePlanning = !!(planningProgress && currentPlanningPhase)
+              const hasLiveContent = hasLiveTyping || hasLivePlanning || deferredInputRequest
+
+              if (hasLiveContent) {
+                if (!currentAiGroup) {
+                  currentAiGroup = { isAi: true, items: [] }
+                  groups.push(currentAiGroup)
+                }
+                currentAiGroup.isLive = true
+              }
+
+              const msgProps = {
+                typingCancelSignal: chatState.typingCancelSignal,
+                onUrlSubmit: handleUrlSubmit,
+                onApiSubmit: handleApiSubmit,
+                onUrlCancel: handleUrlCancel,
+                onApiCancel: handleApiCancel,
+                onFrontendTypeSubmit: handleFrontendTypeSubmit,
+                onFrontendTypeCancel: handleFrontendTypeCancel,
+                onWorkspaceApiSubmit: handleWorkspaceApiSubmit,
+                onWorkspaceApiCancel: handleWorkspaceApiCancel,
+                setMessages,
+                projectId,
+                onRevert: () => { if (typeof window !== 'undefined') window.location.reload() },
+              }
+
               return (
                 <>
-            {/* Render all messages in chronological order (natural conversation flow) */}
-            {messagesToRender.map((message, index, msgs) => {
-                // Render task checklist messages inline for correct ordering
-                if (message.type === 'task_checklist') {
-                  return (
-                    <div key={`msg-${index}`} data-message-role="assistant">
-                      <ChatBubble variant="received">
-                        <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
-                        <ChatBubbleMessage variant="received">
-                          <TaskChecklist tasks={message.tasks} />
-                        </ChatBubbleMessage>
-                      </ChatBubble>
-                    </div>
-                  )
-                }
-
-                // Show avatar only on first AI message in succession
-                const prevMessage = index > 0 ? msgs[index - 1] : null
-                const showAvatar = message.role === "assistant" &&
-                  (!prevMessage || prevMessage.role !== "assistant" || prevMessage.type === 'task_checklist')
-
-                return (
-                  <div key={`msg-${index}`} data-message-role={message.role}>
-                    <ChatMessage
-                      message={message}
-                      index={index}
-                      showAvatar={showAvatar}
-                      typingCancelSignal={chatState.typingCancelSignal}
-                      onUrlSubmit={handleUrlSubmit}
-                      onApiSubmit={handleApiSubmit}
-                      onUrlCancel={handleUrlCancel}
-                      onApiCancel={handleApiCancel}
-                      onFrontendTypeSubmit={handleFrontendTypeSubmit}
-                      onFrontendTypeCancel={handleFrontendTypeCancel}
-                      onWorkspaceApiSubmit={handleWorkspaceApiSubmit}
-                      onWorkspaceApiCancel={handleWorkspaceApiCancel}
-                      setMessages={setMessages}
-                      projectId={projectId}
-                      onRevert={() => {
-                        // Reload the page to refresh the code canvas with reverted files
-                        if (typeof window !== 'undefined') {
-                          window.location.reload()
-                        }
-                      }}
-                    />
-                  </div>
-                )
-              })}
-
-            {/* Typing indicator — hidden during planning progress and when the task list is active */}
-            {isGenerating && !(planningProgress && currentPlanningPhase) && !(taskList && taskList.length > 0) && (
-              <ChatBubble variant="received">
-                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
-                <ChatBubbleMessage variant="received">
-                  <div className="flex items-center space-x-3">
-                    <MessageLoading />
-                    <span className="text-sm text-slate-400">Reasoning</span>
-                  </div>
-                </ChatBubbleMessage>
-              </ChatBubble>
-            )}
-
-            {/* Planning progress */}
-            {planningProgress && currentPlanningPhase && (
-              <ChatBubble variant="received">
-                <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
-                <ChatBubbleMessage variant="received">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
-                      <div
-                        className="w-2 h-2 bg-slate-300 rounded-full animate-pulse"
-                        style={{ animationDelay: "200ms" }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"
-                        style={{ animationDelay: "400ms" }}
-                      ></div>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-300 uppercase tracking-wide">
-                        {currentPlanningPhase === "analysis" && "Planning"}
-                        {currentPlanningPhase === "documentation" && "Documentation"}
-                        {currentPlanningPhase === "meta_planner" && "Build plan"}
-                        {currentPlanningPhase === "web_search" && "Web Search"}
-                        {currentPlanningPhase === "tavily" && "Research"}
-                        {currentPlanningPhase === "scraping" && "Web Analysis"}
-                        {!["analysis", "documentation", "meta_planner", "web_search", "tavily", "scraping"].includes(currentPlanningPhase) && "Planning"}
-                      </span>
-                      <span className="text-sm text-white font-medium">{planningProgress}</span>
-                    </div>
-                  </div>
-                </ChatBubbleMessage>
-              </ChatBubble>
-            )}
-
-            {/* Deferred input request — render at bottom so the question for the user is the bottom-most message */}
-            {deferredInputRequest && (
-              <div key={`msg-deferred-${deferredIndex}`} data-message-role="assistant">
-                <ChatMessage
-                  message={deferredInputRequest}
-                  index={deferredIndex}
-                  showAvatar={true}
-                  typingCancelSignal={chatState.typingCancelSignal}
-                  onUrlSubmit={handleUrlSubmit}
-                  onApiSubmit={handleApiSubmit}
-                  onUrlCancel={handleUrlCancel}
-                  onApiCancel={handleApiCancel}
-                  onFrontendTypeSubmit={handleFrontendTypeSubmit}
-                  onFrontendTypeCancel={handleFrontendTypeCancel}
-                  onWorkspaceApiSubmit={handleWorkspaceApiSubmit}
-                  onWorkspaceApiCancel={handleWorkspaceApiCancel}
-                  setMessages={setMessages}
-                  projectId={projectId}
-                  onRevert={() => {
-                    if (typeof window !== 'undefined') {
-                      window.location.reload()
+                  {groups.map((group, groupIndex) => {
+                    if (!group.isAi) {
+                      return (
+                        <div key={`user-${group.index}`} data-message-role="user">
+                          <ChatMessage message={group.message} index={group.index} showAvatar={false} {...msgProps} />
+                        </div>
+                      )
                     }
-                  }}
-                />
-              </div>
-            )}
+
+                    // Build a flat list of all sections for this AI group
+                    const sections = [
+                      ...group.items.map(({ message, index }) => ({ kind: 'message', message, index })),
+                      ...(group.isLive ? [
+                        ...(deferredInputRequest ? [{ kind: 'deferred', message: deferredInputRequest, index: deferredIndex }] : []),
+                        ...(hasLiveTyping ? [{ kind: 'typing' }] : []),
+                        ...(hasLivePlanning ? [{ kind: 'planning' }] : []),
+                      ] : []),
+                    ]
+
+                    return (
+                      <div key={`ai-${groupIndex}`} data-message-role="assistant">
+                        <ChatBubble variant="received">
+                          <ChatBubbleAvatar src={CHROMIE_LOGO_URL} fallback="AI" className="h-8 w-8 shrink-0" />
+                          <ChatBubbleMessage variant="received">
+                            <div className="space-y-3">
+                              {sections.map((section, sectionIndex) => (
+                                <div key={sectionIndex} className={sectionIndex > 0 ? "border-t border-slate-700/40 pt-3" : undefined}>
+                                  {section.kind === 'message' && section.message.type === 'task_checklist' && (
+                                    <TaskChecklist tasks={section.message.tasks} />
+                                  )}
+                                  {section.kind === 'message' && section.message.type !== 'task_checklist' && (
+                                    <ChatMessageContent message={section.message} index={section.index} {...msgProps} />
+                                  )}
+                                  {section.kind === 'typing' && (
+                                    <div className="flex items-center space-x-3">
+                                      <MessageLoading />
+                                      <span className="text-sm text-slate-400">Reasoning</span>
+                                    </div>
+                                  )}
+                                  {section.kind === 'planning' && (
+                                    <div className="flex items-center space-x-3">
+                                      <div className="flex space-x-1">
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                                        <div className="w-2 h-2 bg-slate-300 rounded-full animate-pulse" style={{ animationDelay: "200ms" }}></div>
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: "400ms" }}></div>
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs text-slate-300 uppercase tracking-wide">
+                                          {currentPlanningPhase === "analysis" && "Planning"}
+                                          {currentPlanningPhase === "documentation" && "Documentation"}
+                                          {currentPlanningPhase === "meta_planner" && "Build Plan"}
+                                          {currentPlanningPhase === "web_search" && "Web Search"}
+                                          {currentPlanningPhase === "tavily" && "Research"}
+                                          {currentPlanningPhase === "scraping" && "Web Analysis"}
+                                          {!["analysis", "documentation", "meta_planner", "web_search", "tavily", "scraping"].includes(currentPlanningPhase) && "Building"}
+                                        </span>
+                                        <span className="text-sm text-white font-medium">{planningProgress}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {section.kind === 'deferred' && (
+                                    <ChatMessageContent message={section.message} index={section.index} {...msgProps} />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </ChatBubbleMessage>
+                        </ChatBubble>
+                      </div>
+                    )
+                  })}
                 </>
               )
             })()}
