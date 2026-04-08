@@ -137,6 +137,56 @@ function bestMatchingIcon(invalidPath, validPaths) {
  * Mutates completedFiles in place.
  * @param {Map<string,string>} completedFiles
  */
+/**
+ * Manifest V3: each string in web_accessible_resources[].matches must be a match pattern
+ * whose path is exactly /* (origin-only). Chrome rejects e.g. https://site.com/path/* with
+ * "Invalid match pattern" — unlike content_scripts, where path-specific patterns are allowed.
+ * @param {object} manifest - parsed manifest.json
+ * @returns {boolean} true if any match string was rewritten
+ */
+function normalizeWebAccessibleResourceMatchesInPlace(manifest) {
+  if (!manifest || manifest.manifest_version !== 3 || !Array.isArray(manifest.web_accessible_resources)) {
+    return false
+  }
+  let changed = false
+  for (const entry of manifest.web_accessible_resources) {
+    if (!entry || !Array.isArray(entry.matches)) continue
+    entry.matches = entry.matches.map((p) => {
+      if (typeof p !== 'string') return p
+      const trimmed = p.trim()
+      if (trimmed === '<all_urls>') return trimmed
+      const m = trimmed.match(/^([^:]+:\/\/[^/]+)(\/.*)?$/)
+      if (!m) return trimmed
+      const fixed = `${m[1]}/*`
+      if (fixed !== trimmed) {
+        changed = true
+        console.log(
+          `[extension-harness] Normalized web_accessible_resources.matches (MV3 requires origin + /* only): "${trimmed}" -> "${fixed}"`
+        )
+      }
+      return fixed
+    })
+  }
+  return changed
+}
+
+/**
+ * Rewrites invalid MV3 web_accessible_resources match patterns in manifest.json.
+ * @param {Map<string,string>} completedFiles
+ */
+export function fixWebAccessibleResourceMatches(completedFiles) {
+  const raw = completedFiles.get('manifest.json')
+  if (!raw) return
+  let manifest
+  try {
+    manifest = JSON.parse(raw)
+  } catch {
+    return
+  }
+  if (!normalizeWebAccessibleResourceMatchesInPlace(manifest)) return
+  completedFiles.set('manifest.json', JSON.stringify(manifest, null, 2))
+}
+
 export function validateAndFixIconUsage(completedFiles) {
   const customIcons = new Set()
   for (const path of completedFiles.keys()) {
@@ -245,6 +295,7 @@ export function validateMessagePassing(completedFiles) {
  */
 export function runExtensionHarness(completedFiles) {
   validateAndFixIconUsage(completedFiles)
+  fixWebAccessibleResourceMatches(completedFiles)
   const errors = [
     ...validateManifestFileReferences(completedFiles),
     ...validateMessagePassing(completedFiles)
