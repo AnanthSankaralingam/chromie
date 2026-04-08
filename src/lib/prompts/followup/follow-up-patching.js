@@ -130,6 +130,7 @@ To extract the DOM manipulation logic, we need to create a new file for DOM mani
 - Only create patches for files that exist or explicitly create new files with \`*** Add File:\`
 - For Chrome extensions, update manifest.json when adding/removing files
 - Ensure proper Chrome API usage and Manifest V3 compliance
+- Page-context APIs (window.* in the host page): use chrome.scripting.executeScript with files + world "MAIN", or &lt;script src=chrome.runtime.getURL(...)&gt;; never inject executable JS via inline &lt;script&gt; textContent/innerHTML (blocked by site CSP on LinkedIn and similar).
 - ONLY return code in the V4A diff format specified above
 </reminders>
 </instructions>
