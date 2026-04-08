@@ -13,6 +13,7 @@ import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { resolveProjectPackages } from './package-extractor.js'
 import { getAllWhitelistedNames } from './package-whitelist.js'
+import { augmentLodashVendorModule } from './lodash-vendor-augment.js'
 
 // ── Vendor cache loader ───────────────────────────────────────────────────────
 
@@ -133,7 +134,8 @@ function packageResolverPlugin(validPackages) {
         const cache = getVendorCache()
         const content = cache.get(args.path)
         if (content) {
-          return { contents: content, loader: 'js' }
+          const out = args.path === 'lodash' ? augmentLodashVendorModule(content) : content
+          return { contents: out, loader: 'js' }
         }
         return { errors: [{ text: `Vendor package not found: ${args.path}. Run \`npm run prebundle\`.` }] }
       })
