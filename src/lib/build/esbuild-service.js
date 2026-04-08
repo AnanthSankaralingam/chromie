@@ -14,6 +14,7 @@ import { join, dirname } from 'path'
 import { resolveProjectPackages } from './package-extractor.js'
 import { getAllWhitelistedNames } from './package-whitelist.js'
 import { augmentLodashVendorModule } from './lodash-vendor-augment.js'
+import { augmentWebextensionPolyfillVendorModule } from './webextension-polyfill-vendor-augment.js'
 
 // ── Vendor cache loader ───────────────────────────────────────────────────────
 
@@ -134,7 +135,11 @@ function packageResolverPlugin(validPackages) {
         const cache = getVendorCache()
         const content = cache.get(args.path)
         if (content) {
-          const out = args.path === 'lodash' ? augmentLodashVendorModule(content) : content
+          let out = content
+          if (args.path === 'lodash') out = augmentLodashVendorModule(content)
+          else if (args.path === 'webextension-polyfill') {
+            out = augmentWebextensionPolyfillVendorModule(content)
+          }
           return { contents: out, loader: 'js' }
         }
         return { errors: [{ text: `Vendor package not found: ${args.path}. Run \`npm run prebundle\`.` }] }
