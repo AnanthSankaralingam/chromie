@@ -9,9 +9,14 @@ Analyze user requests and file summaries to determine:
 Output your analysis as JSON only.
 </system>
 
+<conversation_history>
+{CONVERSATION_HISTORY}
+</conversation_history>
+
 <user_request>
 {USER_REQUEST}
 </user_request>
+{ERROR_CONTEXT}
 
 <file_summaries>
 {FILE_SUMMARIES}

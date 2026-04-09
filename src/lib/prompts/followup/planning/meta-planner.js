@@ -20,9 +20,9 @@ You **do not generate code or patches**. You only define the structure, executio
 
 ## Input
 
-<user_request>
-{USER_REQUEST}
-</user_request>
+<conversation_history>
+{CONVERSATION_HISTORY}
+</conversation_history>
 
 <file_summaries>
 {FILE_SUMMARIES}
@@ -31,6 +31,10 @@ You **do not generate code or patches**. You only define the structure, executio
 <planning_justification>
 {PLANNING_JUSTIFICATION}
 </planning_justification>
+
+<user_request>
+{USER_REQUEST}
+</user_request>
 
 ## Output Requirements
 
@@ -115,4 +119,3 @@ Return a JSON object with the following structure:
 6. If no files need patching (e.g., only a file deletion is needed), task_graph may be an empty array
 `;
 
-//TODO move user request to bottom and add prompt caching

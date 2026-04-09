@@ -125,10 +125,26 @@ Tool results will provide the file content before you generate patches.
     }
   }
 
+  // E1: Format conversation history if provided
+  let historyText = '';
+  if (options.conversationHistory && options.conversationHistory.length > 0) {
+    const recent = options.conversationHistory.slice(-6);
+    historyText = recent
+      .map(msg => `[${msg.role}]: ${(msg.content || '').substring(0, 300)}`)
+      .join('\n');
+  }
+
+  // E3: Error context for bug reports
+  const errorContext = options.isErrorReport
+    ? '\n<error_context>\nThis request is a bug report or error fix. Focus on debugging: trace the error through the code, check for mismatched variable names, missing imports, incorrect API usage, and data flow issues between files.\n</error_context>'
+    : '';
+
   return {
     USER_REQUEST: userRequest,
     EXISTING_FILES: formatFilesAsXml(patchableFiles),
-    TOOL_DESCRIPTIONS: toolDescriptions
+    TOOL_DESCRIPTIONS: toolDescriptions,
+    CONVERSATION_HISTORY: historyText,
+    ERROR_CONTEXT: errorContext
   }
 }
 

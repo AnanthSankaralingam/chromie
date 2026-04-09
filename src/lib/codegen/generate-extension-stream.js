@@ -262,6 +262,22 @@ export async function* generateChromeExtensionStream({
       const fileSummaries = formatFileSummariesForPlanning(fileAnalysis);
       console.log("📊 [File Analysis]:", fileSummaries);
 
+      // E1: Fetch conversation history for context in follow-up prompts
+      let conversationHistory = [];
+      try {
+        conversationHistory = await llmService.chatMessages.getHistory(sessionId, 10);
+        console.log(`💬 [generate-extension-stream] Fetched ${conversationHistory.length} history messages`);
+      } catch (err) {
+        console.warn('⚠️ [generate-extension-stream] Failed to fetch conversation history:', err.message);
+      }
+
+      // E3: Detect if the request is an error report vs feature request
+      const errorPatterns = /\b(error|bug|fix|broken|crash|TypeError|ReferenceError|SyntaxError|undefined|null|not working|doesn't work|won't work|can't|failed|issue|wrong|incorrect)\b/i;
+      const isErrorReport = errorPatterns.test(featureRequest);
+      if (isErrorReport) {
+        console.log('🐛 [generate-extension-stream] Detected error report in follow-up request');
+      }
+
       const planningModel = modelOverride || FOLLOWUP_MODEL;
       const planningProvider = llmService.getProviderFromModel(planningModel);
       const callLLM = async (prompt, planningImages = null, options = {}) => {
@@ -294,7 +310,7 @@ export async function* generateChromeExtensionStream({
         content: "Determining optimal approach for modifications..."
       };
 
-      const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM, images);
+      const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM, images, conversationHistory, isErrorReport);
       console.log('📊 [generate-extension-stream] Planning result:', JSON.stringify(planningResult, null, 2));
 
       const promptSelection = selectFollowUpPrompt(planningResult);
@@ -309,6 +325,8 @@ export async function* generateChromeExtensionStream({
       requirementsAnalysis.selectedPrompt = promptSelection.prompt;
       requirementsAnalysis.planningJustification = planningResult.justification;
       requirementsAnalysis.planningDifficulty = planningResult.difficulty || 0;
+      requirementsAnalysis.conversationHistory = conversationHistory;
+      requirementsAnalysis.isErrorReport = isErrorReport;
 
       // Track planning tokens
       planningTokenUsage = {
@@ -642,7 +660,7 @@ export async function* generateChromeExtensionStream({
         // Pass enabled tools from requirements analysis (populated by planning agent when enabled)
         const enabledTools = requirementsAnalysis.enabledTools || [];
         const filesToUse = requirementsAnalysis.relevantFiles || existingFiles;
-        replacements = buildPatchPromptReplacements(finalUserPrompt, filesToUse, { enabledTools })
+        replacements = buildPatchPromptReplacements(finalUserPrompt, filesToUse, { enabledTools, conversationHistory: requirementsAnalysis.conversationHistory, isErrorReport: requirementsAnalysis.isErrorReport })
         console.log(`🔧 Built patch mode replacements with ${Object.keys(filesToUse).length} files, tools: [${enabledTools.join(', ') || 'none'}]`)
       } else {
         // For replacement mode: use ext_name and existing_files
@@ -869,7 +887,8 @@ async function* runFollowupMetaPlannerBranch({ featureRequest, requirementsAnaly
     requirementsAnalysis.fileSummaries,
     requirementsAnalysis.planningJustification,
     images,
-    sessionId
+    sessionId,
+    requirementsAnalysis.conversationHistory || []
   )) {
     if (chunk.type === 'followup_meta_planner_result') {
       followupPlan = chunk.followupPlan

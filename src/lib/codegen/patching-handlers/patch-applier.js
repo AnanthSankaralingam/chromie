@@ -251,7 +251,7 @@ export function extractPatchBlock(text) {
         for (let j = 0; j < hunk.removals.length; j++) {
           const originalTrimmed = originalLines[i + j].trim()
           const removalTrimmed = hunk.removals[j].trim()
-          
+
           if (originalTrimmed !== removalTrimmed) {
             match = false
             break
@@ -261,6 +261,21 @@ export function extractPatchBlock(text) {
           // Account for context lines before
           return Math.max(0, i - hunk.contextBefore.length)
         }
+      }
+    }
+
+    // E5: Normalized whitespace fallback — collapse internal whitespace before comparing
+    const normalize = (s) => s.replace(/\s+/g, ' ').trim()
+    for (let i = 0; i <= originalLines.length - searchLines.length; i++) {
+      let match = true
+      for (let j = 0; j < searchLines.length; j++) {
+        if (normalize(originalLines[i + j]) !== normalize(searchLines[j])) {
+          match = false
+          break
+        }
+      }
+      if (match) {
+        return i
       }
     }
     

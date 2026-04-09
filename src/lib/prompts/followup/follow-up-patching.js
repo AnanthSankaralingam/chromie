@@ -7,9 +7,14 @@ Always use best practices when coding Chrome extensions.
 Respect and use my existing conventions, libraries, and Chrome APIs that are already present in the codebase.
 </system>
 
+<conversation_history>
+{CONVERSATION_HISTORY}
+</conversation_history>
+
 <user_request>
 {USER_REQUEST}
 </user_request>
+{ERROR_CONTEXT}
 
 <existing_files>
 {EXISTING_FILES}
