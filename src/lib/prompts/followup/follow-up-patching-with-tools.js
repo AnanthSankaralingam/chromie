@@ -16,9 +16,14 @@ Always use best practices when coding Chrome extensions.
 Respect and use my existing conventions, libraries, and Chrome APIs that are already present in the codebase.
 </s>
 
+<conversation_history>
+{CONVERSATION_HISTORY}
+</conversation_history>
+
 <user_request>
 {USER_REQUEST}
 </user_request>
+{ERROR_CONTEXT}
 
 <existing_files>
 {EXISTING_FILES}
@@ -40,17 +45,17 @@ ${NPM_PACKAGE_IMPORT_GUIDANCE}
 
 <critical_rules>
 - Each file MUST appear only once in the patch
-- Consolidate ALL edits for a given file into a single \`*** [ACTION] File:\` block
+- Consolidate ALL edits for a given file into a single \`*** Update File:\` or \`*** Add File:\` block
 - Your entire patch response MUST start with \`*** Begin Patch\` on its own line
 - Your entire patch response MUST end with \`*** End Patch\` on its own line
 </critical_rules>
 
 <v4a_diff_format>
 <file_marker>
-For each file you need to modify, start with:
-    *** [ACTION] File: [path/to/file]
-
-Where [ACTION] is one of: Add, Update, or Delete
+For each file you need to modify, use one of these exact markers:
+    *** Add File: [path/to/new/file]
+    *** Update File: [path/to/existing/file]
+    *** Delete File: [path/to/file]
 </file_marker>
 
 <update_action>

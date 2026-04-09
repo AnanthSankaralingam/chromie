@@ -426,6 +426,45 @@ export function formatFileSummariesForFollowupPlanner(analysisResult) {
 }
 
 /**
+ * Format truncated file contents for the follow-up planning agent.
+ * Includes actual source code so the planner can match error messages,
+ * line references, and specific code snippets to the correct file.
+ * Binary files and asset metadata entries are skipped.
+ * @param {Object} files - Map of file paths to file contents
+ * @param {number} maxLinesPerFile - Truncate files longer than this (default 200)
+ * @returns {string} - XML-formatted file contents for prompt injection
+ */
+export function formatFileContentsForPlanning(files, maxLinesPerFile = 200) {
+  if (!files || typeof files !== 'object') {
+    return '(No files)';
+  }
+
+  const sections = [];
+
+  for (const [path, content] of Object.entries(files)) {
+    // Skip binary files
+    if (isBinaryFile(path)) continue;
+
+    // Skip non-string content (asset metadata entries like "[Custom icon: ...]")
+    if (typeof content !== 'string') continue;
+    if (content.startsWith('[Custom')) continue;
+
+    const lines = content.split('\n');
+    const truncated = lines.length > maxLinesPerFile;
+    const displayLines = truncated ? lines.slice(0, maxLinesPerFile) : lines;
+    const truncationNote = truncated
+      ? `\n... (truncated, ${lines.length - maxLinesPerFile} more lines)`
+      : '';
+
+    sections.push(
+      `<file path="${path}">\n${displayLines.join('\n')}${truncationNote}\n</file>`
+    );
+  }
+
+  return sections.join('\n\n');
+}
+
+/**
  * Generate a minimal summary suitable for token-constrained contexts
  * @param {Object} analysisResult - Result from analyzeExtensionFiles
  * @returns {string} - Minimal file list with types

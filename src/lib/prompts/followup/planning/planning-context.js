@@ -9,13 +9,22 @@ Analyze user requests and file summaries to determine:
 Output your analysis as JSON only.
 </system>
 
+<conversation_history>
+{CONVERSATION_HISTORY}
+</conversation_history>
+
 <user_request>
 {USER_REQUEST}
 </user_request>
+{ERROR_CONTEXT}
 
 <file_summaries>
 {FILE_SUMMARIES}
 </file_summaries>
+
+<file_contents>
+{FILE_CONTENTS}
+</file_contents>
 
 <available_tools>
 - **chrome_api_search**: Search Chrome extension API documentation for specific APIs, methods, and permissions. Enable when implementing features with Chrome APIs that may need documentation reference.
@@ -54,6 +63,8 @@ Rules:
 - Select only files that will be modified or are essential for context
 - 1-3 files for simple changes, 5-10 for complex features
 - Exclude unrelated files
+- When the user references specific code, error lines, or function names, use the <file_contents> section to locate the exact file(s) containing that code
+- For error reports, also include files that import from or are called by the erroring file
 
 **Justification:**
 - Keep it brief: 1-2 sentences maximum

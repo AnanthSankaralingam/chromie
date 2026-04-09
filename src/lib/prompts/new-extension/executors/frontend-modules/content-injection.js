@@ -1,3 +1,5 @@
+import { MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE } from '../../one-shot/shared-content.js'
+
 export const CONTENT_INJECTION_FRONTEND_MODULE = `
 <content_script_ui_implementation_requirements>
 <content_script_ui_strategy>
@@ -59,7 +61,7 @@ Required manifest.json sections:
   "permissions": ["activeTab"]
 }
 
-CRITICAL (Manifest V3): In web_accessible_resources, each "matches" entry must be an origin-only pattern ending in exactly /* (e.g. https://*.linkedin.com/* or <all_urls>). Do NOT use path-specific patterns like https://www.linkedin.com/in/* — Chrome rejects them with "Invalid match pattern". (content_scripts "matches" may still use path-specific patterns; this restriction applies only to web_accessible_resources.)
+${MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE}
 </manifest_configuration>
 
 <page_context_and_csp>

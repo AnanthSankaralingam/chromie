@@ -44,7 +44,7 @@ The template provides the core structure and functionality. Your job is to:
 
 <critical_rules>
 - Each file MUST appear only once in the patch
-- Consolidate ALL edits for a given file into a single *** [ACTION] File: block
+- Consolidate ALL edits for a given file into a single *** Update File: or *** Add File: block
 - Your entire patch response MUST start with *** Begin Patch on its own line
 - Your entire patch response MUST end with *** End Patch on its own line
 - ONLY modify files that need changes - leave unchanged files alone
@@ -70,10 +70,10 @@ ${NPM_PACKAGE_IMPORT_GUIDANCE}
 
 <v4a_diff_format>
 <file_marker>
-For each file you need to modify, start with:
-    *** [ACTION] File: [path/to/file]
-
-Where [ACTION] is one of: Add, Update, or Delete
+For each file you need to modify, use one of these exact markers:
+    *** Add File: [path/to/new/file]
+    *** Update File: [path/to/existing/file]
+    *** Delete File: [path/to/file]
 </file_marker>
 
 <update_action>

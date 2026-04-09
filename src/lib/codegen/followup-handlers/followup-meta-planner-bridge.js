@@ -109,15 +109,25 @@ function parseImageToAnthropicFormat(image) {
  * Streams follow-up Meta Planner progress for SSE (live web search lines).
  * Yields `planning_progress` chunks, then `{ type: 'followup_meta_planner_result', followupPlan, tokenUsage }`.
  */
-export async function* streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
+export async function* streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null, conversationHistory = []) {
   void sessionId
   const fileSummaries = formatFileSummariesForFollowupPlanner(fileAnalysis)
   console.log('📊 [followup-meta-planner-bridge] File summaries:\n', fileSummaries)
+
+  // E1: Format conversation history
+  let historyContext = '';
+  if (conversationHistory && conversationHistory.length > 0) {
+    const recent = conversationHistory.slice(-6);
+    historyContext = recent
+      .map(msg => `[${msg.role}]: ${(msg.content || '').substring(0, 300)}`)
+      .join('\n');
+  }
 
   const prompt = FOLLOWUP_META_PLANNER_PROMPT
     .replace('{USER_REQUEST}', userRequest || '')
     .replace('{FILE_SUMMARIES}', fileSummaries)
     .replace('{PLANNING_JUSTIFICATION}', planningJustification || '')
+    .replace('{CONVERSATION_HISTORY}', historyContext)
 
   console.log('🧠 [followup-meta-planner-bridge] Raw prompt:\n', prompt)
 
@@ -365,8 +375,8 @@ export async function* streamFollowupMetaPlanner(userRequest, relevantFiles, fil
  * @param {string|null} sessionId - Session/project identifier for conversation history
  * @returns {Promise<{followupPlan: Object, tokenUsage: Object}>}
  */
-export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null) {
-  for await (const chunk of streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images, sessionId)) {
+export async function callFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images = null, sessionId = null, conversationHistory = []) {
+  for await (const chunk of streamFollowupMetaPlanner(userRequest, relevantFiles, fileAnalysis, planningJustification, images, sessionId, conversationHistory)) {
     if (chunk.type === 'followup_meta_planner_result') {
       return { followupPlan: chunk.followupPlan, tokenUsage: chunk.tokenUsage }
     }

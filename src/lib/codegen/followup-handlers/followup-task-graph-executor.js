@@ -9,6 +9,7 @@ import { buildRepairPrompt } from '@/lib/prompts/new-extension/executors/repair-
 import { applyAllPatches, containsPatch } from '@/lib/codegen/patching-handlers/patch-applier.js'
 import { validateFiles } from '@/lib/codegen/patching-handlers/eslint-validator.js'
 import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/output-handlers/file-saver.js'
+import { runExtensionHarness } from '@/lib/codegen/extension-harness.js'
 import { executeToolCall } from '@/lib/codegen/followup-handlers/tool-executor.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { CODE_PATCH_MODEL, MODEL_SELECTION } from '@/lib/constants.js'
@@ -271,6 +272,26 @@ export async function* executeFollowupTaskGraph(followupPlan, executionContext) 
 
   // ── Step 6: Finalize ───────────────────────────────────────────────────────
   await Promise.allSettled(savePromises)
+
+  // Same as initial generation: normalize MV3 web_accessible_resources (and icon refs) after
+  // the full file set exists, then persist any harness mutations (follow-up never ran this before).
+  const harnessMap = new Map(Object.entries(workingFiles))
+  runExtensionHarness(harnessMap)
+  const harnessSavePromises = []
+  for (const [path, content] of harnessMap) {
+    if (workingFiles[path] !== content) {
+      workingFiles[path] = content
+      harnessSavePromises.push(
+        saveSingleFileToDatabase(path, content, sessionId).then((res) => {
+          if (res.success) console.log(`[followup-task-graph-executor] Harness persisted: ${path}`)
+          return res
+        })
+      )
+    }
+  }
+  if (harnessSavePromises.length > 0) {
+    await Promise.allSettled(harnessSavePromises)
+  }
 
   // Optionally persist the full working file set. This is primarily used for template
   // adaptation flows, where "existingFiles" is actually the template baseline rather

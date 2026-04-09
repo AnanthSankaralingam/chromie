@@ -9,7 +9,7 @@ import { getFrontendModuleForFile } from './frontend-modules/index.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL, HTML_CODEGEN_MODEL, MODEL_SELECTION } from '@/lib/constants.js'
 import { extractJsonContent, parseJsonWithRetry } from '@/lib/codegen/output-handlers/json-extractor.js'
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES, NPM_PACKAGE_IMPORT_GUIDANCE } from '../one-shot/shared-content.js'
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, POPUP_STYLING_REQUIREMENTS, CHROME_MESSAGING_API_RULES, NPM_PACKAGE_IMPORT_GUIDANCE, MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE } from '../one-shot/shared-content.js'
 
 /**
  * Returns the file type based on extension.
@@ -48,10 +48,15 @@ Do NOT wrap output in \`\`\`json or \`\`\` blocks. Return the file content direc
 function getFileTypeInjections(fileName, frontendType) {
   const type = getFileType(fileName)
   const isPopup = frontendType === 'popup'
+  const baseName = (fileName || '').split('/').pop() || ''
+  const isManifestJson = baseName === 'manifest.json'
   return {
     STYLING_REQUIREMENTS: (type === 'css' || type === 'html') ? STYLING_REQUIREMENTS : '',
     POPUP_STYLING_REQUIREMENTS: (type === 'css' || type === 'html') && isPopup ? POPUP_STYLING_REQUIREMENTS : '',
     ICON_CONFIGURATION: (type === 'json' || type === 'html') ? ICON_CONFIGURATION : '',
+    MANIFEST_JSON_RULES: isManifestJson
+      ? `<manifest_json_requirements>\n${MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE}\n</manifest_json_requirements>`
+      : '',
     CONSOLE_LOGGING_REQUIREMENTS: type === 'js' ? CONSOLE_LOGGING_REQUIREMENTS : '',
     CHROME_MESSAGING_RULES: type === 'js' ? CHROME_MESSAGING_API_RULES : '',
     NPM_PACKAGE_IMPORT_GUIDANCE: type === 'js' ? NPM_PACKAGE_IMPORT_GUIDANCE : '',
@@ -235,6 +240,7 @@ ${(metaPlan.architecture.data_flow || []).join('\n')}`
     .replace('{{STYLING_REQUIREMENTS}}', injections.STYLING_REQUIREMENTS)
     .replace('{{POPUP_STYLING_REQUIREMENTS}}', injections.POPUP_STYLING_REQUIREMENTS)
     .replace('{{ICON_CONFIGURATION}}', injections.ICON_CONFIGURATION)
+    .replace('{{MANIFEST_JSON_RULES}}', injections.MANIFEST_JSON_RULES)
     .replace('{{CHROME_MESSAGING_RULES}}', injections.CHROME_MESSAGING_RULES)
     .replace('{{CONSOLE_LOGGING_REQUIREMENTS}}', injections.CONSOLE_LOGGING_REQUIREMENTS)
     .replace('{{NPM_PACKAGE_IMPORT_GUIDANCE}}', injections.NPM_PACKAGE_IMPORT_GUIDANCE)

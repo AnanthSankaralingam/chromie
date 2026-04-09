@@ -3,7 +3,7 @@
  * Handles planning, tool execution loop, and patching for existing extensions
  */
 
-import { analyzeExtensionFiles, formatFileSummariesForPlanning } from '../file-analysis/index.js';
+import { analyzeExtensionFiles, formatFileSummariesForPlanning, formatFileContentsForPlanning } from '../file-analysis/index.js';
 import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/planning/planning-context.js';
 import { FOLLOW_UP_PATCH_PROMPT } from '@/lib/prompts/followup/follow-up-patching.js';
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
@@ -43,7 +43,7 @@ const FOLLOWUP_PLANNER_RESPONSE_FORMAT = {
  * @param {Array<Object>|null} images - Optional image attachments for multimodal planning
  * @returns {Promise<Object>} - Planning result with tools, files, and success flag
  */
-export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, images = null) {
+export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, images = null, conversationHistory = [], isErrorReport = false) {
   console.log('📋 [followup-orchestrator] Starting follow-up planning...');
 
   // 1. Analyze files for summaries
@@ -52,10 +52,29 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, 
 
   console.log('📊 [followup-orchestrator] File summaries generated:', fileSummaries.substring(0, 200) + '...');
 
-  // 2. Build planning prompt
+  // E1: Format conversation history for planning context
+  let historyContext = '';
+  if (conversationHistory && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6);
+    historyContext = recentHistory
+      .map(msg => `[${msg.role}]: ${(msg.content || '').substring(0, 300)}`)
+      .join('\n');
+  }
+
+  // E3: Error context hint
+  const errorHint = isErrorReport
+    ? '\n\nNOTE: This appears to be a bug report / error fix. Prioritize debugging: include files referenced in error messages and their imports/callers.'
+    : '';
+
+  // 2. Build planning prompt (includes full file contents so the planner can
+  //    match error messages, specific code lines, and function names to files)
+  const fileContents = formatFileContentsForPlanning(existingFiles);
   const prompt = PLANNING_FOLLOWUP_PROMPT
     .replace('{USER_REQUEST}', userRequest)
-    .replace('{FILE_SUMMARIES}', fileSummaries);
+    .replace('{FILE_SUMMARIES}', fileSummaries)
+    .replace('{FILE_CONTENTS}', fileContents)
+    .replace('{CONVERSATION_HISTORY}', historyContext)
+    .replace('{ERROR_CONTEXT}', errorHint);
 
   const normalizePlanningResult = (planningResult) => {
     const validTools = ['chrome_api_search', 'web_scraping', 'delete_file', 'read_file'];
@@ -113,20 +132,12 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, 
       planningResult = null;
     }
 
-    // Attempt 2: JSON repair prompt if first parse failed
+    // If parsing failed, skip the expensive retry LLM call and fall back to
+    // defaults. The structured output (json_schema) should produce valid JSON in
+    // the vast majority of cases; when it doesn't, the all-files default is a
+    // reasonable fallback that avoids doubling latency.
     if (!planningResult) {
-      console.warn('⚠️ [followup-orchestrator] Planning response not parseable, retrying with strict JSON repair prompt');
-      const repairPrompt = `${prompt}\n\nCRITICAL: Return a single valid JSON object only. No markdown, no prose, no code fences.`;
-      response = await callLLM(repairPrompt, images, { responseFormat: FOLLOWUP_PLANNER_RESPONSE_FORMAT });
-      planningResult = parsePlanningResponse(response);
-      if (planningResult && !isValidPlanningShape(planningResult)) {
-        console.warn('⚠️ [followup-orchestrator] Retry produced JSON missing required planner keys');
-        planningResult = null;
-      }
-    }
-
-    if (!planningResult) {
-      console.warn('⚠️ [followup-orchestrator] No JSON found in planning response after retry, using defaults');
+      console.warn('⚠️ [followup-orchestrator] Planning response not parseable, falling back to defaults (skipping retry)');
       return {
         success: false,
         justification: 'Could not parse planning response',
@@ -390,6 +401,31 @@ export function filterRelevantFiles(existingFiles, relevantPaths, taggedFiles = 
     for (const path of relevantPaths) {
       if (!filtered[path] && existingFiles[path]) {
         filtered[path] = existingFiles[path];
+      }
+    }
+
+    // E6: Also include files imported by selected files to avoid blind spots.
+    // Scan selected JS files for import/require statements referencing other project files.
+    const importPatterns = [
+      /import\s+.*?from\s+['"]\.\/([^'"]+)['"]/g,
+      /import\s+.*?from\s+['"]\.\.\/([^'"]+)['"]/g,
+      /require\s*\(\s*['"]\.\/([^'"]+)['"]\s*\)/g,
+    ];
+    for (const selectedPath of relevantPaths) {
+      const content = existingFiles[selectedPath];
+      if (!content || typeof content !== 'string' || !selectedPath.endsWith('.js')) continue;
+      for (const pattern of importPatterns) {
+        pattern.lastIndex = 0;
+        let m;
+        while ((m = pattern.exec(content)) !== null) {
+          let importedFile = m[1];
+          if (!importedFile.endsWith('.js')) importedFile += '.js';
+          // Check if this file exists in the project
+          if (existingFiles[importedFile] && !filtered[importedFile]) {
+            filtered[importedFile] = existingFiles[importedFile];
+            console.log(`🔗 [followup-orchestrator] Auto-including imported file: ${importedFile} (imported by ${selectedPath})`);
+          }
+        }
       }
     }
   } else {

@@ -1,6 +1,6 @@
 export const TASK_EXECUTOR_FOLLOWUP_PROMPT = `You are a Chrome extension development expert. Generate a patch for this single-file task using the V4A diff format.
 
-This task targets exactly ONE file. You will receive context for only that one code file. Your patch must contain exactly one \`*** [ACTION] File:\` block.
+This task targets exactly ONE file. You will receive context for only that one code file. Your patch must contain exactly one \`*** Update File:\` or \`*** Add File:\` block.
 
 <extension_summary>{{SUMMARY}}</extension_summary>
 
@@ -39,17 +39,16 @@ Description: {{TASK_DESCRIPTION}}
 </task>
 
 <critical_rules>
-- This patch contains exactly ONE file - use a single \`*** [ACTION] File:\` block
+- This patch contains exactly ONE file - use a single \`*** Update File:\` or \`*** Add File:\` block
 - Your entire patch response MUST start with \`*** Begin Patch\` on its own line
 - Your entire patch response MUST end with \`*** End Patch\` on its own line
 </critical_rules>
 
 <v4a_diff_format>
 <file_marker>
-Start with exactly one file block:
-    *** [ACTION] File: [path/to/file]
-
-Where [ACTION] is Add or Update
+Start with exactly one file block using one of these exact markers:
+    *** Add File: [path/to/new/file]
+    *** Update File: [path/to/existing/file]
 </file_marker>
 
 <update_action>

@@ -4,6 +4,7 @@ import JSZip from "jszip"
 import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
 import { buildExtension } from "@/lib/build/esbuild-service.js"
 import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
+import { fixManifestWebAccessibleResourceMatches } from "@/lib/codegen/extension-harness.js"
 import { isAdmin } from "@/lib/api/admin-auth"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -149,6 +150,8 @@ export async function GET(request, { params }) {
     } catch (e) {
       return NextResponse.json({ error: "Invalid manifest.json content" }, { status: 400 })
     }
+
+    fixManifestWebAccessibleResourceMatches(manifest)
 
     // Ensure canonical icon mappings
     // Ensure icons is an object, not a string
