@@ -8,6 +8,9 @@ MANDATORY: Add console.log statements to track key events. Include the filename 
 All console.log, console.error, console.warn, and console.info MUST include the filename (e.g., [CHROMIE:background.js], [CHROMIE:newtab.js]).
 </console_logging_requirements>`;
 
+/** Shown for manifest.json tasks and content-injection manifests. MV3 path rules differ from content_scripts. */
+export const MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE = `CRITICAL (Manifest V3): In web_accessible_resources, each "matches" entry must be an origin-only pattern ending in exactly /* (e.g. https://*.linkedin.com/* or <all_urls>). Do NOT use path-specific patterns like https://www.linkedin.com/in/* — Chrome rejects them with "Invalid match pattern". (content_scripts "matches" may still use path-specific patterns; this restriction applies only to web_accessible_resources.)`
+
 export const ICON_CONFIGURATION = `
 <icon_configuration>
 MANDATORY: Use ONLY these available icon files:

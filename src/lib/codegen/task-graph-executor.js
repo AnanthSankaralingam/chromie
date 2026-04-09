@@ -11,7 +11,7 @@ import { saveSingleFileToDatabase, updateProjectMetadata } from '@/lib/codegen/o
 import { ensureRequiredFiles } from '@/lib/utils/hyperbrowser-utils.js'
 import { llmService } from '@/lib/services/llm-service.js'
 import { DEFAULT_MODEL } from '@/lib/constants.js'
-import { runExtensionHarness } from '@/lib/codegen/extension-harness.js'
+import { runExtensionHarness, fixWebAccessibleResourceMatches } from '@/lib/codegen/extension-harness.js'
 import { buildHarnessRepairPrompt } from '@/lib/prompts/new-extension/executors/harness-repair-prompt.js'
 import { applyAllPatches } from '@/lib/codegen/patching-handlers/patch-applier.js'
 
@@ -237,7 +237,11 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
   }
 
   // --- Extension Harness Validation ---
-  const { errors: harnessErrors, hasErrors } = runExtensionHarness(completedFiles)
+  // Normalizes MV3 web_accessible_resources.matches in memory (must be persisted — manifest.json
+  // was saved when its task ran, before this step).
+  const { errors: harnessErrors, hasErrors, manifestWebAccessibleMatchesFixed } = runExtensionHarness(completedFiles)
+  let manifestNeedsPersist = manifestWebAccessibleMatchesFixed
+
   if (hasErrors) {
     console.log(`🔍 [task-graph-executor] Extension harness found ${harnessErrors.length} structural error(s)`)
     yield { type: 'harness_validation', errors: harnessErrors }
@@ -272,6 +276,14 @@ export async function* executeTaskGraph(metaPlan, executionContext) {
       savePromises.push(saveSingleFileToDatabase(fileName, normalized, sessionId))
       console.log(`✅ [task-graph-executor] Harness repair patched: ${fileName}`)
     }
+  }
+
+  if (fixWebAccessibleResourceMatches(completedFiles)) {
+    manifestNeedsPersist = true
+  }
+  if (manifestNeedsPersist) {
+    savePromises.push(saveSingleFileToDatabase('manifest.json', completedFiles.get('manifest.json'), sessionId))
+    console.log('[task-graph-executor] Persisted manifest.json after MV3 web_accessible_resources normalization')
   }
   // --- End Extension Harness ---
 

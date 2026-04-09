@@ -132,61 +132,106 @@ function bestMatchingIcon(invalidPath, validPaths) {
 }
 
 /**
- * Validates icon usage across JS, JSON, and HTML files. Replaces invalid icon refs
- * with the best string-matched similar from shared icons or user uploads, or icons/icon128.png.
- * Mutates completedFiles in place.
- * @param {Map<string,string>} completedFiles
- */
-/**
  * Manifest V3: each string in web_accessible_resources[].matches must be a match pattern
- * whose path is exactly /* (origin-only). Chrome rejects e.g. https://site.com/path/* with
- * "Invalid match pattern" — unlike content_scripts, where path-specific patterns are allowed.
+ * whose path is origin-wide only (path segment must be slash-star). Chrome rejects e.g.
+ * https://site.com/path/* with "Invalid match pattern" — unlike content_scripts.
  * @param {object} manifest - parsed manifest.json
  * @returns {boolean} true if any match string was rewritten
  */
-function normalizeWebAccessibleResourceMatchesInPlace(manifest) {
+export function normalizeWebAccessibleResourceMatchesInPlace(manifest) {
   if (!manifest || manifest.manifest_version !== 3 || !Array.isArray(manifest.web_accessible_resources)) {
     return false
   }
   let changed = false
   for (const entry of manifest.web_accessible_resources) {
-    if (!entry || !Array.isArray(entry.matches)) continue
-    entry.matches = entry.matches.map((p) => {
-      if (typeof p !== 'string') return p
-      const trimmed = p.trim()
-      if (trimmed === '<all_urls>') return trimmed
-      const m = trimmed.match(/^([^:]+:\/\/[^/]+)(\/.*)?$/)
-      if (!m) return trimmed
-      const fixed = `${m[1]}/*`
-      if (fixed !== trimmed) {
-        changed = true
-        console.log(
-          `[extension-harness] Normalized web_accessible_resources.matches (MV3 requires origin + /* only): "${trimmed}" -> "${fixed}"`
-        )
-      }
-      return fixed
-    })
+    if (!entry) continue
+
+    if (typeof entry.matches === 'string') {
+      entry.matches = [entry.matches.trim()].filter(Boolean)
+      changed = true
+    }
+    if (!Array.isArray(entry.matches)) continue
+
+    const next = entry.matches.map((p) => normalizeSingleWarMatchPattern(p))
+    if (next.length !== entry.matches.length || next.some((v, i) => v !== entry.matches[i])) {
+      changed = true
+    }
+    entry.matches = next
   }
   return changed
 }
 
 /**
+ * Normalize one web_accessible_resources match string (MV3 origin-wide path rule).
+ * Unparseable values fall back to the special all-URLs pattern so Chrome can load the manifest.
+ * @param {unknown} p
+ * @returns {unknown}
+ */
+function normalizeSingleWarMatchPattern(p) {
+  if (typeof p !== 'string') return p
+  const trimmed = p.trim()
+  if (!trimmed) return '<all_urls>'
+  if (trimmed === '<all_urls>') return trimmed
+
+  const withScheme = trimmed.match(/^([^:]+:\/\/[^/]+)(\/.*)?$/)
+  if (withScheme) {
+    const fixed = `${withScheme[1]}/*`
+    if (fixed !== trimmed) {
+      console.log(
+        `[extension-harness] Normalized web_accessible_resources.matches (MV3 requires origin + /* only): "${trimmed}" -> "${fixed}"`
+      )
+    }
+    return fixed
+  }
+
+  // Bare hostname (no scheme), e.g. linkedin.com/in/* — still invalid for WAR until origin-wide
+  const hostLike = trimmed.match(/^([a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})(\/.*)?$/)
+  if (hostLike) {
+    const fixed = `https://${hostLike[1]}/*`
+    console.log(`[extension-harness] Normalized bare-host web_accessible_resources.matches: "${trimmed}" -> "${fixed}"`)
+    return fixed
+  }
+
+  console.warn(
+    `[extension-harness] Unrecognized web_accessible_resources.matches value; using <all_urls>: "${trimmed}"`
+  )
+  return '<all_urls>'
+}
+
+/**
+ * Rewrites invalid MV3 web_accessible_resources match patterns on a parsed manifest (mutates).
+ * @param {object} manifest
+ * @returns {boolean}
+ */
+export function fixManifestWebAccessibleResourceMatches(manifest) {
+  return normalizeWebAccessibleResourceMatchesInPlace(manifest)
+}
+
+/**
  * Rewrites invalid MV3 web_accessible_resources match patterns in manifest.json.
  * @param {Map<string,string>} completedFiles
+ * @returns {boolean} true if manifest.json was updated
  */
 export function fixWebAccessibleResourceMatches(completedFiles) {
   const raw = completedFiles.get('manifest.json')
-  if (!raw) return
+  if (!raw) return false
   let manifest
   try {
     manifest = JSON.parse(raw)
   } catch {
-    return
+    return false
   }
-  if (!normalizeWebAccessibleResourceMatchesInPlace(manifest)) return
+  if (!normalizeWebAccessibleResourceMatchesInPlace(manifest)) return false
   completedFiles.set('manifest.json', JSON.stringify(manifest, null, 2))
+  return true
 }
 
+/**
+ * Validates icon usage across JS, JSON, and HTML files. Replaces invalid icon refs
+ * with the best string-matched similar from shared icons or user uploads, or icons/icon128.png.
+ * Mutates completedFiles in place.
+ * @param {Map<string,string>} completedFiles
+ */
 export function validateAndFixIconUsage(completedFiles) {
   const customIcons = new Set()
   for (const path of completedFiles.keys()) {
@@ -295,10 +340,10 @@ export function validateMessagePassing(completedFiles) {
  */
 export function runExtensionHarness(completedFiles) {
   validateAndFixIconUsage(completedFiles)
-  fixWebAccessibleResourceMatches(completedFiles)
+  const manifestWebAccessibleMatchesFixed = fixWebAccessibleResourceMatches(completedFiles)
   const errors = [
     ...validateManifestFileReferences(completedFiles),
     ...validateMessagePassing(completedFiles)
   ]
-  return { errors, hasErrors: errors.length > 0 }
+  return { errors, hasErrors: errors.length > 0, manifestWebAccessibleMatchesFixed }
 }

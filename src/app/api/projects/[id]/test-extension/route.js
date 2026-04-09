@@ -8,6 +8,7 @@ import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
 import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 import { classifyError } from "@/lib/utils/error-classifier"
+import { fixManifestWebAccessibleResourceMatches } from "@/lib/codegen/extension-harness.js"
 
 export async function POST(request, { params }) {
   const supabase = await createClient()
@@ -143,6 +144,16 @@ export async function POST(request, { params }) {
     }
 
     const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
+    const manifestBuilt = builtFiles.find((f) => f.file_path === 'manifest.json')
+    if (manifestBuilt?.content && typeof manifestBuilt.content === 'string') {
+      try {
+        const manifestObj = JSON.parse(manifestBuilt.content)
+        fixManifestWebAccessibleResourceMatches(manifestObj)
+        manifestBuilt.content = JSON.stringify(manifestObj, null, 2)
+      } catch (e) {
+        console.warn('[test-extension] Could not sanitize manifest web_accessible_resources:', e?.message)
+      }
+    }
     const extensionFiles = [
       ...builtFiles,
       ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))

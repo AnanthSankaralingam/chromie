@@ -6,6 +6,7 @@ import { SHARE_RATE_LIMITS } from "@/lib/constants"
 import { getContentWithIconSizing } from "@/lib/utils/extension-icon-sizing"
 import { buildExtension } from "@/lib/build/esbuild-service.js"
 import { ensureRequiredFiles } from "@/lib/utils/hyperbrowser-utils"
+import { fixManifestWebAccessibleResourceMatches } from "@/lib/codegen/extension-harness.js"
 import { 
   validateShareToken, 
   checkRateLimit,
@@ -249,6 +250,8 @@ export async function GET(request, { params }) {
     } catch (e) {
       return NextResponse.json({ error: "Invalid manifest.json content" }, { status: 400 })
     }
+
+    fixManifestWebAccessibleResourceMatches(manifest)
 
     // Ensure canonical icon mappings
     // Ensure icons is an object, not a string

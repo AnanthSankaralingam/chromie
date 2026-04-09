@@ -1,4 +1,4 @@
-import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, NPM_PACKAGE_IMPORT_GUIDANCE } from './shared-content.js';
+import { CONSOLE_LOGGING_REQUIREMENTS, ICON_CONFIGURATION, STYLING_REQUIREMENTS, NPM_PACKAGE_IMPORT_GUIDANCE, MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE } from './shared-content.js';
 
 export const NEW_EXT_CONTENT_SCRIPT_UI_PROMPT = `
 You are a Chrome extension development expert. Your task is to implement a Chrome extension that injects UI elements into web pages based on the user request.
@@ -79,7 +79,7 @@ Required manifest.json sections:
   "permissions": ["activeTab"]
 }
 
-CRITICAL (Manifest V3): In web_accessible_resources, each "matches" entry must be an origin-only pattern ending in exactly /* (e.g. https://*.linkedin.com/* or <all_urls>). Do NOT use path-specific patterns like https://www.linkedin.com/in/* — Chrome rejects them with "Invalid match pattern". (content_scripts "matches" may still use path-specific patterns; this restriction applies only to web_accessible_resources.)
+${MANIFEST_MV3_WEB_ACCESSIBLE_RESOURCES_RULE}
 </manifest_configuration>
 
 <page_context_and_csp>
