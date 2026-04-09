@@ -217,39 +217,6 @@ export async function POST(request) {
       )
     }
 
-    // Get existing files for add-to-existing requests
-    let existingFiles = {}
-    if (requestType === REQUEST_TYPES.ADD_TO_EXISTING && projectId) {
-      console.log("🔧 Add-to-existing request - fetching existing project files...")
-      const { data: files } = await supabase.from("code_files").select("file_path, content").eq("project_id", projectId)
-
-      if (files) {
-        existingFiles = files.reduce((acc, file) => {
-          acc[file.file_path] = file.content
-          return acc
-        }, {})
-        console.log(`📁 Found ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
-      } else {
-        console.log("⚠️ No existing files found for add-to-existing request")
-      }
-
-      // Also fetch project assets (custom icons, etc.) to inform the AI
-      const { data: assets } = await supabase
-        .from("project_assets")
-        .select("file_path, file_type, mime_type, file_size")
-        .eq("project_id", projectId)
-
-      if (assets && assets.length > 0) {
-        // Add asset metadata as special entries (not full content, just metadata)
-        assets.forEach(asset => {
-          existingFiles[asset.file_path] = `[Custom ${asset.file_type}: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB - Available for use]`
-        })
-        console.log(`🎨 Found ${assets.length} custom assets: ${assets.map(a => a.file_path).join(', ')}`)
-      }
-    } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
-      console.log("🆕 New extension request - no existing files needed")
-    }
-
     // Get default provider for error handling
     const defaultProvider = getDefaultProvider()
     console.log(`🤖 Using default provider: ${defaultProvider}`)
@@ -261,46 +228,79 @@ export async function POST(request) {
     let requiresUrl = false
     let createdVersionId = null
 
-    // Auto-create version snapshot before processing user message
-    // Skip if resuming from a previous request (to avoid duplicate messages)
     const isResumingRequest = Boolean(initialRequirementsAnalysis && initialPlanningTokenUsage) || Boolean(prebuiltMetaPlan)
 
-    if (projectId && !isResumingRequest) {
-      try {
-        console.log(`📸 Creating auto-version snapshot for project ${projectId}`)
-        const { data: versionId, error: versionError } = await supabase
-          .rpc("create_project_version", {
-            p_project_id: projectId,
-            p_version_name: `Before: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`,
-            p_description: `Auto-snapshot before user message: "${prompt}"`,
-          })
+    // Run independent DB operations in parallel:
+    // - Fetch existing files + assets (for ADD_TO_EXISTING)
+    // - Create version snapshot + store user message (for non-resume requests)
+    let existingFiles = {}
 
-        if (versionError) {
-          console.error("⚠️ Failed to create auto-version snapshot:", versionError)
-        } else {
-          createdVersionId = versionId
+    const filesFetchPromise = (requestType === REQUEST_TYPES.ADD_TO_EXISTING && projectId)
+      ? Promise.all([
+          supabase.from("code_files").select("file_path, content").eq("project_id", projectId),
+          supabase.from("project_assets").select("file_path, file_type, mime_type, file_size").eq("project_id", projectId),
+        ])
+      : null
+
+    const versionPromise = (projectId && !isResumingRequest)
+      ? supabase.rpc("create_project_version", {
+          p_project_id: projectId,
+          p_version_name: `Before: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`,
+          p_description: `Auto-snapshot before user message: "${prompt}"`,
+        }).then(async ({ data: versionId, error: versionError }) => {
+          if (versionError) {
+            console.error("⚠️ Failed to create auto-version snapshot:", versionError)
+            return null
+          }
           console.log(`✅ Created auto-version snapshot: ${versionId}`)
 
-          // Immediately store user message with version ID and images if present
+          // Store user message with version ID (depends on versionId, so chained)
           const { llmService } = await import('@/lib/services/llm-service')
-          const userMessage = {
-            role: 'user',
-            content: prompt,
-            versionId: versionId
-          }
-
-          // Include images if provided
+          const userMessage = { role: 'user', content: prompt, versionId }
           if (images && images.length > 0) {
             userMessage.images = images
             console.log(`📷 Including ${images.length} images in stored message`)
           }
-
           await llmService.chatMessages.addMessage(projectId, userMessage)
           console.log(`💾 Stored user message with version ID: ${versionId}`)
-        }
-      } catch (versionErr) {
-        console.error("⚠️ Error creating auto-version snapshot:", versionErr)
+          return versionId
+        }).catch(err => {
+          console.error("⚠️ Error creating auto-version snapshot:", err)
+          return null
+        })
+      : null
+
+    // Await both in parallel
+    const [filesResult, versionResult] = await Promise.all([
+      filesFetchPromise,
+      versionPromise,
+    ])
+
+    // Process file results
+    if (filesResult) {
+      const [{ data: files }, { data: assets }] = filesResult
+      if (files) {
+        existingFiles = files.reduce((acc, file) => {
+          acc[file.file_path] = file.content
+          return acc
+        }, {})
+        console.log(`📁 Found ${Object.keys(existingFiles).length} existing files: ${Object.keys(existingFiles).join(', ')}`)
+      } else {
+        console.log("⚠️ No existing files found for add-to-existing request")
       }
+      if (assets && assets.length > 0) {
+        assets.forEach(asset => {
+          existingFiles[asset.file_path] = `[Custom ${asset.file_type}: ${asset.mime_type}, ${Math.round(asset.file_size / 1024)}KB - Available for use]`
+        })
+        console.log(`🎨 Found ${assets.length} custom assets: ${assets.map(a => a.file_path).join(', ')}`)
+      }
+    } else if (requestType === REQUEST_TYPES.NEW_EXTENSION) {
+      console.log("🆕 New extension request - no existing files needed")
+    }
+
+    // Process version result
+    if (versionResult) {
+      createdVersionId = versionResult
     } else if (isResumingRequest) {
       console.log(`♻️ Skipping version snapshot and message storage - resuming from previous request`)
     }

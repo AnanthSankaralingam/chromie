@@ -116,20 +116,12 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, 
       planningResult = null;
     }
 
-    // Attempt 2: JSON repair prompt if first parse failed
+    // If parsing failed, skip the expensive retry LLM call and fall back to
+    // defaults. The structured output (json_schema) should produce valid JSON in
+    // the vast majority of cases; when it doesn't, the all-files default is a
+    // reasonable fallback that avoids doubling latency.
     if (!planningResult) {
-      console.warn('⚠️ [followup-orchestrator] Planning response not parseable, retrying with strict JSON repair prompt');
-      const repairPrompt = `${prompt}\n\nCRITICAL: Return a single valid JSON object only. No markdown, no prose, no code fences.`;
-      response = await callLLM(repairPrompt, images, { responseFormat: FOLLOWUP_PLANNER_RESPONSE_FORMAT });
-      planningResult = parsePlanningResponse(response);
-      if (planningResult && !isValidPlanningShape(planningResult)) {
-        console.warn('⚠️ [followup-orchestrator] Retry produced JSON missing required planner keys');
-        planningResult = null;
-      }
-    }
-
-    if (!planningResult) {
-      console.warn('⚠️ [followup-orchestrator] No JSON found in planning response after retry, using defaults');
+      console.warn('⚠️ [followup-orchestrator] Planning response not parseable, falling back to defaults (skipping retry)');
       return {
         success: false,
         justification: 'Could not parse planning response',

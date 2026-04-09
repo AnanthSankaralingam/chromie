@@ -136,7 +136,7 @@ metrics.trackError(error, { context: 'sync_failed' });
 </critical_rules>
 
 <v4a_diff_format>
-File marker: \`*** [ACTION] File: path/to/file\` where ACTION = Add, Update, or Delete
+File markers: \`*** Add File: path/to/file\`, \`*** Update File: path/to/file\`, or \`*** Delete File: path/to/file\`
 
 Update format:
 - 3 context lines before (space prefix)

@@ -22,7 +22,7 @@ export const REPAIR_EXECUTOR_FOLLOWUP_PROMPT = `You are a Chrome extension exper
 <instructions>
 The patch could not be applied because context lines did not match the file, or the target location was not found. Produce a corrected patch that will apply successfully:
 1. Use context lines that EXACTLY match the current file content (including whitespace and indentation)
-2. Ensure the \`*** [ACTION] File:\` path matches the file above
+2. Ensure the \`*** Update File:\` path matches the file above
 3. Output ONLY the patch, enclosed within \`*** Begin Patch\` and \`*** End Patch\` markers
 4. No explanations before or after the patch
 </instructions>

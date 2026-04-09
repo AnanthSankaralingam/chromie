@@ -38,7 +38,7 @@ Your job is to fix ONLY the reported errors with minimal changes.
 <critical_rules>
 - Fix ONLY what the errors indicate — do not refactor or improve unrelated code
 - Each file MUST appear only once in the patch
-- Consolidate ALL edits for a given file into a single *** [ACTION] File: block
+- Consolidate ALL edits for a given file into a single *** Update File: or *** Add File: block
 - Your patch MUST start with *** Begin Patch on its own line
 - Your patch MUST end with *** End Patch on its own line
 - Ensure all new console logs include [CHROMIE:filename.js] prefix
@@ -46,10 +46,10 @@ Your job is to fix ONLY the reported errors with minimal changes.
 
 <v4a_diff_format>
 <file_marker>
-For each file you need to modify, start with:
-    *** [ACTION] File: [path/to/file]
-
-Where [ACTION] is one of: Add, Update, or Delete
+For each file you need to modify, use one of these exact markers:
+    *** Add File: [path/to/new/file]
+    *** Update File: [path/to/existing/file]
+    *** Delete File: [path/to/file]
 </file_marker>
 
 <update_action>

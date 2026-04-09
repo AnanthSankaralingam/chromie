@@ -69,17 +69,22 @@ export function extractPatchBlock(text) {
       const line = lines[i]
       
       // Check for file operation markers
+      // Supports both explicit formats (*** Add File:, *** Update File:, *** Delete File:)
+      // and the generic placeholder format (*** [ACTION] File:) that LLMs sometimes output literally
       const addMatch = line.match(/^\*\*\*\s*Add\s+File:\s*(.+)$/i)
       const updateMatch = line.match(/^\*\*\*\s*Update\s+File:\s*(.+)$/i)
       const deleteMatch = line.match(/^\*\*\*\s*Delete\s+File:\s*(.+)$/i)
-      
-      if (addMatch || updateMatch || deleteMatch) {
+      const genericMatch = !addMatch && !updateMatch && !deleteMatch
+        ? line.match(/^\*\*\*\s*\[?\w+\]?\s*File:\s*(.+)$/i)
+        : null
+
+      if (addMatch || updateMatch || deleteMatch || genericMatch) {
         // Save previous operation if exists
         if (currentOperation) {
           currentOperation.lines = currentLines
           operations.push(currentOperation)
         }
-        
+
         // Start new operation
         if (addMatch) {
           currentOperation = { action: 'add', path: addMatch[1].trim(), lines: [] }
@@ -87,6 +92,10 @@ export function extractPatchBlock(text) {
           currentOperation = { action: 'update', path: updateMatch[1].trim(), lines: [] }
         } else if (deleteMatch) {
           currentOperation = { action: 'delete', path: deleteMatch[1].trim(), lines: [] }
+        } else if (genericMatch) {
+          // Generic/placeholder format — infer action from whether file exists
+          const filePath = genericMatch[1].trim()
+          currentOperation = { action: 'update', path: filePath, lines: [] }
         }
         currentLines = []
       } else if (currentOperation) {
@@ -329,6 +338,15 @@ export function extractPatchBlock(text) {
       case 'update': {
         const originalContent = existingFiles[path]
         if (originalContent === undefined) {
+          // If file doesn't exist but all lines are additions, treat as 'add'
+          const allAdditions = lines.every(line => line.startsWith('+') || line.trim() === '')
+          if (allAdditions) {
+            const content = lines
+              .filter(line => line.startsWith('+'))
+              .map(line => line.substring(1))
+              .join('\n')
+            return { path, content, action: 'add', success: true }
+          }
           return { path, content: null, action: 'update', success: false, error: `File not found: ${path}` }
         }
         

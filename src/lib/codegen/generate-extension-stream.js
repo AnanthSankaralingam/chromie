@@ -262,7 +262,6 @@ export async function* generateChromeExtensionStream({
       const fileSummaries = formatFileSummariesForPlanning(fileAnalysis);
       console.log("📊 [File Analysis]:", fileSummaries);
 
-      // Create callLLM wrapper for follow-up planning (same default model and fallback as new extension gen)
       const planningModel = modelOverride || FOLLOWUP_MODEL;
       const planningProvider = llmService.getProviderFromModel(planningModel);
       const callLLM = async (prompt, planningImages = null, options = {}) => {
@@ -288,7 +287,6 @@ export async function* generateChromeExtensionStream({
         return response?.output_text || '';
       };
 
-      // Call follow-up planning agent to determine tools and files needed
       console.log('📋 [generate-extension-stream] Calling follow-up planning agent...');
       yield {
         type: "planning_progress",
@@ -299,7 +297,6 @@ export async function* generateChromeExtensionStream({
       const planningResult = await callFollowUpPlanning(featureRequest, existingFiles, callLLM, images);
       console.log('📊 [generate-extension-stream] Planning result:', JSON.stringify(planningResult, null, 2));
 
-      // Select appropriate prompt based on planning result
       const promptSelection = selectFollowUpPrompt(planningResult);
       console.log(`🎯 [generate-extension-stream] Selected prompt: ${promptSelection.enabledTools.length > 0 ? 'with tools' : 'standard'}, useAllFiles: ${promptSelection.useAllFiles}`);
 
@@ -746,6 +743,20 @@ export async function* generateChromeExtensionStream({
       type: "generation_starting",
       content: "generation_starting"
     };
+
+    // For patch mode follow-ups, emit a task list upfront using the planner's file selection
+    // so the file modification UI appears immediately (before the LLM call finishes)
+    if (usePatchingMode && requestType === REQUEST_TYPES.ADD_TO_EXISTING) {
+      const relevantFileNames = Object.keys(requirementsAnalysis.relevantFiles || existingFiles)
+        .filter(fp => !fp.match(/\.(png|jpg|jpeg|gif|svg|ico)$/i))
+      if (relevantFileNames.length > 0) {
+        yield {
+          type: "task_list",
+          tasks: relevantFileNames.map(fp => ({ id: fp, fileName: fp, description: `Patch ${fp}` }))
+        }
+      }
+    }
+
     // Emit implementing phase start
     yield {
       type: "phase",

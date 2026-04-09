@@ -177,9 +177,11 @@ export function useStreamProcessor({
       if (onGenerationStart) onGenerationStart()
 
       try {
-        // Refresh hasGeneratedCode from API
+        // Refresh hasGeneratedCode from API only when we don't already know code exists.
+        // When hasGeneratedCode is already true (the common follow-up case), skip the
+        // round-trip to save ~100-300ms. The flag can only go false→true, never back.
         let currentHasGeneratedCode = hasGeneratedCode
-        if (projectId) {
+        if (projectId && !hasGeneratedCode) {
           try {
             const response = await fetch(`/api/projects/${projectId}/has-generated-code`)
             if (response.ok) {

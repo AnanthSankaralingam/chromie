@@ -136,7 +136,7 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
   }
   
   const patchGen = processPatchModeOutput(outputText, existingFilesForPatch, userRequest, provider, model)
-  
+
   let patchResult
   for await (const event of patchGen) {
     if (event.type === "final_result") {
@@ -148,34 +148,41 @@ async function* handlePatchingMode(outputText, existingFilesForPatch, userReques
       yield event
     }
   }
-  
+
   if (patchResult?.success) {
     let explanation = patchResult.explanation || "Implementation complete."
     console.log(`✅ [patch-mode] Successfully applied patches, extracted explanation (${explanation.length} chars)`)
-    
+
     // Clean up explanation: remove markdown separators and extra whitespace
     explanation = explanation
       .replace(/^---+\s*/gm, '')  // Remove --- separators
       .replace(/^\s*\n/gm, '')    // Remove empty lines at start
       .trim()
-    
+
     // Remove files that were deleted by tools from the files to save
     const filesToSave = { ...patchResult.files }
     for (const deletedFile of toolDeletedFiles) {
       delete filesToSave[deletedFile]
       console.log(`🗑️ [handlePatchingMode] Excluding tool-deleted file from save: ${deletedFile}`)
     }
-    
+
     // Yield explanation BEFORE other operations so it renders in the UI
     if (explanation) {
       yield { type: "explanation", content: explanation }
     }
-    
+
+    // Emit per-file task_complete events so the frontend shows file diffs.
+    // Modified files get fileContent (shows diff); unmodified files still complete (no diff).
+    for (const fp of Object.keys(filesToSave)) {
+      const wasModified = filesToSave[fp] !== existingFilesForPatch[fp]
+      yield { type: "task_complete", taskId: fp, fileName: fp, ...(wasModified ? { fileContent: filesToSave[fp] } : {}) }
+    }
+
     const implementationResult = { ...filesToSave }
     if (patchResult.explanation) {
       implementationResult.explanation = patchResult.explanation
     }
-    
+
     const { savedFiles } = await saveFilesToDatabase(implementationResult, sessionId, replacements)
     await updateProjectMetadata(sessionId, filesToSave)
     
