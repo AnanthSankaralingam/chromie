@@ -3,7 +3,7 @@
  * Handles planning, tool execution loop, and patching for existing extensions
  */
 
-import { analyzeExtensionFiles, formatFileSummariesForPlanning } from '../file-analysis/index.js';
+import { analyzeExtensionFiles, formatFileSummariesForPlanning, formatFileContentsForPlanning } from '../file-analysis/index.js';
 import { PLANNING_FOLLOWUP_PROMPT } from '@/lib/prompts/followup/planning/planning-context.js';
 import { FOLLOW_UP_PATCH_PROMPT } from '@/lib/prompts/followup/follow-up-patching.js';
 import { FOLLOW_UP_PATCH_PROMPT_WITH_TOOLS } from '@/lib/prompts/followup/follow-up-patching-with-tools.js';
@@ -52,10 +52,13 @@ export async function callFollowUpPlanning(userRequest, existingFiles, callLLM, 
 
   console.log('📊 [followup-orchestrator] File summaries generated:', fileSummaries.substring(0, 200) + '...');
 
-  // 2. Build planning prompt
+  // 2. Build planning prompt (includes full file contents so the planner can
+  //    match error messages, specific code lines, and function names to files)
+  const fileContents = formatFileContentsForPlanning(existingFiles);
   const prompt = PLANNING_FOLLOWUP_PROMPT
     .replace('{USER_REQUEST}', userRequest)
-    .replace('{FILE_SUMMARIES}', fileSummaries);
+    .replace('{FILE_SUMMARIES}', fileSummaries)
+    .replace('{FILE_CONTENTS}', fileContents);
 
   const normalizePlanningResult = (planningResult) => {
     const validTools = ['chrome_api_search', 'web_scraping', 'delete_file', 'read_file'];
