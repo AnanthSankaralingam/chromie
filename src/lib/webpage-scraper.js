@@ -5,6 +5,7 @@
  */
 
 import { createClient } from './supabase/server'
+import { filterCachedMajorElementsByIntent } from './webpage-scraper-intent-filter.js'
 
 const LAMBDA_API_URL = 'https://x8jt0vamu0.execute-api.us-east-1.amazonaws.com/prod/scrape'
 
@@ -261,7 +262,15 @@ export async function scrapeWebPage(url, options = {}) {
             const fallbackOutput = typeof data.scraper_output === 'string'
               ? JSON.parse(data.scraper_output)
               : data.scraper_output
-            const elements = majorElementsToArray(fallbackOutput.major_elements)
+            let majorElementsData = fallbackOutput.major_elements || {}
+            if (intent?.trim() && Object.keys(majorElementsData).length > 0) {
+              majorElementsData = await filterCachedMajorElementsByIntent(
+                intent,
+                majorElementsData,
+                url
+              )
+            }
+            const elements = majorElementsToArray(majorElementsData)
             console.log(`✅ Cache fallback hit for: ${domain}`)
             return {
               url,
@@ -270,7 +279,7 @@ export async function scrapeWebPage(url, options = {}) {
               elements,
               timestamp: new Date().toISOString(),
               statusCode: 200,
-              majorElementsData: fallbackOutput.major_elements || {},
+              majorElementsData,
             }
           }
         } catch (cacheError) {
