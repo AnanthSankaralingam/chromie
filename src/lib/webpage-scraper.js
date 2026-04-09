@@ -58,6 +58,28 @@ function majorElementsToArray(majorElements) {
   }))
 }
 
+/** Build scrape result from Supabase cache; narrows major_elements with LLM when intent is set. */
+async function buildResultFromCache(url, domainNameUsed, cachedOutput, intent) {
+  let majorElementsData = cachedOutput.major_elements || {}
+  if (intent?.trim() && Object.keys(majorElementsData).length > 0) {
+    majorElementsData = await filterCachedMajorElementsByIntent(
+      intent,
+      majorElementsData,
+      url
+    )
+  }
+  const elements = majorElementsToArray(majorElementsData)
+  return {
+    url,
+    title: `Analysis for ${domainNameUsed}`,
+    content: `Found ${elements.length} major elements for ${domainNameUsed}.`,
+    elements,
+    timestamp: new Date().toISOString(),
+    statusCode: 200,
+    majorElementsData,
+  }
+}
+
 /**
  * Increment the scraper_misses counter for a domain.
  * Called only after both cache lookup and Lambda both fail.
@@ -159,9 +181,9 @@ async function callLambdaScrapingAPI(url, intent = null, profileId = null) {
 
 /**
  * Scrape a single URL.
- * Cache is checked first (specific domain, then generic) unless intent is provided,
- * which always forces a fresh Lambda scrape. Profile ID only affects the Lambda
- * browser session and does not bypass the cache.
+ * Cache is checked first (specific domain, then generic). When intent is set and cache hits,
+ * major_elements are narrowed via LLM to match intent. If cache misses, Lambda is called
+ * (with intent when provided). Profile ID only affects the Lambda browser session.
  */
 export async function scrapeWebPage(url, options = {}) {
   const intent = typeof options.intent === 'string' ? options.intent.trim() || null : null
@@ -173,55 +195,47 @@ export async function scrapeWebPage(url, options = {}) {
     const specificDomain = extractDomainName(url, true)
     const genericDomain = extractDomainName(url, false)
 
-    // Intent-specific scrapes bypass the cache — the user wants a fresh, focused analysis.
-    const skipCache = !!intent
-
     let cachedOutput = null
     let domainNameUsed = null
 
-    if (!skipCache) {
-      // Check specific domain first (e.g. youtube.com/watch), then generic (youtube.com)
-      for (const domain of [specificDomain, genericDomain]) {
-        if (!domain) continue
-        console.log(`Attempting cache lookup for: ${domain}`)
-        const { data, error } = await supabase
-          .from('scraper')
-          .select('scraper_output')
-          .eq('domain_name', domain)
-          .maybeSingle()
+    // Check specific domain first (e.g. youtube.com/watch), then generic (youtube.com)
+    for (const domain of [specificDomain, genericDomain]) {
+      if (!domain) continue
+      console.log(`Attempting cache lookup for: ${domain}`)
+      const { data, error } = await supabase
+        .from('scraper')
+        .select('scraper_output')
+        .eq('domain_name', domain)
+        .maybeSingle()
 
-        if (error) throw new Error(`Database lookup failed: ${error.message}`)
+      if (error) throw new Error(`Database lookup failed: ${error.message}`)
 
-        if (data?.scraper_output) {
-          cachedOutput = typeof data.scraper_output === 'string'
-            ? JSON.parse(data.scraper_output)
-            : data.scraper_output
-          domainNameUsed = domain
-          console.log(`✅ Cache hit for: ${domain}`)
-          break
-        }
-        console.warn(`⚠️ No cache entry for: ${domain}`)
+      if (data?.scraper_output) {
+        cachedOutput = typeof data.scraper_output === 'string'
+          ? JSON.parse(data.scraper_output)
+          : data.scraper_output
+        domainNameUsed = domain
+        console.log(`✅ Cache hit for: ${domain}`)
+        break
       }
+      console.warn(`⚠️ No cache entry for: ${domain}`)
     }
 
     if (cachedOutput) {
-      const elements = majorElementsToArray(cachedOutput.major_elements)
-      console.log('Retrieved scraper data from database:', JSON.stringify(cachedOutput, null, 2))
-      return {
-        url,
-        title: `Analysis for ${domainNameUsed}`,
-        content: `Found ${elements.length} major elements for ${domainNameUsed}.`,
-        elements,
-        timestamp: new Date().toISOString(),
-        statusCode: 200,
-        majorElementsData: cachedOutput.major_elements || {},
+      if (intent?.trim()) {
+        console.log(`Retrieved scraper data from database for ${domainNameUsed}; applying intent filter`)
+      } else {
+        console.log('Retrieved scraper data from database:', JSON.stringify(cachedOutput, null, 2))
       }
+      return await buildResultFromCache(url, domainNameUsed, cachedOutput, intent)
     }
 
     // No cache — call Lambda
-    console.log(skipCache
-      ? `📡 Skipping cache (intent-specific scrape), calling Lambda API for: ${url}`
-      : `📡 No cache found in Supabase, calling Lambda API for: ${url}`)
+    console.log(
+      intent?.trim()
+        ? `📡 No cache in Supabase; calling Lambda API with intent for: ${url}`
+        : `📡 No cache found in Supabase, calling Lambda API for: ${url}`
+    )
 
     try {
       const lambdaData = await callLambdaScrapingAPI(url, intent, profileId)
@@ -262,25 +276,8 @@ export async function scrapeWebPage(url, options = {}) {
             const fallbackOutput = typeof data.scraper_output === 'string'
               ? JSON.parse(data.scraper_output)
               : data.scraper_output
-            let majorElementsData = fallbackOutput.major_elements || {}
-            if (intent?.trim() && Object.keys(majorElementsData).length > 0) {
-              majorElementsData = await filterCachedMajorElementsByIntent(
-                intent,
-                majorElementsData,
-                url
-              )
-            }
-            const elements = majorElementsToArray(majorElementsData)
             console.log(`✅ Cache fallback hit for: ${domain}`)
-            return {
-              url,
-              title: `Analysis for ${domain}`,
-              content: `Found ${elements.length} major elements for ${domain}.`,
-              elements,
-              timestamp: new Date().toISOString(),
-              statusCode: 200,
-              majorElementsData,
-            }
+            return await buildResultFromCache(url, domain, fallbackOutput, intent)
           }
         } catch (cacheError) {
           console.warn(`⚠️ Cache fallback lookup failed for ${domain}:`, cacheError.message)

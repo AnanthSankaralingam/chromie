@@ -1,6 +1,7 @@
 /**
- * When Lambda scraping fails but generic cache exists, use an LLM to pick
- * major_elements keys that match the user's intent. Selectors stay exactly as cached.
+ * When we serve generic cached scraper output but the caller passed an intent, use an LLM
+ * to pick major_elements keys that match the intent (primary cache hit or Lambda-fail fallback).
+ * Selectors stay exactly as cached.
  */
 
 import { llmService } from '@/lib/services/llm-service'
