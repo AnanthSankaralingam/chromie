@@ -18,6 +18,8 @@ Tracks user info (linked to Supabase Auth).
 | `project_count`     | integer      | DEFAULT 0, tracks total active projects        |
 | `welcome_email_sent`| boolean      | DEFAULT false, tracks if welcome email was sent |
 | `welcome_email_sent_at`| timestamptz | NULL, when welcome email was sent              |
+| `email_campaign_stage`| integer     | NOT NULL, DEFAULT 2; campaign progression stage (`0`=unsubscribed/suppressed, `1`=email 1 already sent, `2`=next email pending, increment per step) |
+| `email_campaign_updated_at`| timestamptz | NOT NULL, DEFAULT now(); when `email_campaign_stage` was last updated |
 | `created_at`        | timestamptz  | DEFAULT now()                                  |
 | `last_used_at`      | timestamptz  | DEFAULT now()                                  |
 
