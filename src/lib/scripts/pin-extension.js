@@ -1,4 +1,4 @@
-import { getPuppeteerSessionContext } from "@/lib/utils/browser-actions";
+import { captureExtensionId, getPuppeteerSessionContext } from "@/lib/utils/browser-actions";
 import { HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID } from "@/lib/utils/hyperbrowser-utils";
 
 // Puppeteer script for: automatically pin extension to toolbar
@@ -27,29 +27,60 @@ const runPinExtension = async (sessionId) => {
     console.log('[PIN-EXTENSION] Browser connected:', !!browser);
     console.log('[PIN-EXTENSION] Page available:', !!page);
 
-    // Navigate to chrome://extensions if not already there
+    let usedTargetIdFastPath = false;
+    // Fast path: Chrome runtime ID from CDP targets (same as docs: Target.getTargets + chrome-extension URLs).
+    // Avoids chrome://extensions list + shadow DOM crawl when the service worker is already up.
+    try {
+      const idFromTargets = await captureExtensionId(sessionId, apiKey, [], {
+        maxAttempts: 10,
+        delayMs: 400,
+      });
+      if (idFromTargets) {
+        capturedExtensionId = idFromTargets;
+        usedTargetIdFastPath = true;
+        console.log('[PIN-EXTENSION] ✅ Chrome extension ID from targets (CDP):', capturedExtensionId);
+      }
+    } catch (capErr) {
+      console.warn('[PIN-EXTENSION] ⚠️ captureExtensionId failed, will fall back to chrome://extensions UI:', capErr?.message || capErr);
+    }
+
+    // Navigate to chrome://extensions (prefer deep link when we already know the runtime ID)
     let currentUrl = page.url();
     console.log('[PIN-EXTENSION] 🌐 Current URL:', currentUrl);
-    
-    // Try to capture extension ID from URL if already on details page
-    const urlMatch = currentUrl.match(/[?&]id=([a-p]{32})/i);
-    if (urlMatch) {
-      capturedExtensionId = urlMatch[1];
-      console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from initial URL:', capturedExtensionId);
-      if (capturedExtensionId === HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID) {
-        console.log('[PIN-EXTENSION] ℹ️  On HB screen-recording extension details, dont need to pin; navigating to list to select Chromie extension instead');
-        capturedExtensionId = null; // Clear so we navigate to list and pick Chromie
-        await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 4000 });
-        currentUrl = page.url();
+
+    if (!capturedExtensionId) {
+      const urlMatch = currentUrl.match(/[?&]id=([a-p]{32})/i);
+      if (urlMatch) {
+        capturedExtensionId = urlMatch[1];
+        console.log('[PIN-EXTENSION] ✅ Captured Chrome extension ID from initial URL:', capturedExtensionId);
+        if (capturedExtensionId === HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID) {
+          console.log('[PIN-EXTENSION] ℹ️  On HB screen-recording extension details; navigating to list to select Chromie extension instead');
+          capturedExtensionId = null;
+          await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 4000 });
+          currentUrl = page.url();
+        }
       }
     }
-    
-    if (!currentUrl.includes('chrome://extensions')) {
+
+    const detailsUrl = capturedExtensionId
+      ? `chrome://extensions/?id=${capturedExtensionId}`
+      : null;
+
+    if (detailsUrl && usedTargetIdFastPath) {
+      try {
+        await page.goto(detailsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        currentUrl = page.url();
+        console.log('[PIN-EXTENSION] ✅ Deep-linked to extension details (fast path):', currentUrl);
+      } catch (gotoErr) {
+        console.warn('[PIN-EXTENSION] ⚠️ Deep link failed, using extensions list flow:', gotoErr?.message || gotoErr);
+        usedTargetIdFastPath = false;
+        await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        currentUrl = page.url();
+      }
+    } else if (!currentUrl.includes('chrome://extensions')) {
       console.log('[PIN-EXTENSION] 🚀 Navigating to chrome://extensions...');
       await page.goto('chrome://extensions', { waitUntil: 'domcontentloaded', timeout: 30000 });
       console.log('[PIN-EXTENSION] ✅ Navigation complete');
-      
-      // Check URL again after navigation
       currentUrl = page.url();
       if (!capturedExtensionId) {
         const urlMatch2 = currentUrl.match(/[?&]id=([a-p]{32})/i);
@@ -75,9 +106,9 @@ const runPinExtension = async (sessionId) => {
     }, { timeout: 10000 });
     console.log('[PIN-EXTENSION] ✅ Shadow DOM is accessible');
 
-    // Wait for extensions to load
-    console.log('[PIN-EXTENSION] ⏳ Waiting 3 seconds for extensions to load...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    const settleMs = usedTargetIdFastPath && capturedExtensionId ? 800 : 3000;
+    console.log(`[PIN-EXTENSION] ⏳ Waiting ${settleMs}ms for extensions UI to settle...`);
+    await new Promise(resolve => setTimeout(resolve, settleMs));
     console.log('[PIN-EXTENSION] ✅ Wait complete');
 
     // If we're already on a details page (and it's the Chromie extension, not HB), we might not need to click Details
