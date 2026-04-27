@@ -1,17 +1,34 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle, Info, Navigation, Monitor, MousePointer, Keyboard, Eye } from "lucide-react"
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react"
+import { X, RefreshCw, ExternalLink, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
-import ProgressSpinner from "@/components/ui/loading/progress-spinner"
+import { nextLoadingEducationIndex } from "@/lib/utils/loading-education-index"
+import { buildBrowserTestLoadingArrays } from "@/lib/utils/extension-loading-messages"
+import BrowserTestLoadingOverlay from "@/components/ui/extension-testing/browser-test-loading-overlay"
 import ConsoleLogViewer from "@/components/ui/extension-testing/console-log-viewer"
 
-export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isLoading = false, loadingProgress = 0, projectId }) {
+export default function TestModal({
+  isOpen,
+  onClose,
+  sessionData,
+  onRefresh,
+  isLoading = false,
+  loadingProgress = 0,
+  projectId,
+  extensionFiles = [],
+}) {
   const [sessionStatus, setSessionStatus] = useState("loading")
   const [sessionExpired, setSessionExpired] = useState(false)
   const [loadingStage, setLoadingStage] = useState(0)
+  const loadingOverlaySessionRef = useRef(false)
+
+  const { loadingStages, instructionBoxes } = useMemo(
+    () => buildBrowserTestLoadingArrays(extensionFiles, "embed"),
+    [extensionFiles]
+  )
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
@@ -19,66 +36,6 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
       setSessionExpired(false)
     }
   }, [isOpen, sessionData?.sessionId])
-
-  // Ensure loading transitions restart on each new load or session
-  useEffect(() => {
-    if (isLoading || sessionData?.sessionId) {
-      setLoadingStage(0)
-    }
-  }, [isLoading, sessionData?.sessionId])
-
-  // Define loading stages for browser initialization
-  const loadingStages = [
-    {
-      title: "launching cloud browser",
-      description: "spinning up a secure hyperbrowser session — this takes 15–30 seconds"
-    },
-    {
-      title: "installing your extension",
-      description: "bundling your extension files and injecting them into the browser"
-    },
-    {
-      title: "opening live view",
-      description: "connecting the interactive browser stream — almost ready"
-    }
-  ]
-
-  // Define instruction boxes for each stage
-  const instructionBoxes = [
-    {
-      icon: Monitor,
-      iconColor: "blue",
-      title: "what's happening",
-      items: [
-        "a real cloud browser is spinning up for you",
-        "this is a full chromium instance, not a simulation",
-        "your extension will be auto-installed — no manual steps",
-        "hang tight, this usually takes under 30 seconds"
-      ]
-    },
-    {
-      icon: Eye,
-      iconColor: "green",
-      title: "extension setup",
-      items: [
-        "your extension files are being bundled and injected",
-        "all permissions are pre-configured from your manifest",
-        "background scripts, popups, and content scripts are loaded",
-        "no manual install or chrome://extensions needed"
-      ]
-    },
-    {
-      icon: Info,
-      iconColor: "purple",
-      title: "once it loads",
-      items: [
-        "navigate to any site to test your extension in action",
-        "click the puzzle icon in the toolbar to open the popup",
-        "session lasts ~3 minutes",
-        "close when you're done testing"
-      ]
-    }
-  ]
 
   // Store session data for the embed page to access
   useEffect(() => {
@@ -93,28 +50,23 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
     }
   }, [isOpen, sessionData])
 
-  // Animate through stages like the original ProgressSpinner
-  useEffect(() => {
-    if (!isLoading) {
-      setLoadingStage(0)
+  const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
+  const showLoadingOverlay = isLoading || (Boolean(isOpen && sessionData && !liveUrl))
+
+  useLayoutEffect(() => {
+    if (!showLoadingOverlay) {
+      loadingOverlaySessionRef.current = false
       return
     }
-
-    const interval = setInterval(() => {
-      setLoadingStage(prev => {
-        if (prev < loadingStages.length - 1) {
-          return prev + 1
-        }
-        return prev
-      })
-    }, 2000) // Progress every 2 seconds
-
-    return () => clearInterval(interval)
-  }, [isLoading, loadingStages.length])
+    if (loadingStages.length === 0) return
+    if (!loadingOverlaySessionRef.current) {
+      loadingOverlaySessionRef.current = true
+      setLoadingStage(nextLoadingEducationIndex(loadingStages.length))
+    }
+  }, [showLoadingOverlay, loadingStages.length])
 
   if (!isOpen) return null
 
-  const liveUrl = sessionData?.liveViewUrl || sessionData?.iframeUrl || sessionData?.browserUrl
   
 
   // Handle session expiry - just show warning, don't auto-close
@@ -195,55 +147,10 @@ export default function TestModal({ isOpen, onClose, sessionData, onRefresh, isL
               </div>
             </div>
           ) : isLoading || (isOpen && sessionData && !liveUrl) ? (
-            <div className="absolute inset-0 bg-[#0a0a0a] flex items-center justify-center p-8">
-              <div className="text-center max-w-md w-full">
-                {/* Progress Bar */}
-                <div className="mb-8">
-                  <div className="w-full bg-neutral-800 rounded-full h-1.5 mb-3">
-                    <div
-                      className="bg-white h-1.5 rounded-full transition-all duration-700 ease-out"
-                      style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-neutral-500">
-                    step {loadingStage + 1} of {loadingStages.length}
-                  </p>
-                </div>
-
-                {/* Current Stage */}
-                <div className="mb-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-white mx-auto mb-5" />
-                  <h3 className="text-base font-semibold text-white mb-2">
-                    {loadingStages[loadingStage]?.title ?? "initializing"}
-                  </h3>
-                  <p className="text-neutral-400 text-sm leading-relaxed">
-                    {loadingStages[loadingStage]?.description ?? "please wait"}
-                  </p>
-                </div>
-
-                {/* Dynamic tip box per stage */}
-                {instructionBoxes[loadingStage] && (
-                  <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-5 text-left">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                        {React.createElement(instructionBoxes[loadingStage].icon, {
-                          className: "h-4 w-4 text-neutral-300"
-                        })}
-                      </div>
-                      <h5 className="font-medium text-neutral-200 text-sm">{instructionBoxes[loadingStage].title}</h5>
-                    </div>
-                    <ul className="space-y-2">
-                      {instructionBoxes[loadingStage].items.map((item, index) => (
-                        <li key={index} className="text-sm text-neutral-400 flex items-start gap-2">
-                          <span className="text-neutral-600 mt-0.5">—</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
+            <BrowserTestLoadingOverlay
+              stageTitle={loadingStages[loadingStage]?.title ?? "initializing"}
+              tip={instructionBoxes[loadingStage]}
+            />
           ) : liveUrl ? (
             <iframe
               src={liveUrl}

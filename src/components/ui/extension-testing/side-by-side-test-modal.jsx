@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
 import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, Navigation, Info, Eye, CircleDot, Square, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
-import ProgressSpinner from "@/components/ui/loading/progress-spinner"
+import { nextLoadingEducationIndex } from "@/lib/utils/loading-education-index"
+import BrowserTestLoadingOverlay from "@/components/ui/extension-testing/browser-test-loading-overlay"
 import TestingSidepanel from "@/components/ui/extension-testing/testing-sidepanel"
 import ErrorDisplay from "./error-display"
 
@@ -30,6 +31,7 @@ export default function SideBySideTestModal({
   const [hyperAgentResult, setHyperAgentResult] = useState(null)
   const [sessionExpired, setSessionExpired] = useState(false)
   const [loadingStage, setLoadingStage] = useState(0)
+  const loadingOverlaySessionRef = useRef(false)
   const [isRunningPuppeteerTests, setIsRunningPuppeteerTests] = useState(false)
   const [puppeteerTestResult, setPuppeteerTestResult] = useState(null)
   const [iframeReconnectNonce, setIframeReconnectNonce] = useState(0)
@@ -144,27 +146,11 @@ export default function SideBySideTestModal({
     return { ok: false, status: lastStatus, timedOut: true }
   }
 
-  // Ensure loading transitions restart on each new load or session
-  useEffect(() => {
-    if (isLoading || sessionData?.sessionId) {
-      setLoadingStage(0)
-    }
-  }, [isLoading, sessionData?.sessionId])
-
   // Define loading stages for browser initialization
   const loadingStages = [
-    {
-      title: "launching cloud browser",
-      description: "spinning up a secure hyperbrowser session — this takes 15–30 seconds"
-    },
-    {
-      title: "installing your extension",
-      description: "bundling your extension files and injecting them into the browser"
-    },
-    {
-      title: "opening live view",
-      description: "connecting the interactive browser stream — almost ready"
-    }
+    { title: "launching cloud browser" },
+    { title: "installing your extension" },
+    { title: "opening live view" },
   ]
 
   // Define instruction boxes for each stage
@@ -172,34 +158,29 @@ export default function SideBySideTestModal({
     {
       icon: Monitor,
       iconColor: "blue",
-      title: "what's happening",
+      title: "real chromium, in the cloud",
       items: [
-        "a real cloud browser is spinning up for you",
-        "this is a full chromium instance, not a simulation",
-        "your extension will be auto-installed — no manual steps",
-        "hang tight, this usually takes under 30 seconds"
+        "same engine as desktop chrome.",
+        "your extension runs only here — use tabs and menus like local chrome."
       ]
     },
     {
       icon: Navigation,
       iconColor: "green",
-      title: "extension setup",
+      title: "your build loads in this browser",
       items: [
-        "your extension files are being bundled and injected",
-        "all permissions are pre-configured from your manifest",
-        "background scripts, popups, and content scripts are loaded",
-        "no manual install or chrome://extensions needed"
+        "installed in this session already.",
+        "click through and test like a user.",
+        "toolbar, new tab, side panel — whatever your manifest defines."
       ]
     },
     {
       icon: Eye,
       iconColor: "purple",
-      title: "once it loads",
+      title: "test like a user",
       items: [
-        "navigate to any site to test your extension in action",
-        "click the puzzle icon in the toolbar to open the popup",
-        "check the console log panel on the right for errors",
-        "use the AI agent tab to run automated tests"
+        "new tab / side panel / popup — same flows as desktop chrome.",
+        "console logs on the right; AI agent tab for automated tests."
       ]
     }
   ]
@@ -211,23 +192,16 @@ export default function SideBySideTestModal({
     }
   }, [sessionData])
 
-  // Animate through stages like the original ProgressSpinner
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isLoading) {
-      setLoadingStage(0)
+      loadingOverlaySessionRef.current = false
       return
     }
-
-    const interval = setInterval(() => {
-      setLoadingStage(prev => {
-        if (prev < loadingStages.length - 1) {
-          return prev + 1
-        }
-        return prev
-      })
-    }, 2000) // Progress every 2 seconds
-
-    return () => clearInterval(interval)
+    if (loadingStages.length === 0) return
+    if (!loadingOverlaySessionRef.current) {
+      loadingOverlaySessionRef.current = true
+      setLoadingStage(nextLoadingEducationIndex(loadingStages.length))
+    }
   }, [isLoading, loadingStages.length])
 
   // Handle HyperAgent test execution
@@ -972,55 +946,10 @@ export default function SideBySideTestModal({
                     </div>
                   </div>
                 ) : isLoading ? (
-                  <div className="absolute inset-0 bg-[#0a0a0a] flex items-center justify-center p-8">
-                    <div className="text-center max-w-md w-full">
-                      {/* Progress Bar */}
-                      <div className="mb-8">
-                        <div className="w-full bg-neutral-800 rounded-full h-1.5 mb-3">
-                          <div
-                            className="bg-white h-1.5 rounded-full transition-all duration-700 ease-out"
-                            style={{ width: `${((loadingStage + 1) / loadingStages.length) * 100}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-neutral-500">
-                          step {loadingStage + 1} of {loadingStages.length}
-                        </p>
-                      </div>
-
-                      {/* Current Stage */}
-                      <div className="mb-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-neutral-700 border-t-white mx-auto mb-5" />
-                        <h3 className="text-base font-semibold text-white mb-2">
-                          {loadingStages[loadingStage]?.title ?? "initializing"}
-                        </h3>
-                        <p className="text-neutral-400 text-sm leading-relaxed">
-                          {loadingStages[loadingStage]?.description ?? "please wait"}
-                        </p>
-                      </div>
-
-                      {/* Dynamic tip box per stage */}
-                      {instructionBoxes[loadingStage] && (
-                        <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-5 text-left">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-8 h-8 bg-neutral-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                              {React.createElement(instructionBoxes[loadingStage].icon, {
-                                className: "h-4 w-4 text-neutral-300",
-                              })}
-                            </div>
-                            <h5 className="font-medium text-neutral-200 text-sm">{instructionBoxes[loadingStage].title}</h5>
-                          </div>
-                          <ul className="space-y-2">
-                            {instructionBoxes[loadingStage].items.map((item, index) => (
-                              <li key={index} className="text-sm text-neutral-400 flex items-start gap-2">
-                                <span className="text-neutral-600 mt-0.5">—</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <BrowserTestLoadingOverlay
+                    stageTitle={loadingStages[loadingStage]?.title ?? "initializing"}
+                    tip={instructionBoxes[loadingStage]}
+                  />
                 ) : error ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-white">
                     <ErrorDisplay
