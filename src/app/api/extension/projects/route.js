@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
-import { groupFilesByProject, keyByProjectId, toExtensionScript, toProjectRows } from "@/lib/api/extension-projects"
+import {
+  groupFilesByProject,
+  isExtensionEligibleProject,
+  keyByProjectId,
+  toExtensionScript,
+  toProjectRows,
+} from "@/lib/api/extension-projects"
 
 export function OPTIONS(request) {
   return extensionOptions(request)
@@ -57,13 +63,19 @@ export async function GET(request) {
   const filesByProject = groupFilesByProject(files || [])
   const metadataByProject = keyByProjectId(metadata || [])
   const scripts = {}
+  const eligibleProjects = []
 
   for (const project of projects || []) {
-    const script = toExtensionScript(project, filesByProject.get(project.id) || [], metadataByProject.get(project.id) || null)
+    const projectFiles = filesByProject.get(project.id) || []
+    const projectMetadata = metadataByProject.get(project.id) || null
+    if (!isExtensionEligibleProject(projectFiles, projectMetadata)) continue
+
+    const script = toExtensionScript(project, projectFiles, projectMetadata)
     scripts[script.id] = script
+    eligibleProjects.push(project)
   }
 
-  return extensionJson(request, { scripts, projects })
+  return extensionJson(request, { scripts, projects: eligibleProjects })
 }
 
 export async function PUT(request) {

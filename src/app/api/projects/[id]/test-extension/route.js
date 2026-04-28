@@ -9,6 +9,44 @@ import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { BROWSER_SESSION_CONFIG, CREDIT_COSTS } from "@/lib/constants"
 import { classifyError } from "@/lib/utils/error-classifier"
 import { fixManifestWebAccessibleResourceMatches } from "@/lib/codegen/extension-harness.js"
+import { findRunnableUserScriptFile } from "@/lib/api/extension-projects"
+
+function buildUserscriptTestExtension({ project, userscriptFile, metadata }) {
+  const matches = Array.isArray(metadata?.match_patterns) && metadata.match_patterns.length > 0
+    ? metadata.match_patterns
+    : ["<all_urls>"]
+  const runAt = metadata?.run_at || "document_idle"
+  const scriptCode = `(() => {
+  try {
+${userscriptFile.content || ""}
+  } catch (error) {
+    console.error('[chromie userscript test]', error);
+  }
+})();`
+
+  return [
+    {
+      file_path: "manifest.json",
+      content: JSON.stringify({
+        manifest_version: 3,
+        name: project?.name || "Chromie Userscript Test",
+        version: metadata?.version || "1.0.0",
+        description: project?.description || "Userscript synced from chromie-extension.",
+        content_scripts: [
+          {
+            matches,
+            js: ["userscript.js"],
+            run_at: runAt
+          }
+        ]
+      }, null, 2)
+    },
+    {
+      file_path: "userscript.js",
+      content: scriptCode
+    }
+  ]
+}
 
 export async function POST(request, { params }) {
   const supabase = await createClient()
@@ -45,7 +83,7 @@ export async function POST(request, { params }) {
     if (userIsAdmin && service) {
       const { data: p, error: adminProjectErr } = await service
         .from("projects")
-        .select("id, user_id")
+        .select("id, user_id, name, description")
         .eq("id", id)
         .maybeSingle()
       if (!adminProjectErr && p) {
@@ -56,7 +94,7 @@ export async function POST(request, { params }) {
     if (!project) {
       const { data: p, error: projectError } = await supabase
         .from("projects")
-        .select("id, user_id")
+        .select("id, user_id, name, description")
         .eq("id", id)
         .eq("user_id", user.id)
         .maybeSingle()
@@ -112,53 +150,70 @@ export async function POST(request, { params }) {
       // Continue without custom assets - not a fatal error
     }
 
-    // Build extension (ensure required files + bundle)
     const codeFiles = (files || []).filter((f) => !f.file_path.startsWith("tests/") && !f.file_path.startsWith(".chromie/"))
     if (codeFiles.length === 0) {
       return NextResponse.json({ error: "No buildable files found" }, { status: 404 })
     }
 
-    const ensuredFiles = ensureRequiredFiles(codeFiles.map((f) => ({ file_path: f.file_path, content: f.content })))
-    const originalPaths = new Set(codeFiles.map((f) => f.file_path))
-    const placeholders = ensuredFiles.filter((f) => !originalPaths.has(f.file_path))
-    console.log(`[test-extension] Upserting ${placeholders.length} placeholder files: ${placeholders.map(f => f.file_path).join(', ')}`)
-    for (const file of placeholders) {
-      console.log(`[test-extension]   - upserting: ${file.file_path}`)
-      await db.from("code_files").upsert(
-        { project_id: id, file_path: file.file_path, content: file.content, last_used_at: new Date().toISOString() },
-        { onConflict: "project_id,file_path" }
-      )
-      console.log(`[test-extension]   - upserted: ${file.file_path}`)
-    }
+    const { data: extensionMetadata } = await db
+      .from("extension_project_metadata")
+      .select("*")
+      .eq("project_id", id)
+      .maybeSingle()
+    const userscriptFile = findRunnableUserScriptFile(codeFiles, extensionMetadata)
+    const isUserscriptProject = Boolean(userscriptFile && (extensionMetadata || userscriptFile.file_path === "userscript.js"))
+    let extensionFiles = []
 
-    const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
-    console.log(`[test-extension] Starting buildExtension with ${Object.keys(fileMap).length} files: ${Object.keys(fileMap).join(', ')}`)
-    const buildStart = Date.now()
-    const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
-    console.log(`[test-extension] buildExtension completed in ${Date.now() - buildStart}ms, success=${buildResult.success}`)
-    if (!buildResult.success) {
-      const msg = buildResult.errors?.length
-        ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ")
-        : "Build failed"
-      return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
-    }
-
-    const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
-    const manifestBuilt = builtFiles.find((f) => f.file_path === 'manifest.json')
-    if (manifestBuilt?.content && typeof manifestBuilt.content === 'string') {
-      try {
-        const manifestObj = JSON.parse(manifestBuilt.content)
-        fixManifestWebAccessibleResourceMatches(manifestObj)
-        manifestBuilt.content = JSON.stringify(manifestObj, null, 2)
-      } catch (e) {
-        console.warn('[test-extension] Could not sanitize manifest web_accessible_resources:', e?.message)
+    if (isUserscriptProject) {
+      extensionFiles = [
+        ...buildUserscriptTestExtension({ project, userscriptFile, metadata: extensionMetadata }),
+        ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
+      ]
+      console.log(`[test-extension] Built userscript test wrapper with ${extensionFiles.length} files`)
+    } else {
+      // Build extension (ensure required files + bundle)
+      const ensuredFiles = ensureRequiredFiles(codeFiles.map((f) => ({ file_path: f.file_path, content: f.content })))
+      const originalPaths = new Set(codeFiles.map((f) => f.file_path))
+      const placeholders = ensuredFiles.filter((f) => !originalPaths.has(f.file_path))
+      console.log(`[test-extension] Upserting ${placeholders.length} placeholder files: ${placeholders.map(f => f.file_path).join(', ')}`)
+      for (const file of placeholders) {
+        console.log(`[test-extension]   - upserting: ${file.file_path}`)
+        await db.from("code_files").upsert(
+          { project_id: id, file_path: file.file_path, content: file.content, last_used_at: new Date().toISOString() },
+          { onConflict: "project_id,file_path" }
+        )
+        console.log(`[test-extension]   - upserted: ${file.file_path}`)
       }
+
+      const fileMap = Object.fromEntries(ensuredFiles.map((f) => [f.file_path, f.content]))
+      console.log(`[test-extension] Starting buildExtension with ${Object.keys(fileMap).length} files: ${Object.keys(fileMap).join(', ')}`)
+      const buildStart = Date.now()
+      const buildResult = await buildExtension({ files: fileMap, planPackages: [] })
+      console.log(`[test-extension] buildExtension completed in ${Date.now() - buildStart}ms, success=${buildResult.success}`)
+      if (!buildResult.success) {
+        const msg = buildResult.errors?.length
+          ? buildResult.errors.map((e) => `${e.file || "build"}: ${e.message}`).join("; ")
+          : "Build failed"
+        return NextResponse.json({ error: `Extension build failed: ${msg}` }, { status: 500 })
+      }
+
+      const builtFiles = Object.entries(buildResult.files).map(([file_path, content]) => ({ file_path, content }))
+      const manifestBuilt = builtFiles.find((f) => f.file_path === 'manifest.json')
+      if (manifestBuilt?.content && typeof manifestBuilt.content === 'string') {
+        try {
+          const manifestObj = JSON.parse(manifestBuilt.content)
+          fixManifestWebAccessibleResourceMatches(manifestObj)
+          manifestBuilt.content = JSON.stringify(manifestObj, null, 2)
+        } catch (e) {
+          console.warn('[test-extension] Could not sanitize manifest web_accessible_resources:', e?.message)
+        }
+      }
+      extensionFiles = [
+        ...builtFiles,
+        ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
+      ]
+      console.log(`[test-extension] Built ${builtFiles.length} files, ${assets?.length || 0} assets`)
     }
-    const extensionFiles = [
-      ...builtFiles,
-      ...(assets || []).map((a) => ({ file_path: a.file_path, content: a.content_base64, is_base64: true }))
-    ]
-    console.log(`[test-extension] Built ${builtFiles.length} files, ${assets?.length || 0} assets`)
 
     // Calculate session expiry: 5 min for "Run Tests", else use default (Try it out)
     const now = new Date()

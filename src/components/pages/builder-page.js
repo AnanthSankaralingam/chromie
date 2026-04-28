@@ -30,6 +30,7 @@ import { usePaidPlan } from "@/hooks/use-paid-plan"
 import { useAutoGenerateParams, useProjectParams } from "@/hooks/use-url-params"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
+import { findRunnableUserScriptFile } from "@/lib/api/extension-projects"
 import {
   Artifact,
   ArtifactContent,
@@ -38,6 +39,21 @@ import {
 import { TourProvider, useTour, TOUR_STEP_IDS } from "@/components/ui/tour"
 import VersionHistoryPanel from "@/components/ui/version-history-panel"
 import AssetUploadModal from "@/components/ui/file-upload/asset-upload-modal"
+
+function toSelectableFile(file) {
+  if (!file) return null
+  return {
+    name: file.file_path?.split('/').pop() || file.name || 'userscript.js',
+    type: 'file',
+    content: file.content || '',
+    fullPath: file.file_path || file.fullPath,
+    file_path: file.file_path || file.fullPath,
+    isAsset: file.isAsset || false,
+    assetId: file.assetId,
+    mime_type: file.mime_type,
+    file_size: file.file_size,
+  }
+}
 
 function BuilderPageContent() {
   const { isLoading, session, user, supabase } = useSession()
@@ -65,6 +81,8 @@ function BuilderPageContent() {
   const [testSessionLogs, setTestSessionLogs] = useState(null)
   const [isAssetUploadModalOpen, setIsAssetUploadModalOpen] = useState(false)
   const [assetUploadDefaults, setAssetUploadDefaults] = useState({ mode: "upload", fileType: "icon" })
+  const [extensionMetadata, setExtensionMetadata] = useState(null)
+  const [isUserscriptProject, setIsUserscriptProject] = useState(false)
 
   // Listen for editor:openAssetUpload (e.g. Icon button in manifest.json) - must be at builder level so it works when file tree is collapsed
   useEffect(() => {
@@ -231,6 +249,37 @@ function BuilderPageContent() {
   // Use the custom hook to manage project URL parameters
   useProjectParams(projectSetup.currentProjectId, projectSetup.isSettingUpProject)
 
+  useEffect(() => {
+    if (!projectSetup.currentProjectId || projectSetup.isAdminMode || !user) {
+      setExtensionMetadata(null)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const response = await fetch(`/api/extension/projects/${projectSetup.currentProjectId}/metadata`)
+        if (!response.ok) {
+          if (!cancelled) setExtensionMetadata(null)
+          return
+        }
+        const data = await response.json()
+        if (!cancelled) setExtensionMetadata(data.metadata || null)
+      } catch {
+        if (!cancelled) setExtensionMetadata(null)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projectSetup.currentProjectId, projectSetup.isAdminMode, user])
+
+  useEffect(() => {
+    const runnableUserScript = findRunnableUserScriptFile(fileManagement.flatFiles, extensionMetadata)
+    setIsUserscriptProject(Boolean(runnableUserScript || extensionMetadata))
+  }, [extensionMetadata, fileManagement.flatFiles])
+
   // Sync ref with hasGeneratedCode state when project changes
   useEffect(() => {
     hasGeneratedCodeBeforeRef.current = hasGeneratedCode
@@ -245,11 +294,15 @@ function BuilderPageContent() {
         // No need to make additional API calls
       }
 
-      // Auto-select manifest.json if no file is currently selected
+      // Auto-select the primary project file if no file is currently selected
       if (!selectedFile) {
+        const runnableUserScript = findRunnableUserScriptFile(fileManagement.flatFiles, extensionMetadata)
         const manifestFile = fileManagement.findManifestFile()
-        if (manifestFile) {
-          setSelectedFile(manifestFile)
+        const defaultFile = runnableUserScript
+          ? toSelectableFile(runnableUserScript)
+          : manifestFile
+        if (defaultFile) {
+          setSelectedFile(defaultFile)
         }
       }
 
@@ -261,7 +314,7 @@ function BuilderPageContent() {
         setTimeout(() => setShouldStartTestHighlight(false), 100)
       }
     }
-  }, [fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
+  }, [extensionMetadata, fileManagement.flatFiles, projectSetup.currentProjectId, fileManagement.isLoadingFiles, selectedFile, hasGeneratedCode])
 
   // Show notify modal first when user lands with autoGenerate (project being created)
   useEffect(() => {
@@ -829,6 +882,7 @@ function BuilderPageContent() {
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 flatFiles={fileManagement.flatFiles}
+                isUserscriptProject={isUserscriptProject}
               />
             </div>
           )}
@@ -840,6 +894,7 @@ function BuilderPageContent() {
                 onFileSave={handleFileSave}
                 allFiles={fileManagement.flatFiles}
                 readOnly={projectSetup.isAdminMode}
+                isUserscriptProject={isUserscriptProject}
               />
             </div>
           )}
@@ -965,6 +1020,7 @@ function BuilderPageContent() {
                             onFileCreated={fileManagement.handleFileCreate}
                             onSearchChange={setSearchQuery}
                             flatFiles={fileManagement.flatFiles}
+                            isUserscriptProject={isUserscriptProject}
                           />
                         </div>
                       )}
@@ -982,6 +1038,7 @@ function BuilderPageContent() {
                           isFileTreeCollapsed={isFileTreeCollapsed}
                           onToggleFileTree={() => setIsFileTreeCollapsed(!isFileTreeCollapsed)}
                           readOnly={projectSetup.isAdminMode}
+                          isUserscriptProject={isUserscriptProject}
                         />
                       </div>
                     </div>
