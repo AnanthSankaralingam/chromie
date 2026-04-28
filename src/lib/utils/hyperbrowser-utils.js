@@ -3,6 +3,11 @@ import { ExtensionError, ERROR_CODES } from "@/lib/errors/extension-error"
 
 /** Hyperbrowser screen recording extension - always loaded in test sessions, should not be pinned */
 export const HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID = "glppdlkdcbfhppbbglmjkmeopffhagad"
+/** Other utility extension IDs that can appear in sessions and should be ignored for Chromie ID resolution */
+export const KNOWN_UTILITY_EXTENSION_IDS = [
+  HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID,
+  "bghcomfpdkdffljkhcfeedpbilbkicdj",
+]
 
 /**
  * Validate extension files and ensure required files are present

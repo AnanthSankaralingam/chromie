@@ -442,7 +442,6 @@ function BuilderPageContent() {
 
     try {
       await testExtension.handleTestExtension({
-        awaitPinExtension: true,
         autoRunHyperAgent: true,
       })
     } catch (error) {
@@ -462,7 +461,6 @@ function BuilderPageContent() {
     try {
       const sequenceId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
       await testExtension.handleTestExtension({
-        awaitPinExtension: true,
         autoRunPuppeteerTests: true,
         autoRunHyperAgent: true,
         runTestSequence: true,

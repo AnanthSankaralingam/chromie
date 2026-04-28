@@ -32,8 +32,9 @@ export async function POST(request, { params }) {
       const ok = await hyperbrowserService.terminateSession(body.sessionId)
       return NextResponse.json({ success: ok })
     }
-    // Always await pinning to capture the Chrome extension ID
-    const awaitPinExtension = body?.awaitPinExtension !== false
+    // Default to async post-session setup for lower latency.
+    // Only wait synchronously when explicitly requested by caller.
+    const awaitPinExtension = body?.awaitPinExtension === true
 
     const userIsAdmin = await isAdmin(supabase, user)
     const service = createServiceClient()
@@ -181,38 +182,6 @@ export async function POST(request, { params }) {
       { awaitPinExtension, viewport }
     )
     console.log(`[test-extension] createTestSession completed in ${Date.now() - sessionStart}ms`)
-
-    // Store the Chrome extension ID if we got it
-    if (session.chromeExtensionId) {
-      console.log("[test-extension] ✅ Got Chrome extension ID from session:", session.chromeExtensionId)
-      
-      try {
-        const { error: storeError } = await db
-          .from("code_files")
-          .upsert(
-            {
-              project_id: id,
-              file_path: ".chromie/extension-id.json",
-              content: JSON.stringify({ 
-                chromeExtensionId: session.chromeExtensionId,
-                hyperbrowserExtensionId: session.hyperbrowserExtensionId,
-                capturedAt: new Date().toISOString() 
-              }, null, 2)
-            },
-            { onConflict: "project_id,file_path" }
-          )
-        
-        if (storeError) {
-          console.error("[test-extension] ❌ Failed to store extension ID:", storeError.message)
-        } else {
-          console.log("[test-extension] ✅ Stored Chrome extension ID in database")
-        }
-      } catch (storeErr) {
-        console.error("[test-extension] ❌ Error storing extension ID:", storeErr.message)
-      }
-    } else {
-      console.warn("[test-extension] ⚠️  No Chrome extension ID in session response")
-    }
 
     // Charge 1 credit only after we have successfully built the extension and
     // created a Testing Browser session. This avoids charging for failed builds.

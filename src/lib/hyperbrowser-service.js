@@ -9,7 +9,12 @@ import {
   validateExtensionFiles,
   ensureRequiredFiles,
 } from "@/lib/utils/hyperbrowser-utils"
-import { navigateToUrl as navigateToUrlUtil, getPuppeteerSessionContext as getPuppeteerContextUtil, primeExtensionContext as primeExtensionContextUtil } from "@/lib/utils/browser-actions"
+import {
+  navigateToUrl as navigateToUrlUtil,
+  getPuppeteerSessionContext as getPuppeteerContextUtil,
+  primeExtensionContext as primeExtensionContextUtil,
+  captureExtensionId as captureExtensionIdUtil,
+} from "@/lib/utils/browser-actions"
 import { runPinExtension } from "@/lib/scripts/pin-extension"
 import { ExtensionError, ERROR_CODES } from "@/lib/errors/extension-error"
 
@@ -157,57 +162,6 @@ export class HyperbrowserService {
     }
   }
 
-  getExtensionEntryHtmlPaths(filesArray = []) {
-    const htmlPaths = new Set()
-    const normalizedPaths = new Set(
-      (filesArray || [])
-        .map((f) => (f?.file_path || f?.path || f?.name || '').trim())
-        .filter(Boolean)
-    )
-
-    const addIfExistingHtml = (candidatePath) => {
-      if (!candidatePath || typeof candidatePath !== "string") return
-      const normalized = candidatePath.trim().replace(/^\/+/, "")
-      if (!normalized.toLowerCase().endsWith(".html")) return
-      if (normalizedPaths.has(normalized)) htmlPaths.add(normalized)
-    }
-
-    const manifestFile = (filesArray || []).find((f) => (f?.file_path || f?.path || f?.name) === "manifest.json")
-    if (manifestFile?.content) {
-      try {
-        const manifest = JSON.parse(manifestFile.content)
-        addIfExistingHtml(manifest?.options_page)
-        addIfExistingHtml(manifest?.options_ui?.page)
-        addIfExistingHtml(manifest?.side_panel?.default_path)
-        addIfExistingHtml(manifest?.action?.default_popup)
-      } catch (err) {
-        console.warn("[HYPERBROWSER-SERVICE] ⚠️ Could not parse manifest.json for auto-open pages:", err?.message || err)
-      }
-    }
-
-    return Array.from(htmlPaths)
-  }
-
-  async openExtensionEntryTabs({ sessionId, chromeExtensionId, htmlPaths }) {
-    if (!sessionId || !chromeExtensionId || !Array.isArray(htmlPaths) || htmlPaths.length === 0) return
-
-    try {
-      const { browser } = await getPuppeteerContextUtil(sessionId, this.apiKey)
-      for (const relPath of htmlPaths) {
-        const targetUrl = `chrome-extension://${chromeExtensionId}/${relPath}`
-        try {
-          const newPage = await browser.newPage()
-          await newPage.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15000 })
-          console.log(`[HYPERBROWSER-SERVICE] ✅ Opened extension entry tab: ${targetUrl}`)
-        } catch (tabErr) {
-          console.warn(`[HYPERBROWSER-SERVICE] ⚠️ Failed to open extension entry tab ${targetUrl}:`, tabErr?.message || tabErr)
-        }
-      }
-    } catch (err) {
-      console.warn("[HYPERBROWSER-SERVICE] ⚠️ Failed to open extension entry tabs:", err?.message || err)
-    }
-  }
-
   /**
    * Create a new browser session with extension loaded
    * @param {Object} extensionFiles - The extension files to load
@@ -234,11 +188,6 @@ export class HyperbrowserService {
         : typeof extensionFiles === "object" && Object.keys(extensionFiles).length > 0
           ? Object.entries(extensionFiles).map(([file_path, content]) => ({ file_path, content }))
           : []
-      const extensionEntryHtmlPaths = this.getExtensionEntryHtmlPaths(filesArray)
-      if (extensionEntryHtmlPaths.length > 0) {
-        console.log("[HYPERBROWSER-SERVICE] 🎯 Extension entry HTML files detected:", extensionEntryHtmlPaths)
-      }
-
       // Run extension upload and profile lookup in PARALLEL - no reason to wait for one before the other
       console.log("[HYPERBROWSER-SERVICE] ⚡ Starting parallel extension upload + profile lookup...")
       const [extensionId, profileResult] = await Promise.all([
@@ -369,32 +318,39 @@ export class HyperbrowserService {
             const pinResult = await runPinExtension(session.id)
             result.pinExtension = pinResult
 
-            if (pinResult?.chromeExtensionId) {
-              console.log("[HYPERBROWSER-SERVICE] ✅ Captured Chrome extension ID from pinning:", pinResult.chromeExtensionId)
-              result.chromeExtensionId = pinResult.chromeExtensionId
+            let resolvedChromeExtensionId = pinResult?.chromeExtensionId || null
+            if (!resolvedChromeExtensionId) {
+              try {
+                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin succeeded but no extension ID returned; capturing from CDP targets...")
+                resolvedChromeExtensionId = await captureExtensionIdUtil(session.id, this.apiKey)
+              } catch (captureErr) {
+                console.warn("[HYPERBROWSER-SERVICE] ⚠️  Fallback extension ID capture failed:", captureErr?.message || captureErr)
+              }
+            }
+
+            if (resolvedChromeExtensionId) {
+              console.log("[HYPERBROWSER-SERVICE] ✅ Resolved Chrome extension ID:", resolvedChromeExtensionId)
+              result.chromeExtensionId = resolvedChromeExtensionId
               await this.persistChromeExtensionId({
                 supabaseClient,
                 projectId,
-                chromeExtensionId: pinResult.chromeExtensionId,
+                chromeExtensionId: resolvedChromeExtensionId,
                 hyperbrowserExtensionId: result.hyperbrowserExtensionId,
-                source: "pin-extension",
-              })
-              await this.openExtensionEntryTabs({
-                sessionId: session.id,
-                chromeExtensionId: pinResult.chromeExtensionId,
-                htmlPaths: extensionEntryHtmlPaths,
+                source: pinResult?.chromeExtensionId ? "pin-extension" : "pin-extension-fallback-cdp",
               })
             }
 
             if (pinResult?.success) {
               if (pinResult.sessionClosed) {
                 console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: session was closed during operation")
+              } else if (pinResult.noUiFlow) {
+                console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: no-UI flow complete (target-based ID capture)")
               } else if (pinResult.alreadyPinned) {
                 console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: already pinned to toolbar")
               } else if (pinResult.pinned) {
                 console.log("[HYPERBROWSER-SERVICE] ✅ Pin extension: successfully pinned to toolbar")
               } else {
-                console.log("[HYPERBROWSER-SERVICE] ⚠️  Pin extension: clicked but state not verified")
+                console.log("[HYPERBROWSER-SERVICE] ℹ️  Pin extension: completed with partial metadata")
               }
             } else {
               console.error("[HYPERBROWSER-SERVICE] ❌ Pin extension failed:", pinResult?.error)

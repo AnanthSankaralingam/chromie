@@ -1,6 +1,6 @@
 // Browser control utilities for Hyperbrowser sessions
 import { Hyperbrowser } from "@hyperbrowser/sdk"
-import { HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID } from "@/lib/utils/hyperbrowser-utils"
+import { KNOWN_UTILITY_EXTENSION_IDS } from "@/lib/utils/hyperbrowser-utils"
 import {
   getCachedConnection,
   setCachedConnection,
@@ -197,11 +197,7 @@ export async function primeExtensionContext(sessionId, apiKey) {
  * @returns {Promise<string|null>} Chrome extension ID or null if not found
  */
 export async function captureExtensionId(sessionId, apiKey, extraUtilityExtensionIds = [], options = {}) {
-  const utilityIds = new Set([
-    "bghcomfpdkdffljkhcfeedpbilbkicdj",
-    HYPERBROWSER_SCREEN_RECORDING_EXTENSION_ID,
-    ...(extraUtilityExtensionIds || []),
-  ])
+  const utilityIds = new Set([...(KNOWN_UTILITY_EXTENSION_IDS || []), ...(extraUtilityExtensionIds || [])])
   const maxAttempts = Math.max(1, options.maxAttempts ?? 10)
   const delayMs = options.delayMs ?? 400
 
