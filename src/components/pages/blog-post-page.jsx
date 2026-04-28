@@ -35,6 +35,49 @@ function renderTextWithLinks(text, links) {
   ]
 }
 
+function renderTextWithFormatting(text, links) {
+  const linkedText = renderTextWithLinks(text, links)
+  const segments = Array.isArray(linkedText) ? linkedText : [linkedText]
+  const formatted = []
+
+  segments.forEach((segment, index) => {
+    if (typeof segment !== "string") {
+      formatted.push(segment)
+      return
+    }
+
+    const pieces = segment.split(/(\*\*.*?\*\*)/g).filter(Boolean)
+    pieces.forEach((piece, pieceIndex) => {
+      const isBold = piece.startsWith("**") && piece.endsWith("**") && piece.length > 4
+      if (isBold) {
+        formatted.push(<strong key={`b-${index}-${pieceIndex}`} className="text-white font-semibold">{piece.slice(2, -2)}</strong>)
+      } else {
+        formatted.push(<span key={`t-${index}-${pieceIndex}`}>{piece}</span>)
+      }
+    })
+  })
+
+  return formatted
+}
+
+function getYouTubeEmbedUrl(url) {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes("youtu.be")) {
+      const videoId = parsed.pathname.replace("/", "")
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
+    }
+    if (parsed.hostname.includes("youtube.com")) {
+      const videoId = parsed.searchParams.get("v")
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
+    }
+  } catch (error) {
+    return null
+  }
+  return null
+}
+
 export default function BlogPostPage({ slug }) {
   const [post, setPost] = useState(null)
 
@@ -188,9 +231,42 @@ export default function BlogPostPage({ slug }) {
                         <li key={j} className="leading-relaxed">{item}</li>
                       ))}
                     </ul>
+                  ) : block.type === "video" ? (
+                    (() => {
+                      const videoUrl = block.videoUrl || post.videoUrl
+                      const embedUrl = getYouTubeEmbedUrl(videoUrl)
+                      if (!videoUrl || !embedUrl) return null
+                      return (
+                        <div key={i} className="mb-10">
+                          <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="block">
+                            <div className="relative w-full overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-900/40">
+                              <div className="aspect-video w-full">
+                                <iframe
+                                  src={embedUrl}
+                                  title={`${post.title} video`}
+                                  className="h-full w-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  referrerPolicy="strict-origin-when-cross-origin"
+                                  allowFullScreen
+                                />
+                              </div>
+                            </div>
+                          </a>
+                          {block.thumbnailUrl && (
+                            <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="mt-4 block">
+                              <img
+                                src={block.thumbnailUrl}
+                                alt={`${post.title} video preview`}
+                                className="w-full rounded-xl border border-gray-700/50 object-cover"
+                              />
+                            </a>
+                          )}
+                        </div>
+                      )
+                    })()
                   ) : (
                     <p key={i} className={`text-gray-300 leading-relaxed mb-8 ${i === 0 ? "text-xl" : ""}`}>
-                      {block.links ? renderTextWithLinks(block.text, block.links) : block.text}
+                      {renderTextWithFormatting(block.text, block.links)}
                     </p>
                   )
                 ))
