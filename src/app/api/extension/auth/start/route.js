@@ -5,6 +5,12 @@ import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
 
 const REDIRECT_COOKIE = "chromie_extension_redirect_uri"
 
+function redirectWithFragment(baseUrl, values) {
+  const target = new URL(baseUrl)
+  target.hash = new URLSearchParams(values).toString()
+  return NextResponse.redirect(target)
+}
+
 function isValidExtensionRedirect(value) {
   if (!value || typeof value !== "string") return false
   if (!value.startsWith("https://")) return false
@@ -29,6 +35,19 @@ export async function GET(request) {
 
   const supabase = await createClient()
   const callbackUrl = new URL("/auth/extension/callback", requestUrl.origin)
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (session?.access_token && session?.refresh_token) {
+    return redirectWithFragment(extensionRedirectUri, {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: String(session.expires_at || ""),
+      token_type: session.token_type || "bearer",
+    })
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,

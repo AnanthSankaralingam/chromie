@@ -4,16 +4,25 @@ import { NextResponse } from 'next/server'
 export async function middleware(request) {
   // Handle www redirect but preserve auth codes
   if (request.nextUrl.hostname === 'www.chromie.dev') {
-    const url = request.nextUrl.clone()
-    url.hostname = 'chromie.dev'
-    
-    // Check if this is an OAuth callback with code parameter
-    const code = url.searchParams.get('code')
-    if (code) {
-      console.log('🔍 Middleware: OAuth code detected, preserving in redirect')
+    // Extension OAuth: /api/extension/auth/start sets a host-only cookie on whichever
+    // host served the request (often www after CDN). Supabase returns to the same
+    // host's /auth/extension/callback. Stripping www here sends the browser to apex
+    // without that cookie → extension_auth_missing_redirect.
+    const isExtensionAuthCallback =
+      request.nextUrl.pathname.startsWith('/auth/extension/')
+
+    if (!isExtensionAuthCallback) {
+      const url = request.nextUrl.clone()
+      url.hostname = 'chromie.dev'
+
+      // Check if this is an OAuth callback with code parameter
+      const code = url.searchParams.get('code')
+      if (code) {
+        console.log('🔍 Middleware: OAuth code detected, preserving in redirect')
+      }
+
+      return NextResponse.redirect(url, 308)
     }
-    
-    return NextResponse.redirect(url, 308)
   }
 
   let supabaseResponse = NextResponse.next({
