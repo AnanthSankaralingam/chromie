@@ -528,7 +528,7 @@ export default function HomePage() {
         </main>
 
         {/* Featured Creations Section */}
-        <FeaturedCreationsSection />
+        <FeaturedCreationsSection limit={3} showSeeMore />
 
         {/* How It Works Section */}
         <HowItWorksSection />

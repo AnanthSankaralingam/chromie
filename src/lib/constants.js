@@ -53,6 +53,7 @@ export const MODEL_SELECTION = {
   CODE_PATCH_DEFAULT: 'gemini-3-flash-preview',
   CODE_PATCH_FALLBACK: 'gemini-3-flash-preview',
   TASK_EXECUTOR_HTML: 'gemini-3.1-flash-lite-preview',
+  TASK_EXECUTOR_JS: process.env.IONROUTER_API_KEY ? 'kimi-k2.5' : 'gemini-3-flash-preview',
   TASK_EXECUTOR_CSS: 'gemini-3-flash-preview',
   FOLLOWUP_PATCH_CSS_FAST: 'gemini-3.1-flash-preview',
   FOLLOWUP_PATCH_CSS_COMPLEX: 'gemini-3-flash-preview',

@@ -162,6 +162,7 @@ function buildContextSections(task, executionContext) {
 function getModelForFile(fileName, modelOverride) {
   const ext = (fileName || '').split('.').pop().toLowerCase()
   if (ext === 'html') return HTML_CODEGEN_MODEL
+  if (ext === 'js') return MODEL_SELECTION.TASK_EXECUTOR_JS || modelOverride || DEFAULT_MODEL
   if (ext === 'css') return MODEL_SELECTION.TASK_EXECUTOR_CSS
   if (ext === 'json') return MODEL_SELECTION.TASK_EXECUTOR_JSON
   return modelOverride || DEFAULT_MODEL

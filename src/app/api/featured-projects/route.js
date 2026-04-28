@@ -3,17 +3,32 @@ import { createClient } from "@/lib/supabase/server"
 
 const CACHE_HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" }
 
-// GET /api/featured-projects
-// Returns a list of featured projects, based on project IDs stored in the `featured_projects` table.
-export async function GET() {
+// GET /api/featured-projects?limit=3
+// Returns featured projects from `featured_projects`, optionally limited.
+export async function GET(request) {
   const supabase = await createClient()
+  const { searchParams } = new URL(request.url)
+  const limitParam = Number.parseInt(searchParams.get("limit") || "", 10)
+  const pageParam = Number.parseInt(searchParams.get("page") || "", 10)
+  const hasValidLimit = Number.isFinite(limitParam) && limitParam > 0
+  const hasValidPage = Number.isFinite(pageParam) && pageParam > 0
+  const limit = hasValidLimit ? Math.min(limitParam, 50) : null
+  const page = hasValidPage ? pageParam : 1
 
   try {
-    const { data: featuredRows, error } = await supabase
+    let query = supabase
       .from("featured_projects")
-      .select("id, project_id, position, created_at, demo_video_url, projects(id, name, description, created_at, user_id)")
+      .select("id, project_id, position, created_at, demo_video_url, chrome_web_store_url, is_public, projects(id, name, description, created_at, user_id)", { count: "exact" })
       .order("position", { ascending: true })
       .order("created_at", { ascending: false })
+
+    if (limit) {
+      const from = (page - 1) * limit
+      const to = from + limit - 1
+      query = query.range(from, to)
+    }
+
+    const { data: featuredRows, error, count } = await query
 
     if (error) {
       console.error("[FeaturedProjects] Error fetching featured projects:", error)
@@ -45,11 +60,23 @@ export async function GET() {
           position: row.position,
           featuredAt: row.created_at,
           demoVideoUrl: row.demo_video_url ?? null,
+          chromeWebStoreUrl: row.chrome_web_store_url ?? null,
+          isPublic: row.is_public ?? true,
         }
       })
       .filter(Boolean)
 
-    return NextResponse.json({ projects: orderedProjects }, { status: 200, headers: CACHE_HEADERS })
+    const pagination = limit
+      ? {
+          page,
+          limit,
+          totalCount: count ?? orderedProjects.length,
+          totalPages: Math.max(1, Math.ceil((count ?? orderedProjects.length) / limit)),
+          hasNextPage: page * limit < (count ?? orderedProjects.length),
+        }
+      : null
+
+    return NextResponse.json({ projects: orderedProjects, pagination }, { status: 200, headers: CACHE_HEADERS })
   } catch (error) {
     console.error("[FeaturedProjects] Unexpected error loading featured projects:", error)
     return NextResponse.json({ error: "Unexpected error loading featured projects" }, { status: 500 })
