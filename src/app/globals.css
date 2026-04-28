@@ -634,3 +634,18 @@
     box-sizing: border-box;
   }
 }
+
+@keyframes chromie-loading-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+@layer utilities {
+  .chromie-loading-indeterminate {
+    animation: chromie-loading-indeterminate 1.85s ease-in-out infinite;
+  }
+}
