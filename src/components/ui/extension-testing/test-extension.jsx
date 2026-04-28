@@ -158,6 +158,7 @@ export default function useTestExtension(currentProjectId) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          // Default async for faster "Try it out"; callers can opt-in to sync wait.
           awaitPinExtension: options?.awaitPinExtension === true,
           isRunTests: options?.autoRunHyperAgent === true,
           viewport,

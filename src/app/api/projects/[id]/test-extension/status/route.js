@@ -40,7 +40,30 @@ export async function GET(request, { params }) {
     }
 
     const status = await hyperbrowserService.getSessionStatus(sessionId)
-    return NextResponse.json({ success: true, ...status })
+    let chromeExtensionId = null
+    try {
+      const { data: extensionIdFile } = await supabase
+        .from("code_files")
+        .select("content")
+        .eq("project_id", id)
+        .eq("file_path", ".chromie/extension-id.json")
+        .maybeSingle()
+
+      if (extensionIdFile?.content) {
+        const parsed = JSON.parse(extensionIdFile.content)
+        chromeExtensionId = parsed?.chromeExtensionId || null
+      }
+    } catch (e) {
+      // Non-fatal; status endpoint should still return session health info.
+      console.warn("[test-extension/status] Could not load persisted extension ID:", e?.message || e)
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...status,
+      chromeExtensionId,
+      extensionReady: Boolean(chromeExtensionId),
+    })
   } catch (error) {
     console.error("[test-extension/status] Error:", error)
     return NextResponse.json(
