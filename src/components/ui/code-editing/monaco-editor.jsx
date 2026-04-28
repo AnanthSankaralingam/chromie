@@ -26,6 +26,7 @@ export default function MonacoEditor({
   filePath,
   projectFiles = [],
   onHtmlPreviewToggle,
+  isUserscriptProject = false,
 }) {
   const editorRef = useRef(null)
   const [content, setContent] = useState(code)
@@ -38,6 +39,7 @@ export default function MonacoEditor({
   const [localIcons, setLocalIcons] = useState(new Map()) // Map<path, dataUrl>
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLoadingHtmlPreview, setIsLoadingHtmlPreview] = useState(false)
+  const isUserscriptFile = isUserscriptProject && (filePath === 'userscript.js' || fileName?.toLowerCase().endsWith('.js'))
 
   // Check if file can be deleted (not a protected file)
   const canDeleteFile = () => {
@@ -544,6 +546,11 @@ export default function MonacoEditor({
               </button>
             )}
             <span className="text-xs font-medium text-neutral-300 truncate">{fileName || 'Untitled'}</span>
+            {isUserscriptFile && (
+              <span className="shrink-0 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-cyan-300">
+                userscript
+              </span>
+            )}
             {hasChanges && !isImageAsset() && (
               <span className="shrink-0 w-1.5 h-1.5 bg-neutral-500 rounded-full animate-pulse" title="Unsaved" />
             )}

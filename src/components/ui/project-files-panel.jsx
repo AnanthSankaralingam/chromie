@@ -17,7 +17,8 @@ export default function ProjectFilesPanel({
   onAssetDeleted,
   onFileDeleted,
   onFileCreated,
-  flatFiles = []
+  flatFiles = [],
+  isUserscriptProject = false
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
@@ -107,7 +108,9 @@ export default function ProjectFilesPanel({
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div className="flex items-center space-x-2">
             <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-400" />
-            <h3 className="text-base sm:text-lg font-semibold text-neutral-200">project files</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-neutral-200">
+              {isUserscriptProject ? "userscript files" : "project files"}
+            </h3>
           </div>
           {projectId && (
             <Button
@@ -115,14 +118,16 @@ export default function ProjectFilesPanel({
               size="sm"
               variant="outline"
               className="bg-neutral-800 border-neutral-600 hover:bg-neutral-700 text-neutral-200"
-              title="Upload icons and assets for your Chrome extension"
+              title={isUserscriptProject ? "Upload supporting assets" : "Upload icons and assets for your Chrome extension"}
             >
               <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
               <span className="hidden sm:inline">Upload</span>
             </Button>
           )}
         </div>
-        <p className="text-xs sm:text-sm text-neutral-500 mb-2 sm:mb-3">chrome extension structure</p>
+        <p className="text-xs sm:text-sm text-neutral-500 mb-2 sm:mb-3">
+          {isUserscriptProject ? "synced userscript project" : "chrome extension structure"}
+        </p>
         
         {/* Search Bar */}
         <div className="relative">

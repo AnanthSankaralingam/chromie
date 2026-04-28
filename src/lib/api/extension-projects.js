@@ -1,5 +1,6 @@
 const USER_SCRIPT_FILE = "userscript.js"
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const USER_SCRIPT_META_RE = /\/\/\s*==UserScript==/
 
 export function normalizeRunAt(runAt) {
   if (runAt === "document_start" || runAt === "document_end" || runAt === "document_idle") {
@@ -18,10 +19,21 @@ export function isUuid(value) {
   return UUID_RE.test(String(value || ""))
 }
 
+export function findRunnableUserScriptFile(files = [], metadata = null) {
+  const jsFiles = (files || []).filter((file) => file.file_path?.endsWith(".js"))
+  return (
+    jsFiles.find((file) => file.file_path === USER_SCRIPT_FILE) ||
+    jsFiles.find((file) => USER_SCRIPT_META_RE.test(file.content || "")) ||
+    (metadata ? jsFiles[0] : null)
+  )
+}
+
+export function isExtensionEligibleProject(files = [], metadata = null) {
+  return Boolean(findRunnableUserScriptFile(files, metadata))
+}
+
 export function toExtensionScript(project, files = [], metadata = null) {
-  const scriptFile =
-    files.find((file) => file.file_path === USER_SCRIPT_FILE) ||
-    files.find((file) => file.file_path?.endsWith(".js"))
+  const scriptFile = findRunnableUserScriptFile(files, metadata)
 
   return {
     id: project.id,
