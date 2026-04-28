@@ -104,12 +104,6 @@ export default function TestModal({
               />
               <h2 className="text-lg font-semibold text-white">Extension Test Environment</h2>
             </div>
-
-            {sessionData && (
-              <div className="flex items-center space-x-2 text-sm text-slate-400">
-                <span>Session: {sessionData.sessionId?.slice(-8)}</span>
-              </div>
-            )}
           </div>
 
           <div className="flex items-center space-x-3">

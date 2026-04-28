@@ -18,8 +18,6 @@ import { analyzeManifest } from "@/lib/codegen/file-analysis/analyzers/manifest-
 
 /** @typedef {'embed' | 'side-by-side'} LoadingVariant */
 
-const BOOKEND_STAGE_TITLE = "launching cloud browser"
-
 function normalizeFiles(extensionFiles) {
   if (!Array.isArray(extensionFiles)) return []
   return extensionFiles.map((f) => ({
@@ -123,25 +121,6 @@ function hasAnyTeachableSurface(caps) {
   )
 }
 
-function stageTitleSurfaces(caps) {
-  if (caps.parseError || !hasAnyTeachableSurface(caps)) {
-    return "your extension bundle"
-  }
-  const tags = []
-  if (caps.hasSidePanel) tags.push("side panel")
-  if (caps.hasPopup) tags.push("popup")
-  if (caps.hasOptions) tags.push("options")
-  if (caps.hasNewTabOverride) tags.push("new tab")
-  if (caps.hasContentScripts) tags.push("content scripts")
-  if (caps.hasBackground) tags.push("background")
-  if (caps.hasBookmarksOverride) tags.push("bookmarks page")
-  if (caps.hasHistoryOverride) tags.push("history page")
-  if (caps.hasDevtoolsPage) tags.push("devtools page")
-  if (caps.hasOmnibox) tags.push("omnibox")
-  const joined = tags.slice(0, 5).join(" · ")
-  return joined ? `your manifest: ${joined}` : "your extension bundle"
-}
-
 function pickIconForDeclared(caps) {
   if (caps.hasSidePanel) return PanelRight
   if (caps.hasPopup) return Puzzle
@@ -165,64 +144,59 @@ function itemsDeclared(caps) {
 
   if (caps.parseError) {
     return [
-      "couldn't read manifest.json — tips below still apply once the browser opens.",
       "use the toolbar puzzle icon and extension menu to explore.",
-      "visit normal sites to exercise content scripts if your project uses them.",
+      "visit normal sites to exercise content scripts.",
     ]
   }
 
   if (caps.hasSidePanel) {
-    items.push(
-      "side panel is declared — in chromium it shows under your extension's toolbar icon."
-    )
+    items.push("click your extension toolbar icon to open the side panel.")
   }
   if (caps.hasPopup && items.length < 3) {
-    items.push('action / default_popup is declared — toolbar icon opens this popup.')
+    items.push("click your extension toolbar icon to open the popup.")
   }
   if (caps.hasOptions && items.length < 3) {
     items.push(
       caps.optionsOpenInTab
-        ? "options_ui is declared with open_in_tab — options open as a full tab."
-        : "options page is declared — chrome exposes it via the extension menu → options."
+        ? "open extension options from the extension menu (it opens in a tab)."
+        : "open extension options from the extension menu."
     )
   }
   if (caps.hasNewTabOverride && items.length < 3) {
-    items.push("chrome_url_overrides.newtab is declared — replaces the new tab page.")
+    items.push("open a new tab to see your extension's new tab page.")
   }
   if (caps.hasBookmarksOverride && items.length < 3) {
-    items.push("chrome_url_overrides.bookmarks is declared — replaces the bookmarks manager page.")
+    items.push("open bookmarks to test your extension's bookmarks page.")
   }
   if (caps.hasHistoryOverride && items.length < 3) {
-    items.push("chrome_url_overrides.history is declared — replaces the history page.")
+    items.push("open history to test your extension's history page.")
   }
   if (caps.hasContentScripts && items.length < 3) {
-    items.push("content_scripts are declared — scripts inject on URLs matching your manifest.")
+    items.push("visit matching websites to trigger your content scripts.")
   }
   if (caps.hasBackground && items.length < 3) {
-    items.push(
-      "background worker or scripts are declared — they keep running while this session is open."
-    )
+    items.push("keep this session open while background tasks run.")
   }
   if (caps.hasDevtoolsPage && items.length < 3) {
-    items.push("devtools_page is declared — an extension page wired into developer tools.")
+    items.push("open DevTools on a tab to test your extension.")
   }
   if (caps.hasOmnibox && items.length < 3) {
-    items.push("omnibox keyword is declared — typing it in the address bar drives your extension.")
+    items.push("type your extension keyword in the address bar.")
   }
 
   if (items.length === 0) {
     return [
-      "no toolbar popup, side panel, or overrides found — may be minimal or non-ui.",
-      "once loaded, check the puzzle menu for anything chrome registered.",
-      "if you only ship content scripts, browse sites that match your matches.",
+      "we didn't find a popup, side panel, or page override in this build.",
+      "open the puzzle menu to see what actions are available.",
+      "if you use content scripts, browse matching sites to trigger them.",
     ]
   }
 
   if (items.length === 1) {
-    items.push("chrome exposes these the same way as desktop once install completes.")
-    items.push("permissions still follow manifest.json.")
+    items.push("use the same clicks and menus you use in desktop chrome.")
+    items.push("permissions still follow your extension setup.")
   } else if (items.length === 2) {
-    items.push("same toolbar icon flow as desktop chromium.")
+    items.push("this follows the same toolbar flow as desktop chrome.")
   }
 
   return items.slice(0, 3)
@@ -246,40 +220,38 @@ function itemsHowTo(caps, variant) {
   }
 
   if (caps.hasSidePanel) {
-    items.push(
-      "side panel: click your extension icon in the toolbar, then open side panel from chrome's menu for that icon."
-    )
+    items.push("side panel: click your extension toolbar icon, then open side panel.")
   }
   if (caps.hasPopup && items.length < 3) {
-    items.push("popup: puzzle icon → your extension, or pin it — same as desktop chrome.")
+    items.push("popup: use the puzzle icon, or pin your extension.")
   }
   if (caps.hasOptions && items.length < 3) {
     items.push(
       caps.optionsOpenInTab
-        ? "options: chrome extensions menu → your extension → options (opens as a tab here too)."
-        : "options: right-click the extension icon → options, or extensions page → details → options."
+        ? "options: open from the extensions menu (opens in a tab)."
+        : "options: right-click extension icon → options."
     )
   }
   if (caps.hasNewTabOverride && items.length < 3) {
     items.push("new tab page: open a new tab — your override loads in this session.")
   }
   if (caps.hasBookmarksOverride && items.length < 3) {
-    items.push("bookmarks UI: open the bookmarks manager — your override replaces that page.")
+    items.push("bookmarks: open bookmarks manager to test your page.")
   }
   if (caps.hasHistoryOverride && items.length < 3) {
-    items.push("history UI: open history — your override replaces that page.")
+    items.push("history: open history to test your page.")
   }
   if (caps.hasContentScripts && items.length < 3) {
-    items.push("content scripts: navigate to URLs that match your matches (e.g. https pages for <all_urls>).")
+    items.push("content scripts: visit matching sites to trigger them.")
   }
   if (caps.hasDevtoolsPage && items.length < 3) {
-    items.push("devtools extension page: open devtools on a tab when testing that integration.")
+    items.push("devtools: open DevTools on a tab to test your extension.")
   }
   if (caps.hasOmnibox && items.length < 3) {
-    items.push("omnibox: focus the address bar, type your keyword, then the suggestion flow from your manifest.")
+    items.push("omnibox: type your keyword in the address bar.")
   }
   if (caps.hasBackground && items.length < 3) {
-    items.push("background: keep the session open — events fire without a visible window.")
+    items.push("background: keep this session open while tasks run.")
   }
 
   if (items.length === 0) {
@@ -317,7 +289,7 @@ function genericInstructionBookend() {
     items: [
       "same engine as desktop chrome.",
       "your extension runs only here — use tabs and menus like local chrome.",
-      "first connect: ~15–30s.",
+      "test it like a user would.",
     ],
   }
 }
@@ -335,23 +307,23 @@ export function buildBrowserTestLoadingArrays(extensionFiles, variant = "embed")
   const declared = {
     icon: pickIconForDeclared(caps),
     iconColor: "green",
-    title: "what your manifest declares",
+    title: "where to click first",
     items: itemsDeclared(caps),
   }
 
   const howTo = {
     icon: pickIconForHowTo(caps),
     iconColor: "purple",
-    title: "how to use it in this browser",
+    title: "how to test your extension",
     items: itemsHowTo(caps, variant),
   }
 
   return {
     loadingStages: [
-      { title: BOOKEND_STAGE_TITLE },
-      { title: stageTitleSurfaces(caps) },
-      { title: "how to open each surface" },
-      { title: BOOKEND_STAGE_TITLE },
+      { title: bookend.title },
+      { title: declared.title },
+      { title: howTo.title },
+      { title: bookend.title },
     ],
     instructionBoxes: [bookend, declared, howTo, bookend],
   }

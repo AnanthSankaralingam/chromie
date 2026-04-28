@@ -748,12 +748,6 @@ export default function SideBySideTestModal({
               />
               <h2 className="text-sm md:text-lg font-semibold text-gray-900 truncate">extension test environment</h2>
             </div>
-
-            {sessionData && (
-              <div className="flex items-center space-x-2 text-xs md:text-sm text-gray-500 flex-shrink-0">
-                <span>session: {sessionData.sessionId?.slice(-8)}</span>
-              </div>
-            )}
           </div>
 
           <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
