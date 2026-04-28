@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
-import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, Navigation, Info, Eye, CircleDot, Square, Share2 } from "lucide-react"
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react"
+import { X, RefreshCw, ExternalLink, AlertCircle, Monitor, CircleDot, Square, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import SessionTimer from "@/components/ui/timer/session-timer"
 import BrowserTestingTutorial from "./browser-testing-tutorial"
 import { nextLoadingEducationIndex } from "@/lib/utils/loading-education-index"
+import { buildBrowserTestLoadingArrays } from "@/lib/utils/extension-loading-messages"
 import BrowserTestLoadingOverlay from "@/components/ui/extension-testing/browser-test-loading-overlay"
 import TestingSidepanel from "@/components/ui/extension-testing/testing-sidepanel"
 import ErrorDisplay from "./error-display"
@@ -59,6 +60,11 @@ export default function SideBySideTestModal({
   const [isViewingDemo, setIsViewingDemo] = useState(false)
   const [isResolvingDemoVideo, setIsResolvingDemoVideo] = useState(false)
   const demoStartOffsetRef = useRef(null)
+
+  const { loadingStages, instructionBoxes } = useMemo(
+    () => buildBrowserTestLoadingArrays(extensionFiles, "side-by-side"),
+    [extensionFiles]
+  )
 
   // Reset expired state when a new session opens or modal re-opens with a fresh session
   useEffect(() => {
@@ -145,45 +151,6 @@ export default function SideBySideTestModal({
 
     return { ok: false, status: lastStatus, timedOut: true }
   }
-
-  // Define loading stages for browser initialization
-  const loadingStages = [
-    { title: "launching cloud browser" },
-    { title: "installing your extension" },
-    { title: "opening live view" },
-  ]
-
-  // Define instruction boxes for each stage
-  const instructionBoxes = [
-    {
-      icon: Monitor,
-      iconColor: "blue",
-      title: "real chromium, in the cloud",
-      items: [
-        "same engine as desktop chrome.",
-        "your extension runs only here — use tabs and menus like local chrome."
-      ]
-    },
-    {
-      icon: Navigation,
-      iconColor: "green",
-      title: "your build loads in this browser",
-      items: [
-        "installed in this session already.",
-        "click through and test like a user.",
-        "toolbar, new tab, side panel — whatever your manifest defines."
-      ]
-    },
-    {
-      icon: Eye,
-      iconColor: "purple",
-      title: "test like a user",
-      items: [
-        "new tab / side panel / popup — same flows as desktop chrome.",
-        "console logs on the right; AI agent tab for automated tests."
-      ]
-    }
-  ]
 
   // Store session data for the embed page to access
   useEffect(() => {

@@ -544,6 +544,7 @@ export default function ShareExtensionPage({ token }) {
         isLoading={isTestLoading}
         loadingProgress={loadingProgress}
         projectId={projectData?.project?.id}
+        extensionFiles={codeFiles}
       />
 
       <AuthModal
