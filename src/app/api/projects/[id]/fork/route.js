@@ -36,6 +36,21 @@ export async function POST(request, { params }) {
   }
 
   try {
+    const { data: featuredProject, error: featuredProjectError } = await supabase
+      .from("featured_projects")
+      .select("is_public")
+      .eq("project_id", projectId)
+      .maybeSingle()
+
+    if (featuredProjectError) {
+      console.error("Error checking featured project fork policy:", featuredProjectError)
+      return NextResponse.json({ error: "Failed to validate fork policy" }, { status: 500 })
+    }
+
+    if (featuredProject && featuredProject.is_public === false) {
+      return NextResponse.json({ error: "This project is not available for forking" }, { status: 403 })
+    }
+
     // Get original project details and verify ownership
     const { data: originalProject, error: projectError } = await supabase
       .from("projects")

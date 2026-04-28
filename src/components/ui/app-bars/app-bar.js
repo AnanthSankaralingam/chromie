@@ -36,8 +36,10 @@ export default function AppBar() {
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' })
       }
+    } else if (pathname === '/gallery') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      router.push('/#featured-creations')
+      router.push('/gallery')
     }
   }
 

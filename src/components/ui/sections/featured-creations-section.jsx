@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Eye } from "lucide-react"
+import { ArrowRight, Chrome, Eye } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -83,43 +84,100 @@ const INITIAL_STATE = {
   loading: true,
   error: null,
   projects: [],
+  pagination: null,
 }
 
-export default function FeaturedCreationsSection() {
+export default function FeaturedCreationsSection({
+  limit = null,
+  showSeeMore = false,
+  sectionId = "featured-creations",
+  cardVariant = "default",
+  enablePagination = false,
+}) {
   const [state, setState] = useState(INITIAL_STATE)
+  const [page, setPage] = useState(1)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const loadMoreRef = useRef(null)
   const router = useRouter()
 
   useEffect(() => {
     const fetchFeaturedProjects = async () => {
       try {
-        const response = await fetch("/api/featured-projects")
+        if (enablePagination && page > 1) {
+          setIsLoadingMore(true)
+        } else {
+          setState((prev) => ({ ...prev, loading: true }))
+        }
+
+        const queryParams = new URLSearchParams()
+        if (Number.isFinite(limit) && limit > 0) queryParams.set("limit", String(limit))
+        if (enablePagination) queryParams.set("page", String(page))
+        const query = queryParams.toString()
+        const response = await fetch(`/api/featured-projects${query ? `?${query}` : ""}`)
 
         if (!response.ok) {
           setState({
             loading: false,
             error: "unable to load featured creations right now.",
             projects: [],
+            pagination: null,
           })
           return
         }
 
         const data = await response.json()
-        setState({
-          loading: false,
-          error: null,
-          projects: Array.isArray(data.projects) ? data.projects : [],
+        setState((prev) => {
+          const nextProjects = Array.isArray(data.projects) ? data.projects : []
+          const mergedProjects =
+            enablePagination && page > 1
+              ? [
+                  ...prev.projects,
+                  ...nextProjects.filter(
+                    (nextProject) => !prev.projects.some((existing) => existing.id === nextProject.id)
+                  ),
+                ]
+              : nextProjects
+
+          return {
+            loading: false,
+            error: null,
+            projects: mergedProjects,
+            pagination: data.pagination ?? null,
+          }
         })
       } catch (error) {
         setState({
           loading: false,
           error: "unexpected error loading featured creations.",
           projects: [],
+          pagination: null,
         })
+      } finally {
+        setIsLoadingMore(false)
       }
     }
 
     fetchFeaturedProjects()
-  }, [])
+  }, [enablePagination, limit, page])
+
+  useEffect(() => {
+    if (!enablePagination) return
+    if (!state.pagination?.hasNextPage) return
+    const sentinel = loadMoreRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isLoadingMore && !state.loading) {
+          setPage((prev) => prev + 1)
+        }
+      },
+      { rootMargin: "250px" }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [enablePagination, isLoadingMore, state.loading, state.pagination?.hasNextPage])
 
   const handleForkProject = async (projectId) => {
     try {
@@ -147,12 +205,10 @@ export default function FeaturedCreationsSection() {
   }
 
   const visibleProjects = state.projects
+  const useLargeCards = cardVariant === "large"
 
   return (
-    <section
-      id="featured-creations"
-      className="relative z-10 w-full"
-    >
+    <section id={sectionId} className="relative z-10 w-full">
       <div className="max-w-6xl mx-auto px-6 pt-6 pb-16 md:pt-8 md:pb-20">
         {/* Header */}
         <div className="text-center mb-10 md:mb-12">
@@ -186,22 +242,27 @@ export default function FeaturedCreationsSection() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap justify-center gap-6">
-            {visibleProjects.map((project) => (
-              <div
-                key={project.id}
-                className={cn(
-                  "min-w-0 w-full max-w-md",
-                  visibleProjects.length > 1 &&
-                    "md:w-[calc((100%-1.5rem)/2)] md:max-w-none lg:w-[calc((100%-3rem)/3)]"
-                )}
-              >
-                <Dialog>
-                  <article
-                    className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1117] hover:border-white/[0.14] transition-all duration-200"
-                  >
+          <>
+            <div className="flex flex-wrap justify-center gap-6">
+              {visibleProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className={cn(
+                    "min-w-0 w-full",
+                    useLargeCards
+                      ? "max-w-xl md:w-[calc((100%-1.5rem)/2)] md:max-w-none"
+                      : "max-w-md",
+                    !useLargeCards &&
+                      visibleProjects.length > 1 &&
+                      "md:w-[calc((100%-1.5rem)/2)] md:max-w-none lg:w-[calc((100%-3rem)/3)]"
+                  )}
+                >
+                  <Dialog>
+                    <article
+                      className="group relative w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1117] hover:border-white/[0.14] transition-all duration-200"
+                    >
                   {/* Hero area */}
-                  <div className="relative h-52 bg-slate-900">
+                  <div className={cn("relative bg-slate-900", useLargeCards ? "h-60" : "h-52")}>
                     {project.demoVideoUrl ? (
                       <LazyVideoHero project={project} />
                     ) : (
@@ -235,13 +296,22 @@ export default function FeaturedCreationsSection() {
                         <span className="text-xs font-medium text-zinc-200">
                           {(project.name || "chromie project")?.toLowerCase()}
                         </span>
-                        <span className="text-[11px] text-zinc-600">
-                          featured
-                        </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-[11px] text-zinc-600">
+                      {project.chromeWebStoreUrl && (
+                        <a
+                          href={project.chromeWebStoreUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs font-medium text-zinc-300 hover:bg-white/[0.08] hover:border-white/20 transition-colors"
+                          aria-label={`Open ${project.name || "project"} on Chrome Web Store`}
+                          title="view on chrome web store"
+                        >
+                          <Chrome className="h-3.5 w-3.5" />
+                        </a>
+                      )}
                       {project.demoVideoUrl && (
                         <DialogTrigger asChild>
                           <button
@@ -253,59 +323,83 @@ export default function FeaturedCreationsSection() {
                         </DialogTrigger>
                       )}
 
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="rounded-full bg-white text-[#080a0f] hover:bg-zinc-100 px-4 py-1.5 text-xs font-medium"
-                        onClick={() => handleForkProject(project.id)}
-                      >
-                        fork project
-                      </Button>
+                      {project.isPublic && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="rounded-full bg-white text-[#080a0f] hover:bg-zinc-100 px-4 py-1.5 text-xs font-medium"
+                          onClick={() => handleForkProject(project.id)}
+                        >
+                          fork project
+                        </Button>
+                      )}
                     </div>
                   </div>
-                </article>
+                  </article>
 
-                {project.demoVideoUrl && (
-                  <DialogContent className="max-w-3xl bg-[#0f1117] border-white/[0.08]">
-                    <DialogHeader className="mb-2">
-                      <DialogTitle className="text-sm font-medium text-zinc-200">
-                        {(project.name || "featured project").toLowerCase()} demo
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
-                      {(() => {
-                        const url = String(project.demoVideoUrl || "").trim()
-                        const isYouTube = url.includes("youtube.com") || url.includes("youtu.be")
-                        if (isYouTube) {
+                  {project.demoVideoUrl && (
+                    <DialogContent className="max-w-3xl bg-[#0f1117] border-white/[0.08]">
+                      <DialogHeader className="mb-2">
+                        <DialogTitle className="text-sm font-medium text-zinc-200">
+                          {(project.name || "featured project").toLowerCase()} demo
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
+                        {(() => {
+                          const url = String(project.demoVideoUrl || "").trim()
+                          const isYouTube = url.includes("youtube.com") || url.includes("youtu.be")
+                          if (isYouTube) {
+                            return (
+                              <iframe
+                                title={`${project.name || "featured project"} demo (large)`}
+                                src={getYouTubeEmbedUrl(url, true)}
+                                className="h-full w-full object-cover"
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                              />
+                            )
+                          }
                           return (
-                            <iframe
-                              title={`${project.name || "featured project"} demo (large)`}
-                              src={getYouTubeEmbedUrl(url, true)}
+                            <video
+                              src={url}
                               className="h-full w-full object-cover"
-                              allow="autoplay; encrypted-media; picture-in-picture"
-                              allowFullScreen
+                              autoPlay
+                              muted
+                              loop
+                              controls
+                              playsInline
                             />
                           )
-                        }
-                        return (
-                          <video
-                            src={url}
-                            className="h-full w-full object-cover"
-                            autoPlay
-                            muted
-                            loop
-                            controls
-                            playsInline
-                          />
-                        )
-                      })()}
-                    </div>
-                  </DialogContent>
-                )}
-              </Dialog>
+                        })()}
+                      </div>
+                    </DialogContent>
+                  )}
+                </Dialog>
+                </div>
+              ))}
+            </div>
+            {showSeeMore && (
+              <div className="mt-10 text-center">
+                <Link
+                  href="/gallery"
+                  className="group inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors duration-200"
+                >
+                  <span className="text-base font-medium">see more</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                </Link>
               </div>
-            ))}
-          </div>
+            )}
+            {enablePagination && (
+              <div ref={loadMoreRef} className="mt-10 flex items-center justify-center">
+                {isLoadingMore && (
+                  <div className="h-7 w-7 rounded-full border-2 border-white/10 border-t-white/30 animate-spin" />
+                )}
+                {!state.pagination?.hasNextPage && (
+                  <span className="text-xs text-zinc-600">you reached the end</span>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

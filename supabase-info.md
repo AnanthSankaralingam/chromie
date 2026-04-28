@@ -59,6 +59,8 @@ Stores a curated list of project IDs that should appear in the "Featured Creatio
 | `project_id`     | uuid         | FK → `projects.id`, ON DELETE CASCADE                                       |
 | `position`       | integer      | Optional; smaller numbers appear earlier in the gallery                     |
 | `demo_video_url` | text         | Optional; YouTube or direct video URL (mp4, webm) for the featured card    |
+| `chrome_web_store_url` | text   | Optional; Chrome Web Store listing URL for the featured extension           |
+| `is_public`      | boolean      | NOT NULL, DEFAULT true; whether the featured project is allowed to be forked |
 | `created_at`     | timestamptz  | DEFAULT now(); when the project was added to the featured list              |
 
 Recommended indexes:
@@ -69,6 +71,13 @@ RLS policies:
 - Public read access for all rows so the home page can render without requiring auth:
   - `SELECT` allowed for all roles.
 - Insert/update/delete restricted to privileged roles (e.g., service role or admin dashboard) so only admins can curate the list.
+
+Current curation snapshot:
+- `featured_projects` was refreshed on 2026-04-28 with 16 published Chromie extensions.
+- Records are ordered by `position` and include optional `demo_video_url` values for gallery playback.
+- Records also include optional `chrome_web_store_url` values for direct listing links.
+- `is_public` is used as a fork policy gate for featured projects; `chromie.dev` is set to `false`.
+- Missing source projects were created as lightweight `projects` records to preserve complete gallery coverage.
 
 ---
 

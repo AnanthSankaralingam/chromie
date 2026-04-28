@@ -28,6 +28,9 @@ function getFileType(fileName) {
 function getFollowupModelForFile(fileName, modelOverride, planningDifficulty = 0) {
   if (modelOverride) return modelOverride
   const type = getFileType(fileName)
+  if (type === 'js') {
+    return MODEL_SELECTION.TASK_EXECUTOR_JS || CODE_PATCH_MODEL || MODEL_SELECTION.CODE_PATCH_FALLBACK
+  }
   if (type === 'css') {
     const cssModel = planningDifficulty >= 0.7
       ? MODEL_SELECTION.FOLLOWUP_PATCH_CSS_COMPLEX
