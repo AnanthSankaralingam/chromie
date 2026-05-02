@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server"
 import { MODEL_SELECTION } from "@/lib/constants"
 import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
 import { GeminiAdapter } from "@/lib/services/adapters/gemini-adapter"
+import { getUserLimits } from "@/lib/limit-checker"
+import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 const MAX_OUTPUT_CAP = 8192
 const DEFAULT_TEMPERATURE = 0.2
@@ -109,6 +111,22 @@ export async function POST(request) {
       )
     }
 
+    const userLimits = await getUserLimits(user.id, supabase)
+    if (
+      userLimits.usage.extensionProxyTokens >=
+      userLimits.limits.extensionProxyTokens
+    ) {
+      return extensionJson(
+        request,
+        {
+          error: "Extension LLM token limit reached",
+          extension_proxy_tokens: userLimits.usage.extensionProxyTokens,
+          limit: userLimits.limits.extensionProxyTokens,
+        },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json().catch(() => null)
     const parsed = parseLlmBody(body)
     if ("error" in parsed && parsed.error) {
@@ -129,6 +147,31 @@ export async function POST(request) {
       outputText: result.output_text,
       usage: result.usage,
     })
+
+    const billTokens = Math.max(
+      0,
+      Math.floor(
+        Number(result.usage?.total_tokens ?? result.usage?.total ?? 0) || 0
+      )
+    )
+    if (billTokens > 0) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      let db = supabase
+      if (supabaseUrl && serviceKey) {
+        const { createClient: createServiceClient } = await import(
+          "@supabase/supabase-js"
+        )
+        db = createServiceClient(supabaseUrl, serviceKey)
+      }
+      const applied = await applyTokenUsageDelta(db, user.id, {
+        extensionProxyTokensThisRequest: billTokens,
+        modelUsed: MODEL_SELECTION.EXTENSION_LLM_PROXY,
+      })
+      if (!applied.ok) {
+        console.error("[extension/llm] Failed to persist proxy token usage:", applied.error)
+      }
+    }
 
     return extensionJson(request, {
       text: result.output_text,

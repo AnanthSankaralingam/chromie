@@ -161,17 +161,18 @@ Additional indexes:
 ---
 
 ### 7. `token_usage`
-Tracks both credit usage (for billing) and token usage (for analytics) per user.
+Tracks credit usage (billing), browser minutes, **extension LLM proxy** token usage (plan-limited), and separate **aggregate** token totals for main-app analytics per user.
 
-| Column            | Type         | Details                                           |
-|-------------------|--------------|---------------------------------------------------|
-| `id`              | uuid         | PK, DEFAULT gen_random_uuid()                    |
-| `user_id`         | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
-| `total_credits`   | integer      | Total credits used (for billing limits)          |
-| `total_tokens`    | integer      | Total tokens used (for analytics/cost tracking)   |
-| `model`           | text         | Model used (e.g. 'gpt-4o')                        |
-| `monthly_reset`   | timestamptz  | DEFAULT now()                                    |
-| `browser_minutes` | integer      | Total browser minutes used                        |
+| Column                    | Type         | Details                                           |
+|---------------------------|--------------|---------------------------------------------------|
+| `id`                      | uuid         | PK, DEFAULT gen_random_uuid()                    |
+| `user_id`                 | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
+| `total_credits`           | integer      | Total credits used (for billing limits)          |
+| `total_tokens`            | integer      | Total tokens used **for main-app analytics / cost tracking** (not the extension proxy counter) |
+| `extension_proxy_tokens`  | integer      | NOT NULL, DEFAULT 0; LLM tokens consumed via `/api/extension/llm` only; rolls forward with the same `monthly_reset` rules as other fields; **not** mixed into `total_tokens` |
+| `model`                   | text         | Model used (e.g. 'gpt-4o')                        |
+| `monthly_reset`           | timestamptz  | DEFAULT now()                                    |
+| `browser_minutes`         | integer      | Total browser minutes used                        |
 
 ---
 
@@ -412,6 +413,8 @@ RLS policies:
 |---------|--------------|---------|-----------------|------------|--------------------------------|
 | free    | 1            | 10      | 15              | monthly    | Basic tier with limited projects |
 | pro     | 300          | 500     | 240             | monthly    | Monthly subscription (only paid plan) |
+
+**Extension LLM proxy** (`/api/extension/llm`): monthly/daily caps are `PLAN_LIMITS.*.extension_proxy_tokens` in `src/lib/constants.js` (free 100k, pro 1M; one-time purchases use the pro cap). Usage is stored in `token_usage.extension_proxy_tokens` and resets with the same `monthly_reset` rules as other fields on that row.
 
 ## Credit Costs
 

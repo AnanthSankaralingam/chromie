@@ -20,7 +20,9 @@ export async function getUserLimits(userId, supabase) {
   // Get current usage from token_usage table (tracks both credits and tokens)
   const { data: usage, error: usageError } = await supabase
     .from('token_usage')
-    .select('total_credits, total_tokens, browser_minutes, monthly_reset')
+    .select(
+      'total_credits, total_tokens, browser_minutes, monthly_reset, extension_proxy_tokens'
+    )
     .eq('user_id', userId)
     .maybeSingle()
   
@@ -61,12 +63,16 @@ export async function getUserLimits(userId, supabase) {
       limits: {
         credits: PLAN_LIMITS.pro.monthly_credits,
         browserMinutes: Infinity, // Unlimited for paid plans
-        projects: Infinity // Unlimited for paid plans
+        projects: Infinity, // Unlimited for paid plans
+        extensionProxyTokens: PLAN_LIMITS.pro.extension_proxy_tokens,
       },
       usage: {
         credits: isResetDue ? 0 : (usage?.total_credits || 0),
         browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
-        projects: profile?.project_count || 0
+        projects: profile?.project_count || 0,
+        extensionProxyTokens: isResetDue
+          ? 0
+          : (usage?.extension_proxy_tokens || 0),
       },
       hasActivePro: true,
       resetDate: proSub.expires_at,
@@ -82,9 +88,26 @@ export async function getUserLimits(userId, supabase) {
     const totalLimits = {
       credits: oneTimePurchases.reduce((sum, p) => sum + p.credits_purchased, 0),
       browserMinutes: Infinity, // Unlimited for paid plans
-      projects: Infinity // Unlimited for paid plans
+      projects: Infinity, // Unlimited for paid plans
+      extensionProxyTokens: PLAN_LIMITS.pro.extension_proxy_tokens,
     }
-    
+
+    // Same calendar-month window as POST /api/token-usage for non–free-tier users
+    const monthlyResetDate = usage?.monthly_reset
+      ? new Date(usage.monthly_reset)
+      : null
+    let resetDatePlusOneMonth = null
+    if (monthlyResetDate) {
+      resetDatePlusOneMonth = new Date(monthlyResetDate)
+      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
+    }
+    const extensionResetDue = monthlyResetDate
+      ? now >= resetDatePlusOneMonth
+      : false
+    const extensionUsed = extensionResetDue
+      ? 0
+      : (usage?.extension_proxy_tokens || 0)
+
     return {
       plan: 'one_time_bundle',
       planNames: [...new Set(oneTimePurchases.map(p => p.plan))], // e.g. ['pro']
@@ -94,7 +117,8 @@ export async function getUserLimits(userId, supabase) {
       usage: {
         credits: usage?.total_credits || 0,
         browserMinutes: usage?.browser_minutes || 0,
-        projects: profile?.project_count || 0
+        projects: profile?.project_count || 0,
+        extensionProxyTokens: extensionUsed,
       },
       hasActivePro: false,
       resetDate: null,
@@ -102,7 +126,9 @@ export async function getUserLimits(userId, supabase) {
       exhausted: {
         credits: (usage?.total_credits || 0) >= totalLimits.credits,
         browserMinutes: false, // Never exhausted for paid plans
-        projects: false // Never exhausted for paid plans
+        projects: false, // Never exhausted for paid plans
+        extensionProxyTokens:
+          extensionUsed >= totalLimits.extensionProxyTokens,
       }
     }
   }
@@ -118,12 +144,16 @@ export async function getUserLimits(userId, supabase) {
     limits: {
       credits: PLAN_LIMITS.free.monthly_credits,
       browserMinutes: Infinity,
-      projects: Infinity
+      projects: Infinity,
+      extensionProxyTokens: PLAN_LIMITS.free.extension_proxy_tokens,
     },
     usage: {
       credits: isResetDue ? 0 : (usage?.total_credits || 0),
       browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
-      projects: profile?.project_count || 0
+      projects: profile?.project_count || 0,
+      extensionProxyTokens: isResetDue
+        ? 0
+        : (usage?.extension_proxy_tokens || 0),
     },
     hasActivePro: false,
     resetDate: lastResetDate,
@@ -181,7 +211,8 @@ export function formatLimitError(checkResult, resourceType) {
   const resourceNames = {
     credits: 'credits',
     browserMinutes: 'browser testing minutes',
-    projects: 'projects'
+    projects: 'projects',
+    extensionProxyTokens: 'extension LLM tokens',
   }
   
   const suggestion = checkResult.purchaseType === 'one_time'
