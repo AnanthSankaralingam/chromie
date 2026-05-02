@@ -10,6 +10,27 @@ export class OpenAIAdapter {
   }
 
   /**
+   * gpt-5+ and o-series chat completions use `max_completion_tokens`; older models use `max_tokens`.
+   * @param {string} model
+   * @returns {boolean}
+   */
+  modelUsesMaxCompletionTokens(model) {
+    if (!model || typeof model !== "string") return false
+    const m = model.toLowerCase()
+    if (m.startsWith("gpt-5")) return true
+    if (m.startsWith("o1") || m.startsWith("o3") || m.startsWith("o4")) return true
+    return false
+  }
+
+  applyMaxOutputTokens(payload, model, maxOutputTokens) {
+    if (this.modelUsesMaxCompletionTokens(model)) {
+      payload.max_completion_tokens = maxOutputTokens
+    } else {
+      payload.max_tokens = maxOutputTokens
+    }
+  }
+
+  /**
    * Create a response using OpenAI API
    * @param {Object} params - Request parameters
    * @returns {Promise<Object>} Response object
@@ -38,9 +59,9 @@ export class OpenAIAdapter {
         model,
         messages,
         temperature,
-        max_tokens: max_output_tokens,
         stream: false
       }
+      this.applyMaxOutputTokens(payload, model, max_output_tokens)
 
       // Handle response format
       if (response_format) {
@@ -84,9 +105,9 @@ export class OpenAIAdapter {
         model,
         messages,
         temperature,
-        max_tokens: max_output_tokens,
         stream: true
       }
+      this.applyMaxOutputTokens(payload, model, max_output_tokens)
 
       // Handle response format
       if (response_format) {

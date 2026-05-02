@@ -44,7 +44,7 @@ export async function GET(request) {
     features: {
       projectSync: true,
       extensionMetadata: true,
-      serverAi: false,
+      serverAi: true,
     },
   })
 }
