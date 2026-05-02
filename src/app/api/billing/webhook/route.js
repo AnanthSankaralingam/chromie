@@ -207,7 +207,9 @@ async function handleSubscriptionCreated(subscription) {
       total_credits: 0,
       total_tokens: 0,
       browser_minutes: 0,
-      monthly_reset: firstDayOfMonth.toISOString()
+      extension_proxy_tokens: 0,
+      monthly_reset: firstDayOfMonth.toISOString(),
+      extension_proxy_monthly_reset: firstDayOfMonth.toISOString(),
     })
   
   // Update billing table for backwards compatibility
@@ -291,7 +293,9 @@ async function handlePaymentSucceeded(invoice) {
         total_credits: 0,
         total_tokens: 0,
         browser_minutes: 0,
-        monthly_reset: firstDayOfMonth.toISOString()
+        extension_proxy_tokens: 0,
+        monthly_reset: firstDayOfMonth.toISOString(),
+        extension_proxy_monthly_reset: firstDayOfMonth.toISOString(),
       })
       .eq('user_id', purchase.user_id)
     

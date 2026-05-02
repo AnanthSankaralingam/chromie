@@ -151,6 +151,7 @@ export async function POST(request) {
       total_tokens: applied.total_tokens,
       browser_minutes: applied.browser_minutes,
       monthly_reset: applied.monthly_reset,
+      extension_proxy_monthly_reset: applied.extension_proxy_monthly_reset,
       extension_proxy_tokens: applied.extension_proxy_tokens,
       model: modelUsed,
     })

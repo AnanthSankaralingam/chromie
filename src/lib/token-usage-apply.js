@@ -18,12 +18,17 @@ export function computeNextTokenUsageState(
   extensionProxyTokensThisRequest
 ) {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const firstOfMonthISO = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).toISOString()
 
   let effectiveMonthlyReset = existingUsage?.monthly_reset
   if (!effectiveMonthlyReset) {
     effectiveMonthlyReset = isFreeTier
       ? startOfToday.toISOString()
-      : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+      : firstOfMonthISO
   }
 
   const monthlyResetDate = effectiveMonthlyReset
@@ -45,13 +50,36 @@ export function computeNextTokenUsageState(
 
   const newResetAnchor = isFreeTier
     ? startOfToday.toISOString()
-    : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    : firstOfMonthISO
+
+  /** Rolling month from anchor (same rule for all tiers); free tier does not use `monthly_reset` here. */
+  const extensionProxyAnchorISO = existingUsage
+    ? existingUsage.extension_proxy_monthly_reset
+      ? existingUsage.extension_proxy_monthly_reset
+      : !isFreeTier && existingUsage.monthly_reset
+        ? existingUsage.monthly_reset
+        : firstOfMonthISO
+    : firstOfMonthISO
+
+  let proxyIsResetDue = false
+  if (existingUsage) {
+    const pad = new Date(extensionProxyAnchorISO)
+    const plusOne = new Date(pad)
+    plusOne.setMonth(plusOne.getMonth() + 1)
+    proxyIsResetDue = now >= plusOne
+  }
+
+  const persistExtensionProxyAnchor = () =>
+    existingUsage.extension_proxy_monthly_reset ??
+    (!isFreeTier ? existingUsage.monthly_reset : null) ??
+    firstOfMonthISO
 
   let newTotalCredits
   let newTotalTokens
   let newTotalBrowserMinutes
   let newExtensionProxyTokens
   let newMonthlyReset = existingUsage?.monthly_reset
+  let newExtensionProxyMonthlyReset = existingUsage?.extension_proxy_monthly_reset
 
   if (!existingUsage) {
     newTotalCredits = creditsThisRequest
@@ -59,29 +87,44 @@ export function computeNextTokenUsageState(
     newTotalBrowserMinutes = browserMinutesThisRequest
     newExtensionProxyTokens = extensionProxyTokensThisRequest
     newMonthlyReset = newResetAnchor
+    newExtensionProxyMonthlyReset = firstOfMonthISO
   } else if (!existingUsage.monthly_reset) {
     newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
     newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
     newTotalBrowserMinutes =
       (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-    newExtensionProxyTokens =
-      (existingUsage.extension_proxy_tokens || 0) +
-      extensionProxyTokensThisRequest
+    newExtensionProxyTokens = proxyIsResetDue
+      ? extensionProxyTokensThisRequest
+      : (existingUsage.extension_proxy_tokens || 0) +
+        extensionProxyTokensThisRequest
     newMonthlyReset = newResetAnchor
+    newExtensionProxyMonthlyReset = proxyIsResetDue
+      ? firstOfMonthISO
+      : persistExtensionProxyAnchor()
   } else if (isResetDue) {
     newTotalCredits = creditsThisRequest
     newTotalTokens = tokensThisRequest
     newTotalBrowserMinutes = browserMinutesThisRequest
-    newExtensionProxyTokens = extensionProxyTokensThisRequest
+    newExtensionProxyTokens = proxyIsResetDue
+      ? extensionProxyTokensThisRequest
+      : (existingUsage.extension_proxy_tokens || 0) +
+        extensionProxyTokensThisRequest
     newMonthlyReset = newResetAnchor
+    newExtensionProxyMonthlyReset = proxyIsResetDue
+      ? firstOfMonthISO
+      : persistExtensionProxyAnchor()
   } else {
     newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
     newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
     newTotalBrowserMinutes =
       (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-    newExtensionProxyTokens =
-      (existingUsage.extension_proxy_tokens || 0) +
-      extensionProxyTokensThisRequest
+    newExtensionProxyTokens = proxyIsResetDue
+      ? extensionProxyTokensThisRequest
+      : (existingUsage.extension_proxy_tokens || 0) +
+        extensionProxyTokensThisRequest
+    newExtensionProxyMonthlyReset = proxyIsResetDue
+      ? firstOfMonthISO
+      : persistExtensionProxyAnchor()
   }
 
   return {
@@ -90,6 +133,7 @@ export function computeNextTokenUsageState(
     newTotalBrowserMinutes,
     newExtensionProxyTokens,
     newMonthlyReset,
+    newExtensionProxyMonthlyReset,
   }
 }
 
@@ -116,7 +160,7 @@ export async function applyTokenUsageDelta(db, userId, opts) {
   } = opts
 
   const selectCols =
-    "id, total_credits, total_tokens, monthly_reset, model, browser_minutes, extension_proxy_tokens"
+    "id, total_credits, total_tokens, monthly_reset, extension_proxy_monthly_reset, model, browser_minutes, extension_proxy_tokens"
 
   let existingUsage = null
   if (targetId) {
@@ -151,6 +195,7 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     newTotalBrowserMinutes,
     newExtensionProxyTokens,
     newMonthlyReset,
+    newExtensionProxyMonthlyReset,
   } = computeNextTokenUsageState(
     existingUsage,
     isFreeTier,
@@ -167,6 +212,7 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     browser_minutes: newTotalBrowserMinutes,
     extension_proxy_tokens: newExtensionProxyTokens,
     monthly_reset: newMonthlyReset,
+    extension_proxy_monthly_reset: newExtensionProxyMonthlyReset,
     model: modelUsed,
   }
 
@@ -177,7 +223,7 @@ export async function applyTokenUsageDelta(db, userId, opts) {
       .eq("id", existingUsage.id)
       .eq("user_id", userId)
       .select(
-        "id, total_credits, total_tokens, browser_minutes, monthly_reset, extension_proxy_tokens"
+        "id, total_credits, total_tokens, browser_minutes, monthly_reset, extension_proxy_monthly_reset, extension_proxy_tokens"
       )
 
     if (updateError) {
@@ -192,6 +238,8 @@ export async function applyTokenUsageDelta(db, userId, opts) {
       total_tokens: row?.total_tokens ?? newTotalTokens,
       browser_minutes: row?.browser_minutes ?? newTotalBrowserMinutes,
       monthly_reset: row?.monthly_reset ?? newMonthlyReset,
+      extension_proxy_monthly_reset:
+        row?.extension_proxy_monthly_reset ?? newExtensionProxyMonthlyReset,
       extension_proxy_tokens:
         row?.extension_proxy_tokens ?? newExtensionProxyTokens,
     }
@@ -216,6 +264,7 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     total_tokens: newTotalTokens,
     browser_minutes: newTotalBrowserMinutes,
     monthly_reset: newMonthlyReset,
+    extension_proxy_monthly_reset: newExtensionProxyMonthlyReset,
     extension_proxy_tokens: newExtensionProxyTokens,
   }
 }

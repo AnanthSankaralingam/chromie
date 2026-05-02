@@ -1,6 +1,27 @@
 import { PLAN_LIMITS, DEFAULT_PLAN } from '@/lib/constants'
 
 /**
+ * Extension proxy tokens used in the current rolling monthly window.
+ * Free tier: never uses `monthly_reset` (daily credits); anchor is `extension_proxy_monthly_reset` or 1st of month.
+ */
+function extensionProxyUsageForLimitCheck(usage, isFreeTier, now) {
+  const firstOfMonthISO = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  ).toISOString()
+  const anchorISO =
+    usage?.extension_proxy_monthly_reset ||
+    (!isFreeTier && usage?.monthly_reset) ||
+    firstOfMonthISO
+  const pad = new Date(anchorISO)
+  const plusOne = new Date(pad)
+  plusOne.setMonth(plusOne.getMonth() + 1)
+  const resetDue = now >= plusOne
+  return resetDue ? 0 : (usage?.extension_proxy_tokens || 0)
+}
+
+/**
  * Get user's total purchased limits and current usage
  * Priority: Active Pro subscription > One-time purchases > Free tier
  */
@@ -21,7 +42,7 @@ export async function getUserLimits(userId, supabase) {
   const { data: usage, error: usageError } = await supabase
     .from('token_usage')
     .select(
-      'total_credits, total_tokens, browser_minutes, monthly_reset, extension_proxy_tokens'
+      'total_credits, total_tokens, browser_minutes, monthly_reset, extension_proxy_monthly_reset, extension_proxy_tokens'
     )
     .eq('user_id', userId)
     .maybeSingle()
@@ -70,9 +91,11 @@ export async function getUserLimits(userId, supabase) {
         credits: isResetDue ? 0 : (usage?.total_credits || 0),
         browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
         projects: profile?.project_count || 0,
-        extensionProxyTokens: isResetDue
-          ? 0
-          : (usage?.extension_proxy_tokens || 0),
+        extensionProxyTokens: extensionProxyUsageForLimitCheck(
+          usage,
+          false,
+          now
+        ),
       },
       hasActivePro: true,
       resetDate: proSub.expires_at,
@@ -93,20 +116,11 @@ export async function getUserLimits(userId, supabase) {
     }
 
     // Same calendar-month window as POST /api/token-usage for non–free-tier users
-    const monthlyResetDate = usage?.monthly_reset
-      ? new Date(usage.monthly_reset)
-      : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-    const extensionResetDue = monthlyResetDate
-      ? now >= resetDatePlusOneMonth
-      : false
-    const extensionUsed = extensionResetDue
-      ? 0
-      : (usage?.extension_proxy_tokens || 0)
+    const extensionUsed = extensionProxyUsageForLimitCheck(
+      usage,
+      false,
+      now
+    )
 
     return {
       plan: 'one_time_bundle',
@@ -151,9 +165,11 @@ export async function getUserLimits(userId, supabase) {
       credits: isResetDue ? 0 : (usage?.total_credits || 0),
       browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
       projects: profile?.project_count || 0,
-      extensionProxyTokens: isResetDue
-        ? 0
-        : (usage?.extension_proxy_tokens || 0),
+      extensionProxyTokens: extensionProxyUsageForLimitCheck(
+        usage,
+        true,
+        now
+      ),
     },
     hasActivePro: false,
     resetDate: lastResetDate,

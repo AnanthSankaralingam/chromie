@@ -6,8 +6,8 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: 15,
     max_privacy_policies: 0,
     max_demo_replays: 1,
-    reset_type: 'daily',
-    /** `/api/extension/llm` — uses same daily/monthly window as `token_usage.monthly_reset` */
+    reset_type: 'monthly',
+    /** `/api/extension/llm` — monthly cap; window is `token_usage.extension_proxy_monthly_reset` (not daily `monthly_reset`). */
     extension_proxy_tokens: 100_000,
   },
   starter: {
@@ -16,7 +16,7 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: Infinity,
     max_privacy_policies: 0,
     max_demo_replays: Infinity,
-    reset_type: 'never',
+    reset_type: 'monthly',
     extension_proxy_tokens: 500_000,
   },
   pro: {
