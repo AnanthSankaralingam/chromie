@@ -67,6 +67,8 @@ export const MODEL_SELECTION = {
   EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
   /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
   EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
+  /** Extension-hosted LLM proxy (`/api/extension/llm`), Gemini Flash Lite */
+  EXTENSION_LLM_PROXY: 'gemini-3.1-flash-lite-preview',
 }
 
 /**
