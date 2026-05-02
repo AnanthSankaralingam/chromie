@@ -63,6 +63,26 @@ export const MODEL_SELECTION = {
   LLM_SERVICE_FALLBACK_IONROUTER: 'kimi-k2.5',
   LLM_SERVICE_FALLBACK_ANTHROPIC: 'claude-haiku-4-5-20251001',
   LLM_SERVICE_OPENAI_FALLBACK: 'gpt-5.4-mini',
+  /** Browser extension sidepanel userscript codegen (`/api/extension/codegen`), OpenAI adapter via llmService */
+  EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
+  /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
+  EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
+}
+
+/**
+ * Userscript AI chat for the Chromie extension — paired with {@link MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN}.
+ */
+export const USER_SCRIPT_CODEGEN = {
+  MODEL: MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN,
+  TEMPERATURE: 0.5,
+  MAX_OUTPUT_TOKENS: 8192,
+}
+
+/** `/api/extension/codegen/dom` — selector briefing before main userscript codegen (unused in pipeline for now). */
+export const USER_SCRIPT_DOM_PLANNING = {
+  MODEL: MODEL_SELECTION.EXTENSION_USERSCRIPT_DOM_PLANNING,
+  TEMPERATURE: 0.35,
+  MAX_OUTPUT_TOKENS: 4096,
 }
 
 // Legacy exports kept for compatibility with existing imports.
