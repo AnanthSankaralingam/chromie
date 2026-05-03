@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import { MODEL_SELECTION } from "@/lib/constants"
 import {
   extensionLlmProxyJson,
@@ -100,7 +100,7 @@ export async function POST(request) {
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (userError || !user) {
       return extensionLlmProxyJson(request, { error: "Unauthorized" }, { status: 401 })

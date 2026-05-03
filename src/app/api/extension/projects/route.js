@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
 import {
   groupFilesByProject,
@@ -17,7 +17,7 @@ async function getAuthenticatedClient(request) {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser()
+  } = await getAuthUser(supabase)
 
   if (error || !user) {
     return { response: extensionJson(request, { error: "Unauthorized" }, { status: 401 }) }

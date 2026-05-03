@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
 
 export function OPTIONS(request) {
@@ -14,7 +14,7 @@ export async function POST(request) {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (authError || !user) {
       return extensionJson(request, { error: "Unauthorized" }, { status: 401 })
