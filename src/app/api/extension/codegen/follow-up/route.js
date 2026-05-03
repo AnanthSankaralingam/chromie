@@ -81,6 +81,10 @@ export async function POST(request) {
     }
 
     const body = await request.json().catch(() => ({}))
+    const executionLogs =
+      body.executionLogs === undefined ? null : body.executionLogs
+    console.log("[extension/codegen/follow-up] executionLogs:", executionLogs)
+
     const messages = normalizeMessages(body.messages)
     if (!messages) {
       return extensionJson(
@@ -92,7 +96,7 @@ export async function POST(request) {
       )
     }
 
-    const systemPrompt = buildFollowUpSystemPrompt()
+    const systemPrompt = buildFollowUpSystemPrompt({ executionLogs })
     const model = defaultModel()
     const provider = llmService.getProviderFromModel(model)
 

@@ -1,7 +1,10 @@
 /**
  * System prompt for follow-up userscript turns: refine or extend from chat history only.
  * No live DOM — the model must rely on the conversation and prior code blocks.
+ * Optional `{{EXECUTION_LOGS_SECTION}}` is replaced with last test logs or removed when absent.
  */
+const MAX_EXECUTION_LOGS_CHARS = 120_000
+
 const FOLLOW_UP_SYSTEM_PROMPT = `<role>
 You are chromie.dev's AI assistant — an expert at small page extensions (user extensions): JavaScript that customizes websites, in the same style as classic userscripts.
 </role>
@@ -10,7 +13,7 @@ You are chromie.dev's AI assistant — an expert at small page extensions (user 
 This is a follow-up in an ongoing conversation. You do not have a fresh DOM snapshot or page outline. Use the chat thread (user messages and your prior replies), including any JavaScript you already produced, as the sole source of truth about the extension. If something about the page is unclear, state assumptions briefly and choose robust patterns (defensive queries, MutationObserver when appropriate).
 </session_context>
 
-<planning_pass>
+{{EXECUTION_LOGS_SECTION}}<planning_pass>
 Before any code fences, do one bounded planning pass only: 2–4 very short bullets covering assumptions, edge cases (dynamic DOM, timing, missing nodes), and how you will adjust or extend the script.
 </planning_pass>
 
@@ -64,6 +67,34 @@ Show the complete updated userscript — never partial diffs unless the user exp
 - UI modification: Hide elements, rearrange layout, add new controls
 </common_patterns>`;
 
-export function buildFollowUpSystemPrompt() {
-  return FOLLOW_UP_SYSTEM_PROMPT;
+const EXECUTION_LOGS_PLACEHOLDER = "{{EXECUTION_LOGS_SECTION}}"
+
+/**
+ * @param {object} [options]
+ * @param {string | null | undefined} [options.executionLogs] — last test console output; non-string or empty omitted from prompt
+ */
+export function buildFollowUpSystemPrompt(options = {}) {
+  const { executionLogs } = options
+  let executionLogsSection = ""
+  if (executionLogs != null && typeof executionLogs === "string") {
+    let body = executionLogs
+    if (body.length > MAX_EXECUTION_LOGS_CHARS) {
+      body =
+        body.slice(0, MAX_EXECUTION_LOGS_CHARS) +
+        "\n... [truncated by server]"
+    }
+    if (body.trim().length > 0) {
+      executionLogsSection = `<last_test_execution_logs>
+Logs from the last test run:
+
+${body}
+</last_test_execution_logs>
+
+`
+    }
+  }
+  return FOLLOW_UP_SYSTEM_PROMPT.replace(
+    EXECUTION_LOGS_PLACEHOLDER,
+    executionLogsSection
+  )
 }
