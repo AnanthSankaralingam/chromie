@@ -73,6 +73,7 @@ export async function POST(request) {
     }
 
     const userRequest = rawRequest.slice(0, MAX_USER_REQUEST_CHARS)
+
     const dom = normalizeDom(body.dom)
     const domOutline = dom ? formatDomSkeletonBlock(dom) : "NOT_PROVIDED"
 

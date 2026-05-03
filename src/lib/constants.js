@@ -71,6 +71,8 @@ export const MODEL_SELECTION = {
   EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
   /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
   EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
+  /** Userscript skills pre-selection (`/api/extension/codegen/dom`), Gemini Flash Lite */
+  EXTENSION_USERSCRIPT_SKILLS: 'gemini-3.1-flash-lite-preview',
   /** Extension-hosted LLM proxy (`/api/extension/llm`), Gemini Flash Lite */
   EXTENSION_LLM_PROXY: 'gemini-3.1-flash-lite-preview',
 }
@@ -89,6 +91,13 @@ export const USER_SCRIPT_DOM_PLANNING = {
   MODEL: MODEL_SELECTION.EXTENSION_USERSCRIPT_DOM_PLANNING,
   TEMPERATURE: 0.35,
   MAX_OUTPUT_TOKENS: 4096,
+}
+
+/** `/api/extension/codegen/dom` — skill selection before DOM planning + codegen prompting. */
+export const USER_SCRIPT_SKILL_SELECTION = {
+  MODEL: MODEL_SELECTION.EXTENSION_USERSCRIPT_SKILLS,
+  TEMPERATURE: 0.1,
+  MAX_OUTPUT_TOKENS: 512,
 }
 
 // Legacy exports kept for compatibility with existing imports.

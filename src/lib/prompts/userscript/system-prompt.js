@@ -2,9 +2,13 @@
 export const USERSCRIPT_SYSTEM_PLACEHOLDERS = {
   /** Primary page context: DOM planning briefing (replaces raw skeleton in codegen). */
   DOM_PLANNING: "{DOM_PLANNING}",
+  /** Pre-selected implementation skills for this request. */
+  EXTENSION_SKILLS_CONTEXT: "{EXTENSION_SKILLS_CONTEXT}",
 };
 
 const DOM_PLANNING_PLACEHOLDER = USERSCRIPT_SYSTEM_PLACEHOLDERS.DOM_PLANNING;
+const EXTENSION_SKILLS_CONTEXT_PLACEHOLDER =
+  USERSCRIPT_SYSTEM_PLACEHOLDERS.EXTENSION_SKILLS_CONTEXT;
 
 const SYSTEM_PROMPT_TEMPLATE = `<role>
 You are chromie.dev's AI assistant — an expert at small page extensions (user extensions): JavaScript that customizes websites, in the same style as classic userscripts.
@@ -81,6 +85,11 @@ ${DOM_PLANNING_PLACEHOLDER}
 - When URL/title appear inside the planning block or user message, use them for match patterns
 </dom_usage_rules>
 
+<selected_skills>
+Pre-selected implementation skills for this request:
+${EXTENSION_SKILLS_CONTEXT_PLACEHOLDER}
+</selected_skills>
+
 <modifying_existing>
 When modifying an existing extension, show the complete updated code — never partial diffs.
 </modifying_existing>
@@ -118,6 +127,7 @@ export function formatDomSkeletonBlock(dom) {
  * @param {string} [opts.domPlanning] — DOM planning briefing from `/api/extension/codegen/dom` (preferred)
  * @param {string} [opts.domSkeleton] — preformatted skeleton block (legacy direct LLM / fallback)
  * @param {{ url?: string, title?: string, skeleton?: string }} [opts.dom] — structured payload; used if planning/skeleton strings absent
+ * @param {string} [opts.extensionSkillsContext] — selected skill context snippets for this request
  */
 export function buildSystemPrompt(opts = {}) {
   let planningBlock = "NOT_PROVIDED";
@@ -132,5 +142,13 @@ export function buildSystemPrompt(opts = {}) {
     typeof planningBlock === "string" && planningBlock.trim()
       ? planningBlock.trim()
       : "NOT_PROVIDED";
-  return SYSTEM_PROMPT_TEMPLATE.replace(DOM_PLANNING_PLACEHOLDER, safe);
+  const skillContext =
+    typeof opts.extensionSkillsContext === "string" &&
+    opts.extensionSkillsContext.trim()
+      ? opts.extensionSkillsContext.trim()
+      : "NOT_PROVIDED";
+  return SYSTEM_PROMPT_TEMPLATE.replace(DOM_PLANNING_PLACEHOLDER, safe).replace(
+    EXTENSION_SKILLS_CONTEXT_PLACEHOLDER,
+    skillContext
+  );
 }
