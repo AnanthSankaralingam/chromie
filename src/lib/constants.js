@@ -6,7 +6,9 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: 15,
     max_privacy_policies: 0,
     max_demo_replays: 1,
-    reset_type: 'daily'
+    reset_type: 'monthly',
+    /** `/api/extension/llm` — monthly cap; window is `token_usage.extension_proxy_monthly_reset` (not daily `monthly_reset`). */
+    extension_proxy_tokens: 100_000,
   },
   starter: {
     monthly_credits: 100,
@@ -14,7 +16,8 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: Infinity,
     max_privacy_policies: 0,
     max_demo_replays: Infinity,
-    reset_type: 'never'
+    reset_type: 'monthly',
+    extension_proxy_tokens: 500_000,
   },
   pro: {
     monthly_credits: 500,
@@ -22,7 +25,8 @@ export const PLAN_LIMITS = {
     monthly_browser_minutes: 240,
     max_privacy_policies: Infinity,
     max_demo_replays: Infinity,
-    reset_type: 'monthly'
+    reset_type: 'monthly',
+    extension_proxy_tokens: 1_000_000,
   }
 }
 
@@ -67,6 +71,8 @@ export const MODEL_SELECTION = {
   EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
   /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
   EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
+  /** Extension-hosted LLM proxy (`/api/extension/llm`), Gemini Flash Lite */
+  EXTENSION_LLM_PROXY: 'gemini-3.1-flash-lite-preview',
 }
 
 /**

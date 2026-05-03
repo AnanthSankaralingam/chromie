@@ -161,17 +161,26 @@ Additional indexes:
 ---
 
 ### 7. `token_usage`
-Tracks both credit usage (for billing) and token usage (for analytics) per user.
+Tracks credit usage (billing), browser minutes, **extension LLM proxy** token usage (plan-limited), and separate **aggregate** token totals for main-app analytics per user.
 
-| Column            | Type         | Details                                           |
-|-------------------|--------------|---------------------------------------------------|
-| `id`              | uuid         | PK, DEFAULT gen_random_uuid()                    |
-| `user_id`         | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
-| `total_credits`   | integer      | Total credits used (for billing limits)          |
-| `total_tokens`    | integer      | Total tokens used (for analytics/cost tracking)   |
-| `model`           | text         | Model used (e.g. 'gpt-4o')                        |
-| `monthly_reset`   | timestamptz  | DEFAULT now()                                    |
-| `browser_minutes` | integer      | Total browser minutes used                        |
+| Column                    | Type         | Details                                           |
+|---------------------------|--------------|---------------------------------------------------|
+| `id`                      | uuid         | PK, DEFAULT gen_random_uuid()                    |
+| `user_id`                 | uuid         | FK → `profiles.id`, ON DELETE CASCADE            |
+| `total_credits`           | integer      | Total credits used (for billing limits)          |
+| `total_tokens`            | integer      | Total tokens used **for main-app analytics / cost tracking** (not the extension proxy counter) |
+| `extension_proxy_tokens`  | integer      | NOT NULL, DEFAULT 0; LLM tokens consumed via `/api/extension/llm` only; **not** mixed into `total_tokens` |
+| `extension_proxy_monthly_reset` | timestamptz | NULL allowed; anchor for the **rolling monthly** extension-proxy window (same math as paid-tier `monthly_reset`). Free-tier credits still use `monthly_reset` (daily); extension proxy uses this column. Backfill: `UPDATE token_usage SET extension_proxy_monthly_reset = date_trunc('month', COALESCE(monthly_reset, now())) WHERE extension_proxy_monthly_reset IS NULL` optional; app treats NULL as first of current month for free, or `monthly_reset` for paid rows without the column set. |
+| `model`                   | text         | Model used (e.g. 'gpt-4o')                        |
+| `monthly_reset`           | timestamptz  | DEFAULT now()                                    |
+| `browser_minutes`         | integer      | Total browser minutes used                        |
+
+Apply in Supabase SQL editor (once):
+
+```sql
+alter table public.token_usage
+  add column if not exists extension_proxy_monthly_reset timestamptz;
+```
 
 ---
 
@@ -412,6 +421,8 @@ RLS policies:
 |---------|--------------|---------|-----------------|------------|--------------------------------|
 | free    | 1            | 10      | 15              | monthly    | Basic tier with limited projects |
 | pro     | 300          | 500     | 240             | monthly    | Monthly subscription (only paid plan) |
+
+**Extension LLM proxy** (`/api/extension/llm`): caps are `PLAN_LIMITS.*.extension_proxy_tokens` in `src/lib/constants.js` (free 100k, pro 1M; one-time purchases use the pro cap). Usage is stored in `token_usage.extension_proxy_tokens` and resets on a **rolling monthly** window from `token_usage.extension_proxy_monthly_reset` for **all** plans; free-tier **credits** still reset daily via `monthly_reset`.
 
 ## Credit Costs
 

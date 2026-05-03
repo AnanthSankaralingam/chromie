@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getUserLimits } from "@/lib/limit-checker"
-import { randomUUID } from "crypto"
+import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 export async function GET() {
   const supabase = await createClient()
@@ -85,6 +85,9 @@ export async function POST(request) {
     const creditsThisRequest = Number(body?.creditsThisRequest || 0)
     const tokensThisRequest = Number(body?.tokensThisRequest || 0)
     const browserMinutesThisRequest = Number(body?.browserMinutesThisRequest || 0)
+    const extensionProxyTokensThisRequest = Number(
+      body?.extensionProxyTokensThisRequest ?? 0
+    )
     const modelUsed = typeof body?.model === 'string' ? body.model : 'unknown'
     const targetId = typeof body?.id === 'string' ? body.id : null
 
@@ -100,6 +103,19 @@ export async function POST(request) {
       return NextResponse.json({ error: "browserMinutesThisRequest must be a non-negative number" }, { status: 400 })
     }
 
+    if (
+      !Number.isFinite(extensionProxyTokensThisRequest) ||
+      extensionProxyTokensThisRequest < 0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "extensionProxyTokensThisRequest must be a non-negative number",
+        },
+        { status: 400 }
+      )
+    }
+
     // Prefer service-role client for deterministic, RLS-safe updates (after verifying auth user)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -109,152 +125,34 @@ export async function POST(request) {
       db = createServiceClient(supabaseUrl, serviceKey)
     }
 
-    // Fetch existing usage for this user. If id is provided, target that row for safety and determinism.
-    let existingUsage = null
-    if (targetId) {
-      const { data } = await db
-        .from('token_usage')
-        .select('id, total_credits, total_tokens, monthly_reset, model, browser_minutes')
-        .eq('id', targetId)
-        .eq('user_id', user.id)
-        .maybeSingle()
-      existingUsage = data || null
-    } else {
-      const { data } = await db
-        .from('token_usage')
-        .select('id, total_credits, total_tokens, monthly_reset, model, browser_minutes')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      existingUsage = data || null
-    }
+    console.log(`Updating credit usage via POST - user: ${user.id}, add: ${creditsThisRequest}`)
+    console.log(`Updating token usage via POST - user: ${user.id}, add: ${tokensThisRequest}`)
+    console.log(`Updating browser usage via POST - user: ${user.id}, add: ${browserMinutesThisRequest}`)
+    console.log(`Updating extension proxy tokens via POST - user: ${user.id}, add: ${extensionProxyTokensThisRequest}`)
 
-    const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const applied = await applyTokenUsageDelta(db, user.id, {
+      creditsThisRequest,
+      tokensThisRequest,
+      browserMinutesThisRequest,
+      extensionProxyTokensThisRequest,
+      modelUsed,
+      targetId,
+    })
 
-    // Determine if free tier (no active purchases) — free tier uses daily reset
-    const { data: activePurchases } = await db
-      .from('purchases')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .limit(1)
-    const isFreeTier = !activePurchases || activePurchases.length === 0
-
-    // Use beginning of current period as the reset anchor
-    let effectiveMonthlyReset = existingUsage?.monthly_reset
-    if (!effectiveMonthlyReset) {
-      effectiveMonthlyReset = isFreeTier
-        ? startOfToday.toISOString()
-        : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    }
-
-    const monthlyResetDate = effectiveMonthlyReset ? new Date(effectiveMonthlyReset) : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate && !isFreeTier) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-
-    // Free tier resets daily; paid plans reset monthly
-    const isResetDue = isFreeTier
-      ? (monthlyResetDate ? monthlyResetDate < startOfToday : false)
-      : (monthlyResetDate ? now >= resetDatePlusOneMonth : false)
-
-    // Compute the new reset anchor for when a reset occurs
-    const newResetAnchor = isFreeTier
-      ? startOfToday.toISOString()
-      : new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
-    // Determine new totals and reset anchor
-    let newTotalCredits
-    let newTotalTokens
-    let newTotalBrowserMinutes
-    let newMonthlyReset = existingUsage?.monthly_reset
-
-    if (!existingUsage) {
-      // First-ever usage record for this user
-      newTotalCredits = creditsThisRequest
-      newTotalTokens = tokensThisRequest
-      newTotalBrowserMinutes = browserMinutesThisRequest
-      newMonthlyReset = newResetAnchor
-    } else if (!existingUsage.monthly_reset) {
-      // No reset date set yet; set anchor and continue accumulating
-      newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
-      newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
-      newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-      newMonthlyReset = newResetAnchor
-    } else if (isResetDue) {
-      // New period started; reset total to current request only
-      newTotalCredits = creditsThisRequest
-      newTotalTokens = tokensThisRequest
-      newTotalBrowserMinutes = browserMinutesThisRequest
-      newMonthlyReset = newResetAnchor
-    } else {
-      // Same period; accumulate
-      newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
-      newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
-      newTotalBrowserMinutes = (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-    }
-
-    console.log(`Updating credit usage via POST - user: ${user.id}, add: ${creditsThisRequest}, total -> ${newTotalCredits}`)
-    console.log(`Updating token usage via POST - user: ${user.id}, add: ${tokensThisRequest}, total -> ${newTotalTokens}`)
-    console.log(`Updating browser usage via POST - user: ${user.id}, add: ${browserMinutesThisRequest}, total -> ${newTotalBrowserMinutes}`)
-
-    if (existingUsage?.id) {
-      const { data: updatedRows, error: updateError } = await db
-        .from('token_usage')
-        .update({
-          total_credits: newTotalCredits,
-          total_tokens: newTotalTokens,
-          browser_minutes: newTotalBrowserMinutes,
-          monthly_reset: newMonthlyReset,
-          model: modelUsed,
-        })
-        .eq('id', existingUsage.id)
-        .eq('user_id', user.id)
-        .select('id, total_credits, total_tokens, browser_minutes, monthly_reset')
-
-      if (updateError) {
-        console.error('Error updating usage via POST:', updateError)
-        return NextResponse.json({ error: "Failed to update usage" }, { status: 500 })
-      }
-
-      return NextResponse.json({
-        success: true,
-        id: updatedRows?.[0]?.id || existingUsage.id,
-        total_credits: updatedRows?.[0]?.total_credits ?? newTotalCredits,
-        total_tokens: updatedRows?.[0]?.total_tokens ?? newTotalTokens,
-        browser_minutes: updatedRows?.[0]?.browser_minutes ?? newTotalBrowserMinutes,
-        monthly_reset: updatedRows?.[0]?.monthly_reset ?? newMonthlyReset,
-        model: modelUsed,
-      })
-    }
-
-    const newId = randomUUID()
-    const { error: insertError } = await db
-      .from('token_usage')
-      .insert({
-        id: newId,
-        user_id: user.id,
-        total_credits: newTotalCredits,
-        total_tokens: newTotalTokens,
-        browser_minutes: newTotalBrowserMinutes,
-        model: modelUsed,
-        monthly_reset: newMonthlyReset,
-      })
-
-    if (insertError) {
-      console.error('Error inserting usage via POST:', insertError)
-      return NextResponse.json({ error: "Failed to insert usage" }, { status: 500 })
+    if (!applied.ok) {
+      console.error('Error applying token usage via POST:', applied.error)
+      return NextResponse.json({ error: "Failed to update usage" }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      id: newId,
-      total_credits: newTotalCredits,
-      total_tokens: newTotalTokens,
-      browser_minutes: newTotalBrowserMinutes,
-      monthly_reset: newMonthlyReset,
+      id: applied.id,
+      total_credits: applied.total_credits,
+      total_tokens: applied.total_tokens,
+      browser_minutes: applied.browser_minutes,
+      monthly_reset: applied.monthly_reset,
+      extension_proxy_monthly_reset: applied.extension_proxy_monthly_reset,
+      extension_proxy_tokens: applied.extension_proxy_tokens,
       model: modelUsed,
     })
   } catch (error) {
