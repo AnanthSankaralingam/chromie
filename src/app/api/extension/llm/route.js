@@ -1,6 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import { MODEL_SELECTION } from "@/lib/constants"
-import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
+import {
+  extensionLlmProxyJson,
+  extensionLlmProxyOptions,
+} from "@/lib/api/extension-api"
 import { GeminiAdapter } from "@/lib/services/adapters/gemini-adapter"
 import { getUserLimits } from "@/lib/limit-checker"
 import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
@@ -10,7 +13,7 @@ const DEFAULT_TEMPERATURE = 0.2
 const DEFAULT_MAX_OUTPUT = 4096
 
 export function OPTIONS(request) {
-  return extensionOptions(request)
+  return extensionLlmProxyOptions(request)
 }
 
 /**
@@ -97,14 +100,14 @@ export async function POST(request) {
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (userError || !user) {
-      return extensionJson(request, { error: "Unauthorized" }, { status: 401 })
+      return extensionLlmProxyJson(request, { error: "Unauthorized" }, { status: 401 })
     }
 
     if (!process.env.GOOGLE_AI_API_KEY) {
-      return extensionJson(
+      return extensionLlmProxyJson(
         request,
         { error: "LLM proxy requires GOOGLE_AI_API_KEY" },
         { status: 503 }
@@ -116,7 +119,7 @@ export async function POST(request) {
       userLimits.usage.extensionProxyTokens >=
       userLimits.limits.extensionProxyTokens
     ) {
-      return extensionJson(
+      return extensionLlmProxyJson(
         request,
         {
           error: "Extension LLM token limit reached",
@@ -130,7 +133,7 @@ export async function POST(request) {
     const body = await request.json().catch(() => null)
     const parsed = parseLlmBody(body)
     if ("error" in parsed && parsed.error) {
-      return extensionJson(request, { error: parsed.error }, { status: 400 })
+      return extensionLlmProxyJson(request, { error: parsed.error }, { status: 400 })
     }
 
     const adapter = new GeminiAdapter()
@@ -173,13 +176,13 @@ export async function POST(request) {
       }
     }
 
-    return extensionJson(request, {
+    return extensionLlmProxyJson(request, {
       text: result.output_text,
       usage: result.usage,
     })
   } catch (err) {
     console.error("[extension/llm] Gemini error:", err?.message || err)
-    return extensionJson(
+    return extensionLlmProxyJson(
       request,
       { error: "LLM request failed" },
       { status: 502 }

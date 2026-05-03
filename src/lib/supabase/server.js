@@ -35,3 +35,21 @@ export async function createClient() {
     }
   )
 }
+
+/**
+ * Resolve the authenticated user for API routes.
+ * When `Authorization: Bearer <access_token>` is present (curl, extension, etc.),
+ * validates that JWT via `getUser(jwt)`. Otherwise uses the cookie session.
+ *
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabase
+ */
+export async function getAuthUser(supabase) {
+  const authHeader = (await headers()).get("authorization") || ""
+  const jwt = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : ""
+  if (jwt) {
+    return supabase.auth.getUser(jwt)
+  }
+  return supabase.auth.getUser()
+}

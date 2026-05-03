@@ -44,3 +44,36 @@ export function extensionOptions(request) {
     headers: extensionCorsHeaders(request),
   })
 }
+
+/**
+ * CORS for `POST /api/extension/llm` from arbitrary page origins (Chromie userscripts run on third-party sites).
+ * Auth is Bearer-only (no cookies). Reflect the request Origin so the browser exposes the response to `fetch`.
+ */
+export function extensionLlmProxyCorsHeaders(request) {
+  const origin = request?.headers?.get("origin") || ""
+  const allowOrigin = /^https?:\/\//i.test(origin) ? origin : "*"
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  }
+}
+
+export function extensionLlmProxyJson(request, body, init = {}) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...extensionLlmProxyCorsHeaders(request),
+      ...(init.headers || {}),
+    },
+  })
+}
+
+export function extensionLlmProxyOptions(request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: extensionLlmProxyCorsHeaders(request),
+  })
+}

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import { MODEL_SELECTION, USER_SCRIPT_CODEGEN } from "@/lib/constants"
 import {
   extensionCorsHeaders,
@@ -6,6 +6,7 @@ import {
   extensionOptions,
 } from "@/lib/api/extension-api"
 import { buildSystemPrompt } from "@/lib/prompts/userscript/system-prompt"
+import { formatExtensionUserscriptSkillContext, normalizeExtensionUserscriptSkillIds } from "@/lib/prompts/userscript/skills/catalog"
 import { llmService } from "@/lib/services/llm-service"
 
 export function OPTIONS(request) {
@@ -72,8 +73,15 @@ function normalizeDomPlanning(raw) {
   return s
 }
 
+function normalizeExtensionSkillIds(raw) {
+  return normalizeExtensionUserscriptSkillIds(raw)
+}
+
 /** Max chars logged for `[extension/codegen] raw stream output` (avoid huge terminal spam). */
 const MAX_RAW_STREAM_LOG_CHARS = 100_000
+
+/** Max chars logged for `[extension/codegen] system prompt` (coding prompt). */
+const MAX_SYSTEM_PROMPT_LOG_CHARS = 100_000
 
 function normalizeMessages(raw) {
   if (!Array.isArray(raw) || raw.length === 0) return null
@@ -97,7 +105,7 @@ export async function POST(request) {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (authError || !user) {
       return extensionJson(request, { error: "Unauthorized" }, { status: 401 })
@@ -125,10 +133,20 @@ export async function POST(request) {
 
     const dom = normalizeDom(body.dom)
     const domPlanning = normalizeDomPlanning(body.domPlanning)
+    const extensionSkillIds = normalizeExtensionSkillIds(body.extensionSkillIds)
     const systemPrompt = buildSystemPrompt({
       ...(domPlanning ? { domPlanning } : {}),
       ...(dom ? { dom } : {}),
+      extensionSkillsContext: formatExtensionUserscriptSkillContext(
+        extensionSkillIds
+      ),
     })
+    const systemPromptForLog =
+      systemPrompt.length > MAX_SYSTEM_PROMPT_LOG_CHARS
+        ? `${systemPrompt.slice(0, MAX_SYSTEM_PROMPT_LOG_CHARS)}\n... [truncated for log, ${systemPrompt.length} chars total]`
+        : systemPrompt
+    console.log("[extension/codegen] final coding system prompt:\n", systemPromptForLog)
+    console.log("[extension/codegen] extensionSkillIds:", extensionSkillIds)
     const model = defaultModel()
     const provider = llmService.getProviderFromModel(model)
 

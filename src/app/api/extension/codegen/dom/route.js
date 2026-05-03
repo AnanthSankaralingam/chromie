@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 import {
   MODEL_SELECTION,
   USER_SCRIPT_DOM_PLANNING,
@@ -47,7 +47,7 @@ export async function POST(request) {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (authError || !user) {
       return extensionJson(request, { error: "Unauthorized" }, { status: 401 })
@@ -73,6 +73,7 @@ export async function POST(request) {
     }
 
     const userRequest = rawRequest.slice(0, MAX_USER_REQUEST_CHARS)
+
     const dom = normalizeDom(body.dom)
     const domOutline = dom ? formatDomSkeletonBlock(dom) : "NOT_PROVIDED"
 
