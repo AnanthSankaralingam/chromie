@@ -33,7 +33,7 @@ export const PLAN_LIMITS = {
 // Credit costs for different request types
 export const CREDIT_COSTS = {
   INITIAL_GENERATION: 3,  // Initial code generation project requests
-  FOLLOW_UP_GENERATION: 1,  // Follow-up code generation requests
+  FOLLOW_UP_GENERATION: 2,  // Follow-up code generation requests
   BROWSER_TESTING: 1,  // Browser testing session (per use)
   IMAGE_GENERATION: 3  // AI image generation (per use)
 }
