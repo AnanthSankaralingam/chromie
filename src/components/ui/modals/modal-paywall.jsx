@@ -5,13 +5,12 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-
-const PRO_STRIPE_URL = "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05"
+import { BILLING_SUBSCRIBE } from "@/lib/constants"
 
 const PRO_FEATURES = [
-  "Import & edit your own Chrome extensions",
-  "Higher token limits for longer builds",
-  "More projects & faster generation",
+  "Monthly credits that reset on your billing cycle",
+  "Higher monthly limits for extension and app usage",
+  "Upgrade path to Builder for the highest limits",
 ]
 
 export default function PaywallModal({ isOpen, onClose, featureName = "This feature" }) {
@@ -37,9 +36,9 @@ export default function PaywallModal({ isOpen, onClose, featureName = "This feat
             <span className="text-lg font-semibold text-white tracking-tight">chromie.dev</span>
           </div>
           <div className="space-y-1.5">
-            <DialogTitle className="text-xl font-semibold text-white">unlock Pro features</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-white">monthly credits reached</DialogTitle>
             <DialogDescription className="text-sm text-slate-400 leading-relaxed max-w-xs mx-auto">
-              {featureName} is a Pro feature. Upgrade to get the most out of chromie.
+              {featureName} requires available monthly credits. Upgrade to Pro or Builder to keep building this cycle.
             </DialogDescription>
           </div>
         </div>
@@ -60,16 +59,11 @@ export default function PaywallModal({ isOpen, onClose, featureName = "This feat
         <div className="relative z-10 px-6 pb-8 space-y-2">
           <Button
             className="w-full bg-white hover:bg-slate-100 text-slate-900 font-semibold py-5 shadow-lg transition-all duration-200"
-            onClick={() => window.location.href = PRO_STRIPE_URL}
+            onClick={() => { window.location.href = BILLING_SUBSCRIBE.pro }}
           >
-            upgrade to Pro — $9.99/mo (limited time sale)
+            upgrade to pro
           </Button>
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
-            <span>use code</span>
-            <span className="font-mono font-bold text-white tracking-widest bg-slate-800 border border-slate-600 px-2 py-0.5 rounded">LAUNCH11</span>
-            <span>for an extra discount — limited time</span>
-          </div>
-          <p className="text-center text-xs text-slate-500">cancel anytime</p>
+          <p className="text-center text-xs text-slate-500">monthly plans: Free, Pro, Builder</p>
         </div>
 
       </DialogContent>

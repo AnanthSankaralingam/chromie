@@ -1,29 +1,40 @@
-import { PLAN_LIMITS, DEFAULT_PLAN } from '@/lib/constants'
+import {
+  PLAN_LIMITS,
+  DEFAULT_PLAN,
+  SUBSCRIPTION_PLANS,
+  BILLING_SUBSCRIBE,
+} from '@/lib/constants'
+import { subscriptionPurchaseEntitled } from '@/lib/subscription-entitlement'
 
-/**
- * Extension proxy tokens used in the current rolling monthly window.
- * Free tier: never uses `monthly_reset` (daily credits); anchor is `extension_proxy_monthly_reset` or 1st of month.
- */
-function extensionProxyUsageForLimitCheck(usage, isFreeTier, now) {
-  const firstOfMonthISO = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  ).toISOString()
+function getCycleInfo(anchorISO, now) {
+  let anchorDate = new Date(anchorISO)
+  const initialNextResetDate = new Date(anchorDate)
+  initialNextResetDate.setMonth(initialNextResetDate.getMonth() + 1)
+  let nextResetDate = new Date(anchorDate)
+  nextResetDate.setMonth(nextResetDate.getMonth() + 1)
+  while (now >= nextResetDate) {
+    anchorDate = new Date(nextResetDate)
+    nextResetDate = new Date(anchorDate)
+    nextResetDate.setMonth(nextResetDate.getMonth() + 1)
+  }
+  return {
+    resetDue: now >= initialNextResetDate,
+    nextResetISO: nextResetDate.toISOString(),
+  }
+}
+
+function extensionProxyUsageForLimitCheck(usage, now, fallbackAnchorISO) {
   const anchorISO =
     usage?.extension_proxy_monthly_reset ||
-    (!isFreeTier && usage?.monthly_reset) ||
-    firstOfMonthISO
-  const pad = new Date(anchorISO)
-  const plusOne = new Date(pad)
-  plusOne.setMonth(plusOne.getMonth() + 1)
-  const resetDue = now >= plusOne
+    usage?.monthly_reset ||
+    fallbackAnchorISO
+  const { resetDue } = getCycleInfo(anchorISO, now)
   return resetDue ? 0 : (usage?.extension_proxy_tokens || 0)
 }
 
 /**
- * Get user's total purchased limits and current usage
- * Priority: Active Pro subscription > One-time purchases > Free tier
+ * Get user's active plan limits and current usage.
+ * Priority: Active Builder subscription > Pro subscription > Free tier
  */
 export async function getUserLimits(userId, supabase) {
   // Get all active purchases
@@ -31,7 +42,6 @@ export async function getUserLimits(userId, supabase) {
     .from('purchases')
     .select('*')
     .eq('user_id', userId)
-    .eq('status', 'active')
     .order('purchased_at', { ascending: false })
   
   if (purchasesError) {
@@ -54,126 +64,67 @@ export async function getUserLimits(userId, supabase) {
   // Get current project count from profiles
   const { data: profile } = await supabase
     .from('profiles')
-    .select('project_count')
+    .select('project_count, created_at')
     .eq('id', userId)
     .single()
 
   const now = new Date()
-  
-  // Check for active Pro subscription
-  const proSub = purchases?.find(p => 
-    p.plan === 'pro' && 
-    p.purchase_type === 'subscription' &&
-    (!p.expires_at || new Date(p.expires_at) > now)
-  )
-  
-  if (proSub) {
-    // Active Pro subscription - use Pro limits with monthly reset
-    // No limits on projects or browser minutes for paid plans (only credits)
-    const monthlyResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
-    let resetDatePlusOneMonth = null
-    if (monthlyResetDate) {
-      resetDatePlusOneMonth = new Date(monthlyResetDate)
-      resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-    }
-    const isResetDue = monthlyResetDate ? now >= resetDatePlusOneMonth : false
-    
-    return {
-      plan: 'pro',
-      purchaseType: 'subscription',
-      limits: {
-        credits: PLAN_LIMITS.pro.monthly_credits,
-        browserMinutes: Infinity, // Unlimited for paid plans
-        projects: Infinity, // Unlimited for paid plans
-        extensionProxyTokens: PLAN_LIMITS.pro.extension_proxy_tokens,
-      },
-      usage: {
-        credits: isResetDue ? 0 : (usage?.total_credits || 0),
-        browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
-        projects: profile?.project_count || 0,
-        extensionProxyTokens: extensionProxyUsageForLimitCheck(
-          usage,
-          false,
-          now
-        ),
-      },
-      hasActivePro: true,
-      resetDate: proSub.expires_at,
-      resetType: 'monthly'
-    }
-  }
-  
-  // Sum all one-time purchases
-  const oneTimePurchases = purchases?.filter(p => p.purchase_type === 'one_time') || []
-  
-  if (oneTimePurchases.length > 0) {
-    // For paid plans (one-time purchases), only limit credits, not projects or browser minutes
-    const totalLimits = {
-      credits: oneTimePurchases.reduce((sum, p) => sum + p.credits_purchased, 0),
-      browserMinutes: Infinity, // Unlimited for paid plans
-      projects: Infinity, // Unlimited for paid plans
-      extensionProxyTokens: PLAN_LIMITS.pro.extension_proxy_tokens,
-    }
-
-    // Same calendar-month window as POST /api/token-usage for non–free-tier users
-    const extensionUsed = extensionProxyUsageForLimitCheck(
-      usage,
-      false,
-      now
+  const planPriority = { builder: 2, pro: 1, free: 0 }
+  const activeSubscription = (purchases || [])
+    .filter(
+      (p) =>
+        p.purchase_type === 'subscription' &&
+        subscriptionPurchaseEntitled(p, now) &&
+        SUBSCRIPTION_PLANS.includes(p.plan) &&
+        p.plan !== 'free'
     )
+    .sort((a, b) => {
+      const planDelta =
+        (planPriority[b.plan] || 0) - (planPriority[a.plan] || 0)
+      if (planDelta !== 0) return planDelta
+      return new Date(b.purchased_at) - new Date(a.purchased_at)
+    })[0]
 
-    return {
-      plan: 'one_time_bundle',
-      planNames: [...new Set(oneTimePurchases.map(p => p.plan))], // e.g. ['pro']
-      purchaseType: 'one_time',
-      purchaseCount: oneTimePurchases.length,
-      limits: totalLimits,
-      usage: {
-        credits: usage?.total_credits || 0,
-        browserMinutes: usage?.browser_minutes || 0,
-        projects: profile?.project_count || 0,
-        extensionProxyTokens: extensionUsed,
-      },
-      hasActivePro: false,
-      resetDate: null,
-      resetType: 'never',
-      exhausted: {
-        credits: (usage?.total_credits || 0) >= totalLimits.credits,
-        browserMinutes: false, // Never exhausted for paid plans
-        projects: false, // Never exhausted for paid plans
-        extensionProxyTokens:
-          extensionUsed >= totalLimits.extensionProxyTokens,
-      }
-    }
-  }
-  
-  // Free tier - daily reset, only credits are limited
-  const lastResetDate = usage?.monthly_reset ? new Date(usage.monthly_reset) : null
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const isResetDue = lastResetDate ? lastResetDate < startOfToday : false
-
+  const resolvedPlan = activeSubscription?.plan || DEFAULT_PLAN
+  const planLimits = PLAN_LIMITS[resolvedPlan] || PLAN_LIMITS[DEFAULT_PLAN]
+  const fallbackAnchorISO =
+    usage?.monthly_reset ||
+    activeSubscription?.purchased_at ||
+    profile?.created_at ||
+    now.toISOString()
+  const { resetDue, nextResetISO } = getCycleInfo(fallbackAnchorISO, now)
   return {
-    plan: 'free',
-    purchaseType: 'free',
+    plan: resolvedPlan,
+    purchaseType: resolvedPlan === 'free' ? 'free' : 'subscription',
     limits: {
-      credits: PLAN_LIMITS.free.monthly_credits,
+      credits: planLimits.monthly_credits,
       browserMinutes: Infinity,
       projects: Infinity,
-      extensionProxyTokens: PLAN_LIMITS.free.extension_proxy_tokens,
+      extensionProxyTokens: planLimits.extension_proxy_tokens,
     },
     usage: {
-      credits: isResetDue ? 0 : (usage?.total_credits || 0),
-      browserMinutes: isResetDue ? 0 : (usage?.browser_minutes || 0),
+      credits: resetDue ? 0 : (usage?.total_credits || 0),
+      browserMinutes: resetDue ? 0 : (usage?.browser_minutes || 0),
       projects: profile?.project_count || 0,
       extensionProxyTokens: extensionProxyUsageForLimitCheck(
         usage,
-        true,
-        now
+        now,
+        fallbackAnchorISO
       ),
     },
-    hasActivePro: false,
-    resetDate: lastResetDate,
-    resetType: 'daily'
+    hasActiveSubscription: resolvedPlan !== 'free',
+    // Backward-compat field for existing clients.
+    hasActivePro: resolvedPlan === 'pro' || resolvedPlan === 'builder',
+    resetDate: nextResetISO,
+    resetType: 'monthly',
+    exhausted: {
+      credits: (resetDue ? 0 : (usage?.total_credits || 0)) >= planLimits.monthly_credits,
+      browserMinutes: false,
+      projects: false,
+      extensionProxyTokens:
+        extensionProxyUsageForLimitCheck(usage, now, fallbackAnchorISO) >=
+        planLimits.extension_proxy_tokens,
+    },
   }
 }
 
@@ -220,6 +171,69 @@ export async function checkLimit(userId, resourceType, amount, supabase) {
   }
 }
 
+function formatLimitResetLabel(iso) {
+  if (!iso) return 'your next monthly reset'
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return 'your next monthly reset'
+  }
+}
+
+/** ~100K / ~500K style (matches pricing page FAQ) */
+function formatProxyTokensShort(n) {
+  if (n >= 1_000_000) return `~${n / 1_000_000}M`
+  if (n >= 1_000) return `~${n / 1_000}K`
+  return String(n)
+}
+
+function buildCreditsLimitMessage(checkResult) {
+  const plan = checkResult.plan || DEFAULT_PLAN
+  const reset = formatLimitResetLabel(checkResult.resetDate)
+  const { free, pro, builder } = PLAN_LIMITS
+
+  if (plan === 'builder') {
+    return `You've used all **monthly credits** on your Builder plan (${builder.monthly_credits}/month). Your pool resets on **${reset}**.`
+  }
+  if (plan === 'pro') {
+    return `You've used all **monthly credits** on your Pro plan (${pro.monthly_credits}/month). **Builder** is **$14.99/month** with **${builder.monthly_credits} credits/month** and higher limits: [Upgrade to Builder](${BILLING_SUBSCRIBE.builder})
+
+If you stay on Pro, credits reset on **${reset}**.`
+  }
+  return `You've used all **monthly credits** on the Free plan (${free.monthly_credits}/month). Upgrade for more builder and extension codegen credits:
+
+- **Pro** — **$9.99/month** — ${pro.monthly_credits} credits/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.pro})
+- **Builder** — **$14.99/month** — ${builder.monthly_credits} credits/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.builder})
+
+Your usage resets on **${reset}**.`
+}
+
+function buildExtensionProxyLimitMessage(checkResult) {
+  const plan = checkResult.plan || DEFAULT_PLAN
+  const reset = formatLimitResetLabel(checkResult.resetDate)
+  const { free, pro, builder } = PLAN_LIMITS
+  const f = formatProxyTokensShort
+
+  if (plan === 'builder') {
+    return `You've reached your **extension LLM proxy** allowance for this month (${f(builder.extension_proxy_tokens)} tokens on Builder). It resets on **${reset}**.`
+  }
+  if (plan === 'pro') {
+    return `You've reached your **extension LLM proxy** allowance for this month (${f(pro.extension_proxy_tokens)} tokens on Pro). **Builder** includes **${f(builder.extension_proxy_tokens)} tokens/month** and more headroom: [Upgrade to Builder](${BILLING_SUBSCRIBE.builder})
+
+Or wait until **${reset}** when your allowance resets.`
+  }
+  return `You've reached your **extension LLM proxy** allowance for this month (Free: ${f(free.extension_proxy_tokens)} tokens). Upgrade for a larger monthly pool:
+
+- **Pro** — **$9.99/month** — ${f(pro.extension_proxy_tokens)} proxy tokens/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.pro})
+- **Builder** — **$14.99/month** — ${f(builder.extension_proxy_tokens)} proxy tokens/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.builder})
+
+Resets on **${reset}**.`
+}
+
 /**
  * Format limit check error for API response
  */
@@ -230,15 +244,28 @@ export function formatLimitError(checkResult, resourceType) {
     projects: 'projects',
     extensionProxyTokens: 'extension LLM tokens',
   }
-  
-  const suggestion = checkResult.purchaseType === 'one_time'
-    ? 'Buy another package or subscribe to Pro for more'
-    : checkResult.purchaseType === 'free'
-    ? 'Subscribe to Pro to continue'
-    : 'Your limit will reset on your next billing cycle'
-  
+
+  const suggestion =
+    checkResult.purchaseType === 'free'
+      ? 'Upgrade to Pro or Builder to continue this month'
+      : 'Your limit will reset on your next monthly billing cycle'
+
+  const shortError = `${resourceNames[resourceType]} limit reached`
+
+  let message
+  if (resourceType === 'credits') {
+    message = buildCreditsLimitMessage(checkResult)
+  } else if (resourceType === 'extensionProxyTokens') {
+    message = buildExtensionProxyLimitMessage(checkResult)
+  } else {
+    const head =
+      shortError.charAt(0).toUpperCase() + shortError.slice(1)
+    message = `${head}. ${suggestion}.`
+  }
+
   return {
-    error: `${resourceNames[resourceType]} limit reached`,
+    error: shortError,
+    message,
     details: {
       resourceType,
       currentUsage: checkResult.currentUsage,
@@ -249,8 +276,8 @@ export function formatLimitError(checkResult, resourceType) {
       purchaseType: checkResult.purchaseType,
       resetType: checkResult.resetType,
       resetDate: checkResult.resetDate,
-      suggestion
-    }
+      suggestion,
+    },
   }
 }
 

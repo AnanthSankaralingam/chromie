@@ -1,9 +1,9 @@
  "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useBillingPlan } from '@/components/BillingPlanProviderClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/forms-and-input/input"
@@ -19,14 +19,81 @@ import React from "react"
 import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
 import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
 import { validateExtensionFiles, FILE_VALIDATION_LIMITS, ALLOWED_EXTENSIONS } from "@/lib/utils/file-validation"
-
-const PRO_STRIPE_URL = "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05"
+import { subscriptionPurchaseEntitled } from "@/lib/subscription-entitlement"
+import { BILLING_SUBSCRIBE } from "@/lib/constants"
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
   const [projects, setProjects] = useState([])
-  const { billing, isLoading: billingLoading } = useBillingPlan()
+  const {
+    billing,
+    purchases: billingPurchases,
+    isLoading: billingLoading,
+    refreshBilling,
+  } = useBillingPlan()
+
+  // BillingPlanProvider only refetches when auth user id changes; after Stripe checkout,
+  // client navigation to /profile would otherwise keep stale purchases from the first load.
+  useEffect(() => {
+    if (!user || pathname !== '/profile') return
+    refreshBilling()
+  }, [user, pathname, refreshBilling])
+
+  // After Stripe Customer Portal (cancel flow), refetch when user returns to this tab
+  useEffect(() => {
+    if (!user || pathname !== '/profile') return
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshBilling()
+    }
+    window.addEventListener('focus', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [user, pathname, refreshBilling])
+
+  const billingForProfile = useMemo(() => {
+    const now = new Date()
+    const purchases = billingPurchases || []
+
+    const entitledSub = purchases.find(
+      (p) =>
+        (p.plan === 'pro' || p.plan === 'builder') &&
+        subscriptionPurchaseEntitled(p, now)
+    )
+
+    if (entitledSub) {
+      const cancelAtPeriodEnd =
+        entitledSub.status === 'canceled' &&
+        entitledSub.expires_at &&
+        new Date(entitledSub.expires_at) > now
+
+      let status = 'active'
+      if (entitledSub.status === 'past_due') status = 'past_due'
+      else if (cancelAtPeriodEnd) status = 'canceling'
+
+      return {
+        plan: entitledSub.plan,
+        status,
+        valid_until: entitledSub.expires_at,
+        cancelAtPeriodEnd: Boolean(cancelAtPeriodEnd),
+      }
+    }
+
+    if (billing) {
+      return {
+        plan: billing.plan,
+        status: billing.status,
+        valid_until: billing.valid_until,
+        cancelAtPeriodEnd: false,
+      }
+    }
+
+    return null
+  }, [billing, billingPurchases])
   const [loading, setLoading] = useState(true)
   const [editingProject, setEditingProject] = useState(null)
   const [newProjectName, setNewProjectName] = useState("")
@@ -212,7 +279,7 @@ export default function ProfilePage() {
 
   // Handle billing actions
   const handleBillingAction = (action, plan = null) => {
-    if (action === 'upgrade' || action === 'downgrade') {
+    if (action === 'upgrade') {
       setSelectedPlan(plan)
       setBillingDialogOpen(true)
     } else if (action === 'cancel') {
@@ -363,27 +430,20 @@ export default function ProfilePage() {
   // Get plan display info
   const getPlanInfo = (plan) => {
     const plans = {
-      starter: {
-        name: 'Starter',
-        price: '$12/month',
-        color: 'bg-black',
-        icon: Zap
-      },
       pro: {
         name: 'Pro',
         price: '$9.99/month',
-        originalPrice: '$14.99/month',
         color: 'bg-gray-500',
         icon: Crown
       },
-      enterprise: {
-        name: 'Enterprise',
-        price: 'Contact us',
+      builder: {
+        name: 'Builder',
+        price: '$14.99/month',
         color: 'bg-green-500',
-        icon: Crown
+        icon: Zap
       }
     }
-    return plans[plan] || plans.starter
+    return plans[plan] || { name: 'Free', price: '$0/month', color: 'bg-slate-700', icon: User }
   }
 
   const handleImportExtensionClick = () => {
@@ -391,7 +451,7 @@ export default function ProfilePage() {
       router.push('/')
       return
     }
-    if (!billing) {
+    if (!billingForProfile) {
       setIsPaywallModalOpen(true)
       return
     }
@@ -619,39 +679,48 @@ export default function ProfilePage() {
               <div className="text-center py-8">
                 <div className="text-white">Loading billing information...</div>
               </div>
-            ) : billing ? (
+            ) : billingForProfile ? (
               <div className="space-y-4">
                 {/* Current Plan */}
                 <div className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${getPlanInfo(billing.plan).color}`}>
-                      {React.createElement(getPlanInfo(billing.plan).icon, { className: "h-5 w-5 text-white" })}
+                    <div className={`p-2 rounded-lg ${getPlanInfo(billingForProfile.plan).color}`}>
+                      {React.createElement(getPlanInfo(billingForProfile.plan).icon, { className: "h-5 w-5 text-white" })}
                     </div>
                     <div>
-                      <h3 className="text-white font-medium">{getPlanInfo(billing.plan).name}</h3>
+                      <h3 className="text-white font-medium">{getPlanInfo(billingForProfile.plan).name}</h3>
                       <p className="text-slate-400 text-sm">
-                        {getPlanInfo(billing.plan).originalPrice ? (
+                        {getPlanInfo(billingForProfile.plan).originalPrice ? (
                           <>
-                            <span className="line-through">{getPlanInfo(billing.plan).originalPrice}</span>
-                            <span className="ml-1 text-amber-400">{getPlanInfo(billing.plan).price}</span>
+                            <span className="line-through">{getPlanInfo(billingForProfile.plan).originalPrice}</span>
+                            <span className="ml-1 text-amber-400">{getPlanInfo(billingForProfile.plan).price}</span>
                             <span className="text-amber-500/80 text-xs ml-1">(sale)</span>
                           </>
                         ) : (
-                          getPlanInfo(billing.plan).price
+                          getPlanInfo(billingForProfile.plan).price
                         )}
                       </p>
                     </div>
                   </div>
                   <Badge
                     variant="secondary"
-                    className={`${billing.status === 'active'
+                    className={`${
+                      billingForProfile.status === 'active'
                         ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                        : billing.status === 'past_due'
+                        : billingForProfile.status === 'past_due'
                           ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                          : 'bg-red-500/10 text-red-400 border-red-500/20'
-                      }`}
+                          : billingForProfile.status === 'canceling'
+                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
+                            : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}
                   >
-                    {billing.status === 'active' ? 'Active' : billing.status === 'past_due' ? 'Past Due' : billing.status}
+                    {billingForProfile.status === 'active'
+                      ? 'Active'
+                      : billingForProfile.status === 'past_due'
+                        ? 'Past Due'
+                        : billingForProfile.status === 'canceling'
+                          ? 'Cancel scheduled'
+                          : billingForProfile.status}
                   </Badge>
                 </div>
 
@@ -666,17 +735,17 @@ export default function ProfilePage() {
                     Manage Billing
                   </Button>
 
-                  {billing.plan === 'starter' && (
+                  {billingForProfile.plan === 'pro' && !billingForProfile.cancelAtPeriodEnd && (
                     <Button
-                      onClick={() => handleBillingAction('upgrade', 'pro')}
+                      onClick={() => handleBillingAction('upgrade', 'builder')}
                       className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300 text-white"
                     >
                       <ArrowUpRight className="h-4 w-4 mr-2" />
-                      Upgrade to Pro
+                      Upgrade to Builder
                     </Button>
                   )}
 
-                  {billing.plan === 'pro' && (
+                  {(billingForProfile.plan === 'pro' || billingForProfile.plan === 'builder') && !billingForProfile.cancelAtPeriodEnd && (
                     <Button
                       onClick={() => handleBillingAction('cancel')}
                       variant="outline"
@@ -689,14 +758,22 @@ export default function ProfilePage() {
 
                 {/* Subscription Details */}
                 <div className="text-sm text-slate-400 space-y-1">
-                  <p>Valid until: {formatDate(billing.valid_until)}</p>
+                  {billingForProfile.cancelAtPeriodEnd ? (
+                    <p>
+                      Subscription canceled — you keep access until{' '}
+                      {formatDate(billingForProfile.valid_until)}. Use Manage Billing to
+                      resume if you change your mind.
+                    </p>
+                  ) : (
+                    <p>Valid until: {formatDate(billingForProfile.valid_until)}</p>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
                 <div className="text-slate-300 mb-4">No active subscription found.</div>
                 <Button
-                  onClick={() => window.open(PRO_STRIPE_URL, "_blank")}
+                  onClick={() => { window.location.href = BILLING_SUBSCRIBE.pro }}
                   className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
                 >
                   <Crown className="h-4 w-4 mr-2" />
@@ -1184,13 +1261,13 @@ export default function ProfilePage() {
         <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'starter' ? 'Downgrade to Starter' : 'Choose a Plan'}
+              {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'builder' ? 'Upgrade to Builder' : 'Choose a Plan'}
             </DialogTitle>
             <DialogDescription className="text-slate-300">
               {selectedPlan === 'pro'
                 ? 'Upgrade to Pro for more features and higher limits.'
-                : selectedPlan === 'starter'
-                  ? 'Downgrade to Starter plan.'
+                : selectedPlan === 'builder'
+                  ? 'Upgrade to Builder for the highest monthly limits.'
                   : 'Select a plan that fits your needs.'
               }
             </DialogDescription>
@@ -1221,15 +1298,15 @@ export default function ProfilePage() {
             <Button
               onClick={() => {
                 if (selectedPlan === 'pro') {
-                  window.location.href = 'https://buy.stripe.com/test_7sY28q5gl0hyaW3gSq7kc01'
-                } else if (selectedPlan === 'starter') {
-                  window.location.href = 'https://buy.stripe.com/test_9B614mcIN3tK0hp59I7kc00'
+                  window.location.href = BILLING_SUBSCRIBE.pro
+                } else if (selectedPlan === 'builder') {
+                  window.location.href = BILLING_SUBSCRIBE.builder
                 }
                 setBillingDialogOpen(false)
               }}
               className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
             >
-              {selectedPlan === 'pro' ? 'Upgrade Now' : selectedPlan === 'starter' ? 'Downgrade Now' : 'Continue'}
+              {selectedPlan === 'pro' || selectedPlan === 'builder' ? 'Upgrade Now' : 'Continue'}
             </Button>
           </DialogFooter>
         </DialogContent>

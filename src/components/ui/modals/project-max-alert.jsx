@@ -16,17 +16,17 @@ export function ProjectMaxAlert({
 }) {
   const planNames = {
     free: 'Free',
-    starter: 'Starter',
-    pro: 'Pro'
+    pro: 'Pro',
+    builder: 'Builder'
   }
 
   const planLimits = {
     free: 10,
-    starter: 25,
-    pro: 50
+    pro: 50,
+    builder: 100
   }
 
-  const nextPlan = currentPlan === 'free' ? 'starter' : currentPlan === 'starter' ? 'pro' : null
+  const nextPlan = currentPlan === 'free' ? 'pro' : currentPlan === 'pro' ? 'builder' : null
   const nextPlanName = nextPlan ? planNames[nextPlan] : null
   const nextPlanLimit = nextPlan ? planLimits[nextPlan] : null
 

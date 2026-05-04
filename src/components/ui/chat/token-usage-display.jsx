@@ -50,15 +50,11 @@ export default function TokenUsageDisplay() {
   }
 
   const { totalTokensUsed, planLimit, usagePercentage, userPlan } = tokenUsage
-  const isUnlimited = planLimit === 'unlimited'
-  const isNearLimit = !isUnlimited && usagePercentage > 80
-  const isOverLimit = !isUnlimited && usagePercentage >= 100
+  const isNearLimit = usagePercentage > 80
+  const isOverLimit = usagePercentage >= 100
 
   // Credits are typically small numbers, so no need for formatting
-  const formatCredits = (credits) => {
-    if (credits === 'unlimited' || credits === -1) return '∞'
-    return credits.toString()
-  }
+  const formatCredits = (credits) => credits.toString()
 
   return (
     <div className="flex items-center space-x-2">
@@ -67,17 +63,10 @@ export default function TokenUsageDisplay() {
         <span className="text-sm text-slate-300">
           {formatCredits(totalTokensUsed)}
         </span>
-        {!isUnlimited && (
-          <>
-            <span className="text-sm text-slate-500">/</span>
-            <span className="text-sm text-slate-300">
-              {formatCredits(planLimit)}
-            </span>
-          </>
-        )}
-        {isUnlimited && (
-          <span className="text-sm text-slate-500">/∞</span>
-        )}
+        <span className="text-sm text-slate-500">/</span>
+        <span className="text-sm text-slate-300">
+          {formatCredits(planLimit)}
+        </span>
         <span className="text-xs text-slate-500 ml-1">credits</span>
       </div>
       {isOverLimit && (

@@ -121,7 +121,7 @@ export async function POST(request, { params }) {
 
       const { data: existingUsage, error: fetchError } = await db
         .from("token_usage")
-        .select("id, total_credits, total_tokens, monthly_reset, model")
+        .select("id, total_credits, total_tokens, monthly_reset")
         .eq("user_id", user.id)
         .maybeSingle()
 
@@ -169,7 +169,6 @@ export async function POST(request, { params }) {
             user_id: user.id,
             total_credits: imageGenCredits,
             total_tokens: 0,
-            model: "gemini-2.5-flash-image",
             monthly_reset: newMonthlyResetISO
           })
 

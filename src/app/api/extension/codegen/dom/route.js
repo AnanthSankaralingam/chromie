@@ -1,5 +1,6 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server"
 import {
+  CREDIT_COSTS,
   MODEL_SELECTION,
   USER_SCRIPT_DOM_PLANNING,
 } from "@/lib/constants"
@@ -7,9 +8,11 @@ import {
   extensionJson,
   extensionOptions,
 } from "@/lib/api/extension-api"
+import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { buildDomPlanningPrompt } from "@/lib/prompts/userscript/dom-planning-prompt"
 import { formatDomSkeletonBlock } from "@/lib/prompts/userscript/system-prompt"
 import { llmService } from "@/lib/services/llm-service"
+import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 export function OPTIONS(request) {
   return extensionOptions(request)
@@ -73,6 +76,19 @@ export async function POST(request) {
     }
 
     const userRequest = rawRequest.slice(0, MAX_USER_REQUEST_CHARS)
+    const creditCheck = await checkLimit(
+      user.id,
+      "credits",
+      CREDIT_COSTS.FOLLOW_UP_GENERATION,
+      supabase
+    )
+    if (!creditCheck.allowed) {
+      return extensionJson(
+        request,
+        formatLimitError(creditCheck, "credits"),
+        { status: 429 }
+      )
+    }
 
     const dom = normalizeDom(body.dom)
     const domOutline = dom ? formatDomSkeletonBlock(dom) : "NOT_PROVIDED"
@@ -115,6 +131,26 @@ export async function POST(request) {
         ? `${planning.slice(0, MAX_RAW_STREAM_LOG_CHARS)}\n... [truncated for log, ${planning.length} chars total]`
         : planning
     console.log("[extension/codegen/dom] raw output:\n", planningForLog)
+    if (planning.trim()) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      let db = supabase
+      if (supabaseUrl && serviceKey) {
+        const { createClient: createServiceClient } = await import(
+          "@supabase/supabase-js"
+        )
+        db = createServiceClient(supabaseUrl, serviceKey)
+      }
+      const billed = await applyTokenUsageDelta(db, user.id, {
+        creditsThisRequest: CREDIT_COSTS.FOLLOW_UP_GENERATION,
+      })
+      if (!billed.ok) {
+        console.error(
+          "[extension/codegen/dom] Failed to persist credit usage:",
+          billed.error
+        )
+      }
+    }
 
     return extensionJson(request, {
       planning,

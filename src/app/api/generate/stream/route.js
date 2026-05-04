@@ -34,7 +34,7 @@ function isContextLimitError(error, provider) {
 /**
  * Upsert credit and token usage for the authenticated user
  */
-async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThisRequest, modelUsed, supabase }) {
+async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThisRequest, supabase }) {
   try {
     if (!Number.isFinite(creditsThisRequest) || creditsThisRequest < 0) return
     if (!Number.isFinite(tokensThisRequest) || tokensThisRequest < 0) tokensThisRequest = 0
@@ -85,7 +85,6 @@ async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThi
           total_credits: newTotalCredits,
           total_tokens: newTotalTokens,
           monthly_reset: newMonthlyResetISO,
-          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
         })
         .eq('id', existingUsage.id)
         .eq('user_id', supabaseUserId)
@@ -100,7 +99,6 @@ async function upsertCreditUsage({ supabaseUserId, creditsThisRequest, tokensThi
           total_credits: newTotalCredits,
           total_tokens: newTotalTokens,
           monthly_reset: newMonthlyResetISO,
-          model: typeof modelUsed === 'string' ? modelUsed : 'unknown',
         })
       if (insertError) console.error('[api/generate/stream] usage insert failed:', insertError)
     }
@@ -224,7 +222,6 @@ export async function POST(request) {
     // Create a readable stream
     const encoder = new TextEncoder()
     let accumulatedTokens = 0
-    let modelUsed = modelOverride || 'unknown'
     let requiresUrl = false
     let createdVersionId = null
 
@@ -351,7 +348,6 @@ export async function POST(request) {
               } else if (chunk.usage) {
                 const total = chunk.usage.total_tokens || chunk.usage.total || 0
                 if (total > 0) accumulatedTokens = total
-                if (chunk.usage.model) modelUsed = chunk.usage.model
               }
             } else if (chunk.type === "usage_summary") {
               const thinking = chunk.thinking_tokens || 0
@@ -381,7 +377,6 @@ export async function POST(request) {
               supabaseUserId: user.id,
               creditsThisRequest: creditsForRequest,
               tokensThisRequest: accumulatedTokens,
-              modelUsed,
               supabase,
             })
             

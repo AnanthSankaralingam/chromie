@@ -20,11 +20,10 @@ export async function GET() {
     
     return NextResponse.json({
       plan: userLimits.plan,
-      planNames: userLimits.planNames, // For one-time bundles: e.g. ['pro']
       purchaseType: userLimits.purchaseType,
-      purchaseCount: userLimits.purchaseCount,
       resetType: userLimits.resetType,
       resetDate: userLimits.resetDate,
+      hasActiveSubscription: userLimits.hasActiveSubscription,
       hasActivePro: userLimits.hasActivePro,
       
       limits: userLimits.limits,
@@ -50,17 +49,17 @@ export async function GET() {
       
       // Legacy fields for backwards compatibility (using credits now)
       totalTokensUsed: userLimits.usage.credits,
-      planLimit: userLimits.limits.credits === -1 ? 'unlimited' : userLimits.limits.credits,
+      planLimit: userLimits.limits.credits,
       usagePercentage: Math.round((userLimits.usage.credits / userLimits.limits.credits) * 100),
       monthlyUsage: userLimits.usage.credits,
       userPlan: userLimits.plan,
-      remainingTokens: userLimits.limits.credits === -1 ? 'unlimited' : Math.max(0, userLimits.limits.credits - userLimits.usage.credits),
+      remainingTokens: Math.max(0, userLimits.limits.credits - userLimits.usage.credits),
       monthlyReset: userLimits.resetDate,
       resetDue: userLimits.resetType === 'monthly' && userLimits.resetDate ? new Date() >= new Date(userLimits.resetDate) : false,
       totalBrowserMinutesUsed: userLimits.usage.browserMinutes,
-      browserPlanLimit: userLimits.limits.browserMinutes === -1 ? 'unlimited' : userLimits.limits.browserMinutes,
+      browserPlanLimit: userLimits.limits.browserMinutes,
       browserUsagePercentage: Math.round((userLimits.usage.browserMinutes / userLimits.limits.browserMinutes) * 100),
-      remainingBrowserMinutes: userLimits.limits.browserMinutes === -1 ? 'unlimited' : Math.max(0, userLimits.limits.browserMinutes - userLimits.usage.browserMinutes),
+      remainingBrowserMinutes: Math.max(0, userLimits.limits.browserMinutes - userLimits.usage.browserMinutes),
     })
   } catch (error) {
     console.error("Error getting token usage:", error)
@@ -88,7 +87,6 @@ export async function POST(request) {
     const extensionProxyTokensThisRequest = Number(
       body?.extensionProxyTokensThisRequest ?? 0
     )
-    const modelUsed = typeof body?.model === 'string' ? body.model : 'unknown'
     const targetId = typeof body?.id === 'string' ? body.id : null
 
     if (!Number.isFinite(creditsThisRequest) || creditsThisRequest < 0) {
@@ -135,7 +133,6 @@ export async function POST(request) {
       tokensThisRequest,
       browserMinutesThisRequest,
       extensionProxyTokensThisRequest,
-      modelUsed,
       targetId,
     })
 
@@ -153,7 +150,6 @@ export async function POST(request) {
       monthly_reset: applied.monthly_reset,
       extension_proxy_monthly_reset: applied.extension_proxy_monthly_reset,
       extension_proxy_tokens: applied.extension_proxy_tokens,
-      model: modelUsed,
     })
   } catch (error) {
     console.error("Error updating token usage via POST:", error)

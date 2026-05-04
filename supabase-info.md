@@ -122,33 +122,30 @@ Not for credit card data — only foreign keys to Stripe.
 | `user_id`             | uuid         | FK → `profiles.id`, ON DELETE CASCADE        |
 | `stripe_customer_id`  | text         | Stripe ref                                   |
 | `stripe_subscription_id`| text       | Stripe ref                                   |
-| `plan`                | text         | e.g. 'free', 'starter', 'pro'                |
+| `plan`                | text         | e.g. 'free', 'pro', 'builder'                |
 | `status`              | text         | e.g. 'active', 'past_due'                    |
 | `created_at`          | timestamptz  | DEFAULT now()                                |
 | `valid_until`         | timestamptz  | Optional, subscription expiry                |
-| `purchase_count`      | integer      | DEFAULT 0, tracks number of one-time purchases |
-| `has_one_time_purchase`| boolean     | DEFAULT false, indicates if user has one-time purchases |
+| `purchase_count`      | integer      | DEFAULT 0, legacy field from earlier billing model |
+| `has_one_time_purchase`| boolean     | DEFAULT false, legacy field from earlier billing model |
 
 ---
 
 ### 6. `purchases` *(Purchase ledger)*
-Tracks all purchases (one-time and subscriptions) as a ledger.
+Tracks purchases and subscriptions as a ledger.
 
 | Column                    | Type         | Details                                      |
 |---------------------------|--------------|----------------------------------------------|
 | `id`                      | uuid         | PK, DEFAULT gen_random_uuid()                |
 | `user_id`                 | uuid         | FK → `profiles.id`, ON DELETE CASCADE        |
-| `stripe_payment_intent_id`| text         | Stripe payment intent ID (one-time purchases) |
+| `stripe_payment_intent_id`| text         | Stripe payment intent ID (legacy one-time support) |
 | `stripe_subscription_id`  | text         | Stripe subscription ID (subscriptions)       |
-| `plan`                    | text         | 'pro' (subscription or one-time)              |
-| `purchase_type`           | text         | 'one_time' or 'subscription'                 |
+| `plan`                    | text         | 'pro' or 'builder' (active subscriptions)     |
+| `purchase_type`           | text         | 'subscription' (legacy one-time rows may exist) |
 | `status`                  | text         | 'active', 'refunded', 'expired', 'canceled'  |
-| `credits_purchased`        | bigint       | Credits included in this purchase             |
-| `tokens_purchased`         | bigint       | Tokens included in this purchase (for analytics) |
-| `browser_minutes_purchased`| integer     | Browser minutes included in this purchase    |
-| `projects_purchased`      | integer      | Projects included in this purchase           |
+| `credits_purchased`        | bigint       | Monthly credit allowance for this subscription row (mirrors plan; limits enforced via `PLAN_LIMITS`) |
 | `purchased_at`            | timestamptz  | When purchase was made                       |
-| `expires_at`              | timestamptz  | NULL for one-time, renewal date for subs     |
+| `expires_at`              | timestamptz  | Renewal date for subscriptions                |
 | `created_at`              | timestamptz  | DEFAULT now()                                |
 | `updated_at`              | timestamptz  | DEFAULT now()                                |
 
@@ -163,6 +160,8 @@ Additional indexes:
 ### 7. `token_usage`
 Tracks credit usage (billing), browser minutes, **extension LLM proxy** token usage (plan-limited), and separate **aggregate** token totals for main-app analytics per user.
 
+**Constraint:** `user_id` is **UNIQUE** (`token_usage_user_id_key`) — one row per user. Service-role upserts (e.g. Stripe webhook) must pass `{ onConflict: 'user_id' }` so existing free-tier rows update instead of inserting a second row.
+
 | Column                    | Type         | Details                                           |
 |---------------------------|--------------|---------------------------------------------------|
 | `id`                      | uuid         | PK, DEFAULT gen_random_uuid()                    |
@@ -170,8 +169,7 @@ Tracks credit usage (billing), browser minutes, **extension LLM proxy** token us
 | `total_credits`           | integer      | Total credits used (for billing limits)          |
 | `total_tokens`            | integer      | Total tokens used **for main-app analytics / cost tracking** (not the extension proxy counter) |
 | `extension_proxy_tokens`  | integer      | NOT NULL, DEFAULT 0; LLM tokens consumed via `/api/extension/llm` only; **not** mixed into `total_tokens` |
-| `extension_proxy_monthly_reset` | timestamptz | NULL allowed; anchor for the **rolling monthly** extension-proxy window (same math as paid-tier `monthly_reset`). Free-tier credits still use `monthly_reset` (daily); extension proxy uses this column. Backfill: `UPDATE token_usage SET extension_proxy_monthly_reset = date_trunc('month', COALESCE(monthly_reset, now())) WHERE extension_proxy_monthly_reset IS NULL` optional; app treats NULL as first of current month for free, or `monthly_reset` for paid rows without the column set. |
-| `model`                   | text         | Model used (e.g. 'gpt-4o')                        |
+| `extension_proxy_monthly_reset` | timestamptz | NULL allowed; anchor for the **rolling monthly** extension-proxy window. All plans now use monthly-cycle reset behavior. |
 | `monthly_reset`           | timestamptz  | DEFAULT now()                                    |
 | `browser_minutes`         | integer      | Total browser minutes used                        |
 
@@ -419,10 +417,11 @@ RLS policies:
 
 | Plan    | Max Projects | Credits | Browser Minutes | Reset Type | Description                    |
 |---------|--------------|---------|-----------------|------------|--------------------------------|
-| free    | 1            | 10      | 15              | monthly    | Basic tier with limited projects |
-| pro     | 300          | 500     | 240             | monthly    | Monthly subscription (only paid plan) |
+| free    | 1            | 30      | 15              | monthly    | Entry plan with monthly reset credits |
+| pro     | Infinity     | 250     | Infinity        | monthly    | Paid monthly subscription |
+| builder | 300          | 500     | 240             | monthly    | Higher-capacity monthly subscription |
 
-**Extension LLM proxy** (`/api/extension/llm`): caps are `PLAN_LIMITS.*.extension_proxy_tokens` in `src/lib/constants.js` (free 100k, pro 1M; one-time purchases use the pro cap). Usage is stored in `token_usage.extension_proxy_tokens` and resets on a **rolling monthly** window from `token_usage.extension_proxy_monthly_reset` for **all** plans; free-tier **credits** still reset daily via `monthly_reset`.
+**Extension LLM proxy** (`/api/extension/llm`): caps are `PLAN_LIMITS.*.extension_proxy_tokens` in `src/lib/constants.js` (free 100k, pro 500k, builder 1M). Usage is stored in `token_usage.extension_proxy_tokens` and resets on a **rolling monthly** window from `token_usage.extension_proxy_monthly_reset` for all plans.
 
 ## Credit Costs
 

@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Check, X, Star, ChevronDown, ChevronUp, Play, Zap } from "lucide-react"
+import { Check, X, Star, ChevronDown, ChevronUp, Play } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { BILLING_SUBSCRIBE, PLAN_LIMITS } from "@/lib/constants"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 const EXTENDED_DEMO_URL = "https://www.youtube.com/watch?v=towZ0uxt5s4"
@@ -24,18 +25,17 @@ function getYouTubeEmbedUrl(url) {
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`
 }
 
+/** Monthly LLM proxy budget (tokens); shown as a simple allowance label. */
+function formatAiProxyMonthly(tokens) {
+  if (tokens >= 1_000_000) return `~${tokens / 1_000_000}M/mo`
+  if (tokens >= 1_000) return `~${tokens / 1_000}K/mo`
+  return `${tokens}/mo`
+}
+
 const features = [
-  { label: "credits", key: "credits" },                          // all plans
-  { label: "simulated browser testing", key: "browserTesting" }, // all plans
-  { label: "deployment wizard", key: "deploymentWizard" },       // all plans
-  { label: "private extension sharing", key: "privateSharing" }, // pro+
-  { label: "GitHub export", key: "githubExport" },               // pro+
-  { label: "version history", key: "versionHistory" },           // pro+
-  { label: "automated AI testing", key: "advancedTesting" },     // pro+
-  { label: "metrics platform", key: "metricsPlatform" },         // pro+
-  { label: "privacy policy hosting", key: "privacyPolicyHosting" }, // pro+
-  { label: "demo creator", key: "demoCreator" },                 // pro+
-  { label: "dedicated support", key: "dedicatedSupport" },       // enterprise only
+  { key: "credits" },
+  { key: "aiCalls" },
+  { key: "frontierModels" },
 ]
 
 const plans = [
@@ -49,65 +49,39 @@ const plans = [
     href: "/builder",
     featured: false,
     features: {
-      credits: "10 credits/day",
-      browserTesting: true,
-      privateSharing: false,
-      githubExport: false,
-      versionHistory: false,
-      advancedTesting: false,
-      metricsPlatform: false,
-      privacyPolicyHosting: false,
-      deploymentWizard: true,
-      demoCreator: false,
-      dedicatedSupport: false,
+      credits: "30 credits / month",
+      aiCalls: `${formatAiProxyMonthly(PLAN_LIMITS.free.extension_proxy_tokens)} AI calls / month (LLM proxy)`,
+      frontierModels: "fast, capable models for everyday extension work",
     },
   },
   {
     id: "pro",
     title: "pro",
     price: "$9.99",
-    originalPrice: "$14.99",
     period: "/month",
     note: "cancel anytime",
-    saleBanner: "limited time sale",
-    cta: "get started",
-    href: "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05",
+    cta: "upgrade to pro",
+    href: BILLING_SUBSCRIBE.pro,
     featured: true,
     features: {
-      credits: "500 credits/month",
-      browserTesting: true,
-      privateSharing: true,
-      githubExport: true,
-      versionHistory: true,
-      advancedTesting: true,
-      metricsPlatform: true,
-      privacyPolicyHosting: true,
-      deploymentWizard: true,
-      demoCreator: true,
-      dedicatedSupport: false,
+      credits: "250 credits / month",
+      aiCalls: `${formatAiProxyMonthly(PLAN_LIMITS.pro.extension_proxy_tokens)} AI calls / month (LLM proxy)`,
+      frontierModels: "stronger models for complex features & refactors",
     },
   },
   {
-    id: "enterprise",
-    title: "enterprise",
-    price: "custom",
-    period: "",
-    note: null,
-    cta: "contact us",
-    href: "/book-demo",
+    id: "builder",
+    title: "builder",
+    price: "$14.99",
+    period: "/month",
+    note: "for higher-volume teams",
+    cta: "get builder",
+    href: BILLING_SUBSCRIBE.builder,
     featured: false,
     features: {
-      credits: "unlimited credits",
-      browserTesting: true,
-      privateSharing: true,
-      githubExport: true,
-      versionHistory: true,
-      advancedTesting: true,
-      metricsPlatform: true,
-      privacyPolicyHosting: true,
-      deploymentWizard: true,
-      demoCreator: true,
-      dedicatedSupport: true,
+      credits: "500 credits / month",
+      aiCalls: `${formatAiProxyMonthly(PLAN_LIMITS.builder.extension_proxy_tokens)} AI calls / month (LLM proxy)`,
+      frontierModels: "frontier coding models",
     },
   },
 ]
@@ -134,69 +108,75 @@ function PricingCard({ plan, index }) {
       )}
       <div
         className={cn(
-          "relative flex flex-col rounded-2xl border p-6 h-full transition-all overflow-hidden",
+          "relative flex flex-col rounded-2xl border p-7 sm:p-8 h-full transition-all overflow-hidden",
           "bg-[#0f1117] border-white/[0.08] hover:border-white/[0.14]",
           plan.featured && "border-white/40 shadow-[0_0_40px_rgba(255,255,255,0.12),0_0_80px_rgba(255,255,255,0.06)]"
         )}
       >
         {/* Plan title + badge */}
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="text-xl font-bold text-white">{plan.title}</h3>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <h3 className="text-2xl font-bold text-white tracking-tight">{plan.title}</h3>
           {plan.featured && (
-            <div className="flex items-center gap-1 rounded-full bg-white/[0.06] border border-white/[0.12] px-2.5 py-1 text-xs font-medium text-zinc-300 whitespace-nowrap">
-              <Star className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+            <div className="flex items-center gap-1 rounded-full bg-white/[0.06] border border-white/[0.12] px-3 py-1.5 text-sm font-medium text-zinc-300 whitespace-nowrap">
+              <Star className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
               <span>most popular</span>
             </div>
           )}
         </div>
 
         {/* Price */}
-        <div className="mb-1">
+        <div className="mb-2">
           {plan.originalPrice ? (
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-slate-500 line-through">{plan.originalPrice}</span>
-              <span className="text-3xl font-bold text-slate-100">{plan.price}</span>
+              <span className="text-4xl font-bold text-slate-500 line-through">{plan.originalPrice}</span>
+              <span className="text-4xl font-bold text-slate-100">{plan.price}</span>
               {plan.period && (
-                <span className="text-base text-slate-400 ml-1.5">{plan.period}</span>
+                <span className="text-lg text-slate-400 ml-1.5">{plan.period}</span>
               )}
             </div>
           ) : (
             <>
-              <span className="text-3xl font-bold text-slate-100">{plan.price}</span>
+              <span className="text-4xl font-bold text-slate-100">{plan.price}</span>
               {plan.period && (
-                <span className="text-base text-slate-400 ml-1.5">{plan.period}</span>
+                <span className="text-lg text-slate-400 ml-1.5">{plan.period}</span>
               )}
             </>
           )}
         </div>
-        <p className="text-xs text-zinc-600 mb-5 min-h-[16px]">{plan.note ?? ""}</p>
+        <p className="text-sm text-zinc-500 mb-7 min-h-[20px]">{plan.note ?? ""}</p>
 
         {/* CTA */}
         <Button
           onClick={handleClick}
-          className="w-full mb-5 font-medium bg-white text-[#080a0f] hover:bg-zinc-100 transition-all duration-200"
+          className="w-full mb-7 py-6 text-base font-medium bg-white text-[#080a0f] hover:bg-zinc-100 transition-all duration-200"
         >
           {plan.cta}
         </Button>
 
         {/* Divider */}
-        <div className="border-t border-white/[0.06] mb-5" />
+        <div className="border-t border-white/[0.06] mb-7" />
 
         {/* Feature list */}
-        <ul className="space-y-3 flex-grow">
+        <ul className="space-y-5 flex-grow">
           {features.map((feature) => {
             const value = plan.features[feature.key]
             const included = value !== false
+            const display = typeof value === "string" ? value : ""
             return (
-              <li key={feature.key} className="flex items-center gap-2.5 text-base">
+              <li key={feature.key} className="flex items-start gap-4 text-base">
                 {included ? (
-                  <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-1" />
                 ) : (
-                  <X className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                  <X className="w-5 h-5 text-slate-600 flex-shrink-0 mt-1" />
                 )}
-                <span className={cn(included ? "text-zinc-200" : "text-zinc-600")}>
-                  {typeof value === "string" ? value : feature.label}
-                </span>
+                <p
+                  className={cn(
+                    "min-w-0 text-base leading-relaxed",
+                    included ? "text-zinc-200" : "text-zinc-600"
+                  )}
+                >
+                  {display}
+                </p>
               </li>
             )
           })}
@@ -207,29 +187,12 @@ function PricingCard({ plan, index }) {
 }
 
 export default function PricingSection() {
-  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'browser' | 'why' | 'privacyPolicy' | null
+  const [faqOpen, setFaqOpen] = useState(null) // 'credit' | 'aiProxy' | 'frontier' | 'why' | null
   const [isExtendedDemoOpen, setIsExtendedDemoOpen] = useState(false)
 
   return (
-    <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
+    <section id="pricing" className="relative z-10 px-4 sm:px-6 py-20 md:py-24 overflow-x-hidden">
       <div className="container mx-auto max-w-7xl">
-
-        {/* Limited time sale banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-6"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="inline-flex flex-wrap justify-center items-center gap-x-2 gap-y-1 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold">
-              <span>limited time sale — Pro $9.99/mo — use code</span>
-              <span className="font-mono font-bold text-white tracking-widest bg-amber-500/30 px-2 py-0.5 rounded">LAUNCH11</span>
-              <span className="text-amber-200">at checkout</span>
-            </div>
-          </div>
-        </motion.div>
 
         {/* Header */}
         <motion.div
@@ -237,81 +200,28 @@ export default function PricingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-10 md:mb-12"
+          className="text-center mb-12 md:mb-14"
         >
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500 mb-3">pricing</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">pricing</h2>
-          <p className="text-sm md:text-base text-zinc-400 max-w-xl mx-auto mb-4">
+          <p className="text-sm uppercase tracking-[0.2em] text-zinc-500 mb-4">pricing</p>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">pricing</h2>
+          <p className="text-base md:text-lg text-zinc-400 max-w-xl mx-auto mb-6 leading-relaxed">
             choose the perfect plan for your chrome extension development needs
           </p>
           <button
             onClick={() => setIsExtendedDemoOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-zinc-300 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/20 hover:text-white transition-all"
+            className="inline-flex items-center gap-2.5 px-5 py-3 rounded-lg text-base font-medium text-zinc-300 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/20 hover:text-white transition-all"
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-5 h-5" />
             watch extended demo
           </button>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 mb-24">
           {plans.map((plan, index) => (
             <PricingCard key={plan.id} plan={plan} index={index} />
           ))}
         </div>
-
-        {/* Starter Pack */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-20"
-        >
-          <p className="text-sm text-zinc-400 text-center mb-4">or, just need more credits?</p>
-          <div className="relative rounded-2xl border border-white/[0.08] bg-[#0f1117] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                <Zap className="w-5 h-5 text-amber-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-base font-semibold text-white">starter pack</h3>
-                  <span className="text-xs font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">one-time</span>
-                </div>
-                <p className="text-sm text-zinc-400 max-w-md">
-                  need more credits without a subscription? get 100 credits that never expire — pay once, use whenever.
-                </p>
-                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    100 credits, no expiry
-                  </li>
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    unlimited projects
-                  </li>
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    no subscription needed
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">$15</span>
-                <span className="text-sm text-zinc-500">one-time</span>
-              </div>
-              <Button
-                onClick={() => window.open('https://buy.stripe.com/8x228q249e8oc07au27kc06', '_blank')}
-                className="bg-white text-[#080a0f] hover:bg-zinc-100 font-medium transition-all duration-200 px-6"
-              >
-                buy now
-              </Button>
-            </div>
-          </div>
-        </motion.div>
 
         {/* FAQ Section */}
         <motion.div
@@ -319,19 +229,19 @@ export default function PricingSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="max-w-3xl mx-auto"
+          className="max-w-4xl mx-auto"
         >
-          <h2 className="text-3xl font-bold mb-8 text-center text-white">
+          <h2 className="text-4xl font-bold mb-10 text-center text-white tracking-tight">
             faq
           </h2>
 
-          <div className="space-y-4">
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-lg overflow-hidden">
+          <div className="space-y-5">
+            <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl overflow-hidden">
               <button
                 onClick={() => setFaqOpen(faqOpen === 'credit' ? null : 'credit')}
-                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.03] transition-colors"
+                className="w-full flex items-center justify-between p-5 sm:p-7 text-left hover:bg-white/[0.03] transition-colors"
               >
-                <span className="text-base sm:text-xl font-semibold text-white">what is a credit?</span>
+                <span className="text-lg sm:text-xl font-semibold text-white pr-4">what is a credit?</span>
                 {faqOpen === 'credit' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -345,67 +255,88 @@ export default function PricingSection() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-zinc-400 space-y-4"
+                  className="px-5 sm:px-7 pb-6 sm:pb-8 text-zinc-400 space-y-5 text-base leading-relaxed"
                 >
                   <p>
-                    credits are used when sending messages in chromie and using the simulated browser. pricing varies by request type:
+                    <span className="text-zinc-200 font-medium">Credits</span> are Chromie&apos;s simple unit for work in the builder: mostly AI-powered code generation and edits in the app. Each plan includes a monthly credit pool; unused credits do not roll over.
                   </p>
-
-                  <div className="space-y-2">
-                    <p className="font-semibold text-white">credit costs:</p>
-                    <ul className="list-disc list-inside space-y-1 ml-4">
-                      <li>all initial code generation project requests require 3 credits</li>
-                      <li>all follow-up code generation requests require 1 credit</li>
-                      <li>each "try it out" simulated browser use requires 1 credit</li>
+                  <div className="space-y-3">
+                    <p className="font-semibold text-white text-lg">typical costs:</p>
+                    <ul className="list-disc list-inside space-y-2 ml-4">
+                      <li>starting a new extension generation project: 3 credits</li>
+                      <li>follow-up edits on an existing project: 2 credits each</li>
                     </ul>
                   </div>
-
-                  <div className="mt-4">
-                    <p className="font-semibold text-white mb-3">here are some example prompts and their cost:</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse bg-white/[0.02] rounded-lg">
-                        <thead>
-                          <tr className="border-b border-white/[0.08]">
-                            <th className="text-left py-3 px-4 text-white font-semibold">user prompt</th>
-                            <th className="text-left py-3 px-4 text-white font-semibold">work done</th>
-                            <th className="text-left py-3 px-4 text-white font-semibold">credits</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                          <tr className="border-b border-white/[0.06]">
-                            <td className="py-3 px-4">create a new chrome extension</td>
-                            <td className="py-3 px-4">initial code generation with all files</td>
-                            <td className="py-3 px-4 font-semibold">3.00</td>
-                          </tr>
-                          <tr className="border-b border-white/[0.06]">
-                            <td className="py-3 px-4">add a button to the popup</td>
-                            <td className="py-3 px-4">updates existing extension files</td>
-                            <td className="py-3 px-4 font-semibold">1.00</td>
-                          </tr>
-                          <tr className="border-b border-white/[0.06]">
-                            <td className="py-3 px-4">change the background color</td>
-                            <td className="py-3 px-4">updates styles</td>
-                            <td className="py-3 px-4 font-semibold">1.00</td>
-                          </tr>
-                          <tr>
-                            <td className="py-3 px-4">try it out (simulated browser)</td>
-                            <td className="py-3 px-4">opens a simulated browser session to test your extension</td>
-                            <td className="py-3 px-4 font-semibold">1.00</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  <p>
+                    AI traffic through the <span className="text-zinc-300">extension LLM proxy</span> is counted separately (see &quot;AI calls&quot; below), not as credits.
+                  </p>
                 </motion.div>
               )}
             </div>
 
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-lg overflow-hidden">
+            <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl overflow-hidden">
+              <button
+                onClick={() => setFaqOpen(faqOpen === 'aiProxy' ? null : 'aiProxy')}
+                className="w-full flex items-center justify-between p-5 sm:p-7 text-left hover:bg-white/[0.03] transition-colors"
+              >
+                <span className="text-lg sm:text-xl font-semibold text-white pr-4">what are AI calls (LLM proxy)?</span>
+                {faqOpen === 'aiProxy' ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {faqOpen === 'aiProxy' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="px-5 sm:px-7 pb-6 sm:pb-8 text-zinc-400 space-y-5 text-base leading-relaxed"
+                >
+                  <p>
+                    <span className="text-zinc-200 font-medium">AI calls</span> are requests from the Chromie browser extension that run through our hosted LLM proxy (sidepanel chat, userscript help, and related flows). Usage is measured on our side and each plan has a monthly allowance, shown in the pricing table as a rough monthly budget (~100K / ~500K / ~1M proxy tokens for Free / Pro / Builder).
+                  </p>
+                  <p>
+                    That allowance resets each billing month. It is separate from <span className="text-zinc-300">credits</span>, which cover generation and edits in the web app.
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl overflow-hidden">
+              <button
+                onClick={() => setFaqOpen(faqOpen === 'frontier' ? null : 'frontier')}
+                className="w-full flex items-center justify-between p-5 sm:p-7 text-left hover:bg-white/[0.03] transition-colors"
+              >
+                <span className="text-lg sm:text-xl font-semibold text-white pr-4">what are frontier coding models?</span>
+                {faqOpen === 'frontier' ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {faqOpen === 'frontier' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="px-5 sm:px-7 pb-6 sm:pb-8 text-zinc-400 text-base leading-relaxed"
+                >
+                  <p>
+                    <span className="text-zinc-200 font-medium">Frontier coding models</span> are the latest, most capable model families we route to for writing and refactoring real code (as opposed to lightweight classifiers or tiny helper calls). Higher plans are aligned with more demanding workflows: Pro and Builder get more room to use stronger models for large refactors, multi-file changes, and harder debugging, in addition to higher monthly credits and proxy allowances.
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl overflow-hidden">
               <button
                 onClick={() => setFaqOpen(faqOpen === 'why' ? null : 'why')}
-                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.03] transition-colors"
+                className="w-full flex items-center justify-between p-5 sm:p-7 text-left hover:bg-white/[0.03] transition-colors"
               >
-                <span className="text-base sm:text-xl font-semibold text-white">why chromie.dev?</span>
+                <span className="text-lg sm:text-xl font-semibold text-white pr-4">why chromie.dev?</span>
                 {faqOpen === 'why' ? (
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
@@ -418,80 +349,19 @@ export default function PricingSection() {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-zinc-400 space-y-4"
+                  className="px-5 sm:px-7 pb-6 sm:pb-8 text-zinc-400 space-y-5 text-base leading-relaxed"
                 >
                   <p>
                     chromie.dev is purpose-built for chrome extension development — not a general-purpose AI tool with extension support bolted on. that focus means better code, fewer hallucinations around Chrome APIs, and a faster path from idea to working extension.
                   </p>
-                  <div className="space-y-2">
-                    <p className="font-semibold text-white">built-in features you won&apos;t find elsewhere:</p>
-                    <ul className="list-disc list-inside space-y-1 ml-4">
-                      <li>simulated browser testing — test your extension instantly without any manual setup</li>
-                      <li>asset upload — bring in your own icons and images directly into the builder</li>
-                      <li>automated AI testing — chromie.dev can test your extension and catch issues for you</li>
-                      <li>private extension sharing — share a working version with teammates or clients without going through the Chrome Web Store, perfect for internal tools or beta testing</li>
+                  <div className="space-y-3">
+                    <p className="font-semibold text-white text-lg">built for extensions:</p>
+                    <ul className="list-disc list-inside space-y-2 ml-4">
+                      <li>asset upload — bring icons and images straight into the builder</li>
+                      <li>automated AI testing — catch issues before you ship</li>
+                      <li>private extension sharing — share a working build without the Chrome Web Store for internal or beta use</li>
                     </ul>
                   </div>
-                </motion.div>
-              )}
-            </div>
-
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-lg overflow-hidden">
-              <button
-                onClick={() => setFaqOpen(faqOpen === 'browser' ? null : 'browser')}
-                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.03] transition-colors"
-              >
-                <span className="text-base sm:text-xl font-semibold text-white">what is simulated browser testing?</span>
-                {faqOpen === 'browser' ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              {faqOpen === 'browser' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-zinc-400 space-y-4"
-                >
-                  <p>
-                    simulated browser testing lets you run chrome right inside chromie. we host Chrome through our website — you get a full browser with your extension loaded and pinned, so you can test instantly.
-                  </p>
-                  <p>
-                    no more manually loading unpacked extensions or hitting reload every time you make a change. it&apos;s all handled in the website.
-                  </p>
-                </motion.div>
-              )}
-            </div>
-
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-lg overflow-hidden">
-              <button
-                onClick={() => setFaqOpen(faqOpen === 'privacyPolicy' ? null : 'privacyPolicy')}
-                className="w-full flex items-center justify-between p-4 sm:p-6 text-left hover:bg-white/[0.03] transition-colors"
-              >
-                <span className="text-base sm:text-xl font-semibold text-white">what is privacy policy hosting?</span>
-                {faqOpen === 'privacyPolicy' ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              {faqOpen === 'privacyPolicy' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="px-4 sm:px-6 pb-4 sm:pb-6 text-zinc-400 space-y-4"
-                >
-                  <p>
-                    every chrome extension published to the chrome web store requires a publicly hosted privacy policy. traditionally, this meant spinning up a separate website or page just to host that document — and repeating that process for every extension you build.
-                  </p>
-                  <p>
-                    chromie handles this automatically. when you build an extension, chromie generates a privacy policy tailored to what your extension actually does, then hosts it for you at a dedicated URL — no separate website needed. every extension gets its own hosted policy, ready to paste straight into the Chrome Web Store submission form.
-                  </p>
                 </motion.div>
               )}
             </div>
