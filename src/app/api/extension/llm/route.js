@@ -5,7 +5,7 @@ import {
   extensionLlmProxyOptions,
 } from "@/lib/api/extension-api"
 import { GeminiAdapter } from "@/lib/services/adapters/gemini-adapter"
-import { getUserLimits } from "@/lib/limit-checker"
+import { formatLimitError, getUserLimits } from "@/lib/limit-checker"
 import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 const MAX_OUTPUT_CAP = 8192
@@ -119,13 +119,22 @@ export async function POST(request) {
       userLimits.usage.extensionProxyTokens >=
       userLimits.limits.extensionProxyTokens
     ) {
+      const exhaustedError = formatLimitError(
+        {
+          currentUsage: userLimits.usage.extensionProxyTokens,
+          limit: userLimits.limits.extensionProxyTokens,
+          available: 0,
+          needed: 1,
+          plan: userLimits.plan,
+          purchaseType: userLimits.purchaseType,
+          resetType: userLimits.resetType,
+          resetDate: userLimits.resetDate,
+        },
+        "extensionProxyTokens"
+      )
       return extensionLlmProxyJson(
         request,
-        {
-          error: "Extension LLM token limit reached",
-          extension_proxy_tokens: userLimits.usage.extensionProxyTokens,
-          limit: userLimits.limits.extensionProxyTokens,
-        },
+        exhaustedError,
         { status: 429 }
       )
     }
@@ -169,7 +178,6 @@ export async function POST(request) {
       }
       const applied = await applyTokenUsageDelta(db, user.id, {
         extensionProxyTokensThisRequest: billTokens,
-        modelUsed: MODEL_SELECTION.EXTENSION_LLM_PROXY,
       })
       if (!applied.ok) {
         console.error("[extension/llm] Failed to persist proxy token usage:", applied.error)

@@ -1,13 +1,15 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server"
-import { MODEL_SELECTION, USER_SCRIPT_CODEGEN } from "@/lib/constants"
+import { CREDIT_COSTS, MODEL_SELECTION, USER_SCRIPT_CODEGEN } from "@/lib/constants"
 import {
   extensionCorsHeaders,
   extensionJson,
   extensionOptions,
 } from "@/lib/api/extension-api"
+import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { buildSystemPrompt } from "@/lib/prompts/userscript/system-prompt"
 import { formatExtensionUserscriptSkillContext, normalizeExtensionUserscriptSkillIds } from "@/lib/prompts/userscript/skills/catalog"
 import { llmService } from "@/lib/services/llm-service"
+import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 export function OPTIONS(request) {
   return extensionOptions(request)
@@ -156,11 +158,25 @@ export async function POST(request) {
     ]
 
     const cors = extensionCorsHeaders(request)
+    const creditCheck = await checkLimit(
+      user.id,
+      "credits",
+      CREDIT_COSTS.INITIAL_GENERATION,
+      supabase
+    )
+    if (!creditCheck.allowed) {
+      return extensionJson(
+        request,
+        formatLimitError(creditCheck, "credits"),
+        { status: 429 }
+      )
+    }
 
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
         let rawStreamOutput = ""
+        let didSucceed = false
         try {
           for await (const chunk of llmService.streamResponse({
             provider,
@@ -175,6 +191,7 @@ export async function POST(request) {
               controller.enqueue(encoder.encode(delta))
             }
           }
+          didSucceed = true
         } catch (err) {
           console.error("[extension/codegen] llmService stream error:", err)
           const msg =
@@ -188,6 +205,26 @@ export async function POST(request) {
               ? `${rawStreamOutput.slice(0, MAX_RAW_STREAM_LOG_CHARS)}\n... [truncated for log, ${rawStreamOutput.length} chars total]`
               : rawStreamOutput
           console.log("[extension/codegen] raw stream output:\n", forLog)
+          if (didSucceed && rawStreamOutput.trim()) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+            const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+            let db = supabase
+            if (supabaseUrl && serviceKey) {
+              const { createClient: createServiceClient } = await import(
+                "@supabase/supabase-js"
+              )
+              db = createServiceClient(supabaseUrl, serviceKey)
+            }
+            const billed = await applyTokenUsageDelta(db, user.id, {
+              creditsThisRequest: CREDIT_COSTS.INITIAL_GENERATION,
+            })
+            if (!billed.ok) {
+              console.error(
+                "[extension/codegen] Failed to persist credit usage:",
+                billed.error
+              )
+            }
+          }
           controller.close()
         }
       },

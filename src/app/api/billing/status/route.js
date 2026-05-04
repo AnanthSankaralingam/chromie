@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { subscriptionPurchaseEntitled } from "@/lib/subscription-entitlement"
 
 export async function GET() {
   const supabase = await createClient()
@@ -44,17 +45,16 @@ export async function GET() {
   let effectiveBilling = billing
   if (!effectiveBilling && purchases?.length > 0) {
     const now = new Date()
-    const activeProSub = purchases.find(p =>
-      p.plan === 'pro' &&
-      p.purchase_type === 'subscription' &&
-      p.status === 'active' &&
-      (!p.expires_at || new Date(p.expires_at) > now)
+    const activeSubscription = purchases.find(
+      (p) =>
+        (p.plan === 'pro' || p.plan === 'builder') &&
+        subscriptionPurchaseEntitled(p, now)
     )
-    if (activeProSub) {
+    if (activeSubscription) {
       effectiveBilling = {
-        plan: 'pro',
+        plan: activeSubscription.plan,
         status: 'active',
-        valid_until: activeProSub.expires_at
+        valid_until: activeSubscription.expires_at
       }
     }
   }

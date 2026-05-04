@@ -9,6 +9,88 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+async function upsertBillingForUser(userId, payload) {
+  const { data: existing, error: selectError } = await supabase
+    .from('billing')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (selectError) {
+    console.error('Error selecting billing row:', selectError)
+    throw selectError
+  }
+
+  if (existing?.id) {
+    const { error: updateError } = await supabase
+      .from('billing')
+      .update(payload)
+      .eq('id', existing.id)
+    if (updateError) {
+      console.error('Error updating billing row:', updateError)
+      throw updateError
+    }
+    return
+  }
+
+  const { error: insertError } = await supabase.from('billing').insert({
+    user_id: userId,
+    ...payload,
+  })
+  if (insertError) {
+    console.error('Error inserting billing row:', insertError)
+    throw insertError
+  }
+}
+
+const PLAN_BY_PRICE_ID = {
+  // Legacy known IDs
+  price_1SFlPyCOAm3tJxqm3GX5der2: 'pro',
+  price_1THBZSCOAm3tJxqmb7D3A6u0: 'builder',
+  // Preferred env-driven IDs
+  ...(process.env.STRIPE_PRICE_PRO ? { [process.env.STRIPE_PRICE_PRO]: 'pro' } : {}),
+  ...(process.env.STRIPE_PRICE_BUILDER ? { [process.env.STRIPE_PRICE_BUILDER]: 'builder' } : {}),
+}
+
+function planFromPriceId(priceId) {
+  return PLAN_BY_PRICE_ID[priceId] || 'pro'
+}
+
+/**
+ * Map Stripe subscription state to ledger + billing rows.
+ * Cancel at period end: Stripe keeps status "active" until period end; we mark purchase canceled for visibility.
+ */
+function subscriptionStateForDb(subscription) {
+  const stripeStatus = subscription.status
+  const cancelAtPeriodEnd = Boolean(subscription.cancel_at_period_end)
+  const periodEndISO = new Date(subscription.current_period_end * 1000).toISOString()
+
+  let purchaseStatus = 'active'
+  let billingStatus = 'active'
+
+  if (stripeStatus === 'active' && cancelAtPeriodEnd) {
+    purchaseStatus = 'canceled'
+    billingStatus = 'active'
+  } else if (
+    stripeStatus === 'canceled' ||
+    stripeStatus === 'unpaid' ||
+    stripeStatus === 'incomplete_expired'
+  ) {
+    purchaseStatus = 'canceled'
+    billingStatus = 'canceled'
+  } else if (stripeStatus === 'past_due') {
+    purchaseStatus = 'past_due'
+    billingStatus = 'past_due'
+  } else if (stripeStatus !== 'active') {
+    purchaseStatus = 'past_due'
+    billingStatus = stripeStatus
+  }
+
+  return { purchaseStatus, billingStatus, periodEndISO }
+}
+
 export async function POST(request) {
   console.log('Webhook received')
   
@@ -83,86 +165,17 @@ export async function POST(request) {
 
 async function handleCheckoutSessionCompleted(session) {
   console.log('Checkout session completed:', session.id)
-  
-  const isOneTime = session.mode === 'payment' // vs 'subscription'
-  const customer = session.customer
-  const paymentIntent = session.payment_intent
-  
-  // Get line items to determine plan
-  const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
-  const priceId = lineItems.data[0]?.price?.id
-  
-  // Map Stripe price IDs to plans (get actual IDs from Stripe dashboard)
-  const PRICE_ID_MAP = {
-    'price_1SFlPyCOAm3tJxqm3GX5der2': 'pro',
-    'price_1THBZSCOAm3tJxqmb7D3A6u0': 'starter'
-  }
-  
-  const plan = PRICE_ID_MAP[priceId] || 'pro'
-  
-  if (isOneTime) {
-    await handleOneTimePurchase(customer, plan, paymentIntent)
-  }
-  // Subscriptions handled by subscription.created event
-}
 
-async function handleOneTimePurchase(stripeCustomerId, plan, paymentIntentId) {
-  // Find user
-  const customer = await stripe.customers.retrieve(stripeCustomerId)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .ilike('email', customer.email)
-    .single()
-  
-  if (!profile) {
-    console.error('User not found for email:', customer.email)
+  if (session.mode === 'payment') {
+    console.log('Ignoring deprecated one-time checkout session:', session.id)
     return
   }
-  
-  const limits = PLAN_LIMITS[plan]
-  
-  // Create purchase record (ledger)
-  // For paid plans, projects and browser minutes are unlimited (set to 0 to indicate unlimited)
-  const { error: purchaseError } = await supabase
-    .from('purchases')
-    .insert({
-      user_id: profile.id,
-      stripe_payment_intent_id: paymentIntentId,
-      plan,
-      purchase_type: 'one_time',
-      status: 'active',
-      credits_purchased: limits.monthly_credits,
-      browser_minutes_purchased: 0, // Unlimited for paid plans (not enforced)
-      projects_purchased: 0, // Unlimited for paid plans (not enforced)
-      expires_at: null // One-time purchases never expire
-    })
-  
-  if (purchaseError) {
-    console.error('Error creating purchase record:', purchaseError)
-    throw purchaseError
-  }
-  
-  // Update billing table for backwards compatibility
-  await supabase
-    .from('billing')
-    .upsert({
-      user_id: profile.id,
-      stripe_customer_id: stripeCustomerId,
-      plan,
-      status: 'active',
-      purchase_count: supabase.raw('COALESCE(purchase_count, 0) + 1'),
-      has_one_time_purchase: true
-    })
-  
-  console.log('One-time purchase recorded:', plan, 'for user:', profile.id)
 }
 
 async function handleSubscriptionCreated(subscription) {
   console.log('Subscription created:', subscription.id)
-  
   const priceId = subscription.items.data[0].price.id
-  const plan = 'pro' // Pro is the only subscription plan
+  const plan = planFromPriceId(priceId)
   
   const customer = await stripe.customers.retrieve(subscription.customer)
   const { data: profile } = await supabase
@@ -176,77 +189,92 @@ async function handleSubscriptionCreated(subscription) {
     return
   }
   
-  const limits = PLAN_LIMITS.pro
-  
+  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.pro
+
   // Create purchase record for subscription
-  // For paid plans, projects and browser minutes are unlimited (set to 0 to indicate unlimited)
-  await supabase
+  const { error: purchaseInsertError } = await supabase
     .from('purchases')
     .insert({
       user_id: profile.id,
       stripe_subscription_id: subscription.id,
       stripe_payment_intent_id: null,
-      plan: 'pro',
+      plan,
       purchase_type: 'subscription',
       status: 'active',
       credits_purchased: limits.monthly_credits,
-      browser_minutes_purchased: 0, // Unlimited for paid plans (not enforced)
-      projects_purchased: 0, // Unlimited for paid plans (not enforced)
       expires_at: new Date(subscription.current_period_end * 1000).toISOString()
     })
+  if (purchaseInsertError) {
+    console.error('Error creating subscription purchase record:', purchaseInsertError)
+    throw purchaseInsertError
+  }
   
-  // Reset credit and token usage for new billing cycle
-  const firstDayOfMonth = new Date()
-  firstDayOfMonth.setDate(1)
-  firstDayOfMonth.setHours(0, 0, 0, 0)
+  // Reset usage for the user's billing cycle anchor.
+  const cycleAnchorISO = new Date(
+    (subscription.current_period_start || Math.floor(Date.now() / 1000)) * 1000
+  ).toISOString()
   
-  await supabase
+  const { error: tokenUsageUpsertError } = await supabase
     .from('token_usage')
-    .upsert({
-      user_id: profile.id,
-      total_credits: 0,
-      total_tokens: 0,
-      browser_minutes: 0,
-      extension_proxy_tokens: 0,
-      monthly_reset: firstDayOfMonth.toISOString(),
-      extension_proxy_monthly_reset: firstDayOfMonth.toISOString(),
-    })
+    .upsert(
+      {
+        user_id: profile.id,
+        total_credits: 0,
+        total_tokens: 0,
+        browser_minutes: 0,
+        extension_proxy_tokens: 0,
+        monthly_reset: cycleAnchorISO,
+        extension_proxy_monthly_reset: cycleAnchorISO,
+      },
+      { onConflict: 'user_id' }
+    )
+  if (tokenUsageUpsertError) {
+    console.error('Error upserting token_usage on subscription:', tokenUsageUpsertError)
+    throw tokenUsageUpsertError
+  }
   
   // Update billing table for backwards compatibility
-  await supabase
-    .from('billing')
-    .upsert({
-      user_id: profile.id,
-      stripe_customer_id: subscription.customer,
-      stripe_subscription_id: subscription.id,
-      plan: 'pro',
-      status: 'active',
-      valid_until: new Date(subscription.current_period_end * 1000).toISOString()
-    })
+  await upsertBillingForUser(profile.id, {
+    stripe_customer_id: subscription.customer,
+    stripe_subscription_id: subscription.id,
+    plan,
+    status: 'active',
+    valid_until: new Date(subscription.current_period_end * 1000).toISOString()
+  })
   
-  console.log('Pro subscription created for user:', profile.id)
+  console.log(`${plan} subscription created for user:`, profile.id)
 }
 
 async function handleSubscriptionUpdated(subscription) {
   console.log('Subscription updated:', subscription.id)
-  
-  // Update expires_at when subscription renews
-  await supabase
+  const { purchaseStatus, billingStatus, periodEndISO } =
+    subscriptionStateForDb(subscription)
+
+  const { error: purchaseUpdateError } = await supabase
     .from('purchases')
     .update({
-      expires_at: new Date(subscription.current_period_end * 1000).toISOString(),
-      status: subscription.status === 'active' ? 'active' : 'past_due'
+      expires_at: periodEndISO,
+      status: purchaseStatus,
     })
     .eq('stripe_subscription_id', subscription.id)
-  
-  // Update billing table for backwards compatibility
-  await supabase
+
+  if (purchaseUpdateError) {
+    console.error('Error updating purchases on subscription update:', purchaseUpdateError)
+    throw purchaseUpdateError
+  }
+
+  const { error: billingUpdateError } = await supabase
     .from('billing')
     .update({
-      status: subscription.status,
-      valid_until: new Date(subscription.current_period_end * 1000).toISOString()
+      status: billingStatus,
+      valid_until: periodEndISO,
     })
     .eq('stripe_subscription_id', subscription.id)
+
+  if (billingUpdateError) {
+    console.error('Error updating billing on subscription update:', billingUpdateError)
+    throw billingUpdateError
+  }
 }
 
 async function handleSubscriptionDeleted(subscription) {
@@ -283,9 +311,10 @@ async function handlePaymentSucceeded(invoice) {
     .single()
   
   if (purchase) {
-    const firstDayOfMonth = new Date()
-    firstDayOfMonth.setDate(1)
-    firstDayOfMonth.setHours(0, 0, 0, 0)
+    const linePeriodStart = invoice?.lines?.data?.[0]?.period?.start
+    const cycleAnchorISO = linePeriodStart
+      ? new Date(linePeriodStart * 1000).toISOString()
+      : new Date().toISOString()
     
     await supabase
       .from('token_usage')
@@ -294,8 +323,8 @@ async function handlePaymentSucceeded(invoice) {
         total_tokens: 0,
         browser_minutes: 0,
         extension_proxy_tokens: 0,
-        monthly_reset: firstDayOfMonth.toISOString(),
-        extension_proxy_monthly_reset: firstDayOfMonth.toISOString(),
+        monthly_reset: cycleAnchorISO,
+        extension_proxy_monthly_reset: cycleAnchorISO,
       })
       .eq('user_id', purchase.user_id)
     
@@ -304,11 +333,13 @@ async function handlePaymentSucceeded(invoice) {
       .from('billing')
       .update({
         status: 'active',
-        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        valid_until: invoice?.lines?.data?.[0]?.period?.end
+          ? new Date(invoice.lines.data[0].period.end * 1000).toISOString()
+          : new Date().toISOString()
       })
       .eq('stripe_subscription_id', invoice.subscription)
     
-    console.log('Reset usage for Pro renewal:', purchase.user_id)
+    console.log('Reset usage for subscription renewal:', purchase.user_id)
   }
 }
 

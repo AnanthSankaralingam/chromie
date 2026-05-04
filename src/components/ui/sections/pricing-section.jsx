@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Check, X, Star, ChevronDown, ChevronUp, Play, Zap } from "lucide-react"
+import { Check, X, Star, ChevronDown, ChevronUp, Play } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { BILLING_SUBSCRIBE } from "@/lib/constants"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 const EXTENDED_DEMO_URL = "https://www.youtube.com/watch?v=towZ0uxt5s4"
@@ -35,7 +36,7 @@ const features = [
   { label: "metrics platform", key: "metricsPlatform" },         // pro+
   { label: "privacy policy hosting", key: "privacyPolicyHosting" }, // pro+
   { label: "demo creator", key: "demoCreator" },                 // pro+
-  { label: "dedicated support", key: "dedicatedSupport" },       // enterprise only
+  { label: "dedicated support", key: "dedicatedSupport" },       // builder only
 ]
 
 const plans = [
@@ -49,7 +50,7 @@ const plans = [
     href: "/builder",
     featured: false,
     features: {
-      credits: "10 credits/day",
+      credits: "30 credits/month",
       browserTesting: true,
       privateSharing: false,
       githubExport: false,
@@ -66,15 +67,13 @@ const plans = [
     id: "pro",
     title: "pro",
     price: "$9.99",
-    originalPrice: "$14.99",
     period: "/month",
     note: "cancel anytime",
-    saleBanner: "limited time sale",
-    cta: "get started",
-    href: "https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05",
+    cta: "upgrade to pro",
+    href: BILLING_SUBSCRIBE.pro,
     featured: true,
     features: {
-      credits: "500 credits/month",
+      credits: "250 credits/month",
       browserTesting: true,
       privateSharing: true,
       githubExport: true,
@@ -88,16 +87,16 @@ const plans = [
     },
   },
   {
-    id: "enterprise",
-    title: "enterprise",
-    price: "custom",
-    period: "",
-    note: null,
-    cta: "contact us",
-    href: "/book-demo",
+    id: "builder",
+    title: "builder",
+    price: "$14.99",
+    period: "/month",
+    note: "for higher-volume teams",
+    cta: "get builder",
+    href: BILLING_SUBSCRIBE.builder,
     featured: false,
     features: {
-      credits: "unlimited credits",
+      credits: "500 credits/month",
       browserTesting: true,
       privateSharing: true,
       githubExport: true,
@@ -214,23 +213,6 @@ export default function PricingSection() {
     <section id="pricing" className="relative z-10 px-4 sm:px-6 py-16 overflow-x-hidden">
       <div className="container mx-auto max-w-7xl">
 
-        {/* Limited time sale banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-6"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="inline-flex flex-wrap justify-center items-center gap-x-2 gap-y-1 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-semibold">
-              <span>limited time sale — Pro $9.99/mo — use code</span>
-              <span className="font-mono font-bold text-white tracking-widest bg-amber-500/30 px-2 py-0.5 rounded">LAUNCH11</span>
-              <span className="text-amber-200">at checkout</span>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -259,59 +241,6 @@ export default function PricingSection() {
             <PricingCard key={plan.id} plan={plan} index={index} />
           ))}
         </div>
-
-        {/* Starter Pack */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-20"
-        >
-          <p className="text-sm text-zinc-400 text-center mb-4">or, just need more credits?</p>
-          <div className="relative rounded-2xl border border-white/[0.08] bg-[#0f1117] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                <Zap className="w-5 h-5 text-amber-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-base font-semibold text-white">starter pack</h3>
-                  <span className="text-xs font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">one-time</span>
-                </div>
-                <p className="text-sm text-zinc-400 max-w-md">
-                  need more credits without a subscription? get 100 credits that never expire — pay once, use whenever.
-                </p>
-                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    100 credits, no expiry
-                  </li>
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    unlimited projects
-                  </li>
-                  <li className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
-                    no subscription needed
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">$15</span>
-                <span className="text-sm text-zinc-500">one-time</span>
-              </div>
-              <Button
-                onClick={() => window.open('https://buy.stripe.com/8x228q249e8oc07au27kc06', '_blank')}
-                className="bg-white text-[#080a0f] hover:bg-zinc-100 font-medium transition-all duration-200 px-6"
-              >
-                buy now
-              </Button>
-            </div>
-          </div>
-        </motion.div>
 
         {/* FAQ Section */}
         <motion.div
@@ -348,7 +277,7 @@ export default function PricingSection() {
                   className="px-4 sm:px-6 pb-4 sm:pb-6 text-zinc-400 space-y-4"
                 >
                   <p>
-                    credits are used when sending messages in chromie and using the simulated browser. pricing varies by request type:
+                    credits are used when sending messages in chromie and using the simulated browser. every plan has a monthly credit budget and unused credits expire at the end of your cycle.
                   </p>
 
                   <div className="space-y-2">

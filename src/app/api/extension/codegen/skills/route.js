@@ -1,10 +1,12 @@
 // call skills route first to prevent vercel timeouts on DOM planning/codegen
 import { createClient, getAuthUser } from "@/lib/supabase/server"
-import { MODEL_SELECTION, USER_SCRIPT_SKILL_SELECTION } from "@/lib/constants"
+import { CREDIT_COSTS, MODEL_SELECTION, USER_SCRIPT_SKILL_SELECTION } from "@/lib/constants"
 import { extensionJson, extensionOptions } from "@/lib/api/extension-api"
+import { checkLimit, formatLimitError } from "@/lib/limit-checker"
 import { normalizeExtensionUserscriptSkillIds } from "@/lib/prompts/userscript/skills/catalog"
 import { buildUserscriptSkillSelectionPrompt } from "@/lib/prompts/userscript/skills/selection-prompt"
 import { llmService } from "@/lib/services/llm-service"
+import { applyTokenUsageDelta } from "@/lib/token-usage-apply"
 
 export function OPTIONS(request) {
   return extensionOptions(request)
@@ -70,6 +72,19 @@ export async function POST(request) {
     }
 
     const userRequest = rawRequest.slice(0, MAX_USER_REQUEST_CHARS)
+    const creditCheck = await checkLimit(
+      user.id,
+      "credits",
+      CREDIT_COSTS.FOLLOW_UP_GENERATION,
+      supabase
+    )
+    if (!creditCheck.allowed) {
+      return extensionJson(
+        request,
+        formatLimitError(creditCheck, "credits"),
+        { status: 429 }
+      )
+    }
     const input = buildUserscriptSkillSelectionPrompt({ userRequest })
     const model =
       process.env.CHROMIE_EXTENSION_SKILLS_MODEL ||
@@ -111,6 +126,24 @@ export async function POST(request) {
       selectedSkillIds,
       shouldScrapeDom,
     })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let db = supabase
+    if (supabaseUrl && serviceKey) {
+      const { createClient: createServiceClient } = await import(
+        "@supabase/supabase-js"
+      )
+      db = createServiceClient(supabaseUrl, serviceKey)
+    }
+    const billed = await applyTokenUsageDelta(db, user.id, {
+      creditsThisRequest: CREDIT_COSTS.FOLLOW_UP_GENERATION,
+    })
+    if (!billed.ok) {
+      console.error(
+        "[extension/codegen/skills] Failed to persist credit usage:",
+        billed.error
+      )
+    }
 
     return extensionJson(request, {
       selectedSkillIds,

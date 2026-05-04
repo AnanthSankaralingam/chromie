@@ -1,3 +1,23 @@
+function nextMonth(dateLike) {
+  const date = new Date(dateLike)
+  date.setMonth(date.getMonth() + 1)
+  return date
+}
+
+function currentCycleAnchor(anchorISO, now) {
+  let anchor = new Date(anchorISO)
+  let next = nextMonth(anchor)
+  while (now >= next) {
+    anchor = next
+    next = nextMonth(anchor)
+  }
+  return {
+    currentAnchorISO: anchor.toISOString(),
+    nextResetISO: next.toISOString(),
+    resetDue: now >= nextMonth(anchorISO),
+  }
+}
+
 /**
  * Shared token_usage period math (must match POST /api/token-usage).
  * @param {object|null} existingUsage
@@ -7,72 +27,25 @@
  * @param {number} tokensThisRequest
  * @param {number} browserMinutesThisRequest
  * @param {number} extensionProxyTokensThisRequest
+ * @param {string} cycleAnchorISO
  */
 export function computeNextTokenUsageState(
   existingUsage,
-  isFreeTier,
+  _isFreeTier,
   now,
   creditsThisRequest,
   tokensThisRequest,
   browserMinutesThisRequest,
-  extensionProxyTokensThisRequest
+  extensionProxyTokensThisRequest,
+  cycleAnchorISO
 ) {
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const firstOfMonthISO = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  ).toISOString()
-
-  let effectiveMonthlyReset = existingUsage?.monthly_reset
-  if (!effectiveMonthlyReset) {
-    effectiveMonthlyReset = isFreeTier
-      ? startOfToday.toISOString()
-      : firstOfMonthISO
-  }
-
-  const monthlyResetDate = effectiveMonthlyReset
-    ? new Date(effectiveMonthlyReset)
-    : null
-  let resetDatePlusOneMonth = null
-  if (monthlyResetDate && !isFreeTier) {
-    resetDatePlusOneMonth = new Date(monthlyResetDate)
-    resetDatePlusOneMonth.setMonth(resetDatePlusOneMonth.getMonth() + 1)
-  }
-
-  const isResetDue = isFreeTier
-    ? monthlyResetDate
-      ? monthlyResetDate < startOfToday
-      : false
-    : monthlyResetDate
-      ? now >= resetDatePlusOneMonth
-      : false
-
-  const newResetAnchor = isFreeTier
-    ? startOfToday.toISOString()
-    : firstOfMonthISO
-
-  /** Rolling month from anchor (same rule for all tiers); free tier does not use `monthly_reset` here. */
-  const extensionProxyAnchorISO = existingUsage
-    ? existingUsage.extension_proxy_monthly_reset
-      ? existingUsage.extension_proxy_monthly_reset
-      : !isFreeTier && existingUsage.monthly_reset
-        ? existingUsage.monthly_reset
-        : firstOfMonthISO
-    : firstOfMonthISO
-
-  let proxyIsResetDue = false
-  if (existingUsage) {
-    const pad = new Date(extensionProxyAnchorISO)
-    const plusOne = new Date(pad)
-    plusOne.setMonth(plusOne.getMonth() + 1)
-    proxyIsResetDue = now >= plusOne
-  }
-
-  const persistExtensionProxyAnchor = () =>
-    existingUsage.extension_proxy_monthly_reset ??
-    (!isFreeTier ? existingUsage.monthly_reset : null) ??
-    firstOfMonthISO
+  const effectiveCycleAnchor =
+    existingUsage?.monthly_reset || cycleAnchorISO || now.toISOString()
+  const cycleState = currentCycleAnchor(effectiveCycleAnchor, now)
+  const extensionProxyAnchorISO =
+    existingUsage?.extension_proxy_monthly_reset || cycleState.currentAnchorISO
+  const proxyCycleState = currentCycleAnchor(extensionProxyAnchorISO, now)
+  const proxyIsResetDue = proxyCycleState.resetDue
 
   let newTotalCredits
   let newTotalTokens
@@ -86,22 +59,9 @@ export function computeNextTokenUsageState(
     newTotalTokens = tokensThisRequest
     newTotalBrowserMinutes = browserMinutesThisRequest
     newExtensionProxyTokens = extensionProxyTokensThisRequest
-    newMonthlyReset = newResetAnchor
-    newExtensionProxyMonthlyReset = firstOfMonthISO
-  } else if (!existingUsage.monthly_reset) {
-    newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
-    newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
-    newTotalBrowserMinutes =
-      (existingUsage.browser_minutes || 0) + browserMinutesThisRequest
-    newExtensionProxyTokens = proxyIsResetDue
-      ? extensionProxyTokensThisRequest
-      : (existingUsage.extension_proxy_tokens || 0) +
-        extensionProxyTokensThisRequest
-    newMonthlyReset = newResetAnchor
-    newExtensionProxyMonthlyReset = proxyIsResetDue
-      ? firstOfMonthISO
-      : persistExtensionProxyAnchor()
-  } else if (isResetDue) {
+    newMonthlyReset = cycleState.currentAnchorISO
+    newExtensionProxyMonthlyReset = proxyCycleState.currentAnchorISO
+  } else if (cycleState.resetDue) {
     newTotalCredits = creditsThisRequest
     newTotalTokens = tokensThisRequest
     newTotalBrowserMinutes = browserMinutesThisRequest
@@ -109,10 +69,10 @@ export function computeNextTokenUsageState(
       ? extensionProxyTokensThisRequest
       : (existingUsage.extension_proxy_tokens || 0) +
         extensionProxyTokensThisRequest
-    newMonthlyReset = newResetAnchor
+    newMonthlyReset = cycleState.currentAnchorISO
     newExtensionProxyMonthlyReset = proxyIsResetDue
-      ? firstOfMonthISO
-      : persistExtensionProxyAnchor()
+      ? proxyCycleState.currentAnchorISO
+      : existingUsage.extension_proxy_monthly_reset
   } else {
     newTotalCredits = (existingUsage.total_credits || 0) + creditsThisRequest
     newTotalTokens = (existingUsage.total_tokens || 0) + tokensThisRequest
@@ -123,8 +83,8 @@ export function computeNextTokenUsageState(
       : (existingUsage.extension_proxy_tokens || 0) +
         extensionProxyTokensThisRequest
     newExtensionProxyMonthlyReset = proxyIsResetDue
-      ? firstOfMonthISO
-      : persistExtensionProxyAnchor()
+      ? proxyCycleState.currentAnchorISO
+      : existingUsage.extension_proxy_monthly_reset
   }
 
   return {
@@ -145,7 +105,6 @@ export function computeNextTokenUsageState(
  *   tokensThisRequest?: number,
  *   browserMinutesThisRequest?: number,
  *   extensionProxyTokensThisRequest?: number,
- *   modelUsed?: string,
  *   targetId?: string | null,
  * }} opts
  */
@@ -155,12 +114,11 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     tokensThisRequest = 0,
     browserMinutesThisRequest = 0,
     extensionProxyTokensThisRequest = 0,
-    modelUsed = "unknown",
     targetId = null,
   } = opts
 
   const selectCols =
-    "id, total_credits, total_tokens, monthly_reset, extension_proxy_monthly_reset, model, browser_minutes, extension_proxy_tokens"
+    "id, total_credits, total_tokens, monthly_reset, extension_proxy_monthly_reset, browser_minutes, extension_proxy_tokens"
 
   let existingUsage = null
   if (targetId) {
@@ -181,13 +139,12 @@ export async function applyTokenUsageDelta(db, userId, opts) {
   }
 
   const now = new Date()
-  const { data: activePurchases } = await db
-    .from("purchases")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .limit(1)
-  const isFreeTier = !activePurchases || activePurchases.length === 0
+  const { data: profile } = await db
+    .from("profiles")
+    .select("created_at")
+    .eq("id", userId)
+    .maybeSingle()
+  const billingCycleAnchorISO = profile?.created_at || now.toISOString()
 
   const {
     newTotalCredits,
@@ -198,12 +155,13 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     newExtensionProxyMonthlyReset,
   } = computeNextTokenUsageState(
     existingUsage,
-    isFreeTier,
+    false,
     now,
     creditsThisRequest,
     tokensThisRequest,
     browserMinutesThisRequest,
-    extensionProxyTokensThisRequest
+    extensionProxyTokensThisRequest,
+    billingCycleAnchorISO
   )
 
   const payload = {
@@ -213,7 +171,6 @@ export async function applyTokenUsageDelta(db, userId, opts) {
     extension_proxy_tokens: newExtensionProxyTokens,
     monthly_reset: newMonthlyReset,
     extension_proxy_monthly_reset: newExtensionProxyMonthlyReset,
-    model: modelUsed,
   }
 
   if (existingUsage?.id) {

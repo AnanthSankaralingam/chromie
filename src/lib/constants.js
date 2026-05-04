@@ -1,7 +1,7 @@
 // Plan limits for credit usage and browser testing
 export const PLAN_LIMITS = {
   free: {
-    monthly_credits: 10,
+    monthly_credits: 30,
     max_projects: 1,
     monthly_browser_minutes: 15,
     max_privacy_policies: 0,
@@ -10,8 +10,8 @@ export const PLAN_LIMITS = {
     /** `/api/extension/llm` — monthly cap; window is `token_usage.extension_proxy_monthly_reset` (not daily `monthly_reset`). */
     extension_proxy_tokens: 100_000,
   },
-  starter: {
-    monthly_credits: 100,
+  pro: {
+    monthly_credits: 250,
     max_projects: Infinity,
     monthly_browser_minutes: Infinity,
     max_privacy_policies: 0,
@@ -19,7 +19,7 @@ export const PLAN_LIMITS = {
     reset_type: 'monthly',
     extension_proxy_tokens: 500_000,
   },
-  pro: {
+  builder: {
     monthly_credits: 500,
     max_projects: 300,
     monthly_browser_minutes: 240,
@@ -147,12 +147,17 @@ export const SHARE_RATE_LIMITS = {
 export const ADMIN_SHARE_EXPIRES_AT = '2099-12-31T23:59:59.999Z'
 
 // Subscription plans
-export const SUBSCRIPTION_PLANS = ['free', 'pro']
+export const SUBSCRIPTION_PLANS = ['free', 'pro', 'builder']
+
+/** Stripe Payment Links (live). Set after-payment redirect in each link’s Stripe settings (e.g. `/profile`). */
+export const BILLING_SUBSCRIBE = {
+  pro: 'https://buy.stripe.com/6oU3cu4ch6FW5BJby67kc07',
+  builder: 'https://buy.stripe.com/cNi8wO7ot5BSe8f7hQ7kc05',
+}
 
 // Plan reset types
 export const PLAN_RESET_TYPES = {
-  MONTHLY: 'monthly',
-  ONE_TIME: 'one_time'
+  MONTHLY: 'monthly'
 }
 
 // Input limits for security and abuse prevention (characters)

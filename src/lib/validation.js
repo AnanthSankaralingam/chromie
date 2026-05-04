@@ -2,6 +2,8 @@
  * Validation utilities for API endpoints
  */
 
+import { subscriptionPurchaseEntitled } from '@/lib/subscription-entitlement'
+
 // UUID v4 validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -228,7 +230,7 @@ export async function checkPaidPlan(supabase, userId) {
       .from('purchases')
       .select('*')
       .eq('user_id', userId)
-      .eq('status', 'active')
+      .in('status', ['active', 'canceled', 'past_due'])
 
     if (purchasesError) {
       console.error('Error checking paid plan (purchases):', purchasesError)
@@ -236,19 +238,11 @@ export async function checkPaidPlan(supabase, userId) {
 
     const now = new Date()
 
-    // Check if user has any active paid purchases
-    const hasActivePurchase = purchases && purchases.length > 0 && purchases.some(p => {
-      if (p.status !== 'active') return false
-      
-      // Check if it's a subscription that hasn't expired
-      if (p.purchase_type === 'subscription') {
-        if (!p.expires_at) return true
-        return new Date(p.expires_at) > now
-      }
-      
-      // For one-time purchases, check if they're active
-      return p.purchase_type === 'one_time'
-    })
+    // Check if user has any active paid subscriptions.
+    const hasActivePurchase =
+      purchases &&
+      purchases.length > 0 &&
+      purchases.some((p) => subscriptionPurchaseEntitled(p, now))
 
     // Also check billing table for backwards compatibility
     const { data: billing, error: billingError } = await supabase
@@ -270,13 +264,9 @@ export async function checkPaidPlan(supabase, userId) {
     // Determine plan name
     let plan = 'free'
     if (hasActivePurchase && purchases && purchases.length > 0) {
-      const activePurchase = purchases.find(p => {
-        if (p.status !== 'active') return false
-        if (p.purchase_type === 'subscription') {
-          return !p.expires_at || new Date(p.expires_at) > now
-        }
-        return p.purchase_type === 'one_time'
-      })
+      const activePurchase = purchases.find((p) =>
+        subscriptionPurchaseEntitled(p, now)
+      )
       plan = activePurchase?.plan || 'free'
     } else if (hasActiveBilling && billing) {
       plan = billing.plan || 'free'

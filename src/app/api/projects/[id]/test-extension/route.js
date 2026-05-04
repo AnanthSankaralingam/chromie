@@ -253,7 +253,7 @@ export async function POST(request, { params }) {
 
       const { data: existingUsage, error: fetchError } = await usageDb
         .from('token_usage')
-        .select('id, total_credits, total_tokens, monthly_reset, model')
+        .select('id, total_credits, total_tokens, monthly_reset')
         .eq('user_id', user.id)
         .maybeSingle()
 
@@ -303,7 +303,6 @@ export async function POST(request, { params }) {
               user_id: user.id,
               total_credits: browserTestCredits,
               total_tokens: 0,
-              model: 'browser-testing',
               monthly_reset: newMonthlyResetISO
             })
 
