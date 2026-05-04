@@ -13,9 +13,9 @@ export const EXTENSION_USERSCRIPT_SKILLS = [
     title: "LLM API Integration",
     description:
       "Needed when the userscript must generate AI output via Chromie's authenticated backend proxy (not user-provided LLM keys).",
-    context: `- Do not call provider SDKs directly and never ask for user API keys. Always call Chromie's proxy with an ABSOLUTE URL (https://chromie.dev/api/extension/llm); never use relative '/api/extension/llm' on third-party sites like chatgpt.com.
-- Send Authorization: Bearer <Supabase access token> explicitly (do not assume host-site cookies/session). Use POST JSON with { prompt } / { input } or { messages }, plus optional { temperature, max_output_tokens }, and parse { text, usage } on 200.
-- Handle proxy error states in UX: 401 unauthorized, 429 token cap reached (message includes "Extension LLM token limit reached"), and 502 upstream failure; surface actionable feedback and avoid silent failures.`,
+    context: `- Do not call provider SDKs, never ask for user API keys, and never fetch Chromie from the page (host CSP/connect-src blocks it). Use only \`await chromieLlm.call(request)\` where \`request\` is POST-shaped JSON: \`{ prompt }\` or \`{ input }\` or \`{ messages }\`, plus optional \`{ temperature, max_output_tokens }\` (same shapes as Chromie's proxy). The Chromie host injects \`chromieLlm\` into scope before your code runs.
+- \`chromieLlm.call\` returns a Promise resolving to \`{ text, usage }\`. Wrap in try/catch; on failure the Error \`message\` often reflects sign-in required, token limits, or upstream errors—surface readable UI feedback.
+- Do not use \`fetch\`, \`XMLHttpRequest\`, \`chrome.runtime\`, or hard-coded chromie.dev URLs for LLM calls; codegen must not implement transport—only call \`chromieLlm.call\`.`,
   },
   {
     id: "injected_ui",
