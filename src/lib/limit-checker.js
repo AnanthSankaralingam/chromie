@@ -1,4 +1,9 @@
-import { PLAN_LIMITS, DEFAULT_PLAN, SUBSCRIPTION_PLANS } from '@/lib/constants'
+import {
+  PLAN_LIMITS,
+  DEFAULT_PLAN,
+  SUBSCRIPTION_PLANS,
+  BILLING_SUBSCRIBE,
+} from '@/lib/constants'
 import { subscriptionPurchaseEntitled } from '@/lib/subscription-entitlement'
 
 function getCycleInfo(anchorISO, now) {
@@ -166,6 +171,69 @@ export async function checkLimit(userId, resourceType, amount, supabase) {
   }
 }
 
+function formatLimitResetLabel(iso) {
+  if (!iso) return 'your next monthly reset'
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return 'your next monthly reset'
+  }
+}
+
+/** ~100K / ~500K style (matches pricing page FAQ) */
+function formatProxyTokensShort(n) {
+  if (n >= 1_000_000) return `~${n / 1_000_000}M`
+  if (n >= 1_000) return `~${n / 1_000}K`
+  return String(n)
+}
+
+function buildCreditsLimitMessage(checkResult) {
+  const plan = checkResult.plan || DEFAULT_PLAN
+  const reset = formatLimitResetLabel(checkResult.resetDate)
+  const { free, pro, builder } = PLAN_LIMITS
+
+  if (plan === 'builder') {
+    return `You've used all **monthly credits** on your Builder plan (${builder.monthly_credits}/month). Your pool resets on **${reset}**.`
+  }
+  if (plan === 'pro') {
+    return `You've used all **monthly credits** on your Pro plan (${pro.monthly_credits}/month). **Builder** is **$14.99/month** with **${builder.monthly_credits} credits/month** and higher limits: [Upgrade to Builder](${BILLING_SUBSCRIBE.builder})
+
+If you stay on Pro, credits reset on **${reset}**.`
+  }
+  return `You've used all **monthly credits** on the Free plan (${free.monthly_credits}/month). Upgrade for more builder and extension codegen credits:
+
+- **Pro** — **$9.99/month** — ${pro.monthly_credits} credits/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.pro})
+- **Builder** — **$14.99/month** — ${builder.monthly_credits} credits/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.builder})
+
+Your usage resets on **${reset}**.`
+}
+
+function buildExtensionProxyLimitMessage(checkResult) {
+  const plan = checkResult.plan || DEFAULT_PLAN
+  const reset = formatLimitResetLabel(checkResult.resetDate)
+  const { free, pro, builder } = PLAN_LIMITS
+  const f = formatProxyTokensShort
+
+  if (plan === 'builder') {
+    return `You've reached your **extension LLM proxy** allowance for this month (${f(builder.extension_proxy_tokens)} tokens on Builder). It resets on **${reset}**.`
+  }
+  if (plan === 'pro') {
+    return `You've reached your **extension LLM proxy** allowance for this month (${f(pro.extension_proxy_tokens)} tokens on Pro). **Builder** includes **${f(builder.extension_proxy_tokens)} tokens/month** and more headroom: [Upgrade to Builder](${BILLING_SUBSCRIBE.builder})
+
+Or wait until **${reset}** when your allowance resets.`
+  }
+  return `You've reached your **extension LLM proxy** allowance for this month (Free: ${f(free.extension_proxy_tokens)} tokens). Upgrade for a larger monthly pool:
+
+- **Pro** — **$9.99/month** — ${f(pro.extension_proxy_tokens)} proxy tokens/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.pro})
+- **Builder** — **$14.99/month** — ${f(builder.extension_proxy_tokens)} proxy tokens/month — [Subscribe with Stripe](${BILLING_SUBSCRIBE.builder})
+
+Resets on **${reset}**.`
+}
+
 /**
  * Format limit check error for API response
  */
@@ -176,14 +244,28 @@ export function formatLimitError(checkResult, resourceType) {
     projects: 'projects',
     extensionProxyTokens: 'extension LLM tokens',
   }
-  
+
   const suggestion =
     checkResult.purchaseType === 'free'
       ? 'Upgrade to Pro or Builder to continue this month'
       : 'Your limit will reset on your next monthly billing cycle'
-  
+
+  const shortError = `${resourceNames[resourceType]} limit reached`
+
+  let message
+  if (resourceType === 'credits') {
+    message = buildCreditsLimitMessage(checkResult)
+  } else if (resourceType === 'extensionProxyTokens') {
+    message = buildExtensionProxyLimitMessage(checkResult)
+  } else {
+    const head =
+      shortError.charAt(0).toUpperCase() + shortError.slice(1)
+    message = `${head}. ${suggestion}.`
+  }
+
   return {
-    error: `${resourceNames[resourceType]} limit reached`,
+    error: shortError,
+    message,
     details: {
       resourceType,
       currentUsage: checkResult.currentUsage,
@@ -194,8 +276,8 @@ export function formatLimitError(checkResult, resourceType) {
       purchaseType: checkResult.purchaseType,
       resetType: checkResult.resetType,
       resetDate: checkResult.resetDate,
-      suggestion
-    }
+      suggestion,
+    },
   }
 }
 
