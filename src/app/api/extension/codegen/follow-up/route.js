@@ -1,5 +1,9 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server"
-import { CREDIT_COSTS, MODEL_SELECTION, USER_SCRIPT_CODEGEN } from "@/lib/constants"
+import {
+  CREDIT_COSTS,
+  USER_SCRIPT_CODEGEN,
+  resolveExtensionUserscriptCodegenModel,
+} from "@/lib/constants"
 import {
   extensionCorsHeaders,
   extensionJson,
@@ -16,13 +20,6 @@ export function OPTIONS(request) {
 
 const MAX_MESSAGES = 48
 const MAX_MESSAGE_CHARS = 120_000
-
-function defaultModel() {
-  return (
-    process.env.CHROMIE_EXTENSION_CODEGEN_MODEL ||
-    MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN
-  )
-}
 
 function serverAiConfigured() {
   return Boolean(
@@ -98,15 +95,6 @@ export async function POST(request) {
       )
     }
 
-    const systemPrompt = buildFollowUpSystemPrompt({ executionLogs })
-    const model = defaultModel()
-    const provider = llmService.getProviderFromModel(model)
-
-    const inputMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-    ]
-
     const cors = extensionCorsHeaders(request)
     const creditCheck = await checkLimit(
       user.id,
@@ -121,6 +109,23 @@ export async function POST(request) {
         { status: 429 }
       )
     }
+
+    const systemPrompt = buildFollowUpSystemPrompt({ executionLogs })
+    const resolvedModel = resolveExtensionUserscriptCodegenModel(creditCheck.plan)
+    const { provider, model } = llmService.pickExtensionCodegenRoute(resolvedModel)
+    console.log(
+      "[extension/codegen/follow-up] model:",
+      model,
+      "provider:",
+      provider,
+      "plan:",
+      creditCheck.plan
+    )
+
+    const inputMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ]
 
     const stream = new ReadableStream({
       async start(controller) {

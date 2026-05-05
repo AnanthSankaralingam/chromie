@@ -1,5 +1,9 @@
 import { createClient, getAuthUser } from "@/lib/supabase/server"
-import { CREDIT_COSTS, MODEL_SELECTION, USER_SCRIPT_CODEGEN } from "@/lib/constants"
+import {
+  CREDIT_COSTS,
+  USER_SCRIPT_CODEGEN,
+  resolveExtensionUserscriptCodegenModel,
+} from "@/lib/constants"
 import {
   extensionCorsHeaders,
   extensionJson,
@@ -19,13 +23,6 @@ const MAX_MESSAGES = 48
 const MAX_MESSAGE_CHARS = 120_000
 const MAX_DOM_SKELETON_CHARS = 120_000
 const MAX_DOM_PLANNING_CHARS = 120_000
-
-function defaultModel() {
-  return (
-    process.env.CHROMIE_EXTENSION_CODEGEN_MODEL ||
-    MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN
-  )
-}
 
 function serverAiConfigured() {
   return Boolean(
@@ -133,6 +130,21 @@ export async function POST(request) {
       )
     }
 
+    const cors = extensionCorsHeaders(request)
+    const creditCheck = await checkLimit(
+      user.id,
+      "credits",
+      CREDIT_COSTS.INITIAL_GENERATION,
+      supabase
+    )
+    if (!creditCheck.allowed) {
+      return extensionJson(
+        request,
+        formatLimitError(creditCheck, "credits"),
+        { status: 429 }
+      )
+    }
+
     const dom = normalizeDom(body.dom)
     const domPlanning = normalizeDomPlanning(body.domPlanning)
     const extensionSkillIds = normalizeExtensionSkillIds(body.extensionSkillIds)
@@ -149,28 +161,21 @@ export async function POST(request) {
         : systemPrompt
     console.log("[extension/codegen] final coding system prompt:\n", systemPromptForLog)
     console.log("[extension/codegen] extensionSkillIds:", extensionSkillIds)
-    const model = defaultModel()
-    const provider = llmService.getProviderFromModel(model)
+    const resolvedModel = resolveExtensionUserscriptCodegenModel(creditCheck.plan)
+    const { provider, model } = llmService.pickExtensionCodegenRoute(resolvedModel)
+    console.log(
+      "[extension/codegen] model:",
+      model,
+      "provider:",
+      provider,
+      "plan:",
+      creditCheck.plan
+    )
 
     const inputMessages = [
       { role: "system", content: systemPrompt },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ]
-
-    const cors = extensionCorsHeaders(request)
-    const creditCheck = await checkLimit(
-      user.id,
-      "credits",
-      CREDIT_COSTS.INITIAL_GENERATION,
-      supabase
-    )
-    if (!creditCheck.allowed) {
-      return extensionJson(
-        request,
-        formatLimitError(creditCheck, "credits"),
-        { status: 429 }
-      )
-    }
 
     const stream = new ReadableStream({
       async start(controller) {
