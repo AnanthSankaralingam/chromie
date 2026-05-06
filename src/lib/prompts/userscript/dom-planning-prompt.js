@@ -22,7 +22,8 @@ Use the exact five sections below. Keep the entire response under 600 words. Be 
 One sentence: what the script must do on this specific page.
 
 ## 2. Target Regions
-Name each relevant region and anchor it to the outline. Example: "Product list — <ul data-testid="results-list"> wraps each item row." If a region is not in the outline, say so and mark it as inferred.
+Name each relevant region and anchor it to the outline. Example: 'Product list — <ul data-testid="results-list"> wraps each item row.' If a region is not in the outline, say so and mark it as inferred.
+End with **Mount strategy:** one line — preferred parent/sibling anchor for in-flow injection (before/after which element) and which host controls must stay uncovered (e.g. prompt field, send/submit).
 
 ## 3. Selectors
 List only selectors that are valid CSS (work with querySelector / querySelectorAll). Format each as:
