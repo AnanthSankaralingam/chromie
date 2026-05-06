@@ -67,8 +67,10 @@ export const MODEL_SELECTION = {
   LLM_SERVICE_FALLBACK_IONROUTER: 'kimi-k2.5',
   LLM_SERVICE_FALLBACK_ANTHROPIC: 'claude-haiku-4-5-20251001',
   LLM_SERVICE_OPENAI_FALLBACK: 'gpt-5.4-mini',
-  /** Browser extension sidepanel userscript codegen (`/api/extension/codegen`), OpenAI adapter via llmService */
+  /** Browser extension sidepanel userscript codegen (`/api/extension/codegen`), OpenAI via llmService — free tier */
   EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
+  /** Pro / Builder extension userscript codegen (main + follow-up); any model id — use llmService.pickExtensionCodegenRoute() when calling the LLM */
+  EXTENSION_USERSCRIPT_CODEGEN_SUBSCRIBER: 'gpt-5.4-nano-2026-03-17',
   /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
   EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
   /** Userscript skills pre-selection (`/api/extension/codegen/dom`), Gemini Flash Lite */
@@ -78,7 +80,21 @@ export const MODEL_SELECTION = {
 }
 
 /**
- * Userscript AI chat for the Chromie extension — paired with {@link MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN}.
+ * @param {string} plan `free` | `pro` | `builder` from getUserLimits / checkLimit
+ * @returns {string} Upstream model id. `CHROMIE_EXTENSION_CODEGEN_MODEL` overrides all plans when set.
+ *   Call sites should run `llmService.pickExtensionCodegenRoute(resolvedModel)` so the adapter matches the vendor.
+ */
+export function resolveExtensionUserscriptCodegenModel(plan) {
+  const env = process.env.CHROMIE_EXTENSION_CODEGEN_MODEL
+  if (typeof env === 'string' && env.trim()) return env.trim()
+  if (plan === 'pro' || plan === 'builder') {
+    return MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN_SUBSCRIBER
+  }
+  return MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN
+}
+
+/**
+ * Userscript AI chat for the Chromie extension — paired with {@link MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN} / {@link resolveExtensionUserscriptCodegenModel}.
  */
 export const USER_SCRIPT_CODEGEN = {
   MODEL: MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN,

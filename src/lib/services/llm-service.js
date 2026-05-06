@@ -27,18 +27,55 @@ export class LLMService {
   }
 
   /**
-   * Get provider name from model string
+   * Get provider name from model string (any vendor id you set in constants).
    * @param {string} model - Model name
-   * @returns {string} Provider name (gemini, fireworks, anthropic, openai)
+   * @returns {string} Provider name (gemini, ionrouter, anthropic, openai)
    */
   getProviderFromModel(model) {
-    if (typeof model === 'string') {
-      if (model.toLowerCase().includes('gemini')) return 'gemini'
-      if (model.toLowerCase().includes('kimi')) return 'ionrouter'
-      if (model.toLowerCase().includes('claude')) return 'anthropic'
-      if (model.toLowerCase().includes('gpt')) return 'openai'
+    if (typeof model !== 'string' || !model.trim()) {
+      return process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
     }
+    const m = model.toLowerCase()
+    if (m.includes('gemini')) return 'gemini'
+    if (m.includes('kimi')) return 'ionrouter'
+    if (m.includes('claude')) return 'anthropic'
+    if (m.includes('gpt')) return 'openai'
+    // OpenAI o-series and similar (no "gpt" in id)
+    if (/^o[0-9]/.test(m)) return 'openai'
+    // Unrecognized snapshot / FT id: prefer OpenAI when key present (Chat Completions–style ids)
+    if (process.env.OPENAI_API_KEY?.trim()) return 'openai'
     return process.env.IONROUTER_API_KEY ? 'ionrouter' : 'gemini'
+  }
+
+  /**
+   * Extension `/api/extension/codegen` streaming: first hop uses a provider that actually
+   * has credentials, with the requested model only on its home provider; fallbacks use
+   * {@link #defaultModels} (same rules as streamResponse).
+   *
+   * @param {string} requestedModel - From {@link resolveExtensionUserscriptCodegenModel} or env override
+   * @returns {{ provider: string, model: string }}
+   */
+  pickExtensionCodegenRoute(requestedModel) {
+    const m =
+      typeof requestedModel === 'string' && requestedModel.trim()
+        ? requestedModel.trim()
+        : MODEL_SELECTION.EXTENSION_USERSCRIPT_CODEGEN
+    const primary = this.getProviderFromModel(m)
+    const envForProvider = {
+      openai: 'OPENAI_API_KEY',
+      gemini: 'GOOGLE_AI_API_KEY',
+      anthropic: 'ANTHROPIC_API_KEY',
+      ionrouter: 'IONROUTER_API_KEY',
+    }
+    const chain = [primary, ...(this.fallbackHierarchy[primary] || [])]
+    for (const p of chain) {
+      const envVar = envForProvider[p]
+      if (!process.env[envVar]?.trim()) continue
+      const modelToUse = p === primary ? m : this.defaultModels[p]
+      if (!modelToUse) continue
+      return { provider: p, model: modelToUse }
+    }
+    return { provider: primary, model: m }
   }
   
   /**
