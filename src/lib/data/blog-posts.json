@@ -8,7 +8,7 @@
     "year": "2026",
     "category": "Product",
     "icon": "zap",
-    "iconImage": "/chromie-logo-1.png",
+    "iconImage": "/blog-chromie-cws-192.svg",
     "authors": [{"name": "Akshay from chromie.dev", "avatar": "/chromie-logo-1.png"}],
     "tags": ["chromie extension", "browser automation", "page planning", "testing", "AI codegen"],
     "body": [
