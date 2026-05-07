@@ -231,6 +231,19 @@ export default function BlogPostPage({ slug }) {
                         <li key={j} className="leading-relaxed">{item}</li>
                       ))}
                     </ul>
+                  ) : block.type === "image" ? (
+                    <figure key={i} className="mb-10">
+                      <img
+                        src={block.src}
+                        alt={block.alt || ""}
+                        className="w-full rounded-xl border border-gray-700/50 object-cover"
+                      />
+                      {block.caption ? (
+                        <figcaption className="mt-3 text-sm text-gray-400 text-center leading-relaxed">
+                          {block.caption}
+                        </figcaption>
+                      ) : null}
+                    </figure>
                   ) : block.type === "video" ? (
                     (() => {
                       const videoUrl = block.videoUrl || post.videoUrl
