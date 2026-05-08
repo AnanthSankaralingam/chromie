@@ -30,8 +30,7 @@ After the summary, your response must include:
   "runAt": "document_idle"
 }
 \`\`\`
-Metadata must use real hosts and paths from context (especially \`matchPatterns\`), not the literal example values above.
-Keep prior match patterns unless the user asks to change them. When the user asks for broader or narrower URL/site matching, update \`matchPatterns\` in the JSON accordingly.
+Keep prior match patterns unless the user asks to change them.
 </output_shape>
 
 <hard_constraints>
@@ -60,7 +59,7 @@ if (document.readyState === 'loading') {
 </guidelines>
 
 <ui_ux>
-- Treat the page as someone else's product: prefer mounting UI as in-flow siblings (insertAdjacent* next to a stable container from the briefing) so layout allocates space; avoid fixed/absolute layers on the same row as inputs, send/submit, or primary CTAs — use corners, a dedicated row, or clearly bounded panels otherwise
+- Treat the page as someone else's product: do not obscure primary navigation, main content, or critical CTAs; prefer corners, slim bars, or clearly bounded panels
 - Make controls obvious: short labels, sufficient tap/click target size, readable type size, comfortable spacing
 - Give feedback: loading states for async work, clear success/failure states, non-blocking confirmations after copy/save actions
 - Accessibility: use semantic buttons/links, support keyboard focus and visible focus styles, add aria-label when meaning isn't visible as text
