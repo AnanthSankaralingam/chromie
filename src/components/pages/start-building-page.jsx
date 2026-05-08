@@ -11,6 +11,8 @@ import AppBar from "@/components/ui/app-bars/app-bar"
 import { ProjectMaxAlert } from "@/components/ui/modals/project-max-alert"
 import TokenUsageAlert from "@/components/ui/modals/token-usage-alert"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import FeaturedCreationsSection from "@/components/ui/sections/featured-creations-section"
+import HowItWorksSection from "@/components/ui/sections/how-it-works-section"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { extensionSuggestions } from "@/lib/data/extension-suggestions"
@@ -292,10 +294,22 @@ export default function StartBuildingPage() {
               className="text-center mb-8"
             >
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-3">
-                start building with chromie
+                build powerful chrome extensions
               </h1>
-              <p className="text-sm md:text-base text-zinc-400 max-w-lg mx-auto mb-2">
-                describe your extension in plain language — we&apos;ll generate the code.
+              <p className="text-sm md:text-base text-zinc-400 max-w-lg mx-auto mb-4">
+                automate tasks, extend your product, or build something new.
+              </p>
+              <p className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-xs text-zinc-600 mb-4">
+                <span>no chrome knowledge needed</span>
+                <span className="text-zinc-700">·</span>
+                <span>integrate any sites and apis</span>
+                <span className="text-zinc-700">·</span>
+                <span>built-in testing</span>
+                <span className="text-zinc-700">·</span>
+                <span>one-click deploy</span>
+              </p>
+              <p className="text-xs md:text-sm text-zinc-500 max-w-xl mx-auto mb-3">
+                describe your extension in plain language — chromie builds a full top-to-bottom extension you can test and deploy to the webstore.
               </p>
               <Link
                 href="/"
@@ -435,6 +449,9 @@ export default function StartBuildingPage() {
             )}
           </div>
         </main>
+
+        <FeaturedCreationsSection limit={3} showSeeMore />
+        <HowItWorksSection />
       </div>
 
       <AuthModal
