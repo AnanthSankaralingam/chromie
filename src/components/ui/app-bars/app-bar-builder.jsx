@@ -470,10 +470,10 @@ export default function AppBarBuilder({
                   disabled={isTestDisabled || isGenerating}
                   variant="ghost"
                   className="rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 px-3 py-2"
-                  title="Add Metrics"
+                  title="See Metrics"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  add metrics
+                  See Metrics
                 </Button>
                 <ShareDropdown
                   projectId={projectId}
@@ -625,7 +625,7 @@ export default function AppBarBuilder({
               className="w-full rounded-full font-medium bg-slate-900/60 text-slate-100 border border-slate-600/60 hover:bg-slate-900 hover:border-slate-500/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
-              add metrics
+              See Metrics
             </Button>
             <div className="w-full">
               <ShareDropdown

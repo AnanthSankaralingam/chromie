@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ExternalLink } from "lucide-react"
+import { ArrowRight, Chrome, Code2, ExternalLink } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import Link from "next/link"
 import AppBar from "@/components/ui/app-bars/app-bar"
@@ -118,29 +118,69 @@ export default function HomePage() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.35, duration: 0.5 }}
                 >
-                  <Button
-                    asChild
-                    size="lg"
-                    className="font-medium transition-all duration-200 px-6 py-2.5 rounded-full text-xs md:text-sm bg-white text-[#080a0f] hover:bg-zinc-100"
-                  >
-                    <a
-                      href={CHROMIE_CHROME_WEB_STORE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="start building with chromie — opens chrome web store"
+                  <div className="grid w-full max-w-2xl grid-cols-2 gap-7">
+                    <Button
+                      asChild
+                      size="lg"
+                      className="group relative h-auto min-h-[108px] overflow-hidden rounded-[1.35rem] border border-white/[0.16] bg-[#0d1017] px-4 py-4 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_55px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:border-white/30 hover:bg-[#111620] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_24px_70px_rgba(0,0,0,0.36)] sm:px-5"
                     >
-                      <span className="flex items-center gap-2">
-                        start building with chromie
-                        <ExternalLink className="w-4 h-4 shrink-0" aria-hidden />
-                      </span>
-                    </a>
-                  </Button>
-                  <Link
-                    href="/start"
-                    className="mt-5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    or visit the full site
-                  </Link>
+                      <a
+                        href={CHROMIE_CHROME_WEB_STORE_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="add chromie to chrome — opens chrome web store"
+                        className="flex w-full items-center justify-between gap-3"
+                      >
+                        <span className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-white/[0.08] blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+                        <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" aria-hidden />
+                        <span className="relative z-10 flex min-w-0 items-center gap-3 sm:gap-4">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#080a0f] shadow-[0_10px_30px_rgba(255,255,255,0.12)] transition-transform duration-300 group-hover:scale-105">
+                            <Chrome className="h-5 w-5" aria-hidden />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-semibold leading-tight tracking-[-0.01em] text-white sm:text-sm">
+                              Add to Chrome
+                            </span>
+                            <span className="mt-1.5 block text-[11px] font-normal leading-snug text-zinc-400 sm:text-xs">
+                              for everyday users
+                            </span>
+                          </span>
+                        </span>
+                        <ExternalLink className="relative z-10 h-4 w-4 shrink-0 text-zinc-500 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white" aria-hidden />
+                      </a>
+                    </Button>
+                    <Button
+                      asChild
+                      size="lg"
+                      className="group relative h-auto min-h-[108px] overflow-hidden rounded-[1.35rem] border border-white/[0.16] bg-[#0d1017] px-4 py-4 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_55px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:border-white/30 hover:bg-[#111620] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_24px_70px_rgba(0,0,0,0.36)] sm:px-5"
+                    >
+                      <Link
+                        href="/start"
+                        aria-label="start building a chrome extension"
+                        className="flex w-full items-center justify-between gap-3"
+                      >
+                        <span className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-cyan-400/[0.08] blur-2xl transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
+                        <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" aria-hidden />
+                        <span className="relative z-10 flex min-w-0 items-center gap-3 sm:gap-4">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/[0.18] bg-cyan-200/[0.08] text-cyan-100 shadow-[0_10px_30px_rgba(34,211,238,0.08)] transition-transform duration-300 group-hover:scale-105">
+                            <Code2 className="h-5 w-5" aria-hidden />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-semibold leading-tight tracking-[-0.01em] text-white sm:text-sm">
+                              Start building
+                            </span>
+                            <span className="mt-1.5 block text-[11px] font-normal leading-snug text-zinc-400 sm:text-xs">
+                              for extension devs
+                            </span>
+                          </span>
+                        </span>
+                        <ArrowRight className="relative z-10 h-4 w-4 shrink-0 text-zinc-500 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white" aria-hidden />
+                      </Link>
+                    </Button>
+                  </div>
+                  <p className="mt-4 max-w-xl text-center text-xs text-zinc-500">
+                    use the extension today, or build a full top-to-bottom extension you can deploy to the webstore.
+                  </p>
                   <HeroSocialProofBar
                     storeHref={CHROMIE_CHROME_WEB_STORE_URL}
                     className="mt-7"
@@ -153,7 +193,7 @@ export default function HomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.55, duration: 0.6 }}
-                className="flex flex-col items-center gap-4 pt-6"
+                className="flex flex-col items-center gap-4 pt-12 sm:pt-16"
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">trusted by</p>
                 <div className="flex items-center justify-center gap-16 md:gap-24">

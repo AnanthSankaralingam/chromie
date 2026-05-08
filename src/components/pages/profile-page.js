@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/forms-and-input/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/feedback/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, BarChart3, Upload, FileText, Shield } from "lucide-react"
+import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, Upload, FileText, Shield } from "lucide-react"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import PaywallModal from "@/components/ui/modals/modal-paywall"
@@ -822,15 +822,6 @@ export default function ProfilePage() {
                 </span>
                 <span className="sm:hidden">Upload</span>
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push('/metrics')}
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                View Metrics
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -909,6 +900,15 @@ export default function ProfilePage() {
                           title="Rename project"
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => router.push(`/metrics?project=${project.id}`)}
+                          className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          title="See Metrics for this project"
+                        >
+                          See Metrics
                         </Button>
                         <Button
                           size="sm"

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export function HeroSocialProofBar({
   storeHref,
   usersLabel = "200+ users building",
-  ratingLabel = "4.9 on the Chrome Web Store",
+  ratingLabel = "5 on the Chrome Web Store",
   className,
 }) {
   return (
