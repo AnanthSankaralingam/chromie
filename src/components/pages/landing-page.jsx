@@ -5,7 +5,7 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid"
 const DEMO_VIDEO_ID = "2b7Rfqgotvk"
 
 const BLURB =
-  "We’re building a deterministic stack for web agents. Current automation either sacrifices intelligence for reliability, or intelligence for reliability. We provide both with AI augmented with deterministic tooling."
+  "Current automation either sacrifices intelligence for reliability, or intelligence for reliability. We provide both with AI augmented with deterministic tooling."
 
 const CONTACT_EMAILS = [
   "akshay.mistry@gmail.com",
