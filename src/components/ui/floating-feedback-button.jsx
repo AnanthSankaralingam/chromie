@@ -15,8 +15,8 @@ export default function FloatingFeedbackButton() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pageUrl, setPageUrl] = useState("");
 
-  // Don't show on share extension page
-  if (pathname?.startsWith("/share/")) {
+  // Don't show on share extension page or marketing landing (root)
+  if (pathname?.startsWith("/share/") || pathname === "/") {
     return null;
   }
 
