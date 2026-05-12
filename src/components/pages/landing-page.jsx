@@ -5,7 +5,7 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid"
 const DEMO_VIDEO_ID = "2b7Rfqgotvk"
 
 const BLURB =
-  "Currently, web agent stacks burn tokens and time on repetitive behaviors that can be abstracted out into deterministic tool calls instead, which significantly improves reliability. We aim to start off with automation agents by analyzing their past executions and building tailored tools around actions they repeatedly take. Over time, we will house several tailored skills that can be invoked by a web agent at runtime, based on their task and position."
+  "We’re building a deterministic stack for web agents. Current automation either sacrifices intelligence for reliability, or intelligence for reliability. We provide both with AI augmented with deterministic tooling."
 
 const CONTACT_EMAILS = [
   "akshay.mistry@gmail.com",
