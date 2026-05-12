@@ -68,7 +68,7 @@ export const MODEL_SELECTION = {
   LLM_SERVICE_FALLBACK_ANTHROPIC: 'claude-haiku-4-5-20251001',
   LLM_SERVICE_OPENAI_FALLBACK: 'gpt-5.4-mini',
   /** Browser extension sidepanel userscript codegen (`/api/extension/codegen`), OpenAI adapter via llmService */
-  EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano-2026-03-17',
+  EXTENSION_USERSCRIPT_CODEGEN: 'gpt-5.4-nano',
   /** DOM planning prefetch (`/api/extension/codegen/dom`), Gemini Flash Lite */
   EXTENSION_USERSCRIPT_DOM_PLANNING: 'gemini-3.1-flash-lite-preview',
   /** Userscript skills pre-selection (`/api/extension/codegen/dom`), Gemini Flash Lite */

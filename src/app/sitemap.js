@@ -19,6 +19,12 @@ export default function sitemap() {
       priority: 1,
     },
     {
+      url: `${baseUrl}/home`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/builder`,
       lastModified: currentDate,
       changeFrequency: 'weekly',

@@ -1,18 +1,20 @@
-import HomePage from "@/components/pages/home-page"
+import LandingPage from "@/components/pages/landing-page"
 
 export const metadata = {
-  title: "chromie.dev — Build Chrome Extensions with AI — No Coding Required",
-  description: "Describe your idea and chromie.dev builds a fully functional Chrome extension in seconds. Free plan available. See pricing, featured extensions, and get started instantly.",
+  title: "chromie.dev — the custom tool layer for web agents",
+  description:
+    "Deterministic tool calls for web agents: analyze past executions, build tailored tools around repeated actions, and invoke skills at runtime based on task and position.",
   alternates: {
     canonical: "https://chromie.dev",
   },
   openGraph: {
-    title: "chromie.dev — Build Chrome Extensions with AI — No Coding Required",
-    description: "Describe your idea and chromie.dev builds a fully functional Chrome extension in seconds. Free plan available — no coding required.",
+    title: "chromie.dev — the custom tool layer for web agents",
+    description:
+      "Deterministic tool calls for web agents: analyze past executions, build tailored tools around repeated actions, and invoke skills at runtime based on task and position.",
     url: "https://chromie.dev",
   },
 }
 
 export default function Home() {
-  return <HomePage />
+  return <LandingPage />
 }
