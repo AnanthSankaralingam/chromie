@@ -55,7 +55,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-lg sm:text-xl md:text-2xl text-zinc-400 font-light tracking-wide max-w-2xl mx-auto leading-snug">
-              the custom tool layer for{" "}
+              the deterministic stack for{" "}
               <span className="font-normal text-transparent bg-clip-text bg-gradient-to-r from-cyan-200/95 to-teal-300/90">
                 web agents
               </span>
