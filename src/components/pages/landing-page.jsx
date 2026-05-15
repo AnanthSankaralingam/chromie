@@ -1,8 +1,7 @@
-import Link from "next/link"
 import { Mail } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
-const DEMO_VIDEO_ID = "2b7Rfqgotvk"
+const DEMO_VIDEO_ID = "fL0Rw8gmkmw"
 
 const BLURB =
   "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
@@ -71,7 +70,18 @@ export default function LandingPage() {
                 {BLURB}
               </p>
 
-              <div className="relative mx-auto max-w-3xl mt-10 sm:mt-12">
+              <div className="flex justify-center mt-10 sm:mt-12">
+                <a
+                  href="https://cal.com/chromie"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl border border-cyan-400/35 bg-cyan-500/[0.12] px-8 py-3.5 text-sm font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:border-cyan-300/55 hover:bg-cyan-500/[0.2] hover:shadow-[0_0_28px_-6px_rgba(34,211,238,0.35)]"
+                >
+                  Book a demo
+                </a>
+              </div>
+
+              <div className="relative mx-auto max-w-3xl mt-8 sm:mt-10">
                 <div
                   className="pointer-events-none absolute -inset-3 rounded-2xl bg-gradient-to-b from-cyan-500/12 via-transparent to-violet-500/10 blur-2xl opacity-80"
                   aria-hidden
@@ -90,15 +100,6 @@ export default function LandingPage() {
                     referrerPolicy="strict-origin-when-cross-origin"
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-center mt-10 sm:mt-12 pt-10 sm:pt-12 border-t border-white/[0.08]">
-                <Link
-                  href="/waitlist"
-                  className="inline-flex items-center justify-center rounded-xl border border-cyan-400/35 bg-cyan-500/[0.12] px-8 py-3.5 text-sm font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:border-cyan-300/55 hover:bg-cyan-500/[0.2] hover:shadow-[0_0_28px_-6px_rgba(34,211,238,0.35)]"
-                >
-                  Join the waitlist
-                </Link>
               </div>
 
               <div className="mt-10 sm:mt-12 text-center">
