@@ -1,5 +1,6 @@
 import { Mail } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { ProductHuntBadge } from "@/components/ui/product-hunt-badge"
 
 const DEMO_VIDEO_ID = "fL0Rw8gmkmw"
 
@@ -70,7 +71,7 @@ export default function LandingPage() {
                 {BLURB}
               </p>
 
-              <div className="flex justify-center mt-10 sm:mt-12">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 mt-10 sm:mt-12">
                 <a
                   href="https://cal.com/chromie"
                   target="_blank"
@@ -79,6 +80,7 @@ export default function LandingPage() {
                 >
                   Book a demo
                 </a>
+                <ProductHuntBadge className="shrink-0" />
               </div>
 
               <div className="relative mx-auto max-w-3xl mt-8 sm:mt-10">
