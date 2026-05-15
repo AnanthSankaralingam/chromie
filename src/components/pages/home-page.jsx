@@ -14,6 +14,7 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { motion } from "framer-motion"
 import FeaturedCreationsSection from "@/components/ui/sections/featured-creations-section"
 import { HeroSocialProofBar } from "@/components/ui/hero-social-proof-bar"
+import { ProductHuntBadge } from "@/components/ui/product-hunt-badge"
 
 const CHROMIE_CHROME_WEB_STORE_URL =
   "https://chromewebstore.google.com/detail/chromiedev/bcnimmmbcdongfkkppoiiangempjmpap"
@@ -77,7 +78,15 @@ export default function HomePage() {
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               {/* Title Section */}
-              <div className="text-center mb-4 sm:mb-6">
+              <motion.div className="text-center mb-4 sm:mb-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05, duration: 0.5 }}
+                  className="flex justify-center mb-5 sm:mb-6"
+                >
+                  <ProductHuntBadge />
+                </motion.div>
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -108,7 +117,7 @@ export default function HomePage() {
                   <span className="text-zinc-700">·</span>
                   <span>one-click deploy</span>
                 </motion.p>
-              </div>
+              </motion.div>
 
               {/* Chrome Web Store + builder */}
               <div className="max-w-3xl mx-auto">
