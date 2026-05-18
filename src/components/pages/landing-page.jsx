@@ -7,10 +7,7 @@ const DEMO_VIDEO_ID = "fL0Rw8gmkmw"
 const BLURB =
   "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
 
-const CONTACT_EMAILS = [
-  "akshay.mistry@gmail.com",
-  "ananth.sankaralingam@gmail.com",
-]
+const CONTACT_EMAIL = "founders@chromie.dev"
 
 export default function LandingPage() {
   return (
@@ -108,21 +105,16 @@ export default function LandingPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-4">
                   Contact
                 </p>
-                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-                  {CONTACT_EMAILS.map((address) => (
-                    <a
-                      key={address}
-                      href={`mailto:${address}`}
-                      className="group inline-flex items-center justify-center gap-2.5 rounded-xl border border-white/[0.14] bg-white/[0.07] px-4 py-3 text-[15px] sm:text-base font-medium text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:border-cyan-400/45 hover:bg-white/[0.11] hover:text-white hover:shadow-[0_0_24px_-4px_rgba(34,211,238,0.25)] break-all sm:break-words sm:max-w-[min(100%,22rem)]"
-                    >
-                      <Mail
-                        className="h-4 w-4 shrink-0 text-cyan-300/90 opacity-90 group-hover:opacity-100"
-                        aria-hidden
-                      />
-                      <span className="min-w-0 text-left sm:text-center">{address}</span>
-                    </a>
-                  ))}
-                </div>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="group inline-flex items-center justify-center gap-2.5 rounded-xl border border-white/[0.14] bg-white/[0.07] px-4 py-3 text-[15px] sm:text-base font-medium text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:border-cyan-400/45 hover:bg-white/[0.11] hover:text-white hover:shadow-[0_0_24px_-4px_rgba(34,211,238,0.25)]"
+                >
+                  <Mail
+                    className="h-4 w-4 shrink-0 text-cyan-300/90 opacity-90 group-hover:opacity-100"
+                    aria-hidden
+                  />
+                  <span>{CONTACT_EMAIL}</span>
+                </a>
               </div>
             </div>
           </div>
