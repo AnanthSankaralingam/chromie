@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
+import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
 
 async function getOwnedAutomation(supabase, userId, id) {
   const { data, error } = await supabase
@@ -29,6 +30,16 @@ export const PATCH = withAuth(async ({ request, supabase, user, params }) => {
   }
 
   const body = await request.json()
+  if (
+    body.params !== undefined &&
+    EMAIL_DELIVERY_SCENARIO_IDS.has(existing.scenario_id) &&
+    !String(body.params.recipient_email || "").trim()
+  ) {
+    return NextResponse.json(
+      { error: "recipient_email is required for this workflow" },
+      { status: 400 },
+    )
+  }
   const updates = {}
   for (const key of [
     "name",

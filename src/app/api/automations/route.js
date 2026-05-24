@@ -1,21 +1,9 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-
-const ZILLOW_DEFAULT_PARAMS = {
-  id: "zillow_listing_alert",
-  zillow_base_url: "https://www.zillow.com",
-  filters: {
-    city: "Suwanee, GA",
-    min_price: 400000,
-    max_price: 650000,
-    min_beds: 3,
-    property_type: "houses",
-    listing_type: "for_sale",
-  },
-  recipient_email: "",
-  email_subject: "Zillow listings matching your filters",
-  min_addresses: 3,
-}
+import {
+  EMAIL_DELIVERY_SCENARIO_IDS,
+  defaultParamsForScenario,
+} from "@/lib/workflow-automations"
 
 export const GET = withAuth(async ({ supabase, user }) => {
   const { data, error } = await supabase
@@ -32,14 +20,22 @@ export const GET = withAuth(async ({ supabase, user }) => {
 
 export const POST = withAuth(async ({ request, supabase, user }) => {
   const body = await request.json()
-  const name = (body.name || "Zillow listing alert").trim()
   const scenario_id = body.scenario_id || "zillow_listing_alert"
-  const params = body.params || { ...ZILLOW_DEFAULT_PARAMS, recipient_email: user.email || "" }
+  const name = (body.name || "Workflow automation").trim()
+  const params =
+    body.params || defaultParamsForScenario(scenario_id, user.email || "")
   const schedule_kind = body.schedule_kind === "cron" ? "cron" : "on_demand"
   const cron_expression = body.cron_expression || null
 
-  if (!params.recipient_email) {
-    params.recipient_email = user.email || ""
+  if (EMAIL_DELIVERY_SCENARIO_IDS.has(scenario_id)) {
+    const email = String(params.recipient_email || user.email || "").trim()
+    if (!email) {
+      return NextResponse.json(
+        { error: "recipient_email is required for this workflow" },
+        { status: 400 },
+      )
+    }
+    params.recipient_email = email
   }
 
   const { data, error } = await supabase

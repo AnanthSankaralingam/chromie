@@ -18,7 +18,7 @@ export const GET = withAuth(async ({ supabase, user, params }) => {
   const { data: runs, error } = await supabase
     .from("workflow_runs")
     .select(
-      "id, status, success, started_at, finished_at, duration_ms, browserbase_debug_url, error_message"
+      "id, status, success, started_at, finished_at, duration_ms, browserbase_session_id, browserbase_debug_url, error_message, evaluation"
     )
     .eq("automation_id", id)
     .order("started_at", { ascending: false })

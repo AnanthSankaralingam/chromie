@@ -31,7 +31,7 @@ export const POST = withAuth(async ({ supabase, user, params }) => {
 
   return NextResponse.json({
     ok: true,
-    message: "Workflow started (async). Refresh run history in a few minutes.",
+    message: "Workflow started on Lambda. Runs usually take 1–5 minutes; refresh or wait for the live session.",
     automation_id: id,
   })
 })
