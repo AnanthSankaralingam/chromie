@@ -113,7 +113,7 @@ const SPOTLIGHTS = [
     id: "real-chrome",
     label: "Real browser sessions",
     title: "Not headless. Not emulated. Real Chrome.",
-    body: "Agents run as Chrome extensions in a real browser with real GPU, authentic TLS, and genuine device profiles. Sites see a normal user session, not a datacenter bot, so you evade bot detection before it blocks your workflows.",
+    body: "Agents run in a real browser with real GPU, authentic TLS, and genuine device profiles. Sites see a normal user session, not a datacenter bot, so you evade bot detection before it blocks your workflows.",
     visual: "stealth",
   },
 ]
