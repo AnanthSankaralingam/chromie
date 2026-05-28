@@ -27,6 +27,7 @@ import {
 import ResultsComparisonVisual from "@/components/ui/landing/results-comparison-visual"
 import AutomationPathsVisual from "@/components/ui/landing/automation-paths-visual"
 import SelfHealingVisual from "@/components/ui/landing/self-healing-visual"
+import ExecutionReplayVisual from "@/components/ui/landing/execution-replay-visual"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
 
 const BASE_DEMO_VIDEO_ID = "uI0MVyhb2xg"
@@ -320,6 +321,10 @@ function DemoBrowserMockup({ id = "hero" }) {
 function SpotlightVisual({ type }) {
   if (type === "tools") {
     return <ResultsComparisonVisual />
+  }
+
+  if (type === "replay") {
+    return <ExecutionReplayVisual />
   }
 
   if (type === "analysis") {
@@ -696,7 +701,7 @@ export default function LandingPage() {
                 </div>
                 <div className="p-4 sm:p-6">
                   <ScrollScrubVisual>
-                    <SpotlightVisual type="tools" />
+                    <SpotlightVisual type="replay" />
                   </ScrollScrubVisual>
                 </div>
               </div>
