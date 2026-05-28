@@ -4,7 +4,7 @@ import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
 } from "@/lib/automation-schedule-sync"
-import { deleteAutomationSchedule } from "@/lib/workflow-schedule"
+import { deleteAutomationSchedules } from "@/lib/workflow-schedule"
 import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
 
 async function getOwnedAutomation(supabase, userId, id) {
@@ -56,6 +56,7 @@ export const PATCH = withAuth(async ({ request, supabase, user, params }) => {
     body.cron_expression !== undefined ||
     body.schedule_frequency !== undefined ||
     body.schedule_time !== undefined ||
+    body.schedule_times !== undefined ||
     body.schedule_timezone !== undefined
 
   if (scheduleTouched) {
@@ -110,10 +111,7 @@ export const DELETE = withAuth(async ({ supabase, user, params }) => {
   }
 
   try {
-    await deleteAutomationSchedule(
-      id,
-      existing.eventbridge_schedule_name || undefined,
-    )
+    await deleteAutomationSchedules(id)
   } catch (err) {
     console.error("[automations/delete] schedule cleanup:", err)
   }

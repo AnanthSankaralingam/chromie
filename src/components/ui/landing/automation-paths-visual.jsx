@@ -7,7 +7,7 @@ const PATHS = [
   {
     id: "new",
     icon: Plus,
-    title: "Create new automation",
+    title: "Automate new workflow",
     description: "chromie agent builds the workflow with deterministic tools.",
     steps: ["Define the task", "Agent + tools scaffold the flow", "Ship a new extension or agent"],
   },
@@ -31,12 +31,15 @@ export default function AutomationPathsVisual() {
         <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600">Two ways in</p>
       </div>
 
-      <StaggerReveal className="grid gap-px bg-white/10 md:grid-cols-2" stagger={0.1}>
+      <StaggerReveal
+        className="flex flex-col gap-px bg-white/10 md:flex-row md:items-stretch"
+        stagger={0.1}
+      >
         {PATHS.map((path) => {
           const Icon = path.icon
           return (
-            <StaggerItem key={path.id} className="h-full">
-              <div className="flex min-h-[240px] flex-col bg-[#0c0c0c] p-5 sm:min-h-[260px] sm:p-6">
+            <StaggerItem key={path.id} className="min-w-0 flex-1">
+              <div className="flex h-full flex-col bg-[#0c0c0c] p-5 sm:p-6">
                 <div className="flex h-9 w-9 items-center justify-center border border-white/15 bg-white/[0.04]">
                   <Icon className="h-4 w-4 text-zinc-300" aria-hidden />
                 </div>

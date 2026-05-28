@@ -9,6 +9,7 @@ import {
   DeleteScheduleCommand,
   GetScheduleCommand,
 } from "@aws-sdk/client-scheduler"
+import { buildCronExpressions } from "@/lib/workflow-schedule-cron"
 
 function schedulerClient() {
   const region = process.env.AWS_REGION || "us-east-1"
@@ -31,9 +32,11 @@ function scheduleConfig() {
   return { roleArn, lambdaArn, groupName }
 }
 
-export function scheduleNameForAutomation(automationId) {
-  return `chromie-${automationId}`
+export function scheduleNameForAutomation(automationId, index = 0) {
+  return index === 0 ? `chromie-${automationId}` : `chromie-${automationId}-${index}`
 }
+
+const MAX_EXTRA_SCHEDULE_SLOTS = 12
 
 function requireSchedulerEnv() {
   const { roleArn, lambdaArn } = scheduleConfig()
@@ -46,30 +49,66 @@ function requireSchedulerEnv() {
 }
 
 /**
- * Create, update, disable, or delete the EventBridge schedule for an automation row.
- * @param {object} automation - Supabase automations row
+ * @param {string} automationId
+ * @param {number} [maxIndex]
+ */
+export async function deleteAutomationSchedules(automationId, maxIndex = MAX_EXTRA_SCHEDULE_SLOTS) {
+  const { groupName } = scheduleConfig()
+  const client = schedulerClient()
+
+  for (let i = 0; i <= maxIndex; i++) {
+    const name = scheduleNameForAutomation(automationId, i)
+    try {
+      await client.send(new DeleteScheduleCommand({ Name: name, GroupName: groupName }))
+    } catch (err) {
+      if (err.name !== "ResourceNotFoundException") {
+        throw err
+      }
+    }
+  }
+}
+
+/** @deprecated Use deleteAutomationSchedules */
+export async function deleteAutomationSchedule(automationId, knownName) {
+  if (knownName) {
+    const { groupName } = scheduleConfig()
+    const client = schedulerClient()
+    try {
+      await client.send(new DeleteScheduleCommand({ Name: knownName, GroupName: groupName }))
+    } catch (err) {
+      if (err.name !== "ResourceNotFoundException") throw err
+    }
+  }
+  await deleteAutomationSchedules(automationId)
+}
+
+/**
+ * @param {object} automation
  * @returns {Promise<{ eventbridge_schedule_name: string | null }>}
  */
 export async function syncAutomationSchedule(automation) {
-  const name = scheduleNameForAutomation(automation.id)
   const { groupName } = scheduleConfig()
 
   if (automation.schedule_kind !== "cron" || !automation.cron_expression?.trim()) {
-    await deleteAutomationSchedule(automation.id, name)
+    await deleteAutomationSchedules(automation.id)
     return { eventbridge_schedule_name: null }
   }
 
   const { roleArn, lambdaArn } = requireSchedulerEnv()
   const client = schedulerClient()
-  const expression = automation.cron_expression.trim()
-  if (!expression.startsWith("cron(") && !expression.startsWith("rate(")) {
-    throw new Error("cron_expression must start with cron( or rate(")
+
+  const expressions = automation.cron_expression.includes("|")
+    ? automation.cron_expression.split("|").map((s) => s.trim())
+    : [automation.cron_expression.trim()]
+
+  for (const expression of expressions) {
+    if (!expression.startsWith("cron(") && !expression.startsWith("rate(")) {
+      throw new Error("cron_expression must use cron(...) or rate(...)")
+    }
   }
 
-  const input = {
-    Name: name,
+  const baseInput = {
     GroupName: groupName,
-    ScheduleExpression: expression,
     ScheduleExpressionTimezone: automation.schedule_timezone || "UTC",
     FlexibleTimeWindow: { Mode: "OFF" },
     Target: {
@@ -80,34 +119,43 @@ export async function syncAutomationSchedule(automation) {
     State: automation.enabled === false ? "DISABLED" : "ENABLED",
   }
 
-  try {
-    await client.send(new GetScheduleCommand({ Name: name, GroupName: groupName }))
-    await client.send(new UpdateScheduleCommand(input))
-  } catch (err) {
-    if (err.name === "ResourceNotFoundException") {
-      await client.send(new CreateScheduleCommand(input))
-    } else {
-      throw err
+  for (let i = 0; i < expressions.length; i++) {
+    const name = scheduleNameForAutomation(automation.id, i)
+    const input = {
+      ...baseInput,
+      Name: name,
+      ScheduleExpression: expressions[i],
+    }
+
+    try {
+      await client.send(new GetScheduleCommand({ Name: name, GroupName: groupName }))
+      await client.send(new UpdateScheduleCommand(input))
+    } catch (err) {
+      if (err.name === "ResourceNotFoundException") {
+        await client.send(new CreateScheduleCommand(input))
+      } else {
+        throw err
+      }
     }
   }
 
-  return { eventbridge_schedule_name: name }
+  for (let i = expressions.length; i <= MAX_EXTRA_SCHEDULE_SLOTS; i++) {
+    const name = scheduleNameForAutomation(automation.id, i)
+    try {
+      await client.send(new DeleteScheduleCommand({ Name: name, GroupName: groupName }))
+    } catch (err) {
+      if (err.name !== "ResourceNotFoundException") throw err
+    }
+  }
+
+  return { eventbridge_schedule_name: scheduleNameForAutomation(automation.id) }
 }
 
 /**
- * @param {string} automationId
- * @param {string} [knownName]
+ * Build stored cron_expression (pipe-separated when multiple AWS schedules are required).
+ * @param {object} scheduleInput
  */
-export async function deleteAutomationSchedule(automationId, knownName) {
-  const { groupName } = scheduleConfig()
-  const name = knownName || scheduleNameForAutomation(automationId)
-  const client = schedulerClient()
-
-  try {
-    await client.send(new DeleteScheduleCommand({ Name: name, GroupName: groupName }))
-  } catch (err) {
-    if (err.name !== "ResourceNotFoundException") {
-      throw err
-    }
-  }
+export function cronExpressionFromScheduleInput(scheduleInput) {
+  const expressions = buildCronExpressions(scheduleInput)
+  return expressions.join("|")
 }

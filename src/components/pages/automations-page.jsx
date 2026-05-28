@@ -6,10 +6,24 @@ import AutomationParamFields from "@/components/automations/automation-param-fie
 import AutomationScheduleFields, {
   scheduleStateFromAutomation,
 } from "@/components/automations/automation-schedule-fields"
-import AppBar from "@/components/ui/app-bars/app-bar"
+import AppBarDashboard from "@/components/ui/app-bars/app-bar-dashboard"
+import {
+  ACCENT,
+  APP_PAGE,
+  BTN_OUTLINE,
+  BTN_PRIMARY,
+  CARD_CLASS,
+  DIVIDER,
+  INPUT_CLASS,
+  LABEL_CLASS,
+  LIST_ITEM,
+  LIST_ITEM_SELECTED,
+  SECTION_LABEL,
+} from "@/components/ui/app-dashboard-theme"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
+import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import WorkflowSessionViewer from "@/components/ui/workflow-session-viewer"
 import {
@@ -17,18 +31,12 @@ import {
   WORKFLOW_SCENARIOS,
   ZILLOW_DEFAULT_FILTERS,
 } from "@/lib/workflow-automations"
-import { Play, Plus, RefreshCw, Save, Square } from "lucide-react"
-
-const CARD_CLASS = "border-zinc-800 bg-zinc-900 text-zinc-100 shadow-none"
-const INPUT_CLASS =
-  "mt-1 bg-zinc-950 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:ring-violet-500/50"
-const BTN_OUTLINE_CLASS =
-  "border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-100"
+import { Play, Plus, RefreshCw, Save, Square, Trash2 } from "lucide-react"
 
 function FilterField({ label, children }) {
   return (
     <div className="min-w-0">
-      <label className="text-xs font-medium text-zinc-400">{label}</label>
+      <label className={LABEL_CLASS}>{label}</label>
       {children}
     </div>
   )
@@ -81,6 +89,7 @@ export default function AutomationsPage() {
   const [stopping, setStopping] = useState(false)
   const [createSchedule, setCreateSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
+  const [deletingId, setDeletingId] = useState(null)
 
   const loadAutomations = useCallback(async () => {
     const res = await fetch("/api/automations")
@@ -182,10 +191,57 @@ export default function AutomationsPage() {
       schedule_enabled: schedule.scheduleEnabled,
       schedule_kind: schedule.scheduleEnabled ? "cron" : "on_demand",
       schedule_frequency: schedule.scheduleFrequency,
-      schedule_time: schedule.scheduleTime,
+      schedule_times: schedule.scheduleTimes,
       schedule_weekday: schedule.scheduleWeekday,
       schedule_timezone: schedule.scheduleTimezone,
-      cron_expression: schedule.cronExpression,
+    }
+  }
+
+  function applySchedulePatch(prev, patch) {
+    return {
+      ...prev,
+      ...(patch.schedule_enabled !== undefined
+        ? { scheduleEnabled: patch.schedule_enabled }
+        : {}),
+      ...(patch.schedule_frequency !== undefined
+        ? { scheduleFrequency: patch.schedule_frequency }
+        : {}),
+      ...(patch.schedule_times !== undefined ? { scheduleTimes: patch.schedule_times } : {}),
+      ...(patch.schedule_weekday !== undefined
+        ? { scheduleWeekday: patch.schedule_weekday }
+        : {}),
+      ...(patch.schedule_timezone !== undefined
+        ? { scheduleTimezone: patch.schedule_timezone }
+        : {}),
+    }
+  }
+
+  async function deleteAutomation(id, name) {
+    if (
+      !window.confirm(
+        `Delete "${name}"? This removes the automation and its EventBridge schedule.`,
+      )
+    ) {
+      return
+    }
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/automations/${id}`, { method: "DELETE" })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(json.error || "Failed to delete automation")
+        return
+      }
+      const remaining = automations.filter((a) => a.id !== id)
+      setAutomations(remaining)
+      if (selectedId === id) {
+        setSelectedId(remaining[0]?.id ?? null)
+        setRuns([])
+        setViewingRunId(null)
+      }
+      await loadAutomations()
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -287,20 +343,21 @@ export default function AutomationsPage() {
   const editFilters = editParams?.filters || {}
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <AppBar />
-      <main className="mx-auto max-w-5xl px-4 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-white">chromie.dev semi-deterministic automations</h1>
-        <p className="mt-2 text-sm text-zinc-400">        </p>
+    <div className={APP_PAGE}>
+      <FilmGrain />
+      <AppBarDashboard />
+      <main className="relative z-[1] mx-auto max-w-5xl px-4 py-10 sm:px-6">
+        <p className={SECTION_LABEL}>Dashboard</p>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Automations</h1>
+        <p className="mt-2 max-w-xl text-sm text-zinc-400">
+          Schedule and run browser workflows with deterministic tools.
+        </p>
 
         {!user && (
           <Card className={`mt-8 ${CARD_CLASS}`}>
             <CardContent className="pt-6">
               <p className="text-sm text-zinc-400">Sign in to manage automations.</p>
-              <Button
-                className="mt-4 bg-violet-600 text-white hover:bg-violet-500"
-                onClick={() => setShowAuth(true)}
-              >
+              <Button className={`mt-4 ${BTN_PRIMARY}`} onClick={() => setShowAuth(true)}>
                 Sign in
               </Button>
             </CardContent>
@@ -310,11 +367,9 @@ export default function AutomationsPage() {
         {user && (
           <>
             <Card className={`mt-8 ${CARD_CLASS}`}>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-medium text-zinc-100">
-                  New automation
-                </CardTitle>
-                <CardDescription className="text-zinc-500">
+              <CardHeader className="border-b border-white/10 pb-4">
+                <CardTitle className="text-base font-bold text-white">Configure automation</CardTitle>
+                <CardDescription className="text-zinc-400">
                   Choose a workflow, set parameters, then create.
                 </CardDescription>
               </CardHeader>
@@ -417,33 +472,10 @@ export default function AutomationsPage() {
                 <AutomationScheduleFields
                   scheduleEnabled={createSchedule.scheduleEnabled}
                   scheduleFrequency={createSchedule.scheduleFrequency}
-                  scheduleTime={createSchedule.scheduleTime}
+                  scheduleTimes={createSchedule.scheduleTimes}
                   scheduleWeekday={createSchedule.scheduleWeekday}
                   scheduleTimezone={createSchedule.scheduleTimezone}
-                  cronExpression={createSchedule.cronExpression}
-                  onChange={(patch) =>
-                    setCreateSchedule((prev) => ({
-                      ...prev,
-                      ...(patch.schedule_enabled !== undefined
-                        ? { scheduleEnabled: patch.schedule_enabled }
-                        : {}),
-                      ...(patch.schedule_frequency !== undefined
-                        ? { scheduleFrequency: patch.schedule_frequency }
-                        : {}),
-                      ...(patch.schedule_time !== undefined
-                        ? { scheduleTime: patch.schedule_time }
-                        : {}),
-                      ...(patch.schedule_weekday !== undefined
-                        ? { scheduleWeekday: patch.schedule_weekday }
-                        : {}),
-                      ...(patch.schedule_timezone !== undefined
-                        ? { scheduleTimezone: patch.schedule_timezone }
-                        : {}),
-                      ...(patch.cron_expression !== undefined
-                        ? { cronExpression: patch.cron_expression }
-                        : {}),
-                    }))
-                  }
+                  onChange={(patch) => setCreateSchedule((prev) => applySchedulePatch(prev, patch))}
                 />
 
                 <Button
@@ -455,7 +487,7 @@ export default function AutomationsPage() {
                       !draftFilters.city?.trim())
                   }
                   onClick={createAutomation}
-                  className="bg-violet-600 text-white hover:bg-violet-500 focus-visible:ring-violet-500"
+                  className={BTN_PRIMARY}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   {creating ? "Creating…" : "Create automation"}
@@ -466,7 +498,7 @@ export default function AutomationsPage() {
             {viewingRun && selectedId && (
               <Card className={`mt-8 ${CARD_CLASS}`}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium text-zinc-100">
+                  <CardTitle className="text-base font-bold text-white">
                     {viewingRun.status === "running" ? "Live session" : "Session recording"}
                   </CardTitle>
                 </CardHeader>
@@ -480,12 +512,10 @@ export default function AutomationsPage() {
               </Card>
             )}
 
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              <Card className={CARD_CLASS}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-base font-medium text-zinc-100">
-                    Your automations
-                  </CardTitle>
+            <div className="mt-8 grid gap-px bg-white/10 md:grid-cols-2">
+              <Card className={`${CARD_CLASS} md:border-r-0`}>
+                <CardHeader className="border-b border-white/10 pb-4">
+                  <CardTitle className="text-base font-bold text-white">Your automations</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {loading && <p className="text-sm text-zinc-500">Loading…</p>}
@@ -493,36 +523,47 @@ export default function AutomationsPage() {
                     <p className="text-sm text-zinc-500">No automations yet.</p>
                   )}
                   {automations.map((a) => (
-                    <button
+                    <div
                       key={a.id}
-                      type="button"
-                      onClick={() => setSelectedId(a.id)}
-                      className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition-colors ${
-                        selectedId === a.id
-                          ? "border-violet-500/80 bg-violet-500/15 text-zinc-100"
-                          : "border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/50"
+                      className={`flex items-stretch gap-px border text-sm ${
+                        selectedId === a.id ? LIST_ITEM_SELECTED : LIST_ITEM
                       }`}
                     >
-                      <div className="font-medium">{a.name}</div>
-                      <div className="text-xs text-zinc-500">
-                        {a.scenario_id}
-                        {a.schedule_kind === "cron" && (
-                          <span className="ml-2 text-violet-400">scheduled</span>
-                        )}
-                      </div>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(a.id)}
+                        className="flex-1 min-w-0 text-left px-3 py-2 text-zinc-300"
+                      >
+                        <div className="font-medium text-zinc-100 truncate">{a.name}</div>
+                        <div className="text-xs text-zinc-500">
+                          {a.scenario_id}
+                          {a.schedule_kind === "cron" && (
+                            <span className={`ml-2 ${ACCENT}`}>scheduled</span>
+                          )}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deletingId === a.id}
+                        onClick={() => deleteAutomation(a.id, a.name)}
+                        className="shrink-0 px-3 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-r-lg disabled:opacity-40"
+                        aria-label={`Delete ${a.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   ))}
                 </CardContent>
               </Card>
 
               <Card className={CARD_CLASS}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="text-base font-medium text-zinc-100">Runs</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-white/10 pb-4">
+                  <CardTitle className="text-base font-bold text-white">Runs</CardTitle>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      className={BTN_OUTLINE_CLASS}
+                      className={BTN_OUTLINE}
                       disabled={!selectedId}
                       onClick={() => loadRuns(selectedId)}
                       aria-label="Refresh runs"
@@ -545,7 +586,7 @@ export default function AutomationsPage() {
                       size="sm"
                       disabled={!selectedId || running || hasRunningRun}
                       onClick={runNow}
-                      className="bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-40"
+                      className={`${BTN_PRIMARY} disabled:opacity-40`}
                     >
                       <Play className="h-3 w-3 mr-1" />
                       {running ? "Starting…" : "Run now"}
@@ -554,8 +595,8 @@ export default function AutomationsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4 max-h-[28rem] overflow-y-auto">
                   {selected && editParams && (
-                    <div className="space-y-4 pb-4 border-b border-zinc-800">
-                      <p className="text-xs font-medium text-zinc-500">Edit automation</p>
+                    <div className={`space-y-4 border-b pb-4 ${DIVIDER}`}>
+                      <p className={SECTION_LABEL}>Edit automation</p>
                       <AutomationParamFields
                         scenarioId={selected.scenario_id}
                         params={editParams}
@@ -591,39 +632,18 @@ export default function AutomationsPage() {
                       <AutomationScheduleFields
                         scheduleEnabled={editSchedule.scheduleEnabled}
                         scheduleFrequency={editSchedule.scheduleFrequency}
-                        scheduleTime={editSchedule.scheduleTime}
+                        scheduleTimes={editSchedule.scheduleTimes}
                         scheduleWeekday={editSchedule.scheduleWeekday}
                         scheduleTimezone={editSchedule.scheduleTimezone}
-                        cronExpression={editSchedule.cronExpression}
                         onChange={(patch) =>
-                          setEditSchedule((prev) => ({
-                            ...prev,
-                            ...(patch.schedule_enabled !== undefined
-                              ? { scheduleEnabled: patch.schedule_enabled }
-                              : {}),
-                            ...(patch.schedule_frequency !== undefined
-                              ? { scheduleFrequency: patch.schedule_frequency }
-                              : {}),
-                            ...(patch.schedule_time !== undefined
-                              ? { scheduleTime: patch.schedule_time }
-                              : {}),
-                            ...(patch.schedule_weekday !== undefined
-                              ? { scheduleWeekday: patch.schedule_weekday }
-                              : {}),
-                            ...(patch.schedule_timezone !== undefined
-                              ? { scheduleTimezone: patch.schedule_timezone }
-                              : {}),
-                            ...(patch.cron_expression !== undefined
-                              ? { cronExpression: patch.cron_expression }
-                              : {}),
-                          }))
+                          setEditSchedule((prev) => applySchedulePatch(prev, patch))
                         }
                       />
                       <Button
                         size="sm"
                         disabled={saving || !String(editParams.recipient_email || "").trim()}
                         onClick={saveAutomation}
-                        className="bg-violet-600 text-white hover:bg-violet-500"
+                        className={BTN_PRIMARY}
                       >
                         <Save className="h-3 w-3 mr-1" />
                         {saving ? "Saving…" : "Save changes"}
@@ -641,10 +661,10 @@ export default function AutomationsPage() {
                       key={r.id}
                       type="button"
                       onClick={() => selectRun(r)}
-                      className={`w-full text-left rounded-lg px-3 py-2 text-sm border transition-colors ${
+                      className={`w-full rounded-none px-3 py-2 text-left text-sm border transition-colors ${
                         viewingRunId === r.id
-                          ? "border-violet-500/80 bg-violet-500/10"
-                          : "border-zinc-800 bg-zinc-950/50 hover:border-zinc-700"
+                          ? LIST_ITEM_SELECTED
+                          : `${LIST_ITEM} bg-[#0a0a0a]`
                       }`}
                     >
                       <div className="flex justify-between gap-2">
@@ -672,7 +692,7 @@ export default function AutomationsPage() {
                         </span>
                       </div>
                       {(r.browserbase_debug_url || r.browserbase_session_id) && (
-                        <span className="text-xs text-violet-400 mt-1 inline-block">
+                        <span className={`mt-1 inline-block text-xs ${ACCENT}`}>
                           {viewingRunId === r.id ? "Viewing session" : "View session replay"}
                         </span>
                       )}

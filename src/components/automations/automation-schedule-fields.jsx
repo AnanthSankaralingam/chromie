@@ -1,15 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { parseCronExpression, WEEKDAYS } from "@/lib/workflow-schedule-cron"
-
-const INPUT_CLASS =
-  "mt-1 bg-zinc-950 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:ring-violet-500/50"
+import { Plus, X } from "lucide-react"
+import {
+  ACCENT,
+  INPUT_CLASS,
+  LABEL_CLASS,
+  PANEL_INSET,
+} from "@/components/ui/app-dashboard-theme"
 
 function FilterField({ label, children }) {
   return (
     <div className="min-w-0">
-      <label className="text-xs font-medium text-zinc-400">{label}</label>
+      <label className={LABEL_CLASS}>{label}</label>
       {children}
     </div>
   )
@@ -32,41 +35,42 @@ const COMMON_TIMEZONES = [
  * @param {{
  *   scheduleEnabled: boolean,
  *   scheduleFrequency: string,
- *   scheduleTime: string,
+ *   scheduleTimes: string[],
  *   scheduleWeekday: string,
  *   scheduleTimezone: string,
- *   cronExpression?: string | null,
  *   onChange: (patch: object) => void,
  * }} props
  */
 export default function AutomationScheduleFields({
   scheduleEnabled,
   scheduleFrequency,
-  scheduleTime,
+  scheduleTimes,
   scheduleWeekday,
   scheduleTimezone,
-  cronExpression,
   onChange,
 }) {
-  const [showCustomCron, setShowCustomCron] = useState(false)
-  const parsed = parseCronExpression(cronExpression)
+  function updateTime(index, value) {
+    const next = [...scheduleTimes]
+    next[index] = value
+    onChange({ schedule_times: next })
+  }
 
-  useEffect(() => {
-    if (cronExpression && !parsed) {
-      setShowCustomCron(true)
-    }
-  }, [cronExpression, parsed])
+  function addTime() {
+    onChange({ schedule_times: [...scheduleTimes, "12:00"] })
+  }
+
+  function removeTime(index) {
+    if (scheduleTimes.length <= 1) return
+    onChange({ schedule_times: scheduleTimes.filter((_, i) => i !== index) })
+  }
 
   return (
-    <div className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+    <div className={`space-y-4 ${PANEL_INSET}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-zinc-200">Schedule</p>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            Runs automatically via EventBridge Scheduler (same Lambda as Run now).
-          </p>
+          <p className="text-sm font-semibold text-white">Schedule</p>
         </div>
-        <label className="flex items-center gap-2 text-sm text-zinc-300 shrink-0">
+        <label className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
           <input
             type="checkbox"
             checked={scheduleEnabled}
@@ -76,7 +80,7 @@ export default function AutomationScheduleFields({
                 schedule_kind: e.target.checked ? "cron" : "on_demand",
               })
             }
-            className="rounded border-zinc-600 bg-zinc-900 text-violet-500 focus:ring-violet-500"
+            className="rounded-none border-white/20 bg-black text-cyan-400 focus:ring-cyan-400/40"
           />
           Enabled
         </label>
@@ -99,13 +103,18 @@ export default function AutomationScheduleFields({
                 <option value="weekly">Weekly</option>
               </select>
             </FilterField>
-            <FilterField label="Time">
-              <input
-                type="time"
-                value={scheduleTime}
-                onChange={(e) => onChange({ schedule_time: e.target.value })}
+            <FilterField label="Timezone">
+              <select
+                value={scheduleTimezone}
+                onChange={(e) => onChange({ schedule_timezone: e.target.value })}
                 className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm`}
-              />
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </select>
             </FilterField>
             {scheduleFrequency === "weekly" && (
               <FilterField label="Day of week">
@@ -126,48 +135,45 @@ export default function AutomationScheduleFields({
                 </select>
               </FilterField>
             )}
-            <FilterField label="Timezone">
-              <select
-                value={scheduleTimezone}
-                onChange={(e) => onChange({ schedule_timezone: e.target.value })}
-                className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm`}
-              >
-                {COMMON_TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
-            </FilterField>
           </div>
 
-          <div>
-            <button
-              type="button"
-              className="text-xs text-violet-400 hover:text-violet-300"
-              onClick={() => setShowCustomCron((v) => !v)}
-            >
-              {showCustomCron ? "Hide" : "Show"} advanced cron expression
-            </button>
-            {showCustomCron && (
-              <FilterField label="Cron expression">
-                <input
-                  type="text"
-                  value={cronExpression || ""}
-                  onChange={(e) =>
-                    onChange({
-                      cron_expression: e.target.value,
-                      schedule_kind: "cron",
-                    })
-                  }
-                  placeholder="cron(0 9 * * ? *)"
-                  className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
-                />
-              </FilterField>
-            )}
-            {!showCustomCron && cronExpression && (
-              <p className="text-xs text-zinc-500 mt-2 font-mono">{cronExpression}</p>
-            )}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className={LABEL_CLASS}>Run times</label>
+              <button
+                type="button"
+                onClick={addTime}
+                className={`inline-flex items-center gap-1 text-xs ${ACCENT} hover:text-cyan-300`}
+              >
+                <Plus className="h-3 w-3" />
+                Add time
+              </button>
+            </div>
+            <p className="text-xs text-zinc-600">
+              Add multiple times to run more than once per day.
+            </p>
+            <div className="space-y-2">
+              {scheduleTimes.map((time, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => updateTime(index, e.target.value)}
+                    className={`${INPUT_CLASS} flex-1 rounded-md px-3 py-2 text-sm`}
+                  />
+                  {scheduleTimes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTime(index)}
+                      className="shrink-0 rounded-md p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
+                      aria-label="Remove time"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -181,19 +187,45 @@ export function scheduleStateFromAutomation(automation) {
     return {
       scheduleEnabled: false,
       scheduleFrequency: "daily",
-      scheduleTime: "09:00",
+      scheduleTimes: ["09:00"],
       scheduleWeekday: "MON",
       scheduleTimezone: "America/New_York",
-      cronExpression: null,
     }
   }
-  const parsed = parseCronExpression(automation.cron_expression)
+
+  let parsed = null
+  const cron = automation.cron_expression
+  if (cron?.includes("|")) {
+    const allTimes = []
+    let frequency = "daily"
+    let weekday = "MON"
+    let weekdays = []
+    for (const part of cron.split("|")) {
+      const p = parseCronExpression(part.trim())
+      if (p) {
+        allTimes.push(...p.times)
+        frequency = p.frequency
+        weekday = p.weekday
+        weekdays = p.weekdays
+      }
+    }
+    if (allTimes.length) {
+      parsed = {
+        frequency,
+        times: [...new Set(allTimes)].sort(),
+        weekday,
+        weekdays,
+      }
+    }
+  } else {
+    parsed = parseCronExpression(cron)
+  }
+
   return {
     scheduleEnabled: automation.schedule_kind === "cron",
     scheduleFrequency: parsed?.frequency || "daily",
-    scheduleTime: parsed?.time || "09:00",
+    scheduleTimes: parsed?.times?.length ? parsed.times : ["09:00"],
     scheduleWeekday: parsed?.weekday || "MON",
     scheduleTimezone: automation.schedule_timezone || "America/New_York",
-    cronExpression: automation.cron_expression,
   }
 }

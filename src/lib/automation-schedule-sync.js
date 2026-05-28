@@ -2,8 +2,12 @@
  * Apply schedule fields from API request body and sync EventBridge Scheduler.
  */
 
-import { buildCronExpression } from "@/lib/workflow-schedule-cron"
-import { syncAutomationSchedule, deleteAutomationSchedule } from "@/lib/workflow-schedule"
+import {
+  cronExpressionFromScheduleInput,
+  syncAutomationSchedule,
+  deleteAutomationSchedules,
+} from "@/lib/workflow-schedule"
+import { normalizeTimes } from "@/lib/workflow-schedule-cron"
 
 /**
  * @param {object} body - Request JSON
@@ -22,9 +26,6 @@ export function resolveScheduleFieldsFromBody(body, existing = {}) {
       ? String(body.schedule_timezone || "UTC").trim() || "UTC"
       : existing.schedule_timezone || "UTC"
 
-  let cron_expression =
-    body.cron_expression !== undefined ? body.cron_expression : existing.cron_expression
-
   if (body.schedule_enabled === false || schedule_kind === "on_demand") {
     return {
       schedule_kind: "on_demand",
@@ -34,17 +35,27 @@ export function resolveScheduleFieldsFromBody(body, existing = {}) {
   }
 
   if (body.schedule_enabled === true || schedule_kind === "cron") {
-    if (body.schedule_frequency && body.schedule_time) {
-      cron_expression = buildCronExpression({
-        frequency: body.schedule_frequency === "weekly" ? "weekly" : "daily",
-        time: body.schedule_time,
-        weekday: body.schedule_weekday,
-        weekdays: body.schedule_weekdays,
-      })
+    const times =
+      body.schedule_times?.length > 0
+        ? body.schedule_times
+        : body.schedule_time
+          ? [body.schedule_time]
+          : existing.cron_expression
+            ? undefined
+            : null
+
+    if (!times) {
+      throw new Error("Add at least one run time when scheduling is enabled")
     }
-    if (!cron_expression) {
-      throw new Error("A schedule time is required when scheduling is enabled")
-    }
+
+    const normalized = normalizeTimes(times)
+    const cron_expression = cronExpressionFromScheduleInput({
+      frequency: body.schedule_frequency === "weekly" ? "weekly" : "daily",
+      times: normalized,
+      weekday: body.schedule_weekday,
+      weekdays: body.schedule_weekdays,
+    })
+
     return {
       schedule_kind: "cron",
       cron_expression,
@@ -54,7 +65,7 @@ export function resolveScheduleFieldsFromBody(body, existing = {}) {
 
   return {
     schedule_kind,
-    cron_expression: cron_expression || null,
+    cron_expression: existing.cron_expression || null,
     schedule_timezone,
   }
 }
@@ -81,10 +92,7 @@ export async function syncAndPersistAutomationSchedule(supabase, automation) {
         return data
       }
     } else {
-      await deleteAutomationSchedule(
-        automation.id,
-        automation.eventbridge_schedule_name || undefined,
-      )
+      await deleteAutomationSchedules(automation.id)
       if (automation.eventbridge_schedule_name) {
         const { data, error } = await supabase
           .from("automations")

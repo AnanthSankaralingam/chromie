@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/forms-and-input/input"
-
-const INPUT_CLASS =
-  "mt-1 bg-zinc-950 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:ring-violet-500/50"
+import { INPUT_CLASS, LABEL_CLASS } from "@/components/ui/app-dashboard-theme"
 
 function Field({ label, description, required, children }) {
   return (
     <div className="min-w-0">
-      <label className="text-xs font-medium text-zinc-400">
+      <label className={LABEL_CLASS}>
         {label}
         {required ? <span className="text-red-400 ml-0.5">*</span> : null}
       </label>
