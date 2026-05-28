@@ -6,7 +6,12 @@ import { motion, useScroll, useTransform } from "framer-motion"
 import { ChevronDown, Mail, Minus, Plus } from "lucide-react"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
-const DEMO_VIDEO_ID = "fL0Rw8gmkmw"
+const DEMO_TABS = [
+  { id: "pharma", label: "Pharma", videoId: "VZ-VA4kEbMw" },
+  { id: "clinical-studies", label: "Clinical Studies", videoId: "DdcGoIdp2aY" },
+  { id: "healthcare", label: "Healthcare", videoId: "qxaJAN6aFAE" },
+  { id: "search-report", label: "Search & Report", videoId: "cmntcD5iwjg" },
+]
 
 const BLURB =
   "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
@@ -106,7 +111,10 @@ function SectionDivider() {
   )
 }
 
-function BrowserMockup({ videoId }) {
+function DemoBrowserMockup() {
+  const [activeTabId, setActiveTabId] = useState(DEMO_TABS[0].id)
+  const activeTab = DEMO_TABS.find((tab) => tab.id === activeTabId) ?? DEMO_TABS[0]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -119,10 +127,43 @@ function BrowserMockup({ videoId }) {
         aria-hidden
       />
       <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/80 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_40px_-8px_rgba(34,211,238,0.25)] ring-1 ring-cyan-400/10">
-        <div className="relative min-h-[220px] flex-1 bg-black sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px]">
+        <div
+          className="flex flex-wrap gap-1 border-b border-white/10 bg-zinc-950/90 p-2 sm:gap-1.5 sm:p-2.5"
+          role="tablist"
+          aria-label="Demo use cases"
+        >
+          {DEMO_TABS.map((tab) => {
+            const isActive = tab.id === activeTabId
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`demo-panel-${tab.id}`}
+                id={`demo-tab-${tab.id}`}
+                onClick={() => setActiveTabId(tab.id)}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all sm:px-4 sm:text-sm ${
+                  isActive
+                    ? "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/30"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+        <div
+          id={`demo-panel-${activeTab.id}`}
+          role="tabpanel"
+          aria-labelledby={`demo-tab-${activeTab.id}`}
+          className="relative min-h-[220px] flex-1 bg-black sm:min-h-[280px] md:min-h-[340px] lg:min-h-[380px]"
+        >
           <iframe
-            title="chromie.dev demo video"
-            src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+            key={activeTab.videoId}
+            title={`chromie.dev ${activeTab.label} demo`}
+            src={`https://www.youtube-nocookie.com/embed/${activeTab.videoId}`}
             className="absolute inset-0 h-full w-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
@@ -317,7 +358,7 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            <BrowserMockup videoId={DEMO_VIDEO_ID} />
+            <DemoBrowserMockup />
           </div>
 
           <div className="relative mt-20 pb-4 sm:mt-24 sm:pb-6">
