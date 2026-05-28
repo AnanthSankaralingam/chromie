@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/landing/landing-motion"
 import ResultsComparisonVisual from "@/components/ui/landing/results-comparison-visual"
 import AutomationPathsVisual from "@/components/ui/landing/automation-paths-visual"
-import RealChromeVisual from "@/components/ui/landing/real-chrome-visual"
+import SelfHealingVisual from "@/components/ui/landing/self-healing-visual"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
 
 const BASE_DEMO_VIDEO_ID = "uI0MVyhb2xg"
@@ -110,21 +110,21 @@ const SPOTLIGHTS = [
     visual: "router",
   },
   {
-    id: "real-chrome",
-    label: "Real browser sessions",
-    title: "Not headless. Not emulated. Real Chrome.",
-    body: "Agents run in a real browser with real GPU, authentic TLS, and genuine device profiles. Sites see a normal user session, not a datacenter bot, so you evade bot detection before it blocks your workflows.",
-    visual: "stealth",
+    id: "self-healing",
+    label: "Self-healing tools",
+    title: "Recover when the site changes",
+    body: "When selectors break or the DOM drifts, tools detect failure and re-resolve targets automatically. Each invocation makes them smarter and more reliable, with no manual fixes.",
+    visual: "healing",
   },
 ]
 
 const FEATURE_PILLS = [
-  "Real Chrome sessions",
-  "Bot detection evasion",
   "Deterministic tool calls",
   "Execution replay",
   "Task-aware routing",
+  "Self-healing tools",
   "Auditable actions",
+  "Bot detection evasion",
 ]
 
 const BENEFITS = [
@@ -145,21 +145,20 @@ const BENEFITS = [
     body: "Mine execution history to spot patterns worth turning into permanent tooling.",
   },
   {
-    title: "Evade bot detection",
-    body: "Headful Chrome with real fingerprints and TLS, not spoofed headless profiles that trip WAFs and CAPTCHAs.",
-  },
-  {
     title: "Production guardrails",
     body: "Combine LLM flexibility with hard boundaries so agents stay inside approved paths.",
+  },
+  {
+    title: "Self-healing tools",
+    body: "When sites change or selectors break, tools recover automatically and grow smarter on every invocation, with no manual fixes.",
   },
 ]
 
 const COMPARISON_ROWS = [
-  { feature: "Browser fingerprint", other: "Headless / spoofed", chromie: "Genuine Chrome" },
-  { feature: "Bot detection risk", other: "High", chromie: "Near-zero" },
   { feature: "Deterministic tool invocation", other: "Probabilistic", chromie: "Deterministic" },
   { feature: "Past execution analysis", other: "Manual", chromie: "Automated" },
   { feature: "Runtime skill selection", other: "Static prompts", chromie: "Task-aware" },
+  { feature: "Self-healing tools", other: "Manual fixes", chromie: "Automatic recovery" },
   { feature: "Reliability + intelligence", other: "Trade-off", chromie: "Both" },
   { feature: "Auditable agent actions", other: "Limited", chromie: "Full trace" },
   { feature: "Setup for production", other: "Weeks", chromie: "Minutes" },
@@ -327,8 +326,8 @@ function SpotlightVisual({ type }) {
     return <AutomationPathsVisual />
   }
 
-  if (type === "stealth") {
-    return <RealChromeVisual />
+  if (type === "healing") {
+    return <SelfHealingVisual />
   }
 
   return <RuntimeRoutingVisual />
@@ -731,7 +730,7 @@ export default function LandingPage() {
             <Reveal className="mt-12 overflow-hidden border border-white/10" delay={0.05}>
               <div className="grid grid-cols-3 border-b border-white/10 bg-white/[0.03] font-mono text-[10px] uppercase tracking-wider sm:text-[11px]">
                 <div className="p-4 text-zinc-500" />
-                <div className="border-l border-white/10 p-4 text-zinc-500">Generic LLM agents</div>
+                <div className="border-l border-white/10 p-4 text-zinc-500">Generic Automation</div>
                 <div className="border-l border-white/10 p-4 text-white">chromie.dev</div>
               </div>
               {COMPARISON_ROWS.map((row, i) => (
