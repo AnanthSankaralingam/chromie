@@ -57,7 +57,6 @@ const BLURB =
 
 const CONTACT_EMAIL = "founders@chromie.dev"
 const CAL_URL = "https://cal.com/chromie"
-const HOME_URL = "/home"
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -411,7 +410,9 @@ function SpotlightSection({ item, reverse }) {
             </StaggerItem>
             <StaggerItem>
               <div className="mt-8">
-                <PrimaryButton href={HOME_URL}>Get started</PrimaryButton>
+                <PrimaryButton href={CAL_URL} external>
+                  Get started
+                </PrimaryButton>
               </div>
             </StaggerItem>
           </StaggerReveal>
@@ -509,7 +510,7 @@ export default function LandingPage() {
             >
               Contact
             </a>
-            <PrimaryButton href={HOME_URL} className="!px-4 !py-2 text-xs">
+            <PrimaryButton href={CAL_URL} external className="!px-4 !py-2 text-xs">
               Get started
             </PrimaryButton>
           </div>
@@ -548,7 +549,9 @@ export default function LandingPage() {
                 >
                   Contact
                 </a>
-                <PrimaryButton href={HOME_URL}>Get started</PrimaryButton>
+                <PrimaryButton href={CAL_URL} external>
+                  Get started
+                </PrimaryButton>
               </div>
             </div>
           </nav>
@@ -838,7 +841,9 @@ export default function LandingPage() {
               </li>
               <li>
                 <a
-                  href={HOME_URL}
+                  href={CAL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-sm text-zinc-400 transition-colors hover:text-white"
                 >
                   Get started
