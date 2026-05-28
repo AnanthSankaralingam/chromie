@@ -685,6 +685,14 @@
   image-rendering: pixelated;
 }
 
+.confidence-cta-section .landing-visual-panel {
+  position: relative;
+}
+
+.confidence-cta-section .landing-visual-panel::after {
+  display: none;
+}
+
 .landing-visual-panel::after {
   content: "";
   pointer-events: none;

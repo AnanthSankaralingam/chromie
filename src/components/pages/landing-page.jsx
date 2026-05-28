@@ -27,13 +27,30 @@ import {
 import ResultsComparisonVisual from "@/components/ui/landing/results-comparison-visual"
 import AutomationPathsVisual from "@/components/ui/landing/automation-paths-visual"
 import RealChromeVisual from "@/components/ui/landing/real-chrome-visual"
+import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
 
-const DEMO_TABS = [
+const BASE_DEMO_VIDEO_ID = "uI0MVyhb2xg"
+
+const USE_CASE_TABS = [
   { id: "pharma", label: "Pharma", videoId: "VZ-VA4kEbMw" },
   { id: "clinical-studies", label: "Clinical Studies", videoId: "DdcGoIdp2aY" },
   { id: "healthcare", label: "Healthcare", videoId: "qxaJAN6aFAE" },
   { id: "search-report", label: "Search & Report", videoId: "cmntcD5iwjg" },
 ]
+
+function getDemoEmbedUrl(videoId, { autoplay = false, muted = false } = {}) {
+  const params = new URLSearchParams({
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    controls: "1",
+  })
+  if (autoplay) {
+    params.set("autoplay", "1")
+    if (muted) params.set("mute", "1")
+  }
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`
+}
 
 const BLURB =
   "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
@@ -222,53 +239,81 @@ function SecondaryButton({ href, children, className = "" }) {
 }
 
 function DemoBrowserMockup({ id = "hero" }) {
-  const [activeTabId, setActiveTabId] = useState(DEMO_TABS[0].id)
-  const activeTab = DEMO_TABS.find((tab) => tab.id === activeTabId) ?? DEMO_TABS[0]
+  const [activeTabId, setActiveTabId] = useState(null)
+  const [playGeneration, setPlayGeneration] = useState(0)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
+  const activeTab = activeTabId
+    ? USE_CASE_TABS.find((tab) => tab.id === activeTabId)
+    : null
+  const videoId = activeTab?.videoId ?? BASE_DEMO_VIDEO_ID
+  const shouldAutoplay = activeTabId === null || playGeneration > 0
+  const shouldMute = shouldAutoplay && !audioUnlocked
+
+  function selectTab(tabId) {
+    setAudioUnlocked(true)
+    const nextTabId = tabId === activeTabId ? null : tabId
+    setActiveTabId(nextTabId)
+    setPlayGeneration((generation) => generation + 1)
+  }
 
   return (
     <div className="border border-white/10 bg-black">
       <div
-        className="flex flex-wrap gap-0 border-b border-white/10"
-        role="tablist"
-        aria-label="Demo use cases"
-      >
-        {DEMO_TABS.map((tab) => {
-          const isActive = tab.id === activeTabId
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`${id}-panel-${tab.id}`}
-              id={`${id}-tab-${tab.id}`}
-              onClick={() => setActiveTabId(tab.id)}
-              className={`border-r border-white/10 px-3 py-2.5 font-mono text-[11px] uppercase tracking-wider transition-colors last:border-r-0 sm:px-4 ${
-                isActive
-                  ? "bg-white text-black"
-                  : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
-      <div
-        id={`${id}-panel-${activeTab.id}`}
+        id={`${id}-panel`}
         role="tabpanel"
-        aria-labelledby={`${id}-tab-${activeTab.id}`}
         className="relative aspect-video w-full bg-black"
       >
         <iframe
-          key={activeTab.videoId}
-          title={`chromie.dev ${activeTab.label} demo`}
-          src={`https://www.youtube-nocookie.com/embed/${activeTab.videoId}`}
+          key={`${videoId}-${playGeneration}`}
+          title={
+            activeTab
+              ? `chromie.dev ${activeTab.label} demo`
+              : "chromie.dev demo"
+          }
+          src={getDemoEmbedUrl(videoId, {
+            autoplay: shouldAutoplay,
+            muted: shouldMute,
+          })}
           className="absolute inset-0 h-full w-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
         />
+      </div>
+      <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 sm:px-5 sm:py-5">
+        <p className="text-sm font-semibold text-white">Use Cases</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Pick an industry to watch a tailored demo.
+        </p>
+        <div
+          className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-0 sm:overflow-hidden sm:border sm:border-white/20"
+          role="tablist"
+          aria-label="Demo use cases"
+        >
+          {USE_CASE_TABS.map((tab, index) => {
+            const isActive = tab.id === activeTabId
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`${id}-panel`}
+                id={`${id}-tab-${tab.id}`}
+                onClick={() => selectTab(tab.id)}
+                className={`flex min-h-12 w-full cursor-pointer items-center justify-center border px-3 py-3 text-center text-sm font-semibold leading-snug transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 sm:min-h-[3.25rem] sm:border-0 sm:px-4 sm:text-[15px] ${
+                  index < USE_CASE_TABS.length - 1 ? "sm:border-r sm:border-white/20" : ""
+                } ${
+                  isActive
+                    ? "border-cyan-400/70 bg-cyan-500/15 text-cyan-100 ring-1 ring-inset ring-cyan-400/40 sm:bg-cyan-500/20 sm:ring-0"
+                    : "border-white/30 bg-zinc-900 text-white hover:border-white/50 hover:bg-zinc-800 sm:bg-zinc-950 sm:hover:bg-white/[0.06]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -539,9 +584,9 @@ export default function LandingPage() {
                   variants={fadeUp}
                   className="mt-8 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.25rem]"
                 >
-                  Run{" "}
-                  <span className="text-cyan-400">browser automation</span> with reliability
-                  and intelligence
+                  Run browser automation with{" "}
+                  <span className="text-cyan-400">reliability</span> and{" "}
+                  <span className="text-cyan-400">intelligence</span>
                 </motion.h1>
 
                 <motion.p
@@ -728,33 +773,12 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="border-b border-white/10 py-20 sm:py-24">
-          <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-            <StaggerReveal>
-              <StaggerItem>
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                  Ship web agents with confidence
-                </h2>
-              </StaggerItem>
-              <StaggerItem>
-                <p className="mx-auto mt-4 max-w-lg text-sm text-zinc-400 sm:text-base">
-                  Contact us and let's get started. 
-                </p>
-              </StaggerItem>
-              <StaggerItem>
-                <div className="mx-auto mt-8 flex w-full max-w-xs flex-col items-stretch gap-3">
-                  <PrimaryButton href={CAL_URL} external className="w-full">
-                    Book a demo
-                  </PrimaryButton>
-                  <SecondaryButton href={`mailto:${CONTACT_EMAIL}`} className="w-full">
-                    {CONTACT_EMAIL}
-                  </SecondaryButton>
-                </div>
-              </StaggerItem>
-            </StaggerReveal>
-          </div>
-        </section>
+        <ConfidenceCtaSection
+          primaryHref={CAL_URL}
+          primaryLabel="Book a demo"
+          secondaryHref={`mailto:${CONTACT_EMAIL}`}
+          secondaryLabel={CONTACT_EMAIL}
+        />
       </main>
 
       <HatchBand />
