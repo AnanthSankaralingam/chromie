@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import {
+  resolveScheduleFieldsFromBody,
+  syncAndPersistAutomationSchedule,
+} from "@/lib/automation-schedule-sync"
+import {
   EMAIL_DELIVERY_SCENARIO_IDS,
   defaultParamsForScenario,
 } from "@/lib/workflow-automations"
@@ -24,8 +28,12 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   const name = (body.name || "Workflow automation").trim()
   const params =
     body.params || defaultParamsForScenario(scenario_id, user.email || "")
-  const schedule_kind = body.schedule_kind === "cron" ? "cron" : "on_demand"
-  const cron_expression = body.cron_expression || null
+  let scheduleFields
+  try {
+    scheduleFields = resolveScheduleFieldsFromBody(body)
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 400 })
+  }
 
   if (EMAIL_DELIVERY_SCENARIO_IDS.has(scenario_id)) {
     const email = String(params.recipient_email || user.email || "").trim()
@@ -46,8 +54,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       scenario_id,
       params,
       env_overrides: body.env_overrides || {},
-      schedule_kind,
-      cron_expression,
+      ...scheduleFields,
       enabled: body.enabled !== false,
     })
     .select()
@@ -56,5 +63,15 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  return NextResponse.json({ automation: data })
+
+  try {
+    const synced = await syncAndPersistAutomationSchedule(supabase, data)
+    return NextResponse.json({ automation: synced })
+  } catch (err) {
+    await supabase.from("automations").delete().eq("id", data.id)
+    return NextResponse.json(
+      { error: err.message || "Failed to configure schedule" },
+      { status: 500 },
+    )
+  }
 })

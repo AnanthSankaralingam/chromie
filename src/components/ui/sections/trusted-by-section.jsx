@@ -6,7 +6,7 @@ export default function TrustedBySection() {
       <p className="text-xs uppercase tracking-[0.2em] text-slate-600 text-center mb-8">
         trusted by
       </p>
-      <div className="flex items-center justify-center gap-16 md:gap-24">
+      <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
         <a
           href="https://www.youtube.com/watch?v=SCteMclpA38"
           target="_blank"
@@ -44,6 +44,45 @@ export default function TrustedBySection() {
             alt="QTR"
             className="h-8 md:h-10 object-contain"
             style={{ mixBlendMode: "screen", filter: "brightness(0) invert(1)" }}
+          />
+        </a>
+        <a
+          href="https://bricked.ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="opacity-75 hover:opacity-100 transition-opacity"
+        >
+          <img
+            src="/bricked-logo.png"
+            alt="Bricked"
+            className="h-8 md:h-10 object-contain"
+            style={{ mixBlendMode: "screen" }}
+          />
+        </a>
+        <a
+          href="https://mentrix.ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="opacity-75 hover:opacity-100 transition-opacity"
+        >
+          <img
+            src="/mentrix-logo.png"
+            alt="Mentrix"
+            className="h-8 md:h-10 object-contain"
+            style={{ mixBlendMode: "screen" }}
+          />
+        </a>
+        <a
+          href="https://www.salesgraph.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="opacity-75 hover:opacity-100 transition-opacity"
+        >
+          <img
+            src="/salesgraph-logo.svg"
+            alt="Salesgraph"
+            className="h-8 md:h-10 w-auto max-w-[8.5rem] object-contain"
+            style={{ mixBlendMode: "screen" }}
           />
         </a>
       </div>

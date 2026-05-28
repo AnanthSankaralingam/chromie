@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
+import {
+  resolveScheduleFieldsFromBody,
+  syncAndPersistAutomationSchedule,
+} from "@/lib/automation-schedule-sync"
+import { deleteAutomationSchedules } from "@/lib/workflow-schedule"
 import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
 
 async function getOwnedAutomation(supabase, userId, id) {
@@ -41,16 +46,31 @@ export const PATCH = withAuth(async ({ request, supabase, user, params }) => {
     )
   }
   const updates = {}
-  for (const key of [
-    "name",
-    "params",
-    "env_overrides",
-    "schedule_kind",
-    "cron_expression",
-    "enabled",
-  ]) {
+  for (const key of ["name", "params", "env_overrides", "enabled"]) {
     if (body[key] !== undefined) updates[key] = body[key]
   }
+
+  const scheduleTouched =
+    body.schedule_kind !== undefined ||
+    body.schedule_enabled !== undefined ||
+    body.cron_expression !== undefined ||
+    body.schedule_frequency !== undefined ||
+    body.schedule_time !== undefined ||
+    body.schedule_times !== undefined ||
+    body.schedule_timezone !== undefined
+
+  if (scheduleTouched) {
+    try {
+      Object.assign(updates, resolveScheduleFieldsFromBody(body, existing))
+    } catch (err) {
+      return NextResponse.json({ error: err.message }, { status: 400 })
+    }
+  } else if (body.enabled !== undefined && existing.schedule_kind === "cron") {
+    updates.schedule_kind = existing.schedule_kind
+    updates.cron_expression = existing.cron_expression
+    updates.schedule_timezone = existing.schedule_timezone
+  }
+
   updates.updated_at = new Date().toISOString()
 
   const { data, error } = await supabase
@@ -63,6 +83,23 @@ export const PATCH = withAuth(async ({ request, supabase, user, params }) => {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  const shouldSyncSchedule =
+    scheduleTouched ||
+    (body.enabled !== undefined && data.schedule_kind === "cron")
+
+  if (shouldSyncSchedule) {
+    try {
+      const synced = await syncAndPersistAutomationSchedule(supabase, data)
+      return NextResponse.json({ automation: synced })
+    } catch (err) {
+      return NextResponse.json(
+        { error: err.message || "Failed to update schedule" },
+        { status: 500 },
+      )
+    }
+  }
+
   return NextResponse.json({ automation: data })
 })
 
@@ -71,6 +108,12 @@ export const DELETE = withAuth(async ({ supabase, user, params }) => {
   const existing = await getOwnedAutomation(supabase, user.id, id)
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  try {
+    await deleteAutomationSchedules(id)
+  } catch (err) {
+    console.error("[automations/delete] schedule cleanup:", err)
   }
 
   const { error } = await supabase.from("automations").delete().eq("id", id)
