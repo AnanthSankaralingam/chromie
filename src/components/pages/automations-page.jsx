@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { useSession } from "@/components/SessionProviderClient"
 import AutomationParamFields from "@/components/automations/automation-param-fields"
+import AutomationScheduleFields, {
+  scheduleStateFromAutomation,
+} from "@/components/automations/automation-schedule-fields"
 import AppBar from "@/components/ui/app-bars/app-bar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -76,6 +79,8 @@ export default function AutomationsPage() {
   const [viewingRunId, setViewingRunId] = useState(null)
   const [pollingRuns, setPollingRuns] = useState(false)
   const [stopping, setStopping] = useState(false)
+  const [createSchedule, setCreateSchedule] = useState(() => scheduleStateFromAutomation(null))
+  const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
 
   const loadAutomations = useCallback(async () => {
     const res = await fetch("/api/automations")
@@ -131,7 +136,8 @@ export default function AutomationsPage() {
     } else {
       setEditParams(null)
     }
-  }, [selected?.id, selected?.params])
+    setEditSchedule(scheduleStateFromAutomation(selected))
+  }, [selected?.id, selected?.params, selected?.schedule_kind, selected?.cron_expression, selected?.schedule_timezone])
 
   const hasRunningRun = runs.some((r) => r.status === "running")
   const activeRun = runs.find((r) => r.status === "running")
@@ -171,6 +177,18 @@ export default function AutomationsPage() {
     }))
   }
 
+  function schedulePayload(schedule) {
+    return {
+      schedule_enabled: schedule.scheduleEnabled,
+      schedule_kind: schedule.scheduleEnabled ? "cron" : "on_demand",
+      schedule_frequency: schedule.scheduleFrequency,
+      schedule_time: schedule.scheduleTime,
+      schedule_weekday: schedule.scheduleWeekday,
+      schedule_timezone: schedule.scheduleTimezone,
+      cron_expression: schedule.cronExpression,
+    }
+  }
+
   async function createAutomation() {
     setCreating(true)
     try {
@@ -186,6 +204,7 @@ export default function AutomationsPage() {
           name: (createName || defaultName).trim(),
           scenario_id: createScenarioId,
           params: draftParams,
+          ...schedulePayload(createSchedule),
         }),
       })
       const json = await res.json()
@@ -210,7 +229,10 @@ export default function AutomationsPage() {
       const res = await fetch(`/api/automations/${selectedId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ params: editParams }),
+        body: JSON.stringify({
+          params: editParams,
+          ...schedulePayload(editSchedule),
+        }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -392,6 +414,38 @@ export default function AutomationsPage() {
                   </FilterField>
                 )}
 
+                <AutomationScheduleFields
+                  scheduleEnabled={createSchedule.scheduleEnabled}
+                  scheduleFrequency={createSchedule.scheduleFrequency}
+                  scheduleTime={createSchedule.scheduleTime}
+                  scheduleWeekday={createSchedule.scheduleWeekday}
+                  scheduleTimezone={createSchedule.scheduleTimezone}
+                  cronExpression={createSchedule.cronExpression}
+                  onChange={(patch) =>
+                    setCreateSchedule((prev) => ({
+                      ...prev,
+                      ...(patch.schedule_enabled !== undefined
+                        ? { scheduleEnabled: patch.schedule_enabled }
+                        : {}),
+                      ...(patch.schedule_frequency !== undefined
+                        ? { scheduleFrequency: patch.schedule_frequency }
+                        : {}),
+                      ...(patch.schedule_time !== undefined
+                        ? { scheduleTime: patch.schedule_time }
+                        : {}),
+                      ...(patch.schedule_weekday !== undefined
+                        ? { scheduleWeekday: patch.schedule_weekday }
+                        : {}),
+                      ...(patch.schedule_timezone !== undefined
+                        ? { scheduleTimezone: patch.schedule_timezone }
+                        : {}),
+                      ...(patch.cron_expression !== undefined
+                        ? { cronExpression: patch.cron_expression }
+                        : {}),
+                    }))
+                  }
+                />
+
                 <Button
                   type="button"
                   disabled={
@@ -450,7 +504,12 @@ export default function AutomationsPage() {
                       }`}
                     >
                       <div className="font-medium">{a.name}</div>
-                      <div className="text-xs text-zinc-500">{a.scenario_id}</div>
+                      <div className="text-xs text-zinc-500">
+                        {a.scenario_id}
+                        {a.schedule_kind === "cron" && (
+                          <span className="ml-2 text-violet-400">scheduled</span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </CardContent>
@@ -529,6 +588,37 @@ export default function AutomationsPage() {
                           />
                         </FilterField>
                       )}
+                      <AutomationScheduleFields
+                        scheduleEnabled={editSchedule.scheduleEnabled}
+                        scheduleFrequency={editSchedule.scheduleFrequency}
+                        scheduleTime={editSchedule.scheduleTime}
+                        scheduleWeekday={editSchedule.scheduleWeekday}
+                        scheduleTimezone={editSchedule.scheduleTimezone}
+                        cronExpression={editSchedule.cronExpression}
+                        onChange={(patch) =>
+                          setEditSchedule((prev) => ({
+                            ...prev,
+                            ...(patch.schedule_enabled !== undefined
+                              ? { scheduleEnabled: patch.schedule_enabled }
+                              : {}),
+                            ...(patch.schedule_frequency !== undefined
+                              ? { scheduleFrequency: patch.schedule_frequency }
+                              : {}),
+                            ...(patch.schedule_time !== undefined
+                              ? { scheduleTime: patch.schedule_time }
+                              : {}),
+                            ...(patch.schedule_weekday !== undefined
+                              ? { scheduleWeekday: patch.schedule_weekday }
+                              : {}),
+                            ...(patch.schedule_timezone !== undefined
+                              ? { scheduleTimezone: patch.schedule_timezone }
+                              : {}),
+                            ...(patch.cron_expression !== undefined
+                              ? { cronExpression: patch.cron_expression }
+                              : {}),
+                          }))
+                        }
+                      />
                       <Button
                         size="sm"
                         disabled={saving || !String(editParams.recipient_email || "").trim()}
