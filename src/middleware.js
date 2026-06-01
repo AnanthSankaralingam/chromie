@@ -3,28 +3,8 @@ import { NextResponse } from 'next/server'
 import { isAllowedPagePath } from '@/lib/allowed-routes'
 
 export async function middleware(request) {
-  // Handle www redirect but preserve auth codes
-  if (request.nextUrl.hostname === 'www.chromie.dev') {
-    // Extension OAuth: /api/extension/auth/start sets a host-only cookie on whichever
-    // host served the request (often www after CDN). Supabase returns to the same
-    // host's /auth/extension/callback. Stripping www here sends the browser to apex
-    // without that cookie → extension_auth_missing_redirect.
-    const isExtensionAuthCallback =
-      request.nextUrl.pathname.startsWith('/auth/extension/')
-
-    if (!isExtensionAuthCallback) {
-      const url = request.nextUrl.clone()
-      url.hostname = 'chromie.dev'
-
-      // Check if this is an OAuth callback with code parameter
-      const code = url.searchParams.get('code')
-      if (code) {
-        console.log('🔍 Middleware: OAuth code detected, preserving in redirect')
-      }
-
-      return NextResponse.redirect(url, 308)
-    }
-  }
+  // Do not strip www here — Vercel already canonicalizes apex → www.chromie.dev.
+  // Redirecting www → apex caused an infinite redirect loop with hosting.
 
   let supabaseResponse = NextResponse.next({
     request,
@@ -57,11 +37,17 @@ export async function middleware(request) {
   // Redirect old auth pages to home or builder
   if (request.nextUrl.pathname.startsWith('/auth/signin') ||
       request.nextUrl.pathname.startsWith('/auth/signup')) {
-    return NextResponse.redirect(new URL('/', request.url))
+    const landing = request.nextUrl.clone()
+    landing.pathname = '/'
+    landing.search = ''
+    return NextResponse.redirect(landing)
   }
 
   if (!isAllowedPagePath(request.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    const landing = request.nextUrl.clone()
+    landing.pathname = '/'
+    landing.search = ''
+    return NextResponse.redirect(landing)
   }
 
   return supabaseResponse

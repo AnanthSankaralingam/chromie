@@ -24,7 +24,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata = {
-  metadataBase: new URL('https://chromie.dev'),
+  metadataBase: new URL('https://www.chromie.dev'),
   title: {
     default: "chromie.dev — AI Chrome Extension Builder",
     template: "%s | chromie.dev",
