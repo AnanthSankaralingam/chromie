@@ -29,6 +29,7 @@ import AutomationPathsVisual from "@/components/ui/landing/automation-paths-visu
 import SelfHealingVisual from "@/components/ui/landing/self-healing-visual"
 import ExecutionReplayVisual from "@/components/ui/landing/execution-replay-visual"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
+import { BackedByYCombinatorPill } from "@/components/ui/backed-by-y-combinator-pill"
 
 const BASE_DEMO_VIDEO_ID = "uI0MVyhb2xg"
 
@@ -67,6 +68,11 @@ const NAV_LINKS = [
 ]
 
 const TRUSTED_LOGOS = [
+  {
+    href: "https://www.ycombinator.com/",
+    src: "/ycombinator-logo.svg",
+    alt: "Y Combinator",
+  },
   {
     href: "https://chromewebstore.google.com/detail/ionrouter-by-cumulus-labs/pdfigecoikombaefidghfheahgipepoc",
     src: "/ion-logo-128.jpeg",
@@ -583,21 +589,13 @@ export default function LandingPage() {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.div
-                  variants={fadeUp}
-                  className="flex flex-wrap items-center gap-3 border border-white/10 p-3"
-                >
-                  <span className="bg-white px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black">
-                    chromie.dev
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 sm:text-[11px]">
-                    the deterministic stack for web agents
-                  </span>
+                <motion.div variants={fadeUp} className="mb-6">
+                  <BackedByYCombinatorPill />
                 </motion.div>
 
                 <motion.h1
                   variants={fadeUp}
-                  className="mt-8 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.25rem]"
+                  className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.25rem]"
                 >
                   Run browser automation with{" "}
                   <span className="text-cyan-400">reliability</span> and{" "}

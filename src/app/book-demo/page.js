@@ -1,4 +1,5 @@
 import BookDemoPage from "@/components/pages/book-demo-page"
+import { openGraphWithImage } from "@/lib/site-metadata"
 
 export const metadata = {
   title: "Book a Demo",
@@ -6,11 +7,11 @@ export const metadata = {
   alternates: {
     canonical: "https://chromie.dev/book-demo",
   },
-  openGraph: {
+  openGraph: openGraphWithImage({
     title: "Book a Demo | chromie.dev",
     description: "Get a personalized demo of chromie.dev. See how your team can build and deploy Chrome extensions for your product suite.",
     url: "https://chromie.dev/book-demo",
-  },
+  }),
 }
 
 export default function BookDemo() {

@@ -15,6 +15,7 @@ import { motion } from "framer-motion"
 import FeaturedCreationsSection from "@/components/ui/sections/featured-creations-section"
 import { HeroSocialProofBar } from "@/components/ui/hero-social-proof-bar"
 import { ProductHuntBadge } from "@/components/ui/product-hunt-badge"
+import { BackedByYCombinatorPill } from "@/components/ui/backed-by-y-combinator-pill"
 
 const CHROMIE_CHROME_WEB_STORE_URL =
   "https://chromewebstore.google.com/detail/chromiedev/bcnimmmbcdongfkkppoiiangempjmpap"
@@ -83,8 +84,9 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05, duration: 0.5 }}
-                  className="flex justify-center mb-5 sm:mb-6"
+                  className="mb-5 flex flex-col items-center gap-3 sm:mb-6"
                 >
+                  <BackedByYCombinatorPill />
                   <ProductHuntBadge />
                 </motion.div>
                 <motion.h1

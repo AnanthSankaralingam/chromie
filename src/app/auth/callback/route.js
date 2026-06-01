@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+function resolvePostAuthPath(pathname) {
+  if (pathname === '/' || pathname === '/dashboard' || pathname === '/automations') {
+    return pathname
+  }
+  return '/dashboard'
+}
 
 /**
  * Server-side auth callback - exchanges OAuth code for session and sets cookies.
@@ -30,12 +36,15 @@ export async function GET(request) {
 
     // Read redirect destination from cookie (set by modal-auth before OAuth redirect)
     const rawDest = cookieStore.get('auth_redirect_destination')?.value
-    const redirectDestination = rawDest ? decodeURIComponent(rawDest) : '/builder'
+    const redirectDestination = rawDest ? decodeURIComponent(rawDest) : '/dashboard'
     cookieStore.delete('auth_redirect_destination')
 
-    // Ensure we redirect to a path on our origin (security)
-    const destUrl = redirectDestination.startsWith('/') ? new URL(redirectDestination, request.url) : new URL('/builder', request.url)
-    return NextResponse.redirect(destUrl)
+    const destPath = redirectDestination.startsWith('/')
+      ? new URL(redirectDestination, request.url).pathname
+      : '/dashboard'
+    return NextResponse.redirect(
+      new URL(resolvePostAuthPath(destPath), request.url),
+    )
   }
 
   // No code - redirect to home

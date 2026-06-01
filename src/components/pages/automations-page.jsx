@@ -714,7 +714,11 @@ export default function AutomationsPage() {
           </>
         )}
       </main>
-      <AuthModal open={showAuth} onOpenChange={setShowAuth} />
+      <AuthModal
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        redirectUrl="/dashboard"
+      />
     </div>
   )
 }

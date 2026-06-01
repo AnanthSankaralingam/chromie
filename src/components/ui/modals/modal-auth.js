@@ -55,7 +55,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
     try {
       // Get the current origin for auth callback
       const currentOrigin = window.location.origin
-      const finalRedirect = redirectUrl || '/builder'
+      const finalRedirect = redirectUrl || '/dashboard'
       
       // Set up the OAuth redirect to go through our client-side auth callback page
       // Use a simple URL without query params to avoid Supabase redirect URL mismatch

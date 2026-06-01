@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import BuilderPage from '@/components/pages/builder-page'
+import { openGraphWithImage } from "@/lib/site-metadata"
 
 export const metadata = {
   title: "Extension Builder",
@@ -7,11 +8,11 @@ export const metadata = {
   alternates: {
     canonical: "https://chromie.dev/builder",
   },
-  openGraph: {
+  openGraph: openGraphWithImage({
     title: "Extension Builder | chromie.dev",
     description: "Build Chrome extensions in real time with AI. Describe, preview, and download your extension in seconds.",
     url: "https://chromie.dev/builder",
-  },
+  }),
 }
 
 function BuilderLoading() {
