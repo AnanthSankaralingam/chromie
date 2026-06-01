@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import { isAllowedPagePath } from '@/lib/allowed-routes'
 
 export async function middleware(request) {
   // Handle www redirect but preserve auth codes
@@ -51,11 +52,15 @@ export async function middleware(request) {
   )
 
   // This will refresh session if expired - required for Server Components
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   // Redirect old auth pages to home or builder
-  if (request.nextUrl.pathname.startsWith('/auth/signin') || 
+  if (request.nextUrl.pathname.startsWith('/auth/signin') ||
       request.nextUrl.pathname.startsWith('/auth/signup')) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (!isAllowedPagePath(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
@@ -64,13 +69,6 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
     '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

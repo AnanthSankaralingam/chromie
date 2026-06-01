@@ -1,4 +1,5 @@
 import GalleryPage from "@/components/pages/gallery-page"
+import { openGraphWithImage } from "@/lib/site-metadata"
 
 export const metadata = {
   title: "Gallery",
@@ -6,11 +7,11 @@ export const metadata = {
   alternates: {
     canonical: "https://chromie.dev/gallery",
   },
-  openGraph: {
+  openGraph: openGraphWithImage({
     title: "Gallery | chromie.dev",
     description: "Published Chrome extensions and demos built with chromie.dev.",
     url: "https://chromie.dev/gallery",
-  },
+  }),
 }
 
 export default function Gallery() {

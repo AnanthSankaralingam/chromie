@@ -9,6 +9,7 @@ import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
 import { ToastProvider, ToastViewport } from "@/components/ui/feedback/toast";
 import { Toaster } from "@/lib/hooks/use-toast";
 import PostHogProvider from "@/components/PostHogProvider";
+import { SITE_OG_IMAGE } from "@/lib/site-metadata";
 
 const inter = Inter({ subsets: ["latin"] });
 const instrumentSerif = Instrument_Serif({ 
@@ -39,13 +40,13 @@ export const metadata = {
     title: "chromie.dev — AI Chrome Extension Builder",
     description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
     url: "https://chromie.dev",
-    images: [{ url: "/chromie-logo-1.png" }],
+    images: [SITE_OG_IMAGE],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "chromie.dev — AI Chrome Extension Builder",
     description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
-    images: ["/chromie-logo-1.png"],
+    images: [SITE_OG_IMAGE.url],
   },
   verification: {
     google: 'nAEDWE-ZXwUBJzvqb0DlBWsdtOX5-2xbPODlfoadkPc',

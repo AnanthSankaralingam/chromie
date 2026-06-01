@@ -36,18 +36,6 @@ export default function AppBarDashboard() {
 
         <div className="flex items-center gap-5 sm:gap-6">
           <nav className="hidden items-center gap-5 md:flex" aria-label="Dashboard">
-            <Link
-              href="/dashboard"
-              className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/home"
-              className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
-            >
-              Builder
-            </Link>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
@@ -57,17 +45,15 @@ export default function AppBarDashboard() {
           </nav>
 
           {user ? (
-            <Link href="/profile" className="hidden sm:block">
-              <Avatar className="h-8 w-8 border border-white/15">
-                <AvatarImage
-                  src={user?.user_metadata?.picture}
-                  alt={user?.user_metadata?.name || user?.email}
-                />
-                <AvatarFallback className="bg-white text-xs font-semibold text-black">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
+            <Avatar className="hidden h-8 w-8 border border-white/15 sm:flex">
+              <AvatarImage
+                src={user?.user_metadata?.picture}
+                alt={user?.user_metadata?.name || user?.email}
+              />
+              <AvatarFallback className="bg-white text-xs font-semibold text-black">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
           ) : null}
 
           <button
@@ -84,22 +70,9 @@ export default function AppBarDashboard() {
       {mobileOpen && (
         <nav className="border-t border-white/10 px-4 py-4 md:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-3">
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileOpen(false)}
-              className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/home"
-              onClick={() => setMobileOpen(false)}
-              className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
-            >
-              Builder
-            </Link>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
+              onClick={() => setMobileOpen(false)}
               className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
             >
               Contact

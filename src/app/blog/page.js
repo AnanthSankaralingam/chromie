@@ -1,4 +1,5 @@
 import BlogPage from "@/components/pages/blog-page"
+import { openGraphWithImage } from "@/lib/site-metadata"
 
 export const metadata = {
   title: "Blog",
@@ -6,11 +7,11 @@ export const metadata = {
   alternates: {
     canonical: "https://chromie.dev/blog",
   },
-  openGraph: {
+  openGraph: openGraphWithImage({
     title: "Blog | chromie.dev",
     description: "Engineering updates, product launches, and tips for building Chrome extensions with AI.",
     url: "https://chromie.dev/blog",
-  },
+  }),
 }
 
 export default function Blog() {

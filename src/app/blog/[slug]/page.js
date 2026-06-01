@@ -1,5 +1,6 @@
 import BlogPostPage from "@/components/pages/blog-post-page"
 import blogPostsData from "@/lib/data/blog-posts.json"
+import { openGraphWithImage } from "@/lib/site-metadata"
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
@@ -18,14 +19,14 @@ export async function generateMetadata({ params }) {
     alternates: {
       canonical: `https://chromie.dev/blog/${post.slug}`,
     },
-    openGraph: {
+    openGraph: openGraphWithImage({
       title: post.title,
       description: post.excerpt,
       url: `https://chromie.dev/blog/${post.slug}`,
       type: "article",
       publishedTime: post.year ? `${post.year}-01-01` : undefined,
       tags: post.tags,
-    },
+    }),
   }
 }
 
