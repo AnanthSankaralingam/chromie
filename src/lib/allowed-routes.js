@@ -1,6 +1,7 @@
 /** Page routes that remain publicly reachable (everything else redirects to `/`). */
 export const ALLOWED_PAGE_PATHS = new Set([
   "/",
+  "/use-cases",
   "/dashboard",
   "/automations",
   "/landing",

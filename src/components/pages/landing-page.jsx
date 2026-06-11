@@ -30,29 +30,17 @@ import SelfHealingVisual from "@/components/ui/landing/self-healing-visual"
 import ExecutionReplayVisual from "@/components/ui/landing/execution-replay-visual"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
 import { BackedByYCombinatorPill } from "@/components/ui/backed-by-y-combinator-pill"
+import {
+  BASE_DEMO_VIDEO_ID,
+  DEMO_USE_CASES,
+  getDemoEmbedUrl,
+} from "@/lib/demo-use-cases"
 
-const BASE_DEMO_VIDEO_ID = "uI0MVyhb2xg"
-
-const USE_CASE_TABS = [
-  { id: "pharma", label: "Pharma", videoId: "VZ-VA4kEbMw" },
-  { id: "clinical-studies", label: "Clinical Studies", videoId: "DdcGoIdp2aY" },
-  { id: "healthcare", label: "Healthcare", videoId: "qxaJAN6aFAE" },
-  { id: "search-report", label: "Search & Report", videoId: "cmntcD5iwjg" },
-]
-
-function getDemoEmbedUrl(videoId, { autoplay = false, muted = false } = {}) {
-  const params = new URLSearchParams({
-    rel: "0",
-    modestbranding: "1",
-    playsinline: "1",
-    controls: "1",
-  })
-  if (autoplay) {
-    params.set("autoplay", "1")
-    if (muted) params.set("mute", "1")
-  }
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`
-}
+const USE_CASE_TABS = DEMO_USE_CASES.map(({ id, label, videoId }) => ({
+  id,
+  label,
+  videoId,
+}))
 
 const BLURB =
   "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
@@ -63,6 +51,7 @@ const CAL_URL = "https://cal.com/chromie"
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
   { href: "#benefits", label: "Benefits" },
+  { href: "/use-cases", label: "Use Cases" },
   { href: "#compare", label: "Compare" },
   { href: "#faq", label: "FAQs" },
 ]
@@ -288,7 +277,13 @@ function DemoBrowserMockup({ id = "hero" }) {
       <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 sm:px-5 sm:py-5">
         <p className="text-sm font-semibold text-white">Use Cases</p>
         <p className="mt-1 text-xs text-zinc-500">
-          Pick an industry to watch a tailored demo.
+          Pick an industry to watch a tailored demo.{" "}
+          <a
+            href="/use-cases"
+            className="text-cyan-400/90 underline underline-offset-2 transition-colors hover:text-cyan-300"
+          >
+            View all use cases
+          </a>
         </p>
         <div
           className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-0 sm:overflow-hidden sm:border sm:border-white/20"
