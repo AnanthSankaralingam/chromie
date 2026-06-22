@@ -3,6 +3,7 @@
  */
 
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda"
+import { requireWorkflowAwsCredentials } from "@/lib/workflow-aws-config"
 
 function lambdaClient() {
   const region = process.env.AWS_REGION || "us-east-1"
@@ -22,9 +23,12 @@ function lambdaClient() {
  * @param {{ automation_id?: string, scenario_id?: string, params?: object, dry_tools?: boolean }} payload
  */
 export async function invokeWorkflowLambda(payload) {
+  requireWorkflowAwsCredentials("Manual workflow runs")
   const name = process.env.WORKFLOW_LAMBDA_FUNCTION_NAME
   if (!name) {
-    throw new Error("WORKFLOW_LAMBDA_FUNCTION_NAME is not configured")
+    throw new Error(
+      "WORKFLOW_LAMBDA_FUNCTION_NAME is not configured in .env.local",
+    )
   }
 
   const client = lambdaClient()

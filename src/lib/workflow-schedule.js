@@ -9,6 +9,10 @@ import {
   DeleteScheduleCommand,
   GetScheduleCommand,
 } from "@aws-sdk/client-scheduler"
+import {
+  hasWorkflowAwsCredentials,
+  requireWorkflowAwsCredentials,
+} from "@/lib/workflow-aws-config"
 import { buildCronExpressions } from "@/lib/workflow-schedule-cron"
 
 function schedulerClient() {
@@ -53,6 +57,13 @@ function requireSchedulerEnv() {
  * @param {number} [maxIndex]
  */
 export async function deleteAutomationSchedules(automationId, maxIndex = MAX_EXTRA_SCHEDULE_SLOTS) {
+  if (!hasWorkflowAwsCredentials()) {
+    console.warn(
+      "[workflow-schedule] Skipping EventBridge schedule cleanup — AWS credentials not configured",
+    )
+    return
+  }
+
   const { groupName } = scheduleConfig()
   const client = schedulerClient()
 
@@ -87,6 +98,7 @@ export async function deleteAutomationSchedule(automationId, knownName) {
  * @returns {Promise<{ eventbridge_schedule_name: string | null }>}
  */
 export async function syncAutomationSchedule(automation) {
+  requireWorkflowAwsCredentials("Scheduled workflow runs")
   const { groupName } = scheduleConfig()
 
   if (automation.schedule_kind !== "cron" || !automation.cron_expression?.trim()) {
