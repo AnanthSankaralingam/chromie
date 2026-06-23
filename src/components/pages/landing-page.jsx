@@ -29,11 +29,11 @@ import AutomationPathsVisual from "@/components/ui/landing/automation-paths-visu
 import SelfHealingVisual from "@/components/ui/landing/self-healing-visual"
 import ExecutionReplayVisual from "@/components/ui/landing/execution-replay-visual"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
+import DemoVideoEmbed from "@/components/ui/landing/demo-video-embed"
 import { BackedByYCombinatorPill } from "@/components/ui/backed-by-y-combinator-pill"
 import {
   BASE_DEMO_VIDEO_ID,
   DEMO_USE_CASES,
-  getDemoEmbedUrl,
 } from "@/lib/demo-use-cases"
 
 const USE_CASE_TABS = DEMO_USE_CASES.map(({ id, label, videoId }) => ({
@@ -235,19 +235,27 @@ function SecondaryButton({ href, children, className = "" }) {
 function DemoBrowserMockup({ id = "hero" }) {
   const [activeTabId, setActiveTabId] = useState(null)
   const [playGeneration, setPlayGeneration] = useState(0)
-  const [audioUnlocked, setAudioUnlocked] = useState(false)
+  const [engaged, setEngaged] = useState(false)
   const activeTab = activeTabId
     ? USE_CASE_TABS.find((tab) => tab.id === activeTabId)
     : null
   const videoId = activeTab?.videoId ?? BASE_DEMO_VIDEO_ID
-  const shouldAutoplay = activeTabId === null || playGeneration > 0
-  const shouldMute = shouldAutoplay && !audioUnlocked
+  const videoTitle = activeTab
+    ? `chromie.dev ${activeTab.label} demo`
+    : "chromie.dev demo"
+
+  function engageDemo() {
+    setEngaged(true)
+    setPlayGeneration((generation) => generation + 1)
+    console.log("[landing] demo play:", videoId)
+  }
 
   function selectTab(tabId) {
-    setAudioUnlocked(true)
     const nextTabId = tabId === activeTabId ? null : tabId
     setActiveTabId(nextTabId)
+    setEngaged(true)
     setPlayGeneration((generation) => generation + 1)
+    console.log("[landing] demo tab:", nextTabId ?? "default")
   }
 
   return (
@@ -257,21 +265,12 @@ function DemoBrowserMockup({ id = "hero" }) {
         role="tabpanel"
         className="relative aspect-video w-full bg-black"
       >
-        <iframe
-          key={`${videoId}-${playGeneration}`}
-          title={
-            activeTab
-              ? `chromie.dev ${activeTab.label} demo`
-              : "chromie.dev demo"
-          }
-          src={getDemoEmbedUrl(videoId, {
-            autoplay: shouldAutoplay,
-            muted: shouldMute,
-          })}
-          className="absolute inset-0 h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
+        <DemoVideoEmbed
+          videoId={videoId}
+          title={videoTitle}
+          engaged={engaged}
+          playKey={playGeneration}
+          onEngage={engageDemo}
         />
       </div>
       <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 sm:px-5 sm:py-5">

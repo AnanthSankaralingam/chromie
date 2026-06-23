@@ -12,23 +12,22 @@ import {
   StaggerReveal,
 } from "@/components/ui/landing/landing-motion"
 import ConfidenceCtaSection from "@/components/ui/landing/confidence-cta-section"
-import { DEMO_USE_CASES, getDemoEmbedUrl } from "@/lib/demo-use-cases"
+import DemoVideoEmbed from "@/components/ui/landing/demo-video-embed"
+import { DEMO_USE_CASES } from "@/lib/demo-use-cases"
 
 const CAL_URL = "https://cal.com/chromie"
 const CONTACT_EMAIL = "founders@chromie.dev"
 
-function UseCaseVideo({ useCase, playGeneration }) {
+function UseCaseVideo({ useCase, playGeneration, engaged, onEngage }) {
   return (
     <div className="border border-white/10 bg-black">
       <div className="relative aspect-video w-full bg-black">
-        <iframe
-          key={`${useCase.videoId}-${playGeneration}`}
+        <DemoVideoEmbed
+          videoId={useCase.videoId}
           title={`chromie.dev ${useCase.title} demo`}
-          src={getDemoEmbedUrl(useCase.videoId, { autoplay: playGeneration > 0 })}
-          className="absolute inset-0 h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
+          engaged={engaged}
+          playKey={playGeneration}
+          onEngage={onEngage}
         />
       </div>
     </div>
@@ -63,11 +62,19 @@ function UseCaseDetail({ useCase }) {
 export default function UseCasesPage() {
   const [activeId, setActiveId] = useState(DEMO_USE_CASES[0]?.id ?? null)
   const [playGeneration, setPlayGeneration] = useState(0)
+  const [engaged, setEngaged] = useState(false)
   const activeUseCase = DEMO_USE_CASES.find((useCase) => useCase.id === activeId) ?? null
+
+  function engageDemo() {
+    setEngaged(true)
+    setPlayGeneration((generation) => generation + 1)
+    console.log("[use-cases] demo play:", activeId)
+  }
 
   function selectUseCase(id) {
     if (id === activeId) return
     setActiveId(id)
+    setEngaged(true)
     setPlayGeneration((generation) => generation + 1)
     console.log("[use-cases] selected demo:", id)
   }
@@ -167,7 +174,12 @@ export default function UseCasesPage() {
 
               {activeUseCase ? (
                 <Reveal className="space-y-0" delay={0.05}>
-                  <UseCaseVideo useCase={activeUseCase} playGeneration={playGeneration} />
+                  <UseCaseVideo
+                    useCase={activeUseCase}
+                    playGeneration={playGeneration}
+                    engaged={engaged}
+                    onEngage={engageDemo}
+                  />
                   <UseCaseDetail useCase={activeUseCase} />
                 </Reveal>
               ) : null}
