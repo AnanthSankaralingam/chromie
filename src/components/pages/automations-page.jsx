@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useSession } from "@/components/SessionProviderClient"
+import AutomationAuditSection from "@/components/automations/automation-audit-section"
 import AutomationParamFields from "@/components/automations/automation-param-fields"
 import AutomationScheduleFields, {
   scheduleStateFromAutomation,
@@ -25,9 +26,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/forms-and-input/input"
 import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import WorkflowSessionViewer from "@/components/ui/workflow-session-viewer"
+import { formatDuration } from "@/lib/workflow-audit"
 import {
   defaultParamsForScenario,
+  DEFAULT_WORKFLOW_SCENARIO_ID,
   WORKFLOW_SCENARIOS,
   ZILLOW_DEFAULT_FILTERS,
 } from "@/lib/workflow-automations"
@@ -42,14 +44,6 @@ function FilterField({ label, children }) {
   )
 }
 
-function formatDuration(ms) {
-  if (ms == null) return null
-  if (ms < 1000) return `${ms}ms`
-  const sec = Math.round(ms / 1000)
-  if (sec < 60) return `${sec}s`
-  return `${Math.floor(sec / 60)}m ${sec % 60}s`
-}
-
 function runFailureHint(run) {
   if (run.status === "cancelled") return null
   if (run.status !== "failed") return null
@@ -61,9 +55,6 @@ function runFailureHint(run) {
     parts.push(
       `Returned ${addrCount} result(s) (need ${minAddr}). Common causes: captcha, login wall, or incomplete extraction.`,
     )
-  }
-  if (run.browserbase_session_id || run.browserbase_debug_url) {
-    parts.push("Open the session replay below to see what the browser did.")
   }
   return parts.join(" ")
 }
@@ -77,19 +68,20 @@ export default function AutomationsPage() {
   const [running, setRunning] = useState(false)
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [createScenarioId, setCreateScenarioId] = useState("zillow_listing_alert")
+  const [createScenarioId, setCreateScenarioId] = useState(DEFAULT_WORKFLOW_SCENARIO_ID)
   const [createName, setCreateName] = useState("")
   const [draftParams, setDraftParams] = useState(() =>
-    defaultParamsForScenario("zillow_listing_alert", ""),
+    defaultParamsForScenario(DEFAULT_WORKFLOW_SCENARIO_ID, ""),
   )
   const [editParams, setEditParams] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
   const [viewingRunId, setViewingRunId] = useState(null)
-  const [pollingRuns, setPollingRuns] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [createSchedule, setCreateSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [deletingId, setDeletingId] = useState(null)
+  const [refreshingRuns, setRefreshingRuns] = useState(false)
+  const auditRef = useRef(null)
 
   const loadAutomations = useCallback(async () => {
     const res = await fetch("/api/automations")
@@ -113,6 +105,16 @@ export default function AutomationsPage() {
     setRuns(next)
     return next
   }, [])
+
+  const refreshProgress = useCallback(
+    async (automationId = selectedId) => {
+      await Promise.all([
+        automationId ? loadRuns(automationId) : Promise.resolve(),
+        auditRef.current?.refresh?.(),
+      ])
+    },
+    [selectedId, loadRuns],
+  )
 
   useEffect(() => {
     if (!user) {
@@ -150,27 +152,6 @@ export default function AutomationsPage() {
 
   const hasRunningRun = runs.some((r) => r.status === "running")
   const activeRun = runs.find((r) => r.status === "running")
-  const viewingRun = runs.find((r) => r.id === viewingRunId)
-
-  useEffect(() => {
-    if (!hasRunningRun && !pollingRuns) return
-    if (!selectedId) return
-    const interval = setInterval(() => loadRuns(selectedId), 2500)
-    return () => clearInterval(interval)
-  }, [hasRunningRun, pollingRuns, selectedId, loadRuns])
-
-  useEffect(() => {
-    if (!hasRunningRun) setPollingRuns(false)
-  }, [hasRunningRun])
-
-  useEffect(() => {
-    if (!viewingRunId && runs.length) {
-      const active =
-        runs.find((r) => r.status === "running") ||
-        (runs[0]?.browserbase_session_id ? runs[0] : null)
-      if (active) setViewingRunId(active.id)
-    }
-  }, [runs, viewingRunId])
 
   function updateDraftFilter(key, value) {
     setDraftParams((prev) => ({
@@ -304,18 +285,33 @@ export default function AutomationsPage() {
   async function runNow() {
     if (!selectedId) return
     setRunning(true)
-    setPollingRuns(true)
-    setViewingRunId(null)
     try {
       await fetch(`/api/automations/${selectedId}/run`, { method: "POST" })
-      const next = await loadRuns(selectedId)
-      if (next[0]?.id) setViewingRunId(next[0].id)
+      await refreshProgress(selectedId)
     } finally {
       setRunning(false)
     }
   }
 
+  async function refreshRuns() {
+    if (!selectedId) return
+    setRefreshingRuns(true)
+    try {
+      await refreshProgress(selectedId)
+    } finally {
+      setRefreshingRuns(false)
+    }
+  }
+
   function selectRun(run) {
+    setViewingRunId(run.id)
+  }
+
+  function selectAuditRun(run) {
+    if (run.automation_id) {
+      setSelectedId(run.automation_id)
+      loadRuns(run.automation_id)
+    }
     setViewingRunId(run.id)
   }
 
@@ -333,7 +329,7 @@ export default function AutomationsPage() {
         return
       }
       await loadRuns(selectedId)
-      setPollingRuns(false)
+      await auditRef.current?.refresh?.()
     } finally {
       setStopping(false)
     }
@@ -495,23 +491,6 @@ export default function AutomationsPage() {
               </CardContent>
             </Card>
 
-            {viewingRun && selectedId && (
-              <Card className={`mt-8 ${CARD_CLASS}`}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-bold text-white">
-                    {viewingRun.status === "running" ? "Live session" : "Session recording"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WorkflowSessionViewer
-                    automationId={selectedId}
-                    runId={viewingRun.id}
-                    runStatus={viewingRun.status}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
             <div className="mt-8 grid gap-px bg-white/10 md:grid-cols-2">
               <Card className={`${CARD_CLASS} md:border-r-0`}>
                 <CardHeader className="border-b border-white/10 pb-4">
@@ -564,11 +543,11 @@ export default function AutomationsPage() {
                       size="sm"
                       variant="outline"
                       className={BTN_OUTLINE}
-                      disabled={!selectedId}
-                      onClick={() => loadRuns(selectedId)}
+                      disabled={!selectedId || refreshingRuns}
+                      onClick={refreshRuns}
                       aria-label="Refresh runs"
                     >
-                      <RefreshCw className="h-3 w-3" />
+                      <RefreshCw className={`h-3 w-3 ${refreshingRuns ? "animate-spin" : ""}`} />
                     </Button>
                     {hasRunningRun && activeRun && (
                       <Button
@@ -691,11 +670,6 @@ export default function AutomationsPage() {
                           )}
                         </span>
                       </div>
-                      {(r.browserbase_debug_url || r.browserbase_session_id) && (
-                        <span className={`mt-1 inline-block text-xs ${ACCENT}`}>
-                          {viewingRunId === r.id ? "Viewing session" : "View session replay"}
-                        </span>
-                      )}
                       {r.error_message && (
                         <p className="text-xs text-red-300/90 mt-1.5 font-medium">
                           {r.error_message}
@@ -711,6 +685,15 @@ export default function AutomationsPage() {
                 </CardContent>
               </Card>
             </div>
+
+            <AutomationAuditSection
+              ref={auditRef}
+              user={user}
+              selectedAutomationId={selectedId}
+              selectedRunId={viewingRunId}
+              onSelectRun={selectAuditRun}
+              onRefresh={refreshProgress}
+            />
           </>
         )}
       </main>
