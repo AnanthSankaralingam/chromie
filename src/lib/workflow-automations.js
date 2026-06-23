@@ -3,16 +3,18 @@
 /** @type {WorkflowScenarioMeta[]} */
 export const WORKFLOW_SCENARIOS = [
   {
-    id: "zillow_listing_alert",
-    label: "Zillow listing alert",
-    description: "Search Zillow and email matching listings.",
-  },
-  {
     id: "morphworks_sam_gov",
     label: "SAM.gov opportunities (MorphWorks)",
     description: "Batch keyword searches on SAM.gov and email ICP matches.",
   },
+  {
+    id: "zillow_listing_alert",
+    label: "Zillow listing alert",
+    description: "Search Zillow and email matching listings.",
+  },
 ]
+
+export const DEFAULT_WORKFLOW_SCENARIO_ID = "morphworks_sam_gov"
 
 export const EMAIL_DELIVERY_SCENARIO_IDS = new Set([
   "zillow_listing_alert",
@@ -42,6 +44,8 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
       ],
       recipient_email: userEmail,
       email_subject: "SAM.gov IT opportunities — MorphWorks ICP",
+      corporate_overview_path: "scenarios/morphworks_sam_gov/corporate_overview.txt",
+      max_email_opportunities: 3,
       min_opportunities: 3,
       max_keyword_searches: 4,
       max_pages_per_keyword: 3,

@@ -7,6 +7,7 @@ import {
 import {
   EMAIL_DELIVERY_SCENARIO_IDS,
   defaultParamsForScenario,
+  DEFAULT_WORKFLOW_SCENARIO_ID,
 } from "@/lib/workflow-automations"
 
 export const GET = withAuth(async ({ supabase, user }) => {
@@ -24,7 +25,7 @@ export const GET = withAuth(async ({ supabase, user }) => {
 
 export const POST = withAuth(async ({ request, supabase, user }) => {
   const body = await request.json()
-  const scenario_id = body.scenario_id || "zillow_listing_alert"
+  const scenario_id = body.scenario_id || DEFAULT_WORKFLOW_SCENARIO_ID
   const name = (body.name || "Workflow automation").trim()
   const params =
     body.params || defaultParamsForScenario(scenario_id, user.email || "")

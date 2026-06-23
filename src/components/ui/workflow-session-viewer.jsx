@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
  * - running → Live View URL from API (iframe)
  * - finished → HLS replay proxied through Chromie (video + hls.js)
  */
-export default function WorkflowSessionViewer({ automationId, runId, runStatus }) {
+export default function WorkflowSessionViewer({ automationId, runId, runStatus, poll = true }) {
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
   const [mode, setMode] = useState(null)
@@ -50,9 +50,10 @@ export default function WorkflowSessionViewer({ automationId, runId, runStatus }
 
   useEffect(() => {
     loadSessionView()
+    if (!poll) return
     const interval = setInterval(loadSessionView, 3000)
     return () => clearInterval(interval)
-  }, [loadSessionView])
+  }, [loadSessionView, poll])
 
   useEffect(() => {
     if (mode !== "replay" || !playlistUrl || !videoRef.current) return
