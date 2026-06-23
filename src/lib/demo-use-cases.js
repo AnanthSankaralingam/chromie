@@ -63,6 +63,10 @@ export const DEMO_USE_CASES = [
   },
 ]
 
+export function getDemoThumbnailUrl(videoId) {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+}
+
 export function getDemoEmbedUrl(videoId, { autoplay = false, muted = false } = {}) {
   const params = new URLSearchParams({
     rel: "0",
