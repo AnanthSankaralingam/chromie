@@ -123,6 +123,8 @@ Workflow tool registry used by the production automation runner to locate scenar
 | GitHub source | `github_repo`, `github_path`, `github_ref`, `bundle_paths`. |
 | Timestamps | `created_at`, `updated_at`. |
 
+Gov dual monitor (`gov_dual_source`) needs rows for both `morphworks_sam_gov` and `morphworks_sbir_tech_marketplace`, each pinned to a `github_ref` that includes SBIR scenario support (use `main`). Seed/migrate with `sql/chromie_tools_sbir.sql`.
+
 ### Billing And Account Tables
 
 These are retained for account/subscription infrastructure:

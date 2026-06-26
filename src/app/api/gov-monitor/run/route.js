@@ -102,10 +102,23 @@ export const POST = withAuth(async ({ supabase, user }) => {
       )
     }
 
+    if (!sbirAutomation) {
+      return NextResponse.json(
+        {
+          error:
+            ensureFailures.find(
+              (failure) => failure.scenario_id === "morphworks_sbir_tech_marketplace",
+            )?.error || "Failed to initialize the SBIR Tech Marketplace monitor automation",
+          ensureFailures,
+        },
+        { status: 500 },
+      )
+    }
+
     const result = await invokeWorkflowLambda({
       automation_id: samAutomation.id,
       gov_dual_source: true,
-      sbir_automation_id: sbirAutomation?.id || undefined,
+      sbir_automation_id: sbirAutomation.id,
     })
 
     return NextResponse.json({
@@ -116,7 +129,7 @@ export const POST = withAuth(async ({ supabase, user }) => {
         automation_id: samAutomation.id,
         scenario_id: samAutomation.scenario_id,
         gov_dual_source: true,
-        sbir_automation_id: sbirAutomation?.id || null,
+        sbir_automation_id: sbirAutomation.id,
         ...result,
       },
       message:
