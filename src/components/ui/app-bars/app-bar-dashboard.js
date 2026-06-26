@@ -76,6 +76,13 @@ export default function AppBarDashboard({ showOpportunities = true }) {
                   Company profile
                 </Link>
               </>
+            ) : user ? (
+              <Link
+                href="/gov/onboarding"
+                className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+              >
+                Set up gov profile
+              </Link>
             ) : null}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -132,6 +139,14 @@ export default function AppBarDashboard({ showOpportunities = true }) {
                   Company profile
                 </Link>
               </>
+            ) : user ? (
+              <Link
+                href="/gov/onboarding"
+                onClick={() => setMobileOpen(false)}
+                className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+              >
+                Set up gov profile
+              </Link>
             ) : null}
             <a
               href={`mailto:${CONTACT_EMAIL}`}

@@ -258,10 +258,11 @@ export default function GovPage() {
         <main className="mx-auto max-w-lg px-4 py-20 text-center">
           <h1 className="text-xl font-bold">Government opportunities unavailable</h1>
           <p className="mt-3 text-sm text-zinc-400">
-            Your account is not linked to a gov contractor profile. Contact Chromie to get access.
+            Your account is not linked to a government contractor profile yet. Set up your company
+            profile to start finding opportunities.
           </p>
-          <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={() => router.push("/dashboard")}>
-            Back to dashboard
+          <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={() => router.push("/gov/onboarding")}>
+            Set up company profile
           </Button>
         </main>
       </div>
