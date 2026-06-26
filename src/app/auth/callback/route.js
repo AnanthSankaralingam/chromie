@@ -1,20 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-function resolvePostAuthPath(pathname) {
-  if (
-    pathname === '/' ||
-    pathname === '/dashboard' ||
-    pathname === '/automations' ||
-    pathname === '/gov' ||
-    pathname === '/gov/dashboard' ||
-    pathname === '/gov/onboarding' ||
-    pathname === '/profile'
-  ) {
-    return pathname
-  }
-  return '/dashboard'
-}
+import { createClient } from "@/lib/supabase/server"
+import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
+import {
+  isExplicitPostAuthPath,
+  LEGACY_HOME_PATHS,
+  resolveGovHomePath,
+} from "@/lib/gov-auth-redirect"
 
 /**
  * Server-side auth callback - exchanges OAuth code for session and sets cookies.
@@ -23,11 +14,11 @@ function resolvePostAuthPath(pathname) {
  */
 export async function GET(request) {
   const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const error = requestUrl.searchParams.get('error')
+  const code = requestUrl.searchParams.get("code")
+  const error = requestUrl.searchParams.get("error")
 
   if (error) {
-    console.error('AuthCallback route: OAuth error:', error)
+    console.error("AuthCallback route: OAuth error:", error)
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error)}`, request.url))
   }
 
@@ -38,23 +29,38 @@ export async function GET(request) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
-      console.error('AuthCallback route: exchangeCodeForSession error:', exchangeError)
-      return NextResponse.redirect(new URL('/?error=auth_exchange_failed', request.url))
+      console.error("AuthCallback route: exchangeCodeForSession error:", exchangeError)
+      return NextResponse.redirect(new URL("/?error=auth_exchange_failed", request.url))
     }
 
-    // Read redirect destination from cookie (set by modal-auth before OAuth redirect)
-    const rawDest = cookieStore.get('auth_redirect_destination')?.value
-    const redirectDestination = rawDest ? decodeURIComponent(rawDest) : '/dashboard'
-    cookieStore.delete('auth_redirect_destination')
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    const destPath = redirectDestination.startsWith('/')
-      ? new URL(redirectDestination, request.url).pathname
-      : '/dashboard'
-    return NextResponse.redirect(
-      new URL(resolvePostAuthPath(destPath), request.url),
-    )
+    const rawDest = cookieStore.get("auth_redirect_destination")?.value
+    cookieStore.delete("auth_redirect_destination")
+
+    if (user && rawDest) {
+      const redirectDestination = decodeURIComponent(rawDest)
+      if (redirectDestination.startsWith("/")) {
+        const destUrl = new URL(redirectDestination, request.url)
+        if (isExplicitPostAuthPath(destUrl.pathname)) {
+          return NextResponse.redirect(destUrl)
+        }
+        if (LEGACY_HOME_PATHS.has(destUrl.pathname)) {
+          const home = await resolveGovHomePath(supabase, user.id)
+          return NextResponse.redirect(new URL(home, request.url))
+        }
+      }
+    }
+
+    if (user) {
+      const home = await resolveGovHomePath(supabase, user.id)
+      return NextResponse.redirect(new URL(home, request.url))
+    }
+
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
-  // No code - redirect to home
-  return NextResponse.redirect(new URL('/', request.url))
+  return NextResponse.redirect(new URL("/", request.url))
 }

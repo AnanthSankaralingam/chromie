@@ -23,11 +23,11 @@ export default function AppBar() {
     return 'U'
   }
 
-  // Handle "Get Started" - directly trigger Google OAuth, redirect to the dashboard.
+  // Handle "Get Started" - OAuth then auth callback resolves gov home from profile state.
   const handleGetStarted = async () => {
     const currentOrigin = window.location.origin
-    document.cookie = `auth_redirect_destination=${encodeURIComponent('/dashboard')}; path=/; max-age=300; samesite=lax`
-    sessionStorage.setItem('auth_redirect_destination', '/dashboard')
+    document.cookie = "auth_redirect_destination=; path=/; max-age=0; samesite=lax"
+    sessionStorage.removeItem("auth_redirect_destination")
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

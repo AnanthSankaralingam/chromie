@@ -250,7 +250,7 @@ export default function AutomationsPage() {
       const scenario = WORKFLOW_SCENARIOS.find((s) => s.id === createScenarioId)
       const defaultName =
         createScenarioId === GOV_MATCH_SCENARIO_ID
-          ? `SAM.gov — ${draftParams.customer_name || "MorphWorks"}`
+          ? "Contract opportunity search"
           : `Zillow — ${draftParams.filters?.city || "search"}`
       const res = await fetch("/api/automations", {
         method: "POST",
@@ -688,11 +688,7 @@ export default function AutomationsPage() {
           </>
         )}
       </main>
-      <AuthModal
-        isOpen={showAuth}
-        onClose={() => setShowAuth(false)}
-        redirectUrl="/dashboard"
-      />
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </div>
   )
 }
