@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import Link from "next/link"
 import { useSession } from "@/components/SessionProviderClient"
 import AutomationAuditSection from "@/components/automations/automation-audit-section"
 import AutomationParamFields from "@/components/automations/automation-param-fields"
@@ -82,7 +81,9 @@ export default function AutomationsPage() {
   const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [deletingId, setDeletingId] = useState(null)
   const [refreshingRuns, setRefreshingRuns] = useState(false)
-  const [govProfileLinked, setGovProfileLinked] = useState(false)
+  const [govProfile, setGovProfile] = useState(null)
+  const [govProfileLoading, setGovProfileLoading] = useState(false)
+  const [govProfileError, setGovProfileError] = useState("")
   const auditRef = useRef(null)
 
   const loadAutomations = useCallback(async () => {
@@ -97,6 +98,32 @@ export default function AutomationsPage() {
       setSelectedId(json.automations[0].id)
     }
   }, [selectedId])
+
+  const loadGovProfile = useCallback(async () => {
+    setGovProfileLoading(true)
+    setGovProfileError("")
+    try {
+      const res = await fetch("/api/gov-profile")
+      if (res.status === 401) {
+        setShowAuth(true)
+        return
+      }
+      if (res.status === 403) {
+        setGovProfile(null)
+        setGovProfileError("No gov company profile is linked to this account.")
+        return
+      }
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setGovProfile(null)
+        setGovProfileError(json.error || "Unable to load company profile.")
+        return
+      }
+      setGovProfile(json.gov_profile || null)
+    } finally {
+      setGovProfileLoading(false)
+    }
+  }, [])
 
   const loadRuns = useCallback(async (id) => {
     if (!id) return []
@@ -123,8 +150,8 @@ export default function AutomationsPage() {
       setLoading(false)
       return
     }
-    loadAutomations().finally(() => setLoading(false))
-  }, [user, loadAutomations])
+    Promise.all([loadAutomations(), loadGovProfile()]).finally(() => setLoading(false))
+  }, [user, loadAutomations, loadGovProfile])
 
   useEffect(() => {
     if (selectedId) loadRuns(selectedId)
@@ -146,7 +173,6 @@ export default function AutomationsPage() {
       if (!res.ok || cancelled) return
       const json = await res.json()
       if (cancelled) return
-      setGovProfileLinked(Boolean(json.gov_profile_id))
       if (json.params) {
         setDraftParams(json.params)
       }
@@ -355,6 +381,13 @@ export default function AutomationsPage() {
 
   const draftFilters = draftParams.filters || ZILLOW_DEFAULT_FILTERS
   const editFilters = editParams?.filters || {}
+  const govProfileOverview = String(govProfile?.corporate_overview || "").trim()
+  const govProfileKeywords = Array.isArray(govProfile?.search_keywords)
+    ? govProfile.search_keywords.filter(Boolean)
+    : []
+  const govProfileNaics = Array.isArray(govProfile?.naics_codes)
+    ? govProfile.naics_codes.filter(Boolean)
+    : []
 
   return (
     <div className={APP_PAGE}>
@@ -380,6 +413,55 @@ export default function AutomationsPage() {
 
         {user && (
           <>
+            <Card className={`mt-8 ${CARD_CLASS}`}>
+              <CardHeader className="border-b border-white/10 pb-4">
+                <CardTitle className="text-base font-bold text-white">
+                  Company profile used for SAM.gov matching
+                </CardTitle>
+                <CardDescription className="text-zinc-400">
+                  Loaded from your linked gov profile before the workflow Lambda runs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                {govProfileLoading && (
+                  <p className="text-sm text-zinc-500">Loading company profile…</p>
+                )}
+                {!govProfileLoading && govProfileError && (
+                  <p className="text-sm text-amber-300">{govProfileError}</p>
+                )}
+                {!govProfileLoading && !govProfileError && govProfile && (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
+                        <p className={LABEL_CLASS}>Company</p>
+                        <p className="mt-1 text-sm font-medium text-zinc-100">
+                          {govProfile.name || "Unnamed profile"}
+                        </p>
+                      </div>
+                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
+                        <p className={LABEL_CLASS}>Keywords</p>
+                        <p className="mt-1 text-sm text-zinc-300">
+                          {govProfileKeywords.length ? govProfileKeywords.join(", ") : "None"}
+                        </p>
+                      </div>
+                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
+                        <p className={LABEL_CLASS}>NAICS</p>
+                        <p className="mt-1 text-sm text-zinc-300">
+                          {govProfileNaics.length ? govProfileNaics.join(", ") : "None"}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLASS}>Corporate overview passed to matching LLM</p>
+                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap border border-white/10 bg-[#050505] p-3 text-xs leading-relaxed text-zinc-300">
+                        {govProfileOverview || "No corporate overview saved."}
+                      </pre>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className={`mt-8 ${CARD_CLASS}`}>
               <CardHeader className="border-b border-white/10 pb-4">
                 <CardTitle className="text-base font-bold text-white">Configure automation</CardTitle>
@@ -411,11 +493,13 @@ export default function AutomationsPage() {
                   />
                 </FilterField>
 
-                <AutomationParamFields
-                  scenarioId={createScenarioId}
-                  params={draftParams}
-                  onParamsChange={setDraftParams}
-                />
+                {createScenarioId !== "morphworks_sam_gov" && (
+                  <AutomationParamFields
+                    scenarioId={createScenarioId}
+                    params={draftParams}
+                    onParamsChange={setDraftParams}
+                  />
+                )}
 
                 {createScenarioId === "zillow_listing_alert" && (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -462,35 +546,6 @@ export default function AutomationsPage() {
                       />
                     </FilterField>
                   </div>
-                )}
-
-                {createScenarioId === "morphworks_sam_gov" && govProfileLinked && (
-                  <p className="text-sm text-zinc-400">
-                    Search keywords come from your{" "}
-                    <Link href="/profile" className={`${ACCENT} underline underline-offset-2`}>
-                      company profile
-                    </Link>
-                    .
-                  </p>
-                )}
-
-                {createScenarioId === "morphworks_sam_gov" && !govProfileLinked && (
-                  <FilterField label="Search keywords (one per line)">
-                    <textarea
-                      rows={5}
-                      value={(draftParams.search_keywords || []).join("\n")}
-                      onChange={(e) =>
-                        setDraftParams((prev) => ({
-                          ...prev,
-                          search_keywords: e.target.value
-                            .split("\n")
-                            .map((s) => s.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                      className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
-                    />
-                  </FilterField>
                 )}
 
                 <AutomationScheduleFields
@@ -604,44 +659,19 @@ export default function AutomationsPage() {
                   {selected && editParams && (
                     <div className={`space-y-4 border-b pb-4 ${DIVIDER}`}>
                       <p className={SECTION_LABEL}>Edit automation</p>
-                      <AutomationParamFields
-                        scenarioId={selected.scenario_id}
-                        params={editParams}
-                        onParamsChange={setEditParams}
-                      />
+                      {selected.scenario_id !== "morphworks_sam_gov" && (
+                        <AutomationParamFields
+                          scenarioId={selected.scenario_id}
+                          params={editParams}
+                          onParamsChange={setEditParams}
+                        />
+                      )}
                       {selected.scenario_id === "zillow_listing_alert" && (
                         <FilterField label="City">
                           <Input
                             value={editFilters.city || ""}
                             onChange={(e) => updateEditFilter("city", e.target.value)}
                             className={INPUT_CLASS}
-                          />
-                        </FilterField>
-                      )}
-                      {selected.scenario_id === "morphworks_sam_gov" && govProfileLinked && (
-                        <p className="text-xs text-zinc-500">
-                          Keywords managed on{" "}
-                          <Link href="/profile" className={`${ACCENT} underline underline-offset-2`}>
-                            company profile
-                          </Link>
-                          .
-                        </p>
-                      )}
-                      {selected.scenario_id === "morphworks_sam_gov" && !govProfileLinked && (
-                        <FilterField label="Search keywords">
-                          <textarea
-                            rows={4}
-                            value={(editParams.search_keywords || []).join("\n")}
-                            onChange={(e) =>
-                              setEditParams((prev) => ({
-                                ...prev,
-                                search_keywords: e.target.value
-                                  .split("\n")
-                                  .map((s) => s.trim())
-                                  .filter(Boolean),
-                              }))
-                            }
-                            className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
                           />
                         </FilterField>
                       )}
