@@ -5,6 +5,7 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/dashboard",
   "/automations",
   "/landing",
+  "/profile",
 ])
 
 /** Auth flows required for dashboard sign-in and the Chrome extension. */

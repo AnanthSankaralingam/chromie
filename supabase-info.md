@@ -20,8 +20,43 @@ Tracks user info (linked to Supabase Auth).
 | `welcome_email_sent_at`| timestamptz | NULL, when welcome email was sent              |
 | `email_campaign_stage`| integer     | NOT NULL, DEFAULT 1; campaign progression (`0`=unsubscribed/suppressed, `1+`=active sequence step for new signups and beyond; increment per campaign step) |
 | `email_campaign_updated_at`| timestamptz | NOT NULL, DEFAULT now(); when `email_campaign_stage` was last updated |
+| `gov_profile_id`    | uuid         | NULL, FK → `gov_profiles.id`, ON DELETE SET NULL; links user to shared gov contractor profile |
 | `created_at`        | timestamptz  | DEFAULT now()                                  |
 | `last_used_at`      | timestamptz  | DEFAULT now()                                  |
+
+---
+
+### 1a. `gov_profiles`
+Shared company profile for gov contracting customers (ICP + SAM.gov search config + past RFPs). Multiple users link via `profiles.gov_profile_id`.
+
+| Column                  | Type         | Details                                                                 |
+|-------------------------|--------------|-------------------------------------------------------------------------|
+| `id`                    | uuid         | PK, DEFAULT gen_random_uuid()                                           |
+| `name`                  | text         | NOT NULL; company name (e.g. MorphWorks)                                |
+| `search_keywords`       | text[]       | NOT NULL, DEFAULT `{}`; SAM.gov batch search keywords                   |
+| `naics_codes`           | text[]       | NOT NULL, DEFAULT `{}`; NAICS codes                                     |
+| `keyword_search_mode`   | text         | NOT NULL, DEFAULT `ANY`; `ALL` \| `ANY` \| `EXACT`                      |
+| `corporate_overview`    | text         | NULL; company context for future matching                               |
+| `past_rfps`             | jsonb        | NOT NULL, DEFAULT `[]`; PDF metadata: `{ id, filename, storage_path, size_bytes, uploaded_at }` (files in Storage bucket `gov-profile-rfps`) |
+| `created_at`            | timestamptz  | NOT NULL, DEFAULT now()                                                 |
+| `updated_at`            | timestamptz  | NOT NULL, DEFAULT now()                                                 |
+
+Apply migration: `sql/create_gov_profiles.sql`
+
+Storage bucket for past RFP PDFs: `sql/gov_profile_rfp_storage.sql`
+
+If you applied an earlier version with extra columns, run: `sql/alter_gov_profiles_simplify.sql`
+
+Link a user to MorphWorks (after seed):
+```sql
+update public.profiles
+set gov_profile_id = (select id from public.gov_profiles where name = 'MorphWorks' limit 1)
+where email = 'user@example.com';
+```
+
+RLS policies:
+- Linked users can SELECT and UPDATE their org row (where `profiles.gov_profile_id = gov_profiles.id`).
+- INSERT/DELETE restricted to service role (admin seeding).
 
 ---
 
@@ -441,6 +476,12 @@ RLS policies:
 - Users can SELECT, UPDATE, DELETE only their own row (where `id = auth.uid()`).
 - Users can INSERT their own row (optional; often managed by backend).
 - `project_count` is automatically maintained by database triggers.
+- `gov_profile_id` is set manually in Supabase (links user to shared gov contractor profile).
+
+### 1a. `gov_profiles`
+
+- Linked users can SELECT and UPDATE only the row referenced by their `profiles.gov_profile_id`.
+- No user INSERT/DELETE (admin/service role only).
 
 ### 2. `projects`
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { useSession } from "@/components/SessionProviderClient"
 import AutomationAuditSection from "@/components/automations/automation-audit-section"
 import AutomationParamFields from "@/components/automations/automation-param-fields"
@@ -81,6 +82,7 @@ export default function AutomationsPage() {
   const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [deletingId, setDeletingId] = useState(null)
   const [refreshingRuns, setRefreshingRuns] = useState(false)
+  const [govProfileLinked, setGovProfileLinked] = useState(false)
   const auditRef = useRef(null)
 
   const loadAutomations = useCallback(async () => {
@@ -136,7 +138,23 @@ export default function AutomationsPage() {
   }, [user?.email])
 
   useEffect(() => {
-    setDraftParams(defaultParamsForScenario(createScenarioId, user?.email || ""))
+    let cancelled = false
+    async function loadDefaults() {
+      const res = await fetch(
+        `/api/automations/defaults?scenario_id=${encodeURIComponent(createScenarioId)}`,
+      )
+      if (!res.ok || cancelled) return
+      const json = await res.json()
+      if (cancelled) return
+      setGovProfileLinked(Boolean(json.gov_profile_id))
+      if (json.params) {
+        setDraftParams(json.params)
+      }
+    }
+    loadDefaults()
+    return () => {
+      cancelled = true
+    }
   }, [createScenarioId, user?.email])
 
   const selected = automations.find((a) => a.id === selectedId)
@@ -232,7 +250,7 @@ export default function AutomationsPage() {
       const scenario = WORKFLOW_SCENARIOS.find((s) => s.id === createScenarioId)
       const defaultName =
         createScenarioId === "morphworks_sam_gov"
-          ? "SAM.gov — MorphWorks"
+          ? `SAM.gov — ${draftParams.customer_name || "MorphWorks"}`
           : `Zillow — ${draftParams.filters?.city || "search"}`
       const res = await fetch("/api/automations", {
         method: "POST",
@@ -446,7 +464,17 @@ export default function AutomationsPage() {
                   </div>
                 )}
 
-                {createScenarioId === "morphworks_sam_gov" && (
+                {createScenarioId === "morphworks_sam_gov" && govProfileLinked && (
+                  <p className="text-sm text-zinc-400">
+                    Search keywords come from your{" "}
+                    <Link href="/profile" className={`${ACCENT} underline underline-offset-2`}>
+                      company profile
+                    </Link>
+                    .
+                  </p>
+                )}
+
+                {createScenarioId === "morphworks_sam_gov" && !govProfileLinked && (
                   <FilterField label="Search keywords (one per line)">
                     <textarea
                       rows={5}
@@ -590,7 +618,16 @@ export default function AutomationsPage() {
                           />
                         </FilterField>
                       )}
-                      {selected.scenario_id === "morphworks_sam_gov" && (
+                      {selected.scenario_id === "morphworks_sam_gov" && govProfileLinked && (
+                        <p className="text-xs text-zinc-500">
+                          Keywords managed on{" "}
+                          <Link href="/profile" className={`${ACCENT} underline underline-offset-2`}>
+                            company profile
+                          </Link>
+                          .
+                        </p>
+                      )}
+                      {selected.scenario_id === "morphworks_sam_gov" && !govProfileLinked && (
                         <FilterField label="Search keywords">
                           <textarea
                             rows={4}
