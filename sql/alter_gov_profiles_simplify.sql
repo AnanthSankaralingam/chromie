@@ -7,3 +7,4 @@ alter table public.gov_profiles drop column if exists email_subject;
 alter table public.gov_profiles drop column if exists min_opportunities;
 alter table public.gov_profiles drop column if exists max_keyword_searches;
 alter table public.gov_profiles drop column if exists max_pages_per_keyword;
+alter table public.gov_profiles drop column if exists keyword_search_mode;

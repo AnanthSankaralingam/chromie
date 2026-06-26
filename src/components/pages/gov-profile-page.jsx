@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
 import { normalizePastRfpPdfs } from "@/lib/gov-profiles"
@@ -35,6 +36,44 @@ function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function userInitials(user) {
+  const fromName = user?.user_metadata?.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+  return fromName || user?.email?.[0]?.toUpperCase() || "U"
+}
+
+function UserProfileSection({ user }) {
+  const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name
+
+  return (
+    <Card className={CARD_CLASS}>
+      <CardContent className="flex items-center gap-4 px-4 py-4">
+        <Avatar className="h-11 w-11 border border-white/15">
+          <AvatarImage
+            src={user?.user_metadata?.picture}
+            alt={displayName || user?.email}
+          />
+          <AvatarFallback className="bg-white text-sm font-semibold text-black">
+            {userInitials(user)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          {displayName ? (
+            <p className="truncate font-medium text-white">{displayName}</p>
+          ) : null}
+          <p className={`truncate text-sm text-zinc-400 ${displayName ? "mt-0.5" : ""}`}>
+            {user?.email}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function GovProfilePage() {
@@ -72,7 +111,6 @@ export default function GovProfilePage() {
       name: gp.name || "",
       search_keywords: (gp.search_keywords || []).join("\n"),
       naics_codes: (gp.naics_codes || []).join("\n"),
-      keyword_search_mode: gp.keyword_search_mode || "ANY",
       corporate_overview: gp.corporate_overview || "",
     })
     setPastRfpPdfs(normalizePastRfpPdfs(gp.past_rfps))
@@ -193,14 +231,16 @@ export default function GovProfilePage() {
     <div className={APP_PAGE}>
       <FilmGrain />
       <AppBarDashboard />
-      <main className="relative z-[1] mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <p className={SECTION_LABEL}>Company profile</p>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{form.name}</h1>
-        <p className="mt-2 max-w-xl text-sm text-zinc-400">
-          SAM.gov search config shared across your team.
-        </p>
+      <main className="relative z-[1] mx-auto max-h-[calc(100vh-3.5rem)] max-w-3xl overflow-y-auto px-4 py-10 sm:px-6">
+        <div>
+          <p className={SECTION_LABEL}>Company profile</p>
+          <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">{form.name}</h2>
+          <p className="mt-2 max-w-xl text-sm text-zinc-400">
+            SAM.gov search config shared across your team.
+          </p>
+        </div>
 
-        <Card className={`mt-8 ${CARD_CLASS}`}>
+        <Card className={`mt-6 ${CARD_CLASS}`}>
           <CardHeader className="border-b border-white/10 pb-4">
             <CardTitle className="text-base font-bold text-white">Search configuration</CardTitle>
             <CardDescription className="text-zinc-400">
@@ -213,6 +253,15 @@ export default function GovProfilePage() {
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 className={INPUT_CLASS}
+              />
+            </Field>
+
+            <Field label="Company overview" hint="Company context for future contract matching.">
+              <textarea
+                rows={6}
+                value={form.corporate_overview}
+                onChange={(e) => updateField("corporate_overview", e.target.value)}
+                className={`${INPUT_CLASS} max-h-56 w-full overflow-y-auto rounded-md px-3 py-2 text-sm`}
               />
             </Field>
 
@@ -234,26 +283,6 @@ export default function GovProfilePage() {
               />
             </Field>
 
-            <Field label="Keyword search mode">
-              <select
-                value={form.keyword_search_mode}
-                onChange={(e) => updateField("keyword_search_mode", e.target.value)}
-                className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm`}
-              >
-                <option value="ALL">All words</option>
-                <option value="ANY">Any word</option>
-                <option value="EXACT">Exact phrase</option>
-              </select>
-            </Field>
-
-            <Field label="Corporate overview" hint="Company context for future ICP matching.">
-              <textarea
-                rows={4}
-                value={form.corporate_overview}
-                onChange={(e) => updateField("corporate_overview", e.target.value)}
-                className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm`}
-              />
-            </Field>
           </CardContent>
         </Card>
 
@@ -319,6 +348,12 @@ export default function GovProfilePage() {
             <p className="text-xs text-zinc-600">PDF only, max 15 MB each.</p>
           </CardContent>
         </Card>
+
+        {user ? (
+          <div className="mt-8">
+            <UserProfileSection user={user} />
+          </div>
+        ) : null}
 
         <div className="mt-8 flex gap-3">
           <Button type="button" disabled={saving} onClick={saveProfile} className={BTN_PRIMARY}>

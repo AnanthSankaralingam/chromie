@@ -5,7 +5,7 @@ export const WORKFLOW_SCENARIOS = [
   {
     id: "morphworks_sam_gov",
     label: "SAM.gov opportunities (MorphWorks)",
-    description: "Batch keyword searches on SAM.gov and email ICP matches.",
+    description: "Batch keyword searches on SAM.gov and email contract matches.",
   },
   {
     id: "zillow_listing_alert",
@@ -49,7 +49,6 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
       min_opportunities: 3,
       max_keyword_searches: 4,
       max_pages_per_keyword: 3,
-      keyword_search_mode: "ANY",
       require_signed_in: false,
     }
   }
