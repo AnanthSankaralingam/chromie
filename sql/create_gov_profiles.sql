@@ -7,8 +7,6 @@ create table if not exists public.gov_profiles (
   name text not null,
   search_keywords text[] not null default '{}',
   naics_codes text[] not null default '{}',
-  keyword_search_mode text not null default 'ANY'
-    check (keyword_search_mode in ('ALL', 'ANY', 'EXACT')),
   corporate_overview text,
   -- [{ id, filename, storage_path, size_bytes, uploaded_at }]
   past_rfps jsonb not null default '[]'::jsonb,

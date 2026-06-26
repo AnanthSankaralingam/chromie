@@ -35,7 +35,6 @@ Shared company profile for gov contracting customers (ICP + SAM.gov search confi
 | `name`                  | text         | NOT NULL; company name (e.g. MorphWorks)                                |
 | `search_keywords`       | text[]       | NOT NULL, DEFAULT `{}`; SAM.gov batch search keywords                   |
 | `naics_codes`           | text[]       | NOT NULL, DEFAULT `{}`; NAICS codes                                     |
-| `keyword_search_mode`   | text         | NOT NULL, DEFAULT `ANY`; `ALL` \| `ANY` \| `EXACT`                      |
 | `corporate_overview`    | text         | NULL; company context for future matching                               |
 | `past_rfps`             | jsonb        | NOT NULL, DEFAULT `[]`; PDF metadata: `{ id, filename, storage_path, size_bytes, uploaded_at }` (files in Storage bucket `gov-profile-rfps`) |
 | `created_at`            | timestamptz  | NOT NULL, DEFAULT now()                                                 |
