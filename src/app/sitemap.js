@@ -10,12 +10,6 @@ export default function sitemap() {
       priority: 1,
     },
     {
-      url: `${baseUrl}/dashboard`,
-      lastModified: currentDate,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
       url: `${baseUrl}/gov/dashboard`,
       lastModified: currentDate,
       changeFrequency: "weekly",

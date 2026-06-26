@@ -4,8 +4,8 @@
 export const WORKFLOW_SCENARIOS = [
   {
     id: "morphworks_sam_gov",
-    label: "SAM.gov opportunities",
-    description: "Batch keyword searches on SAM.gov and email contract matches.",
+    label: "Contract opportunity search",
+    description: "Batch keyword searches across government contract sources and email contract matches.",
   },
   {
     id: "zillow_listing_alert",

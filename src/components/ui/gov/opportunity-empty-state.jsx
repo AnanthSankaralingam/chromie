@@ -6,7 +6,7 @@ export default function OpportunityEmptyState({ onGoToDashboard }) {
     <div className="mt-10 border border-white/10 bg-black/30 px-6 py-14 text-center">
       <p className="text-base font-medium text-zinc-300">No opportunities yet</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-        Run the SAM.gov monitor from the dashboard. Matching contracts will appear here after each
+        Run the contract search monitor from the dashboard. Matching contracts will appear here after each
         successful run.
       </p>
       <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={onGoToDashboard}>

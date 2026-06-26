@@ -26,7 +26,6 @@ export default function GovPage() {
   const [loading, setLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
   const [runs, setRuns] = useState([])
-  const [profileName, setProfileName] = useState("")
   const [sortBy, setSortBy] = useState("fit")
   const [expandedId, setExpandedId] = useState(null)
   const [error, setError] = useState("")
@@ -51,7 +50,6 @@ export default function GovPage() {
       return
     }
     setRuns(json.runs || [])
-    setProfileName(json.gov_profile?.name || "")
     setLoading(false)
   }, [])
 
@@ -98,8 +96,8 @@ export default function GovPage() {
     <GovPageShell authOpen={showAuth} onAuthClose={() => setShowAuth(false)} authRedirect="/gov">
       <GovPageHeader
         label="Government contracting"
-        title={profileName ? `${profileName} opportunities` : "Opportunities"}
-        description="Contract opportunities discovered by your SAM.gov automations, ranked by profile fit."
+        title="Opportunity search"
+        description="Contract opportunities discovered by your contract discovery automations, ranked by profile fit."
         actions={
           <div className="flex items-center gap-2">
             <label htmlFor="gov-sort" className={`${LABEL_CLASS} sr-only`}>

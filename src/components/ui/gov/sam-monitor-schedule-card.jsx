@@ -34,7 +34,7 @@ export default function SamMonitorScheduleCard({
           <div>
             <p className={SECTION_LABEL}>Schedule</p>
             <CardTitle className="mt-1 text-base font-bold text-white">
-              SAM.gov opportunity monitor
+              Contract opportunity monitor
             </CardTitle>
             <CardDescription className="text-zinc-400">
               Your monitor is created automatically. Adjust the cadence or run it on demand.
@@ -89,7 +89,7 @@ export default function SamMonitorScheduleCard({
 
         {initializing || !automationId ? (
           <p className="text-xs leading-relaxed text-zinc-500">
-            Chromie is initializing the managed SAM.gov monitor for this profile.
+            Chromie is initializing the managed contract search monitor for this profile.
           </p>
         ) : null}
       </CardContent>

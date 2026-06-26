@@ -16,15 +16,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { normalizePastRfpPdfs } from "@/lib/gov-profiles"
-import { Save } from "lucide-react"
+import { LogOut, Save } from "lucide-react"
 
 export default function GovProfilePage() {
-  const { user } = useSession()
+  const { user, supabase } = useSession()
   const router = useRouter()
   const fileInputRef = useRef(null)
   const [showAuth, setShowAuth] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [forbidden, setForbidden] = useState(false)
@@ -139,6 +140,16 @@ export default function GovProfilePage() {
     window.open(json.url, "_blank", "noopener,noreferrer")
   }
 
+  async function signOut() {
+    setSigningOut(true)
+    try {
+      await supabase?.auth.signOut()
+      router.push("/")
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   if (loading) {
     return <GovLoadingState message="Loading company profile…" />
   }
@@ -153,7 +164,7 @@ export default function GovProfilePage() {
       >
         <GovForbiddenState
           title="Company profile unavailable"
-          description="Your account is not linked to a government contractor profile yet. Set up your company profile to unlock SAM.gov automation defaults."
+          description="Your account is not linked to a government contractor profile yet. Set up your company profile to unlock contract discovery automation defaults."
           actionLabel="Set up company profile"
           onAction={() => router.push("/gov/onboarding")}
         />
@@ -174,15 +185,15 @@ export default function GovProfilePage() {
     >
       <GovPageHeader
         label="Company profile"
-        title={form.name}
-        description="SAM.gov search config shared across your team."
+        title="Configure your profile"
+        description="Contract search config shared across your team."
         actions={
           <>
             <Button asChild className={BTN_OUTLINE}>
-              <Link href="/gov/dashboard">Gov Dashboard</Link>
+              <Link href="/gov/dashboard">Dashboard</Link>
             </Button>
             <Button asChild className={BTN_OUTLINE}>
-              <Link href="/gov">My Results</Link>
+              <Link href="/gov">Opportunities</Link>
             </Button>
           </>
         }
@@ -192,7 +203,7 @@ export default function GovProfilePage() {
         <CardHeader className="border-b border-white/10 pb-4">
           <CardTitle className="text-base font-bold text-white">Search configuration</CardTitle>
           <CardDescription className="text-zinc-400">
-            Used by SAM.gov automations for everyone linked to this profile.
+            Used by contract discovery automations for everyone linked to this profile.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-6">
@@ -253,10 +264,19 @@ export default function GovProfilePage() {
         </div>
       ) : null}
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Button type="button" disabled={saving} onClick={saveProfile} className={BTN_PRIMARY}>
           <Save className="mr-1 h-4 w-4" />
           {saving ? "Saving…" : "Save profile"}
+        </Button>
+        <Button
+          type="button"
+          className={BTN_OUTLINE}
+          onClick={signOut}
+          disabled={signingOut}
+        >
+          <LogOut className="mr-1 h-4 w-4" />
+          {signingOut ? "Signing out…" : "Sign out"}
         </Button>
       </div>
     </GovPageShell>

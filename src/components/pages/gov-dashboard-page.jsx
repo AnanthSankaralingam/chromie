@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { scheduleStateFromAutomation } from "@/components/automations/automation-schedule-fields"
 import { BTN_OUTLINE, CARD_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
@@ -28,7 +28,7 @@ const AutomationAuditSection = dynamic(
         <CardHeader className="border-b border-white/10 pb-4">
           <p className={SECTION_LABEL}>Audit</p>
           <CardTitle className="mt-1 text-base font-bold text-white">
-            SAM.gov execution audit
+            Government contract execution audit
           </CardTitle>
           <CardDescription className="text-zinc-400">
             Loading audit history in the background.
@@ -68,6 +68,7 @@ function applySchedulePatch(prev, patch) {
 
 export default function GovDashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, supabase, isLoading: sessionLoading } = useSession()
   const [showAuth, setShowAuth] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
@@ -82,6 +83,7 @@ export default function GovDashboardPage() {
   const [running, setRunning] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [error, setError] = useState("")
+  const provisionAttemptedRef = useRef(false)
 
   const activeRun = runs.find((run) => run.status === "running")
   const automationId = automation?.id
@@ -122,7 +124,7 @@ export default function GovDashboardPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "SAM.gov opportunity monitor",
+        name: "Contract opportunity search",
         scenario_id: GOV_MATCH_SCENARIO_ID,
         params: params || undefined,
         ensure_singleton: true,
@@ -137,7 +139,7 @@ export default function GovDashboardPage() {
 
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
-      setError(json.error || "Could not initialize your SAM.gov monitor.")
+      setError(json.error || "Could not initialize your contract search monitor.")
       return null
     }
 
@@ -151,7 +153,7 @@ export default function GovDashboardPage() {
       return null
     }
     if (!res.ok) {
-      setError("Could not load your SAM.gov monitor.")
+      setError("Could not load your contract search monitor.")
       return null
     }
     const json = await res.json()
@@ -190,6 +192,22 @@ export default function GovDashboardPage() {
       setProfileLoading(true)
       setMonitorLoading(false)
       setError("")
+
+      if (searchParams.get("provision") === "try" && !provisionAttemptedRef.current) {
+        provisionAttemptedRef.current = true
+        const provisionRes = await fetch("/api/gov-try", { method: "POST" })
+        const provisionJson = await provisionRes.json().catch(() => ({}))
+        if (!provisionRes.ok) {
+          if (!cancelled) {
+            setError(provisionJson.error || "Could not set up your government profile.")
+            setProfileLoading(false)
+          }
+          return
+        }
+        console.log("[gov-dashboard] provisioned try profile", provisionJson.gov_profile?.id)
+        router.replace("/gov/dashboard")
+      }
+
       const [{ data: profile }, defaults] = await Promise.all([
         supabase.from("profiles").select("gov_profile_id").eq("id", user.id).maybeSingle(),
         loadDefaults(),
@@ -220,7 +238,7 @@ export default function GovDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [loadAutomation, loadDefaults, sessionLoading, supabase, user])
+  }, [loadAutomation, loadDefaults, router, searchParams, sessionLoading, supabase, user])
 
   const scheduleSummary = useMemo(() => {
     if (!schedule.scheduleEnabled) return "On demand only"
@@ -239,7 +257,7 @@ export default function GovDashboardPage() {
   async function saveSchedule() {
     if (!govProfileLinked) return
     if (!automationId) {
-      setError("Chromie is still initializing your SAM.gov monitor. Refresh and try again.")
+      setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
       return
     }
     setSaving(true)
@@ -254,7 +272,7 @@ export default function GovDashboardPage() {
 
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(json.error || "Could not save the SAM.gov schedule.")
+        setError(json.error || "Could not save the contract search schedule.")
         return
       }
       const next = json.automation
@@ -270,7 +288,7 @@ export default function GovDashboardPage() {
 
   async function runNow() {
     if (!automationId) {
-      setError("Chromie is still initializing your SAM.gov monitor. Refresh and try again.")
+      setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
       return
     }
     setRunning(true)
@@ -279,7 +297,7 @@ export default function GovDashboardPage() {
       const res = await fetch(`/api/automations/${automationId}/run`, { method: "POST" })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(json.error || "Could not start the SAM.gov run.")
+        setError(json.error || "Could not start the contract search run.")
         return
       }
       await refreshProgress(automationId)
@@ -323,8 +341,8 @@ export default function GovDashboardPage() {
     >
       <GovPageHeader
         label="Government dashboard"
-        title="SAM.gov monitoring"
-        description="Set when Chromie should search SAM.gov, run it on demand, and review execution audits. Your company profile controls the search terms and opportunity fit."
+        title="Government contract monitoring"
+        description="Set when Chromie should search government contract sources, run it on demand, and review execution audits. Your company profile controls the search terms and opportunity fit."
         actions={
           <>
             <Button asChild className={BTN_OUTLINE}>
@@ -356,7 +374,7 @@ export default function GovDashboardPage() {
         </Card>
       ) : !govProfileLinked ? (
         <GovProfileRequiredGate
-          description="Chromie uses your profile to configure SAM.gov searches and rank matching opportunities."
+          description="Chromie uses your profile to configure government contract searches and rank matching opportunities."
           onSetup={() => router.push("/gov/onboarding")}
         />
       ) : (
@@ -385,9 +403,9 @@ export default function GovDashboardPage() {
             scenarioId={GOV_MATCH_SCENARIO_ID}
             selectedAutomationId={automationId}
             selectedRunId={selectedRunId}
-            title="SAM.gov execution audit"
-            description="Status, validation notes, and session details for government runs."
-            emptyMessage="No SAM.gov executions yet. Run the monitor to see audit history here."
+            title="Government contract execution audit"
+            description="Status, validation notes, and session details for search runs."
+            emptyMessage="No contract search executions yet. Run the monitor to see audit history here."
             onSelectRun={selectAuditRun}
             onRefresh={() => refreshProgress(automationId)}
           />

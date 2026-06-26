@@ -128,7 +128,7 @@ export default function GovOnboardingPage() {
             Set up your company profile
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-            Chromie uses this profile to configure SAM.gov searches, rank opportunities, and connect
+            Chromie uses this profile to configure contract searches, rank opportunities, and connect
             teammates from the same organization.
           </p>
         </div>

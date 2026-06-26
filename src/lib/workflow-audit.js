@@ -73,7 +73,7 @@ export function executionLogLines(run) {
 
   const oppCount = evaluation.opportunities_extracted?.length ?? 0
   if (oppCount > 0) {
-    lines.push({ level: "info", text: `Found ${oppCount} SAM.gov opportunit${oppCount === 1 ? "y" : "ies"}` })
+    lines.push({ level: "info", text: `Found ${oppCount} government contract opportunit${oppCount === 1 ? "y" : "ies"}` })
   }
 
   const email = evaluation.email_delivery
