@@ -23,11 +23,14 @@ create table if not exists public.gov_runs (
   analysis_payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint gov_runs_run_source_ref_key unique (run_id, source, source_ref)
+  constraint gov_runs_profile_source_ref_key unique (gov_profile_id, source, source_ref)
 );
 
-create index if not exists gov_runs_gov_profile_id_idx
-  on public.gov_runs (gov_profile_id);
+create index if not exists gov_runs_profile_fit_created_idx
+  on public.gov_runs (gov_profile_id, fit_score desc nulls last, created_at desc);
+
+create index if not exists gov_runs_run_id_idx
+  on public.gov_runs (run_id);
 
 create index if not exists gov_runs_automation_id_idx
   on public.gov_runs (automation_id);
@@ -35,17 +38,8 @@ create index if not exists gov_runs_automation_id_idx
 create index if not exists gov_runs_scenario_id_idx
   on public.gov_runs (scenario_id);
 
-create index if not exists gov_runs_source_ref_idx
-  on public.gov_runs (source, source_ref);
-
 create index if not exists gov_runs_response_date_idx
   on public.gov_runs (response_date);
-
-create index if not exists gov_runs_fit_score_idx
-  on public.gov_runs (fit_score desc nulls last);
-
-create index if not exists gov_runs_created_at_idx
-  on public.gov_runs (created_at desc);
 
 alter table public.gov_runs enable row level security;
 

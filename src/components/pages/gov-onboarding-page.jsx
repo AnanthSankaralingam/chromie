@@ -19,7 +19,10 @@ export default function GovOnboardingPage() {
   const { user, isLoading: sessionLoading } = useSession()
   const [showAuth, setShowAuth] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [enriching, setEnriching] = useState(false)
   const [error, setError] = useState("")
+  const [enrichmentStatus, setEnrichmentStatus] = useState("")
+  const [companyUrl, setCompanyUrl] = useState("")
   const [form, setForm] = useState({
     name: "",
     company_domain: "",
@@ -37,6 +40,73 @@ export default function GovOnboardingPage() {
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function enrichFromWebsite() {
+    if (!user) {
+      setShowAuth(true)
+      return
+    }
+
+    const requestedUrl = companyUrl.trim()
+    if (!requestedUrl) {
+      setError("Enter your company website URL first.")
+      return
+    }
+
+    const formAtRequestStart = form
+    setEnriching(true)
+    setError("")
+    setEnrichmentStatus("")
+    try {
+      const res = await fetch("/api/gov-onboarding/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_url: requestedUrl }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.status === 401) {
+        setShowAuth(true)
+        return
+      }
+      if (!res.ok) {
+        setError(json.error || "Could not fill your company profile from this website.")
+        return
+      }
+
+      const profile = json.profile || {}
+      const nextValues = {
+        name: profile.name || "",
+        company_domain: profile.company_domain || "",
+        corporate_overview: profile.corporate_overview || "",
+        search_keywords: Array.isArray(profile.search_keywords)
+          ? profile.search_keywords.join("\n")
+          : String(profile.search_keywords || ""),
+        naics_codes: Array.isArray(profile.naics_codes)
+          ? profile.naics_codes.join("\n")
+          : String(profile.naics_codes || ""),
+      }
+
+      setForm((prev) => {
+        const merged = { ...prev }
+        for (const [key, value] of Object.entries(nextValues)) {
+          if (!value) continue
+          if (!prev[key] || prev[key] === formAtRequestStart[key]) {
+            merged[key] = value
+          }
+        }
+        return merged
+      })
+      setEnrichmentStatus(
+        `Filled profile details from ${profile.company_domain || requestedUrl}. Review before creating the profile.`,
+      )
+      console.log("[gov-onboarding] website enrichment completed", {
+        domain: profile.company_domain,
+        confidence: profile.confidence,
+      })
+    } finally {
+      setEnriching(false)
+    }
   }
 
   async function submitOnboarding(event) {
@@ -116,6 +186,33 @@ export default function GovOnboardingPage() {
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
               {error ? <GovAlertBanner>{error}</GovAlertBanner> : null}
+              {enrichmentStatus ? (
+                <p className="border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
+                  {enrichmentStatus}
+                </p>
+              ) : null}
+
+              <GovField
+                label="Company website"
+                hint="Paste your company URL to fill this profile automatically, then review the results."
+              >
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Input
+                    value={companyUrl}
+                    onChange={(event) => setCompanyUrl(event.target.value)}
+                    placeholder="https://acmefederal.com"
+                    className={`${INPUT_CLASS} min-w-0 flex-1`}
+                  />
+                  <Button
+                    type="button"
+                    disabled={enriching || submitting}
+                    className={`${BTN_OUTLINE} mt-1.5 shrink-0`}
+                    onClick={enrichFromWebsite}
+                  >
+                    {enriching ? "Filling..." : "Fill from website"}
+                  </Button>
+                </div>
+              </GovField>
 
               <GovField label="Company name">
                 <Input
