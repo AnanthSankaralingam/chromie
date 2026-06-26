@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import {
-  isExplicitPostAuthPath,
-  LEGACY_HOME_PATHS,
+  classifyPostAuthDestination,
+  explicitPostAuthDestination,
   resolveGovHomePath,
 } from "@/lib/gov-auth-redirect"
 
@@ -37,20 +37,22 @@ export async function GET(request) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const rawDest = cookieStore.get("auth_redirect_destination")?.value
+    const nextParam = requestUrl.searchParams.get("next")
+    const cookieDest = cookieStore.get("auth_redirect_destination")?.value
+    const rawDest = nextParam || (cookieDest ? decodeURIComponent(cookieDest) : "")
     cookieStore.delete("auth_redirect_destination")
 
     if (user && rawDest) {
-      const redirectDestination = decodeURIComponent(rawDest)
-      if (redirectDestination.startsWith("/")) {
-        const destUrl = new URL(redirectDestination, request.url)
-        if (isExplicitPostAuthPath(destUrl.pathname)) {
-          return NextResponse.redirect(destUrl)
+      const destinationKind = classifyPostAuthDestination(rawDest)
+      if (destinationKind === "explicit") {
+        const explicitDest = explicitPostAuthDestination(rawDest)
+        if (explicitDest) {
+          return NextResponse.redirect(new URL(explicitDest, request.url))
         }
-        if (LEGACY_HOME_PATHS.has(destUrl.pathname)) {
-          const home = await resolveGovHomePath(supabase, user.id)
-          return NextResponse.redirect(new URL(home, request.url))
-        }
+      }
+      if (destinationKind === "legacy_home") {
+        const home = await resolveGovHomePath(supabase, user.id)
+        return NextResponse.redirect(new URL(home, request.url))
       }
     }
 
