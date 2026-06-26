@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
@@ -232,12 +233,22 @@ export default function GovProfilePage() {
       <FilmGrain />
       <AppBarDashboard />
       <main className="relative z-[1] mx-auto max-h-[calc(100vh-3.5rem)] max-w-3xl overflow-y-auto px-4 py-10 sm:px-6">
-        <div>
-          <p className={SECTION_LABEL}>Company profile</p>
-          <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">{form.name}</h2>
-          <p className="mt-2 max-w-xl text-sm text-zinc-400">
-            SAM.gov search config shared across your team.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className={SECTION_LABEL}>Company profile</p>
+            <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">{form.name}</h2>
+            <p className="mt-2 max-w-xl text-sm text-zinc-400">
+              SAM.gov search config shared across your team.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild className={BTN_OUTLINE}>
+              <Link href="/dashboard">My Automations</Link>
+            </Button>
+            <Button asChild className={BTN_OUTLINE}>
+              <Link href="/gov">My Results</Link>
+            </Button>
+          </div>
         </div>
 
         <Card className={`mt-6 ${CARD_CLASS}`}>
@@ -355,18 +366,10 @@ export default function GovProfilePage() {
           </div>
         ) : null}
 
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8">
           <Button type="button" disabled={saving} onClick={saveProfile} className={BTN_PRIMARY}>
             <Save className="h-4 w-4 mr-1" />
             {saving ? "Saving…" : "Save profile"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className={BTN_OUTLINE}
-            onClick={() => router.push("/dashboard")}
-          >
-            Dashboard
           </Button>
         </div>
       </main>

@@ -86,15 +86,17 @@ export default function AppBarDashboard({ showOpportunities = true }) {
           </nav>
 
           {user ? (
-            <Avatar className="hidden h-8 w-8 border border-white/15 sm:flex">
-              <AvatarImage
-                src={user?.user_metadata?.picture}
-                alt={user?.user_metadata?.name || user?.email}
-              />
-              <AvatarFallback className="bg-white text-xs font-semibold text-black">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <Link href="/profile" className="hidden sm:block">
+              <Avatar className="h-8 w-8 cursor-pointer border border-white/15 transition-opacity hover:opacity-80">
+                <AvatarImage
+                  src={user?.user_metadata?.picture}
+                  alt={user?.user_metadata?.name || user?.email}
+                />
+                <AvatarFallback className="bg-white text-xs font-semibold text-black">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
           ) : null}
 
           <button

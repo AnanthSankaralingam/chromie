@@ -14,11 +14,15 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     return base
   }
 
+  const { corporate_overview_path: _ignoredPath, ...baseWithoutOverviewFile } = base
+
   return {
-    ...base,
+    ...baseWithoutOverviewFile,
     customer_name: govProfile.name,
     search_keywords: govProfile.search_keywords ?? base.search_keywords,
     naics_codes: govProfile.naics_codes ?? base.naics_codes,
+    corporate_overview: String(govProfile.corporate_overview || "").trim(),
+    corporate_overview_path: "",
     gov_profile_id: govProfile.id,
   }
 }

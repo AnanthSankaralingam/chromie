@@ -54,6 +54,12 @@ function daysUntil(dateStr) {
   return Math.ceil((target - today) / (1000 * 60 * 60 * 24))
 }
 
+function isOpenOpportunity(run) {
+  if (!run.response_date) return true
+  const dueIn = daysUntil(run.response_date)
+  return dueIn != null && dueIn >= 0
+}
+
 function sortRuns(runs, sortBy) {
   const copy = [...runs]
   if (sortBy === "due") {
@@ -232,7 +238,7 @@ export default function GovPage() {
   const sortedRuns = useMemo(() => sortRuns(runs, sortBy), [runs, sortBy])
 
   const withDeadline = useMemo(
-    () => runs.filter((r) => r.response_date && daysUntil(r.response_date) >= 0).length,
+    () => runs.filter((run) => isOpenOpportunity(run)).length,
     [runs],
   )
 
@@ -315,9 +321,9 @@ export default function GovPage() {
           </Card>
           <Card className={CARD_CLASS}>
             <CardContent className="px-4 py-3">
-              <p className={LABEL_CLASS}>High fit (75%+)</p>
+              <p className={LABEL_CLASS}>High fit (90%+)</p>
               <p className={`mt-1 text-2xl font-bold tabular-nums ${ACCENT}`}>
-                {runs.filter((r) => Number(r.fit_score) >= 0.75).length}
+                {runs.filter((r) => Number(r.fit_score) >= 0.9).length}
               </p>
             </CardContent>
           </Card>
