@@ -132,7 +132,17 @@ function AuditRunRow({ run, expanded, onToggle, onSelect, selected }) {
 }
 
 export default forwardRef(function AutomationAuditSection(
-  { user, selectedAutomationId, selectedRunId, onSelectRun, onRefresh },
+  {
+    user,
+    selectedAutomationId,
+    selectedRunId,
+    scenarioId,
+    title = "Recent executions",
+    description = "Runs across all automations, with status and execution details.",
+    emptyMessage = "No executions yet. Run an automation to see history here.",
+    onSelectRun,
+    onRefresh,
+  },
   ref,
 ) {
   const [runs, setRuns] = useState([])
@@ -144,10 +154,12 @@ export default forwardRef(function AutomationAuditSection(
     const res = await fetch("/api/automations/audit?limit=40")
     if (!res.ok) return []
     const json = await res.json()
-    const next = json.runs || []
+    const next = scenarioId
+      ? (json.runs || []).filter((run) => run.scenario_id === scenarioId)
+      : json.runs || []
     setRuns(next)
     return next
-  }, [])
+  }, [scenarioId])
 
   useImperativeHandle(ref, () => ({ refresh: loadAudit }), [loadAudit])
 
@@ -180,10 +192,8 @@ export default forwardRef(function AutomationAuditSection(
       <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-white/10 pb-4">
         <div>
           <p className={SECTION_LABEL}>Audit</p>
-          <CardTitle className="mt-1 text-base font-bold text-white">Recent executions</CardTitle>
-          <CardDescription className="text-zinc-400">
-            Runs across all automations, with status and execution details.
-          </CardDescription>
+          <CardTitle className="mt-1 text-base font-bold text-white">{title}</CardTitle>
+          <CardDescription className="text-zinc-400">{description}</CardDescription>
         </div>
         <Button
           size="sm"
@@ -199,7 +209,7 @@ export default forwardRef(function AutomationAuditSection(
       <CardContent className="space-y-2 pt-4 max-h-[32rem] overflow-y-auto">
         {loading && <p className="text-sm text-zinc-500">Loading audit log…</p>}
         {!loading && runs.length === 0 && (
-          <p className="text-sm text-zinc-500">No executions yet. Run an automation to see history here.</p>
+          <p className="text-sm text-zinc-500">{emptyMessage}</p>
         )}
         {runs.map((run) => (
           <AuditRunRow

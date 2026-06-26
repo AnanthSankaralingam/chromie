@@ -4,78 +4,19 @@ import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
-import AppBarDashboard from "@/components/ui/app-bars/app-bar-dashboard"
-import {
-  APP_PAGE,
-  BTN_OUTLINE,
-  BTN_PRIMARY,
-  CARD_CLASS,
-  INPUT_CLASS,
-  LABEL_CLASS,
-  SECTION_LABEL,
-} from "@/components/ui/app-dashboard-theme"
+import { BTN_OUTLINE, BTN_PRIMARY, CARD_CLASS, INPUT_CLASS } from "@/components/ui/app-dashboard-theme"
+import { GovForbiddenState } from "@/components/ui/gov/gov-gate-cards"
+import GovField from "@/components/ui/gov/gov-field"
+import GovLoadingState from "@/components/ui/gov/gov-loading-state"
+import GovPageHeader from "@/components/ui/gov/gov-page-header"
+import GovPageShell from "@/components/ui/gov/gov-page-shell"
+import PastRfpSection from "@/components/ui/gov/past-rfp-section"
+import UserProfileCard from "@/components/ui/gov/user-profile-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FilmGrain } from "@/components/ui/landing/landing-motion"
-import AuthModal from "@/components/ui/modals/modal-auth"
 import { normalizePastRfpPdfs } from "@/lib/gov-profiles"
-import { FileText, Save, Trash2, Upload } from "lucide-react"
-
-function Field({ label, children, hint }) {
-  return (
-    <div className="min-w-0">
-      <label className={LABEL_CLASS}>{label}</label>
-      {hint ? <p className="mt-0.5 text-xs text-zinc-600">{hint}</p> : null}
-      {children}
-    </div>
-  )
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function userInitials(user) {
-  const fromName = user?.user_metadata?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
-  return fromName || user?.email?.[0]?.toUpperCase() || "U"
-}
-
-function UserProfileSection({ user }) {
-  const displayName = user?.user_metadata?.name || user?.user_metadata?.full_name
-
-  return (
-    <Card className={CARD_CLASS}>
-      <CardContent className="flex items-center gap-4 px-4 py-4">
-        <Avatar className="h-11 w-11 border border-white/15">
-          <AvatarImage
-            src={user?.user_metadata?.picture}
-            alt={displayName || user?.email}
-          />
-          <AvatarFallback className="bg-white text-sm font-semibold text-black">
-            {userInitials(user)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          {displayName ? (
-            <p className="truncate font-medium text-white">{displayName}</p>
-          ) : null}
-          <p className={`truncate text-sm text-zinc-400 ${displayName ? "mt-0.5" : ""}`}>
-            {user?.email}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+import { Save } from "lucide-react"
 
 export default function GovProfilePage() {
   const { user } = useSession()
@@ -199,29 +140,24 @@ export default function GovProfilePage() {
   }
 
   if (loading) {
-    return (
-      <div className={`${APP_PAGE} flex items-center justify-center`}>
-        <p className="text-sm text-zinc-500">Loading company profile…</p>
-      </div>
-    )
+    return <GovLoadingState message="Loading company profile…" />
   }
 
   if (forbidden) {
     return (
-      <div className={APP_PAGE}>
-        <FilmGrain />
-        <AppBarDashboard />
-        <main className="mx-auto max-w-lg px-4 py-20 text-center">
-          <h1 className="text-xl font-bold">Company profile unavailable</h1>
-          <p className="mt-3 text-sm text-zinc-400">
-            Your account is not linked to a government contractor profile yet. Set up your company
-            profile to unlock SAM.gov automation defaults.
-          </p>
-          <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={() => router.push("/gov/onboarding")}>
-            Set up company profile
-          </Button>
-        </main>
-      </div>
+      <GovPageShell
+        maxWidth="lg"
+        authOpen={showAuth}
+        onAuthClose={() => setShowAuth(false)}
+        authRedirect="/profile"
+      >
+        <GovForbiddenState
+          title="Company profile unavailable"
+          description="Your account is not linked to a government contractor profile yet. Set up your company profile to unlock SAM.gov automation defaults."
+          actionLabel="Set up company profile"
+          onAction={() => router.push("/gov/onboarding")}
+        />
+      </GovPageShell>
     )
   }
 
@@ -230,152 +166,99 @@ export default function GovProfilePage() {
   }
 
   return (
-    <div className={APP_PAGE}>
-      <FilmGrain />
-      <AppBarDashboard />
-      <main className="relative z-[1] mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className={SECTION_LABEL}>Company profile</p>
-            <h2 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">{form.name}</h2>
-            <p className="mt-2 max-w-xl text-sm text-zinc-400">
-              SAM.gov search config shared across your team.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+    <GovPageShell
+      maxWidth="3xl"
+      authOpen={showAuth}
+      onAuthClose={() => setShowAuth(false)}
+      authRedirect="/profile"
+    >
+      <GovPageHeader
+        label="Company profile"
+        title={form.name}
+        description="SAM.gov search config shared across your team."
+        actions={
+          <>
             <Button asChild className={BTN_OUTLINE}>
-              <Link href="/dashboard">My Automations</Link>
+              <Link href="/gov/dashboard">Gov Dashboard</Link>
             </Button>
             <Button asChild className={BTN_OUTLINE}>
               <Link href="/gov">My Results</Link>
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <Card className={`mt-6 ${CARD_CLASS}`}>
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-base font-bold text-white">Search configuration</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Used by SAM.gov automations for everyone linked to this profile.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 pt-6">
-            <Field label="Company name">
-              <Input
-                value={form.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                className={INPUT_CLASS}
-              />
-            </Field>
-
-            <Field label="Company overview" hint="Company context for future contract matching.">
-              <textarea
-                rows={6}
-                value={form.corporate_overview}
-                onChange={(e) => updateField("corporate_overview", e.target.value)}
-                className={`${INPUT_CLASS} max-h-56 w-full overflow-y-auto rounded-md px-3 py-2 text-sm`}
-              />
-            </Field>
-
-            <Field label="Search keywords" hint="One per line — batched in each automation run.">
-              <textarea
-                rows={5}
-                value={form.search_keywords}
-                onChange={(e) => updateField("search_keywords", e.target.value)}
-                className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
-              />
-            </Field>
-
-            <Field label="NAICS codes" hint="One per line.">
-              <textarea
-                rows={3}
-                value={form.naics_codes}
-                onChange={(e) => updateField("naics_codes", e.target.value)}
-                className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
-              />
-            </Field>
-
-          </CardContent>
-        </Card>
-
-        <Card className={`mt-8 ${CARD_CLASS}`}>
-          <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
-            <div>
-              <CardTitle className="text-base font-bold text-white">Past RFPs</CardTitle>
-              <CardDescription className="text-zinc-400">
-                Upload PDFs from past proposals or solicitations for future matching.
-              </CardDescription>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className={BTN_OUTLINE}
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-3 w-3 mr-1" />
-              {uploading ? "Uploading…" : "Upload PDF"}
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) uploadPdf(file)
-              }}
+      <Card className={`mt-6 ${CARD_CLASS}`}>
+        <CardHeader className="border-b border-white/10 pb-4">
+          <CardTitle className="text-base font-bold text-white">Search configuration</CardTitle>
+          <CardDescription className="text-zinc-400">
+            Used by SAM.gov automations for everyone linked to this profile.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-6">
+          <GovField label="Company name">
+            <Input
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              className={INPUT_CLASS}
             />
-          </CardHeader>
-          <CardContent className="space-y-3 pt-6">
-            {pastRfpPdfs.length === 0 && (
-              <p className="text-sm text-zinc-500">No PDFs uploaded yet.</p>
-            )}
-            {pastRfpPdfs.map((pdf) => (
-              <div
-                key={pdf.id}
-                className="flex items-center gap-3 border border-white/10 px-3 py-2.5 text-sm"
-              >
-                <FileText className="h-4 w-4 shrink-0 text-zinc-500" />
-                <button
-                  type="button"
-                  onClick={() => downloadPdf(pdf.id)}
-                  className="min-w-0 flex-1 text-left text-zinc-200 hover:text-white truncate"
-                >
-                  {pdf.filename}
-                </button>
-                <span className="shrink-0 text-xs text-zinc-500">{formatBytes(pdf.size_bytes)}</span>
-                <button
-                  type="button"
-                  disabled={deletingId === pdf.id}
-                  onClick={() => deletePdf(pdf.id)}
-                  className="shrink-0 text-zinc-500 hover:text-red-400 disabled:opacity-40"
-                  aria-label={`Delete ${pdf.filename}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <p className="text-xs text-zinc-600">PDF only, max 15 MB each.</p>
-          </CardContent>
-        </Card>
+          </GovField>
 
-        {user ? (
-          <div className="mt-8">
-            <UserProfileSection user={user} />
-          </div>
-        ) : null}
+          <GovField label="Company overview" hint="Company context for future contract matching.">
+            <textarea
+              rows={6}
+              value={form.corporate_overview}
+              onChange={(e) => updateField("corporate_overview", e.target.value)}
+              className={`${INPUT_CLASS} max-h-56 w-full overflow-y-auto rounded-md px-3 py-2 text-sm`}
+            />
+          </GovField>
 
+          <GovField label="Search keywords" hint="One per line — batched in each automation run.">
+            <textarea
+              rows={5}
+              value={form.search_keywords}
+              onChange={(e) => updateField("search_keywords", e.target.value)}
+              className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
+            />
+          </GovField>
+
+          <GovField label="NAICS codes" hint="One per line.">
+            <textarea
+              rows={3}
+              value={form.naics_codes}
+              onChange={(e) => updateField("naics_codes", e.target.value)}
+              className={`${INPUT_CLASS} w-full rounded-md px-3 py-2 text-sm font-mono`}
+            />
+          </GovField>
+        </CardContent>
+      </Card>
+
+      <PastRfpSection
+        fileInputRef={fileInputRef}
+        pastRfpPdfs={pastRfpPdfs}
+        uploading={uploading}
+        deletingId={deletingId}
+        onUploadClick={() => fileInputRef.current?.click()}
+        onFileChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) uploadPdf(file)
+        }}
+        onDownload={downloadPdf}
+        onDelete={deletePdf}
+      />
+
+      {user ? (
         <div className="mt-8">
-          <Button type="button" disabled={saving} onClick={saveProfile} className={BTN_PRIMARY}>
-            <Save className="h-4 w-4 mr-1" />
-            {saving ? "Saving…" : "Save profile"}
-          </Button>
+          <UserProfileCard user={user} />
         </div>
-      </main>
+      ) : null}
 
-      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} redirectUrl="/profile" />
-    </div>
+      <div className="mt-8">
+        <Button type="button" disabled={saving} onClick={saveProfile} className={BTN_PRIMARY}>
+          <Save className="mr-1 h-4 w-4" />
+          {saving ? "Saving…" : "Save profile"}
+        </Button>
+      </div>
+    </GovPageShell>
   )
 }
