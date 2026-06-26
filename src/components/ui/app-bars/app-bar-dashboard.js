@@ -10,7 +10,7 @@ import { SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
 
 const CONTACT_EMAIL = "founders@chromie.dev"
 
-export default function AppBarDashboard() {
+export default function AppBarDashboard({ showOpportunities = true }) {
   const { user, supabase } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [govProfileLinked, setGovProfileLinked] = useState(false)
@@ -61,12 +61,14 @@ export default function AppBarDashboard() {
           <nav className="hidden items-center gap-5 md:flex" aria-label="Dashboard">
             {govProfileLinked ? (
               <>
-                <Link
-                  href="/gov"
-                  className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
-                >
-                  Opportunities
-                </Link>
+                {showOpportunities ? (
+                  <Link
+                    href="/gov"
+                    className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+                  >
+                    Opportunities
+                  </Link>
+                ) : null}
                 <Link
                   href="/profile"
                   className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
@@ -111,13 +113,15 @@ export default function AppBarDashboard() {
           <div className="flex flex-col gap-3">
             {govProfileLinked ? (
               <>
-                <Link
-                  href="/gov"
-                  onClick={() => setMobileOpen(false)}
-                  className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
-                >
-                  Opportunities
-                </Link>
+                {showOpportunities ? (
+                  <Link
+                    href="/gov"
+                    onClick={() => setMobileOpen(false)}
+                    className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+                  >
+                    Opportunities
+                  </Link>
+                ) : null}
                 <Link
                   href="/profile"
                   onClick={() => setMobileOpen(false)}

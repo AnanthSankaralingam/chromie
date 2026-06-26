@@ -33,7 +33,19 @@ import {
   WORKFLOW_SCENARIOS,
   ZILLOW_DEFAULT_FILTERS,
 } from "@/lib/workflow-automations"
-import { Play, Plus, RefreshCw, Save, Square, Trash2 } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Play,
+  Plus,
+  RefreshCw,
+  Save,
+  Square,
+  Trash2,
+} from "lucide-react"
+
+const GOV_MATCH_SCENARIO_ID = "morphworks_sam_gov"
 
 function FilterField({ label, children }) {
   return (
@@ -59,6 +71,151 @@ function runFailureHint(run) {
   return parts.join(" ")
 }
 
+function formatGovDate(value) {
+  if (!value) return null
+  const date = new Date(`${value}T12:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+function formatFitScore(score) {
+  if (score == null || Number.isNaN(Number(score))) return null
+  return `${Math.round(Number(score) * 100)}% Match`
+}
+
+function fitScoreTone(score) {
+  if (score == null) return "border-zinc-700/60 bg-zinc-900/40 text-zinc-500"
+  const n = Number(score)
+  if (n >= 0.9) return "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
+  if (n >= 0.75) return "border-cyan-500/35 bg-cyan-500/10 text-cyan-300"
+  if (n >= 0.5) return "border-amber-500/30 bg-amber-500/10 text-amber-200"
+  return "border-white/15 bg-white/[0.03] text-zinc-400"
+}
+
+function sourceLabel(source) {
+  if (!source) return "Source"
+  if (source === "sam_gov") return "SAM.gov"
+  return source.replace(/_/g, " ")
+}
+
+function truncateText(value, maxLength = 220) {
+  const text = String(value || "").trim()
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength).trim()}...`
+}
+
+function GovMatchCard({ run, expanded, onToggle }) {
+  const fitLabel = formatFitScore(run.fit_score)
+  const publishedDate = formatGovDate(run.published_date)
+  const responseDate = formatGovDate(run.response_date)
+  const summaryPreview = truncateText(run.contract_summary)
+
+  return (
+    <article className={`${LIST_ITEM} overflow-hidden bg-[#0a0a0a]`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start gap-4 px-4 py-4 text-left"
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+            <h3 className="text-[15px] font-semibold leading-snug text-white">
+              {run.title || "Untitled opportunity"}
+            </h3>
+            {run.profile_fit_verified ? (
+              <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/90">
+                Verified fit
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+            {run.agency ? <span className="text-zinc-300">{run.agency}</span> : null}
+            {run.customer_name ? <span>{run.customer_name}</span> : null}
+            {run.source ? (
+              <span className="border border-white/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider">
+                {sourceLabel(run.source)}
+              </span>
+            ) : null}
+            {responseDate ? <span className="text-amber-200/90">Due {responseDate}</span> : null}
+          </div>
+
+          {summaryPreview ? (
+            <p className="mt-3 text-sm leading-relaxed text-zinc-400">{summaryPreview}</p>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          {fitLabel ? (
+            <span
+              className={`inline-flex min-w-[5.5rem] justify-center border px-2 py-1 font-mono text-xs font-medium ${fitScoreTone(run.fit_score)}`}
+            >
+              {fitLabel}
+            </span>
+          ) : (
+            <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+              No score
+            </span>
+          )}
+          {expanded ? (
+            <ChevronUp className="h-4 w-4 text-zinc-500" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-zinc-500" />
+          )}
+        </div>
+      </button>
+
+      {expanded ? (
+        <div className="border-t border-white/10 bg-black/40 px-4 py-4 text-sm leading-relaxed text-zinc-300">
+          {run.contract_summary ? (
+            <div>
+              <p className={LABEL_CLASS}>Contract summary</p>
+              <p className="mt-2 whitespace-pre-wrap text-zinc-300">{run.contract_summary}</p>
+            </div>
+          ) : null}
+
+          {run.fit_rationale ? (
+            <div className="mt-4">
+              <p className={LABEL_CLASS}>Fit rationale</p>
+              <p className="mt-2 whitespace-pre-wrap text-zinc-400">{run.fit_rationale}</p>
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-3">
+            <div>
+              <p className={LABEL_CLASS}>Published</p>
+              <p className="mt-1 text-zinc-400">{publishedDate || "Not provided"}</p>
+            </div>
+            <div>
+              <p className={LABEL_CLASS}>Response due</p>
+              <p className="mt-1 text-zinc-400">{responseDate || "Not provided"}</p>
+            </div>
+            <div>
+              <p className={LABEL_CLASS}>Reference</p>
+              <p className="mt-1 break-all font-mono text-[11px] text-zinc-500">
+                {run.source_ref || "Not provided"}
+              </p>
+            </div>
+          </div>
+
+          {run.source_url ? (
+            <a
+              href={run.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-4 inline-flex items-center gap-1.5 ${ACCENT} hover:underline`}
+            >
+              View on {sourceLabel(run.source)}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
 export default function AutomationsPage() {
   const { user } = useSession()
   const [automations, setAutomations] = useState([])
@@ -81,10 +238,12 @@ export default function AutomationsPage() {
   const [editSchedule, setEditSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [deletingId, setDeletingId] = useState(null)
   const [refreshingRuns, setRefreshingRuns] = useState(false)
-  const [govProfile, setGovProfile] = useState(null)
-  const [govProfileLoading, setGovProfileLoading] = useState(false)
-  const [govProfileError, setGovProfileError] = useState("")
+  const [govRuns, setGovRuns] = useState([])
+  const [govRunsLoading, setGovRunsLoading] = useState(false)
+  const [govRunsError, setGovRunsError] = useState("")
+  const [expandedGovRunId, setExpandedGovRunId] = useState(null)
   const auditRef = useRef(null)
+  const showGovMatches = createScenarioId === GOV_MATCH_SCENARIO_ID
 
   const loadAutomations = useCallback(async () => {
     const res = await fetch("/api/automations")
@@ -99,32 +258,6 @@ export default function AutomationsPage() {
     }
   }, [selectedId])
 
-  const loadGovProfile = useCallback(async () => {
-    setGovProfileLoading(true)
-    setGovProfileError("")
-    try {
-      const res = await fetch("/api/gov-profile")
-      if (res.status === 401) {
-        setShowAuth(true)
-        return
-      }
-      if (res.status === 403) {
-        setGovProfile(null)
-        setGovProfileError("No gov company profile is linked to this account.")
-        return
-      }
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setGovProfile(null)
-        setGovProfileError(json.error || "Unable to load company profile.")
-        return
-      }
-      setGovProfile(json.gov_profile || null)
-    } finally {
-      setGovProfileLoading(false)
-    }
-  }, [])
-
   const loadRuns = useCallback(async (id) => {
     if (!id) return []
     const res = await fetch(`/api/automations/${id}/runs`)
@@ -135,14 +268,52 @@ export default function AutomationsPage() {
     return next
   }, [])
 
+  const loadGovRuns = useCallback(async () => {
+    if (!showGovMatches) {
+      setGovRuns([])
+      setGovRunsError("")
+      setExpandedGovRunId(null)
+      return
+    }
+
+    setGovRunsLoading(true)
+    setGovRunsError("")
+    try {
+      const res = await fetch("/api/gov-runs?limit=10")
+      if (res.status === 401) {
+        setShowAuth(true)
+        return
+      }
+      if (res.status === 403) {
+        setGovRuns([])
+        setGovRunsError("No gov company profile is linked to this account.")
+        return
+      }
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setGovRuns([])
+        setGovRunsError(json.error || "Unable to load top contract matches.")
+        return
+      }
+      const next = json.runs || []
+      setGovRuns(next)
+      setExpandedGovRunId((current) =>
+        next.some((run) => run.id === current) ? current : null,
+      )
+    } finally {
+      setGovRunsLoading(false)
+    }
+  }, [showGovMatches])
+
   const refreshProgress = useCallback(
     async (automationId = selectedId) => {
       await Promise.all([
         automationId ? loadRuns(automationId) : Promise.resolve(),
         auditRef.current?.refresh?.(),
+        loadGovRuns(),
       ])
     },
-    [selectedId, loadRuns],
+    [selectedId, loadRuns, loadGovRuns],
   )
 
   useEffect(() => {
@@ -150,8 +321,8 @@ export default function AutomationsPage() {
       setLoading(false)
       return
     }
-    Promise.all([loadAutomations(), loadGovProfile()]).finally(() => setLoading(false))
-  }, [user, loadAutomations, loadGovProfile])
+    Promise.all([loadAutomations(), loadGovRuns()]).finally(() => setLoading(false))
+  }, [user, loadAutomations, loadGovRuns])
 
   useEffect(() => {
     if (selectedId) loadRuns(selectedId)
@@ -192,7 +363,7 @@ export default function AutomationsPage() {
       setEditParams(null)
     }
     setEditSchedule(scheduleStateFromAutomation(selected))
-  }, [selected?.id, selected?.params, selected?.schedule_kind, selected?.cron_expression, selected?.schedule_timezone])
+  }, [selected])
 
   const hasRunningRun = runs.some((r) => r.status === "running")
   const activeRun = runs.find((r) => r.status === "running")
@@ -275,7 +446,7 @@ export default function AutomationsPage() {
     try {
       const scenario = WORKFLOW_SCENARIOS.find((s) => s.id === createScenarioId)
       const defaultName =
-        createScenarioId === "morphworks_sam_gov"
+        createScenarioId === GOV_MATCH_SCENARIO_ID
           ? `SAM.gov — ${draftParams.customer_name || "MorphWorks"}`
           : `Zillow — ${draftParams.filters?.city || "search"}`
       const res = await fetch("/api/automations", {
@@ -381,18 +552,11 @@ export default function AutomationsPage() {
 
   const draftFilters = draftParams.filters || ZILLOW_DEFAULT_FILTERS
   const editFilters = editParams?.filters || {}
-  const govProfileOverview = String(govProfile?.corporate_overview || "").trim()
-  const govProfileKeywords = Array.isArray(govProfile?.search_keywords)
-    ? govProfile.search_keywords.filter(Boolean)
-    : []
-  const govProfileNaics = Array.isArray(govProfile?.naics_codes)
-    ? govProfile.naics_codes.filter(Boolean)
-    : []
 
   return (
     <div className={APP_PAGE}>
       <FilmGrain />
-      <AppBarDashboard />
+      <AppBarDashboard showOpportunities={showGovMatches} />
       <main className="relative z-[1] mx-auto max-w-5xl px-4 py-10 sm:px-6">
         <p className={SECTION_LABEL}>Dashboard</p>
         <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Automations</h1>
@@ -413,54 +577,44 @@ export default function AutomationsPage() {
 
         {user && (
           <>
-            <Card className={`mt-8 ${CARD_CLASS}`}>
-              <CardHeader className="border-b border-white/10 pb-4">
-                <CardTitle className="text-base font-bold text-white">
-                  Company profile used for SAM.gov matching
-                </CardTitle>
-                <CardDescription className="text-zinc-400">
-                  Loaded from your linked gov profile before the workflow Lambda runs.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                {govProfileLoading && (
-                  <p className="text-sm text-zinc-500">Loading company profile…</p>
-                )}
-                {!govProfileLoading && govProfileError && (
-                  <p className="text-sm text-amber-300">{govProfileError}</p>
-                )}
-                {!govProfileLoading && !govProfileError && govProfile && (
-                  <>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
-                        <p className={LABEL_CLASS}>Company</p>
-                        <p className="mt-1 text-sm font-medium text-zinc-100">
-                          {govProfile.name || "Unnamed profile"}
-                        </p>
-                      </div>
-                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
-                        <p className={LABEL_CLASS}>Keywords</p>
-                        <p className="mt-1 text-sm text-zinc-300">
-                          {govProfileKeywords.length ? govProfileKeywords.join(", ") : "None"}
-                        </p>
-                      </div>
-                      <div className="border border-white/10 bg-[#0a0a0a] p-3">
-                        <p className={LABEL_CLASS}>NAICS</p>
-                        <p className="mt-1 text-sm text-zinc-300">
-                          {govProfileNaics.length ? govProfileNaics.join(", ") : "None"}
-                        </p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className={LABEL_CLASS}>Corporate overview passed to matching LLM</p>
-                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap border border-white/10 bg-[#050505] p-3 text-xs leading-relaxed text-zinc-300">
-                        {govProfileOverview || "No corporate overview saved."}
-                      </pre>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {showGovMatches && (
+              <Card className={`mt-8 ${CARD_CLASS}`}>
+                <CardHeader className="border-b border-white/10 pb-4">
+                  <CardTitle className="text-base font-bold text-white">
+                    Top contract matches
+                  </CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    The best contract opportunities, ranked by fit score.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-6">
+                  {govRunsLoading && (
+                    <p className="text-sm text-zinc-500">Loading top matches…</p>
+                  )}
+                  {!govRunsLoading && govRunsError && (
+                    <p className="text-sm text-amber-300">{govRunsError}</p>
+                  )}
+                  {!govRunsLoading && !govRunsError && govRuns.length === 0 && (
+                    <p className="text-sm text-zinc-500">
+                      No contract matches have been saved yet. Run the SAM.gov automation to
+                      populate this list.
+                    </p>
+                  )}
+                  {!govRunsLoading &&
+                    !govRunsError &&
+                    govRuns.map((run) => (
+                      <GovMatchCard
+                        key={run.id}
+                        run={run}
+                        expanded={expandedGovRunId === run.id}
+                        onToggle={() =>
+                          setExpandedGovRunId((current) => (current === run.id ? null : run.id))
+                        }
+                      />
+                    ))}
+                </CardContent>
+              </Card>
+            )}
 
             <Card className={`mt-8 ${CARD_CLASS}`}>
               <CardHeader className="border-b border-white/10 pb-4">
@@ -493,7 +647,7 @@ export default function AutomationsPage() {
                   />
                 </FilterField>
 
-                {createScenarioId !== "morphworks_sam_gov" && (
+                {createScenarioId !== GOV_MATCH_SCENARIO_ID && (
                   <AutomationParamFields
                     scenarioId={createScenarioId}
                     params={draftParams}
@@ -659,7 +813,7 @@ export default function AutomationsPage() {
                   {selected && editParams && (
                     <div className={`space-y-4 border-b pb-4 ${DIVIDER}`}>
                       <p className={SECTION_LABEL}>Edit automation</p>
-                      {selected.scenario_id !== "morphworks_sam_gov" && (
+                      {selected.scenario_id !== GOV_MATCH_SCENARIO_ID && (
                         <AutomationParamFields
                           scenarioId={selected.scenario_id}
                           params={editParams}
