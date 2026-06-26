@@ -303,28 +303,29 @@ export default function GovDashboardPage() {
     setError("")
     try {
       const body = { ...schedulePayload(schedule) }
-      const responses = await Promise.all(
-        automations.map(async (item) => {
-          const res = await fetch(`/api/automations/${item.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          })
-          const json = await res.json().catch(() => ({}))
-          return { res, json }
-        }),
-      )
-      const failed = responses.find(({ res }) => !res.ok)
-      if (failed) {
-        setError(failed.json.error || "Could not save the contract search schedule.")
+      const primary =
+        automations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || automations[0]
+      if (!primary) {
+        setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
         return
       }
-      const next = responses.map(({ json }) => json.automation).filter(Boolean)
-      if (next.length) {
-        setAutomations(next)
-        const primary = next.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || next[0]
-        setSchedule(scheduleStateFromAutomation(primary))
-        await refreshProgress(next)
+      const res = await fetch(`/api/automations/${primary.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error || "Could not save the contract search schedule.")
+        return
+      }
+      const nextPrimary = json.automation
+      if (nextPrimary) {
+        setAutomations((prev) =>
+          prev.map((item) => (item.id === nextPrimary.id ? nextPrimary : item)),
+        )
+        setSchedule(scheduleStateFromAutomation(nextPrimary))
+        await refreshProgress(automations.map((item) => (item.id === nextPrimary.id ? nextPrimary : item)))
       }
     } finally {
       setSaving(false)
@@ -342,7 +343,7 @@ export default function GovDashboardPage() {
       const res = await fetch("/api/gov-monitor/run", { method: "POST" })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(json.error || "Could not start the contract search runs.")
+        setError(json.error || "Could not start the contract search run.")
         return
       }
       const nextAutomations = json.automations || automations
@@ -350,11 +351,13 @@ export default function GovDashboardPage() {
         setAutomations(nextAutomations)
       }
       await refreshProgress(nextAutomations)
-      window.setTimeout(() => {
-        refreshProgress(nextAutomations).catch((err) => {
-          console.error("[gov-dashboard] delayed audit refresh failed", err)
-        })
-      }, 1500)
+      for (const delayMs of [1500, 4000, 8000]) {
+        window.setTimeout(() => {
+          refreshProgress(nextAutomations).catch((err) => {
+            console.error("[gov-dashboard] delayed audit refresh failed", err)
+          })
+        }, delayMs)
+      }
     } finally {
       setRunning(false)
     }
@@ -455,14 +458,16 @@ export default function GovDashboardPage() {
           <AutomationAuditSection
             ref={auditRef}
             user={user}
-            scenarioIds={GOV_MATCH_SCENARIO_IDS}
+            scenarioIds={[PRIMARY_GOV_SCENARIO_ID]}
             selectedAutomationIds={automationIds}
             selectedRunId={selectedRunId}
             title="Government contract execution audit"
             description="Status, validation notes, and session details for search runs."
             emptyMessage="No contract search executions yet. Run the monitor to see audit history here."
             onSelectRun={selectAuditRun}
-            onRefresh={() => refreshProgress(automationId)}
+            onRefresh={() => refreshProgress(automations)}
+            pollWhileRunning
+            autoExpandRunning
           />
         </>
       )}

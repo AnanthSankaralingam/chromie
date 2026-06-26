@@ -12,7 +12,7 @@ export async function getOwnedWorkflowRun(supabase, userId, automationId, runId)
 
   const { data: run, error } = await supabase
     .from("workflow_runs")
-    .select("id, status, browserbase_session_id, browserbase_debug_url")
+    .select("id, status, browserbase_session_id, browserbase_debug_url, evaluation")
     .eq("id", runId)
     .eq("automation_id", automationId)
     .single()

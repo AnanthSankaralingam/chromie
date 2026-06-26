@@ -7,7 +7,13 @@ import { useCallback, useEffect, useRef, useState } from "react"
  * - running → Live View URL from API (iframe)
  * - finished → HLS replay proxied through Chromie (video + hls.js)
  */
-export default function WorkflowSessionViewer({ automationId, runId, runStatus, poll = true }) {
+export default function WorkflowSessionViewer({
+  automationId,
+  runId,
+  runStatus,
+  sessionId,
+  poll = true,
+}) {
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
   const [mode, setMode] = useState(null)
@@ -18,7 +24,8 @@ export default function WorkflowSessionViewer({ automationId, runId, runStatus, 
 
   const loadSessionView = useCallback(async () => {
     if (!automationId || !runId) return
-    const res = await fetch(`/api/automations/${automationId}/runs/${runId}/session-view`)
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ""
+    const res = await fetch(`/api/automations/${automationId}/runs/${runId}/session-view${query}`)
     if (res.status === 202) {
       const json = await res.json().catch(() => ({}))
       setPending(true)
@@ -46,7 +53,7 @@ export default function WorkflowSessionViewer({ automationId, runId, runStatus, 
       setPlaylistUrl(json.playlistUrl)
       setLiveUrl(null)
     }
-  }, [automationId, runId])
+  }, [automationId, runId, sessionId])
 
   useEffect(() => {
     loadSessionView()

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import WorkflowSessionViewer from "@/components/ui/workflow-session-viewer"
 import {
+  browserSessionsForRun,
   embeddableBrowserbaseUrl,
   executionLogLines,
   formatDuration,
@@ -37,14 +38,78 @@ const SESSION_FRAME_CLASS =
   "w-full rounded-none border border-white/10 bg-black"
 const SESSION_FRAME_STYLE = { height: "min(50vh, 480px)" }
 
+const SCENARIO_DISPLAY_NAMES = {
+  morphworks_sam_gov: "Government contract monitor",
+  morphworks_sbir_tech_marketplace: "SBIR Tech Marketplace",
+}
+
+function runDisplayName(run) {
+  const sessions = browserSessionsForRun(run)
+  if (sessions.length > 1) {
+    return "Government contract monitor"
+  }
+  return SCENARIO_DISPLAY_NAMES[run.scenario_id] || run.automation_name || "Deleted automation"
+}
+
+function AuditSessionPanel({ run, session }) {
+  const directUrl = embeddableBrowserbaseUrl({
+    browserbase_debug_url: session.browserbase_debug_url,
+  })
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-mono uppercase tracking-wider text-zinc-500">{session.label || "Live session"}</p>
+      {directUrl ? (
+        <iframe
+          src={directUrl}
+          title={`${session.label || "Session"} — ${runDisplayName(run)}`}
+          className={SESSION_FRAME_CLASS}
+          style={SESSION_FRAME_STYLE}
+          sandbox="allow-same-origin allow-scripts"
+          allow="clipboard-read; clipboard-write"
+        />
+      ) : session.browserbase_session_id && run.automation_id ? (
+        <WorkflowSessionViewer
+          automationId={run.automation_id}
+          runId={run.id}
+          runStatus={run.status}
+          sessionId={session.browserbase_session_id}
+          poll={run.status === "running"}
+        />
+      ) : null}
+    </div>
+  )
+}
+
 function AuditSessionEmbed({ run }) {
-  const directUrl = embeddableBrowserbaseUrl(run)
+  const sessions = browserSessionsForRun(run)
+  if (sessions.length > 1) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {sessions.map((session) => (
+          <AuditSessionPanel
+            key={session.browserbase_session_id || session.label}
+            run={run}
+            session={session}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  const session = sessions[0]
+  if (!session) return null
+
+  const directUrl = embeddableBrowserbaseUrl({
+    browserbase_debug_url: session.browserbase_debug_url,
+    browserbase_session_id: session.browserbase_session_id,
+  })
 
   if (directUrl) {
     return (
       <iframe
         src={directUrl}
-        title={`Session replay — ${run.automation_name}`}
+        title={`Session replay — ${runDisplayName(run)}`}
         className={SESSION_FRAME_CLASS}
         style={SESSION_FRAME_STYLE}
         sandbox="allow-same-origin allow-scripts"
@@ -53,13 +118,14 @@ function AuditSessionEmbed({ run }) {
     )
   }
 
-  if (run.browserbase_session_id && run.automation_id) {
+  if (session.browserbase_session_id && run.automation_id) {
     return (
       <WorkflowSessionViewer
         automationId={run.automation_id}
         runId={run.id}
         runStatus={run.status}
-        poll={false}
+        sessionId={session.browserbase_session_id}
+        poll={run.status === "running"}
       />
     )
   }
@@ -70,7 +136,7 @@ function AuditSessionEmbed({ run }) {
 function AuditRunRow({ run, expanded, onToggle, onSelect, selected }) {
   const logs = executionLogLines(run)
   const tone = statusTone(run.status)
-  const hasSession = Boolean(run.browserbase_session_id || run.browserbase_debug_url)
+  const hasSession = browserSessionsForRun(run).length > 0
 
   return (
     <div
@@ -86,9 +152,9 @@ function AuditRunRow({ run, expanded, onToggle, onSelect, selected }) {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <div className="min-w-0">
-              <div className="font-medium text-zinc-100 truncate">{run.automation_name}</div>
+              <div className="font-medium text-zinc-100 truncate">{runDisplayName(run)}</div>
               <div className="text-xs text-zinc-500 truncate">
-                {run.scenario_id}
+                {SCENARIO_DISPLAY_NAMES[run.scenario_id] || run.scenario_id}
                 <span className={`ml-2 ${STATUS_CLASS[tone]}`}>{run.status}</span>
               </div>
             </div>
@@ -144,6 +210,8 @@ export default forwardRef(function AutomationAuditSection(
     emptyMessage = "No executions yet. Run an automation to see history here.",
     onSelectRun,
     onRefresh,
+    pollWhileRunning = true,
+    autoExpandRunning = true,
   },
   ref,
 ) {
@@ -174,6 +242,24 @@ export default forwardRef(function AutomationAuditSection(
     }
     loadAudit().finally(() => setLoading(false))
   }, [user, loadAudit])
+
+  useEffect(() => {
+    if (!autoExpandRunning) return
+    const running = runs.find((run) => run.status === "running")
+    if (running) {
+      setExpandedId(running.id)
+    }
+  }, [autoExpandRunning, runs])
+
+  useEffect(() => {
+    if (!pollWhileRunning || !user) return
+    const hasRunning = runs.some((run) => run.status === "running")
+    if (!hasRunning) return
+    const interval = window.setInterval(() => {
+      loadAudit()
+    }, 3000)
+    return () => window.clearInterval(interval)
+  }, [loadAudit, pollWhileRunning, runs, user])
 
   async function handleRefresh() {
     setRefreshing(true)

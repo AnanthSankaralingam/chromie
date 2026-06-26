@@ -21,6 +21,23 @@ export function embeddableBrowserbaseUrl(run) {
   return null
 }
 
+export function browserSessionsForRun(run) {
+  const sessions = run.evaluation?.browser_sessions
+  if (Array.isArray(sessions) && sessions.length > 0) {
+    return sessions.filter((session) => session?.browserbase_session_id)
+  }
+  if (run.browserbase_session_id) {
+    return [
+      {
+        label: "Live session",
+        browserbase_session_id: run.browserbase_session_id,
+        browserbase_debug_url: run.browserbase_debug_url,
+      },
+    ]
+  }
+  return []
+}
+
 export function statusTone(status) {
   if (status === "success") return "success"
   if (status === "failed") return "failed"
