@@ -214,10 +214,11 @@ export default function GovProfilePage() {
         <main className="mx-auto max-w-lg px-4 py-20 text-center">
           <h1 className="text-xl font-bold">Company profile unavailable</h1>
           <p className="mt-3 text-sm text-zinc-400">
-            Your account is not linked to a gov contractor profile. Contact Chromie to get access.
+            Your account is not linked to a government contractor profile yet. Set up your company
+            profile to unlock SAM.gov automation defaults.
           </p>
-          <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={() => router.push("/dashboard")}>
-            Back to dashboard
+          <Button className={`mt-6 ${BTN_OUTLINE}`} onClick={() => router.push("/gov/onboarding")}>
+            Set up company profile
           </Button>
         </main>
       </div>
@@ -232,7 +233,7 @@ export default function GovProfilePage() {
     <div className={APP_PAGE}>
       <FilmGrain />
       <AppBarDashboard />
-      <main className="relative z-[1] mx-auto max-h-[calc(100vh-3.5rem)] max-w-3xl overflow-y-auto px-4 py-10 sm:px-6">
+      <main className="relative z-[1] mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className={SECTION_LABEL}>Company profile</p>

@@ -93,12 +93,14 @@ end $$;
 -- Seed MorphWorks (idempotent by name).
 insert into public.gov_profiles (
   name,
+  company_domain,
   search_keywords,
   naics_codes,
   corporate_overview
 )
 select
   'MorphWorks',
+  'morphworks.ai',
   array[
     'IT modernization',
     'data integration',

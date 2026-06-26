@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "@/components/SessionProviderClient"
+import GovOnboardingPage from "@/components/pages/gov-onboarding-page"
 import GovProfilePage from "@/components/pages/gov-profile-page"
 import ProfilePage from "@/components/pages/profile-page"
 
@@ -43,6 +44,10 @@ export default function ProfileRouter() {
 
   if (govLinked) {
     return <GovProfilePage />
+  }
+
+  if (user) {
+    return <GovOnboardingPage />
   }
 
   return <ProfilePage />

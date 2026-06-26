@@ -1,0 +1,16 @@
+---
+description: Remove Next.js build cache after production builds
+alwaysApply: true
+---
+
+# Build Cache Cleanup
+
+Whenever you run `npm run build`, remove the `.next` cache afterward.
+
+Use:
+
+```sh
+rm -rf .next
+```
+
+Do this after build verification is complete so subsequent work starts from a clean Next.js cache.

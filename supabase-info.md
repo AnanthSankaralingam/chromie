@@ -2,7 +2,7 @@
 
 Project: `bxzxoixtutqpmqjkjvbh`
 
-Chromie is now an automation hub. The active schema centers on user profiles, workflow automations, workflow run history, and government-contracting profiles/results. The retired Chrome extension builder tables are documented in `sql/drop_extension_builder_artifacts.sql` as deletion candidates.
+Chromie is now an automation hub. The active schema centers on user profiles, workflow automations, workflow run history, workflow tool metadata, and government-contracting profiles/results. The retired Chrome extension builder tables are documented in `sql/drop_extension_builder_artifacts.sql`.
 
 ## Active Tables
 
@@ -103,6 +103,26 @@ Parameter metadata for scenario-specific automation forms.
 
 Used by `/api/workflow-editable-params` and `AutomationParamFields`.
 
+### `workflow_browser_contexts`
+
+Scenario-level Browserbase context metadata used by workflow execution infrastructure.
+
+| Column | Purpose |
+| --- | --- |
+| `scenario_id` | Primary key for a workflow scenario. |
+| `browserbase_context_id` | Browserbase context used for persisted browser state. |
+| `updated_at` | Audit timestamp. |
+
+### `chromie_tools`
+
+Workflow tool registry used by the production automation runner to locate scenario code in `chromie-dev/chromie-tools`.
+
+| Column Group | Purpose |
+| --- | --- |
+| Identity | `id`, `name`, `scenario_id`. |
+| GitHub source | `github_repo`, `github_path`, `github_ref`, `bundle_paths`. |
+| Timestamps | `created_at`, `updated_at`. |
+
 ### Billing And Account Tables
 
 These are retained for account/subscription infrastructure:
@@ -113,7 +133,8 @@ These are retained for account/subscription infrastructure:
 | `purchases` | Subscription ledger. Legacy `builder` values should be normalized to `pro` by `sql/drop_extension_builder_artifacts.sql`. |
 | `token_usage` | Retained usage/accounting row. Extension proxy columns are stale and should be dropped by the cleanup script. |
 | `global_feedback` | Product feedback submitted from the app. |
-| `waitlist` | Waitlist signups. |
+
+Note: the `/api/waitlist` route still targets `public.waitlist`, but the current Supabase project does not include that table.
 
 ## Active Storage
 
@@ -121,12 +142,12 @@ These are retained for account/subscription infrastructure:
 | --- | --- |
 | `gov-profile-rfps` | Past RFP PDFs attached to `gov_profiles.past_rfps`. |
 
-## Retired Builder Artifacts
+## Dropped Builder Artifacts
 
-The Chrome extension builder/codegen surface has been removed from the app code. Review `sql/drop_extension_builder_artifacts.sql` before running it to remove related database artifacts:
+The Chrome extension builder/codegen surface has been removed from the app code. `sql/drop_extension_builder_artifacts.sql` removes related database artifacts:
 
-- Tables: `projects`, `code_files`, `conversations`, `shared_links`, `shared_icons`, `featured_projects`, `project_assets`, `project_versions`, `metrics_events`, `metrics_aggregates`, `agent_file_operations`, `session_replays`, `project_collaborators`, `extension_templates`, `extension_project_metadata`, `scraper`, `scraper_misses`, `api_docs_cache`.
+- Tables: `projects`, `code_files`, `conversations`, `shared_links`, `shared_icons`, `featured_projects`, `project_assets`, `project_versions`, `project_databases`, `project_database_data`, `metrics_events`, `metrics_aggregates`, `cron_job_log`, `agent_file_operations`, `session_replays`, `project_collaborators`, `extension_templates`, `extension_project_metadata`, `extension_user_settings`, `scraper`, `scraper_misses`, `api_docs_cache`.
 - Functions: `create_project_version`, `get_next_version_number`, `add_conversation_message`, `generate_api_key`, `validate_api_key`, `metrics_dashboard`.
-- Stale columns: `profiles.project_count`, GitHub builder export columns, and `token_usage` extension-proxy counters.
+- Stale columns: `profiles.project_count`, `profiles.hyperbrowser_profile_id`, GitHub builder export columns, and `token_usage` extension-proxy counters.
 
-Do not apply the cleanup script to production without first confirming that no external service still writes to the retired tables.
+Billing tables are intentionally preserved for backwards compatibility.

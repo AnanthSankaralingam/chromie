@@ -1,9 +1,10 @@
 -- Cleanup script for the retired Chrome extension builder surface.
--- Review and run manually in Supabase SQL editor. This is intentionally not applied by the app.
+-- Review before running against production. This is intentionally not applied by the app.
 --
 -- Preserves:
 --   profiles, gov_profiles, gov_runs, automations, workflow_runs,
---   workflow_editable_params, billing, purchases, token_usage, global_feedback, waitlist.
+--   workflow_editable_params, workflow_browser_contexts, chromie_tools,
+--   billing, purchases, token_usage, global_feedback.
 
 begin;
 
@@ -21,14 +22,18 @@ drop table if exists public.agent_file_operations cascade;
 drop table if exists public.session_replays cascade;
 drop table if exists public.metrics_aggregates cascade;
 drop table if exists public.metrics_events cascade;
+drop table if exists public.cron_job_log cascade;
 drop table if exists public.project_versions cascade;
 drop table if exists public.project_assets cascade;
+drop table if exists public.project_database_data cascade;
+drop table if exists public.project_databases cascade;
 drop table if exists public.shared_links cascade;
 drop table if exists public.shared_icons cascade;
 drop table if exists public.featured_projects cascade;
 drop table if exists public.conversations cascade;
 drop table if exists public.code_files cascade;
 drop table if exists public.extension_project_metadata cascade;
+drop table if exists public.extension_user_settings cascade;
 drop table if exists public.extension_templates cascade;
 drop table if exists public.scraper_misses cascade;
 drop table if exists public.scraper cascade;
@@ -38,6 +43,7 @@ drop table if exists public.projects cascade;
 -- Remove stale profile fields that only served the extension builder account page.
 alter table if exists public.profiles
   drop column if exists project_count,
+  drop column if exists hyperbrowser_profile_id,
   drop column if exists github_access_token,
   drop column if exists github_username;
 

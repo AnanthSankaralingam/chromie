@@ -12,3 +12,8 @@ where company_domain is not null
 create unique index if not exists gov_profiles_company_domain_key
   on public.gov_profiles (lower(company_domain))
   where company_domain is not null;
+
+update public.gov_profiles
+set company_domain = 'morphworks.ai'
+where name = 'MorphWorks'
+  and company_domain is null;
