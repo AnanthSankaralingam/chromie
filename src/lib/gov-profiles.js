@@ -1,4 +1,7 @@
-import { defaultParamsForScenario } from "@/lib/workflow-automations"
+import {
+  defaultParamsForScenario,
+  GOV_PROFILE_SCENARIO_IDS,
+} from "@/lib/workflow-automations"
 
 export const GOV_PROFILE_RFP_BUCKET = "gov-profile-rfps"
 export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024
@@ -10,7 +13,7 @@ export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024
  */
 export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEmail = "") {
   const base = defaultParamsForScenario(scenarioId, userEmail)
-  if (!govProfile || scenarioId !== "morphworks_sam_gov") {
+  if (!govProfile || !GOV_PROFILE_SCENARIO_IDS.has(scenarioId)) {
     return base
   }
 

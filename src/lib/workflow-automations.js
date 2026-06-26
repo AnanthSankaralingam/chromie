@@ -4,8 +4,13 @@
 export const WORKFLOW_SCENARIOS = [
   {
     id: "morphworks_sam_gov",
-    label: "Contract opportunity search",
-    description: "Batch keyword searches across government contract sources and email contract matches.",
+    label: "SAM.gov opportunity search",
+    description: "Batch keyword searches on SAM.gov and email contract matches.",
+  },
+  {
+    id: "morphworks_sbir_tech_marketplace",
+    label: "SBIR Tech Marketplace search",
+    description: "Batch keyword searches on the SBIR Tech Marketplace and email contract matches.",
   },
   {
     id: "zillow_listing_alert",
@@ -19,6 +24,12 @@ export const DEFAULT_WORKFLOW_SCENARIO_ID = "morphworks_sam_gov"
 export const EMAIL_DELIVERY_SCENARIO_IDS = new Set([
   "zillow_listing_alert",
   "morphworks_sam_gov",
+  "morphworks_sbir_tech_marketplace",
+])
+
+export const GOV_PROFILE_SCENARIO_IDS = new Set([
+  "morphworks_sam_gov",
+  "morphworks_sbir_tech_marketplace",
 ])
 
 export const ZILLOW_DEFAULT_FILTERS = {
@@ -31,10 +42,19 @@ export const ZILLOW_DEFAULT_FILTERS = {
 }
 
 export function defaultParamsForScenario(scenarioId, userEmail = "") {
-  if (scenarioId === "morphworks_sam_gov") {
+  if (GOV_PROFILE_SCENARIO_IDS.has(scenarioId)) {
+    const isSbirMarketplace = scenarioId === "morphworks_sbir_tech_marketplace"
     return {
-      id: "morphworks_sam_gov",
+      id: scenarioId,
       sam_gov_base_url: "https://sam.gov",
+      ...(isSbirMarketplace
+        ? {
+            sbir_tech_marketplace_url:
+              "https://thesbirtechmarketplace.com/?view=marketplace",
+            sbir_tech_marketplace_status: ["Active"],
+            sbir_tech_marketplace_listing_types: ["Contract"],
+          }
+        : {}),
       customer_name: "MorphWorks",
       search_keywords: [
         "IT modernization",
@@ -43,12 +63,14 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
         "asset management",
       ],
       recipient_email: userEmail,
-      email_subject: "SAM.gov IT opportunities — MorphWorks ICP",
+      email_subject: isSbirMarketplace
+        ? "SBIR Tech Marketplace IT opportunities — MorphWorks ICP"
+        : "SAM.gov IT opportunities — MorphWorks ICP",
       corporate_overview_path: "scenarios/morphworks_sam_gov/corporate_overview.txt",
       max_email_opportunities: 3,
       min_opportunities: 3,
       max_keyword_searches: 4,
-      max_pages_per_keyword: 3,
+      ...(isSbirMarketplace ? {} : { max_pages_per_keyword: 3 }),
       require_signed_in: false,
     }
   }

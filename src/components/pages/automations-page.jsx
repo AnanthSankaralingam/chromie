@@ -31,12 +31,15 @@ import { formatDuration } from "@/lib/workflow-audit"
 import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
+  GOV_PROFILE_SCENARIO_IDS,
   WORKFLOW_SCENARIOS,
   ZILLOW_DEFAULT_FILTERS,
 } from "@/lib/workflow-automations"
 import { Play, Plus, RefreshCw, Save, Square, Trash2 } from "lucide-react"
 
-const GOV_MATCH_SCENARIO_ID = "morphworks_sam_gov"
+function isGovProfileScenario(scenarioId) {
+  return GOV_PROFILE_SCENARIO_IDS.has(scenarioId)
+}
 
 function FilterField({ label, children }) {
   return (
@@ -249,8 +252,8 @@ export default function AutomationsPage() {
     try {
       const scenario = WORKFLOW_SCENARIOS.find((s) => s.id === createScenarioId)
       const defaultName =
-        createScenarioId === GOV_MATCH_SCENARIO_ID
-          ? "Contract opportunity search"
+        isGovProfileScenario(createScenarioId)
+          ? scenario?.label || "Contract opportunity search"
           : `Zillow — ${draftParams.filters?.city || "search"}`
       const res = await fetch("/api/automations", {
         method: "POST",
@@ -417,7 +420,7 @@ export default function AutomationsPage() {
                   />
                 </FilterField>
 
-                {createScenarioId !== GOV_MATCH_SCENARIO_ID && (
+                {!isGovProfileScenario(createScenarioId) && (
                   <AutomationParamFields
                     scenarioId={createScenarioId}
                     params={draftParams}
@@ -583,7 +586,7 @@ export default function AutomationsPage() {
                   {selected && editParams && (
                     <div className={`space-y-4 border-b pb-4 ${DIVIDER}`}>
                       <p className={SECTION_LABEL}>Edit automation</p>
-                      {selected.scenario_id !== GOV_MATCH_SCENARIO_ID && (
+                      {!isGovProfileScenario(selected.scenario_id) && (
                         <AutomationParamFields
                           scenarioId={selected.scenario_id}
                           params={editParams}

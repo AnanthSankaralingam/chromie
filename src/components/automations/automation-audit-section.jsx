@@ -135,8 +135,10 @@ export default forwardRef(function AutomationAuditSection(
   {
     user,
     selectedAutomationId,
+    selectedAutomationIds,
     selectedRunId,
     scenarioId,
+    scenarioIds,
     title = "Recent executions",
     description = "Runs across all automations, with status and execution details.",
     emptyMessage = "No executions yet. Run an automation to see history here.",
@@ -154,12 +156,13 @@ export default forwardRef(function AutomationAuditSection(
     const res = await fetch("/api/automations/audit?limit=40")
     if (!res.ok) return []
     const json = await res.json()
-    const next = scenarioId
-      ? (json.runs || []).filter((run) => run.scenario_id === scenarioId)
+    const scenarioFilter = scenarioIds || (scenarioId ? [scenarioId] : null)
+    const next = scenarioFilter
+      ? (json.runs || []).filter((run) => scenarioFilter.includes(run.scenario_id))
       : json.runs || []
     setRuns(next)
     return next
-  }, [scenarioId])
+  }, [scenarioId, scenarioIds])
 
   useImperativeHandle(ref, () => ({ refresh: loadAudit }), [loadAudit])
 
@@ -219,7 +222,10 @@ export default forwardRef(function AutomationAuditSection(
             onToggle={() => setExpandedId((prev) => (prev === run.id ? null : run.id))}
             onSelect={onSelectRun}
             selected={
-              selectedAutomationId === run.automation_id && selectedRunId === run.id
+              selectedRunId === run.id &&
+              ((selectedAutomationIds || (selectedAutomationId ? [selectedAutomationId] : [])).includes(
+                run.automation_id,
+              ))
             }
           />
         ))}

@@ -17,7 +17,18 @@ import GovPageHeader from "@/components/ui/gov/gov-page-header"
 import GovPageShell from "@/components/ui/gov/gov-page-shell"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
 
-const GOV_MATCH_SCENARIO_ID = "morphworks_sam_gov"
+const GOV_WORKFLOW_SCENARIOS = [
+  {
+    id: "morphworks_sam_gov",
+    name: "SAM.gov opportunity search",
+  },
+  {
+    id: "morphworks_sbir_tech_marketplace",
+    name: "SBIR Tech Marketplace search",
+  },
+]
+const GOV_MATCH_SCENARIO_IDS = GOV_WORKFLOW_SCENARIOS.map((scenario) => scenario.id)
+const PRIMARY_GOV_SCENARIO_ID = "morphworks_sam_gov"
 
 const AutomationAuditSection = dynamic(
   () => import("@/components/automations/automation-audit-section"),
@@ -73,7 +84,7 @@ export default function GovDashboardPage() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [monitorLoading, setMonitorLoading] = useState(false)
   const [govProfileLinked, setGovProfileLinked] = useState(null)
-  const [automation, setAutomation] = useState(null)
+  const [automations, setAutomations] = useState([])
   const [schedule, setSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [runs, setRuns] = useState([])
   const [selectedRunId, setSelectedRunId] = useState(null)
@@ -84,18 +95,35 @@ export default function GovDashboardPage() {
   const [error, setError] = useState("")
 
   const activeRun = runs.find((run) => run.status === "running")
-  const automationId = automation?.id
+  const primaryAutomation =
+    automations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || automations[0] || null
+  const automationId = primaryAutomation?.id
+  const automationIds = useMemo(() => automations.map((item) => item.id).filter(Boolean), [automations])
+  const automationReady = automationIds.length === GOV_MATCH_SCENARIO_IDS.length
   const defaultSchedule = useMemo(() => scheduleStateFromAutomation(null), [])
 
-  const loadRuns = useCallback(async (id) => {
-    if (!id) {
+  const loadRuns = useCallback(async (items) => {
+    const list = Array.isArray(items) ? items.filter(Boolean) : items ? [items] : []
+    if (!list.length) {
       setRuns([])
       return []
     }
-    const res = await fetch(`/api/automations/${id}/runs`)
-    if (!res.ok) return []
-    const json = await res.json()
-    const next = json.runs || []
+    const results = await Promise.all(
+      list.map(async (item) => {
+        const automation = typeof item === "string" ? { id: item } : item
+        const res = await fetch(`/api/automations/${automation.id}/runs`)
+        if (!res.ok) return []
+        const json = await res.json()
+        return (json.runs || []).map((run) => ({
+          ...run,
+          automation_id: automation.id,
+          scenario_id: automation.scenario_id || run.scenario_id,
+        }))
+      }),
+    )
+    const next = results
+      .flat()
+      .sort((a, b) => new Date(b.started_at || 0).getTime() - new Date(a.started_at || 0).getTime())
     setRuns(next)
     if (next.length) {
       setSelectedRunId((prev) => (prev && next.some((run) => run.id === prev) ? prev : next[0].id))
@@ -104,26 +132,42 @@ export default function GovDashboardPage() {
   }, [])
 
   const loadDefaults = useCallback(async () => {
-    const res = await fetch(
-      `/api/automations/defaults?scenario_id=${encodeURIComponent(GOV_MATCH_SCENARIO_ID)}`,
+    const results = await Promise.all(
+      GOV_MATCH_SCENARIO_IDS.map(async (scenarioId) => {
+        const res = await fetch(
+          `/api/automations/defaults?scenario_id=${encodeURIComponent(scenarioId)}`,
+        )
+        if (res.status === 401) {
+          return { scenarioId, unauthorized: true }
+        }
+        if (!res.ok) {
+          return { scenarioId, json: null }
+        }
+        return { scenarioId, json: await res.json() }
+      }),
     )
-    if (res.status === 401) {
+    if (results.some((result) => result.unauthorized)) {
       setShowAuth(true)
       return null
     }
-    if (!res.ok) return null
-    const json = await res.json()
-    setGovProfileLinked(Boolean(json.gov_profile_id))
-    return json
+    const paramsByScenario = Object.fromEntries(
+      results
+        .filter((result) => result.json?.params)
+        .map((result) => [result.scenarioId, result.json.params]),
+    )
+    const govProfileId = results.find((result) => result.json?.gov_profile_id)?.json?.gov_profile_id
+    setGovProfileLinked(Boolean(govProfileId))
+    return { paramsByScenario, gov_profile_id: govProfileId || null }
   }, [])
 
-  const createBaseAutomation = useCallback(async (params) => {
+  const createBaseAutomation = useCallback(async (scenarioId, params) => {
+    const scenario = GOV_WORKFLOW_SCENARIOS.find((item) => item.id === scenarioId)
     const res = await fetch("/api/automations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Contract opportunity search",
-        scenario_id: GOV_MATCH_SCENARIO_ID,
+        name: scenario?.name || "Contract opportunity search",
+        scenario_id: scenarioId,
         params: params || undefined,
         ensure_singleton: true,
         ...schedulePayload(defaultSchedule),
@@ -155,22 +199,32 @@ export default function GovDashboardPage() {
       return null
     }
     const json = await res.json()
-    let govAutomation =
-      (json.automations || []).find((item) => item.scenario_id === GOV_MATCH_SCENARIO_ID) || null
+    const existing = json.automations || []
+    const paramsByScenario = params?.paramsByScenario || params || {}
+    const govAutomations = []
 
-    if (!govAutomation && createIfMissing) {
-      govAutomation = await createBaseAutomation(params)
+    for (const scenarioId of GOV_MATCH_SCENARIO_IDS) {
+      let govAutomation = existing.find((item) => item.scenario_id === scenarioId) || null
+      if (!govAutomation && createIfMissing) {
+        govAutomation = await createBaseAutomation(scenarioId, paramsByScenario[scenarioId])
+      }
+      if (govAutomation) {
+        govAutomations.push(govAutomation)
+      }
     }
 
-    setAutomation(govAutomation)
-    setSchedule(scheduleStateFromAutomation(govAutomation))
-    if (govAutomation?.id) {
-      await loadRuns(govAutomation.id)
+    setAutomations(govAutomations)
+    const primary = govAutomations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID)
+      || govAutomations[0]
+      || null
+    setSchedule(scheduleStateFromAutomation(primary))
+    if (govAutomations.length) {
+      await loadRuns(govAutomations)
     } else {
       setRuns([])
       setSelectedRunId(null)
     }
-    return govAutomation
+    return govAutomations
   }, [createBaseAutomation, loadRuns])
 
   useEffect(() => {
@@ -180,7 +234,7 @@ export default function GovDashboardPage() {
       setProfileLoading(false)
       setMonitorLoading(false)
       setGovProfileLinked(false)
-      setAutomation(null)
+      setAutomations([])
       setRuns([])
       return
     }
@@ -203,7 +257,7 @@ export default function GovDashboardPage() {
         setMonitorLoading(true)
         await loadAutomation({
           createIfMissing: true,
-          params: defaults?.params,
+          params: defaults,
         })
         if (!cancelled) setMonitorLoading(false)
       }
@@ -232,14 +286,14 @@ export default function GovDashboardPage() {
     return `Daily at ${times} (${schedule.scheduleTimezone})`
   }, [schedule])
 
-  async function refreshProgress(id = automationId) {
-    await (id ? loadRuns(id) : Promise.resolve([]))
+  async function refreshProgress(items = automations) {
+    await (items?.length ? loadRuns(items) : Promise.resolve([]))
     setAuditRefreshKey((key) => key + 1)
   }
 
   async function saveSchedule() {
     if (!govProfileLinked) return
-    if (!automationId) {
+    if (!automationReady) {
       setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
       return
     }
@@ -247,22 +301,28 @@ export default function GovDashboardPage() {
     setError("")
     try {
       const body = { ...schedulePayload(schedule) }
-      const res = await fetch(`/api/automations/${automationId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(json.error || "Could not save the contract search schedule.")
+      const responses = await Promise.all(
+        automations.map(async (item) => {
+          const res = await fetch(`/api/automations/${item.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })
+          const json = await res.json().catch(() => ({}))
+          return { res, json }
+        }),
+      )
+      const failed = responses.find(({ res }) => !res.ok)
+      if (failed) {
+        setError(failed.json.error || "Could not save the contract search schedule.")
         return
       }
-      const next = json.automation
-      if (next) {
-        setAutomation(next)
-        setSchedule(scheduleStateFromAutomation(next))
-        await refreshProgress(next.id)
+      const next = responses.map(({ json }) => json.automation).filter(Boolean)
+      if (next.length) {
+        setAutomations(next)
+        const primary = next.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || next[0]
+        setSchedule(scheduleStateFromAutomation(primary))
+        await refreshProgress(next)
       }
     } finally {
       setSaving(false)
@@ -270,31 +330,37 @@ export default function GovDashboardPage() {
   }
 
   async function runNow() {
-    if (!automationId) {
+    if (!automationReady) {
       setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
       return
     }
     setRunning(true)
     setError("")
     try {
-      const res = await fetch(`/api/automations/${automationId}/run`, { method: "POST" })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(json.error || "Could not start the contract search run.")
+      const responses = await Promise.all(
+        automations.map(async (item) => {
+          const res = await fetch(`/api/automations/${item.id}/run`, { method: "POST" })
+          const json = await res.json().catch(() => ({}))
+          return { res, json }
+        }),
+      )
+      const failed = responses.find(({ res }) => !res.ok)
+      if (failed) {
+        setError(failed.json.error || "Could not start one of the contract search runs.")
         return
       }
-      await refreshProgress(automationId)
+      await refreshProgress(automations)
     } finally {
       setRunning(false)
     }
   }
 
   async function stopActiveRun() {
-    if (!automationId || !activeRun) return
+    if (!activeRun?.automation_id) return
     setStopping(true)
     setError("")
     try {
-      const res = await fetch(`/api/automations/${automationId}/runs/${activeRun.id}/stop`, {
+      const res = await fetch(`/api/automations/${activeRun.automation_id}/runs/${activeRun.id}/stop`, {
         method: "POST",
       })
       const json = await res.json().catch(() => ({}))
@@ -302,15 +368,15 @@ export default function GovDashboardPage() {
         setError(json.error || "Could not stop the active run.")
         return
       }
-      await refreshProgress(automationId)
+      await refreshProgress(automations)
     } finally {
       setStopping(false)
     }
   }
 
   function selectAuditRun(run) {
-    if (run.automation_id === automationId) {
-      loadRuns(run.automation_id)
+    if (automationIds.includes(run.automation_id)) {
+      loadRuns(automations)
     }
     setSelectedRunId(run.id)
   }
@@ -370,7 +436,7 @@ export default function GovDashboardPage() {
               onScheduleChange={(patch) => setSchedule((prev) => applySchedulePatch(prev, patch))}
               onSave={saveSchedule}
               saving={saving}
-              automationId={automationId}
+              automationId={automationReady ? automationId : null}
               initializing={monitorLoading}
               onRunNow={runNow}
               running={running}
@@ -383,8 +449,8 @@ export default function GovDashboardPage() {
           <AutomationAuditSection
             key={auditRefreshKey}
             user={user}
-            scenarioId={GOV_MATCH_SCENARIO_ID}
-            selectedAutomationId={automationId}
+            scenarioIds={GOV_MATCH_SCENARIO_IDS}
+            selectedAutomationIds={automationIds}
             selectedRunId={selectedRunId}
             title="Government contract execution audit"
             description="Status, validation notes, and session details for search runs."
