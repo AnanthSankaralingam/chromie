@@ -60,12 +60,20 @@ export default function AppBarDashboard() {
         <div className="flex items-center gap-5 sm:gap-6">
           <nav className="hidden items-center gap-5 md:flex" aria-label="Dashboard">
             {govProfileLinked ? (
-              <Link
-                href="/profile"
-                className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
-              >
-                Company profile
-              </Link>
+              <>
+                <Link
+                  href="/gov"
+                  className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+                >
+                  Opportunities
+                </Link>
+                <Link
+                  href="/profile"
+                  className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+                >
+                  Company profile
+                </Link>
+              </>
             ) : null}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -102,13 +110,22 @@ export default function AppBarDashboard() {
         <nav className="border-t border-white/10 px-4 py-4 md:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-3">
             {govProfileLinked ? (
-              <Link
-                href="/profile"
-                onClick={() => setMobileOpen(false)}
-                className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
-              >
-                Company profile
-              </Link>
+              <>
+                <Link
+                  href="/gov"
+                  onClick={() => setMobileOpen(false)}
+                  className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+                >
+                  Opportunities
+                </Link>
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+                >
+                  Company profile
+                </Link>
+              </>
             ) : null}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
