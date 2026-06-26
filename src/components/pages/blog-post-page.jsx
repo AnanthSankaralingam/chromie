@@ -394,11 +394,11 @@ export default function BlogPostPage({ slug }) {
               <div className="bg-gradient-to-r from-gray-900/30 to-gray-900/30 border border-gray-500/30 rounded-xl p-8 mt-12">
                 <h3 className="text-2xl font-bold text-white mb-4">Try it out</h3>
                 <p className="text-gray-300 mb-6">
-                  Both features are live now. Build an extension, hit test, see what happens.
+                  Explore the automation hub and see how Chromie tracks repeatable browser work.
                 </p>
-                <Link href="/builder">
+                <Link href="/dashboard">
                   <button className="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-400 hover:from-gray-700 hover:to-gray-500 rounded-lg font-semibold transition-all duration-300 shadow-lg shadow-gray-500/50">
-                    Start Building
+                    Open dashboard
                   </button>
                 </Link>
               </div>

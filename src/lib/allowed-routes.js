@@ -1,16 +1,23 @@
 /** Page routes that remain publicly reachable (everything else redirects to `/`). */
 export const ALLOWED_PAGE_PATHS = new Set([
   "/",
-  "/use-cases",
-  "/dashboard",
   "/automations",
+  "/blog",
+  "/book-demo",
+  "/dashboard",
+  "/gov",
+  "/gov/onboarding",
   "/landing",
   "/profile",
-  "/gov",
+  "/privacy",
+  "/privacy-policy",
+  "/unsubscribe",
+  "/use-cases",
+  "/waitlist",
 ])
 
-/** Auth flows required for dashboard sign-in and the Chrome extension. */
-export const ALLOWED_PAGE_PREFIXES = ["/auth/callback", "/auth/extension/"]
+/** Auth flow required for dashboard sign-in. */
+export const ALLOWED_PAGE_PREFIXES = ["/auth/callback", "/blog/"]
 
 export function isAllowedPagePath(pathname) {
   if (ALLOWED_PAGE_PATHS.has(pathname)) return true

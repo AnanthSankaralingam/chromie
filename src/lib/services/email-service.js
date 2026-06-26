@@ -428,11 +428,11 @@ export class EmailService {
             <h1 class="greeting">hey ${firstName}! 👋</h1>
             
             <p class="intro-text">
-                welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of developers building amazing chrome extensions with ai.
+                welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of teams running reliable browser automations with ai.
             </p>
             
             <p class="intro-text">
-                chromie makes it effortless to create powerful chrome extensions without writing a single line of code. whether you're looking to automate tasks, integrate with your favorite tools, or build productivity solutions, chromie has you covered.
+                chromie helps you schedule, inspect, and improve browser workflows without stitching together brittle scripts. whether you're monitoring opportunities, extracting data, or operating repeated web tasks, chromie has you covered.
             </p>
             
             <div class="features-grid">
@@ -442,23 +442,18 @@ export class EmailService {
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-title">🔗 google workspace integration</div>
-                    <div class="feature-desc">connect seamlessly with gmail, drive, calendar, and all your favorite google services</div>
-                </div>
-                
-                <div class="feature-card">
                     <div class="feature-title">📊 data collection</div>
                     <div class="feature-desc">scrape and organize web data effortlessly with powerful extraction tools</div>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-title">🎨 custom dashboards</div>
-                    <div class="feature-desc">build personalized browser experiences tailored to your specific needs</div>
+                    <div class="feature-title">🧭 gov opportunity monitoring</div>
+                    <div class="feature-desc">track and review relevant contract opportunities from your contractor profile</div>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-title">🔌 api integrations</div>
-                    <div class="feature-desc">connect with any service or tool you use through our extensive api library</div>
+                    <div class="feature-title">🔁 workflow runs</div>
+                    <div class="feature-desc">review execution history, replays, and run status from one hub</div>
                 </div>
             </div>
             
@@ -471,9 +466,9 @@ export class EmailService {
             </p>
             
             <div class="cta-section">
-                <p class="cta-text">ready to build your first extension?</p>
+                <p class="cta-text">ready to run your first automation?</p>
                 <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'}" class="cta-button">
-                    start building →
+                    open chromie →
                 </a>
             </div>
             
@@ -506,28 +501,27 @@ export class EmailService {
         const firstName = userName.split(' ')[0] || 'there'
 
         return `
-chromie - chrome extensions in seconds
+chromie - reliable browser automations
 
 hey ${firstName}! 👋
 
-welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of developers building amazing chrome extensions with ai.
+welcome to chromie! this is ${senderName}, one of the founders. i'm excited you've joined our community of teams running reliable browser automations with ai.
 
-chromie makes it effortless to create powerful chrome extensions without writing a single line of code. whether you're looking to automate tasks, integrate with your favorite tools, or build productivity solutions, chromie has you covered.
+chromie helps you schedule, inspect, and improve browser workflows without stitching together brittle scripts. whether you're monitoring opportunities, extracting data, or operating repeated web tasks, chromie has you covered.
 
 ⚡ what you can build with chromie:
 
 • productivity tools - automate repetitive tasks and streamline your workflow with intelligent automation
-• google workspace integration - connect seamlessly with gmail, drive, calendar, and all your favorite google services  
 • data collection - scrape and organize web data effortlessly with powerful extraction tools
-• custom dashboards - build personalized browser experiences tailored to your specific needs
-• api integrations - connect with any service or tool you use 
+• gov opportunity monitoring - track and review relevant contract opportunities from your contractor profile
+• workflow runs - review execution history, replays, and run status from one hub
 
 we'd love to hear what you're planning to build! feel free to reach out if you have any questions or need help getting started.
 
 best,
 ${senderName}
 
-ready to build your first extension? visit: https://chromie.dev
+ready to run your first automation? visit: https://chromie.dev
 
 p.s. reply to this email with feedback and we'll send you free credits!
 

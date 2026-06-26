@@ -2,7 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 function resolvePostAuthPath(pathname) {
-  if (pathname === '/' || pathname === '/dashboard' || pathname === '/automations') {
+  if (
+    pathname === '/' ||
+    pathname === '/dashboard' ||
+    pathname === '/automations' ||
+    pathname === '/gov' ||
+    pathname === '/gov/onboarding' ||
+    pathname === '/profile'
+  ) {
     return pathname
   }
   return '/dashboard'
@@ -10,7 +17,7 @@ function resolvePostAuthPath(pathname) {
 
 /**
  * Server-side auth callback - exchanges OAuth code for session and sets cookies.
- * This is required so /api/projects and other server routes can read the session.
+ * This is required so server routes can read the session.
  * Without this, the session stays in localStorage only and the server gets 401.
  */
 export async function GET(request) {

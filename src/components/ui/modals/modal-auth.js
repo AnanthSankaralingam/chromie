@@ -6,11 +6,14 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/forms-and-input/input"
 import { useSession } from '@/components/SessionProviderClient'
 
 export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBackground }) {
-  const [loading, setLoading] = useState(false)
+  const [loadingMethod, setLoadingMethod] = useState(null)
   const [error, setError] = useState("")
+  const [email, setEmail] = useState("")
+  const [emailSent, setEmailSent] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const { supabase } = useSession()
 
@@ -48,29 +51,24 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
     }
   }, [isOpen])
 
+  const prepareAuthRedirect = () => {
+    const currentOrigin = window.location.origin
+    const finalRedirect = redirectUrl || '/dashboard'
+    const authCallbackUrl = `${currentOrigin}/auth/callback`
+
+    document.cookie = `auth_redirect_destination=${encodeURIComponent(finalRedirect)}; path=/; max-age=300; samesite=lax`
+    sessionStorage.setItem('auth_redirect_destination', finalRedirect)
+
+    return authCallbackUrl
+  }
+
   const handleGoogleAuth = async () => {
-    setLoading(true)
+    setLoadingMethod("google")
     setError("")
     
     try {
-      // Get the current origin for auth callback
-      const currentOrigin = window.location.origin
-      const finalRedirect = redirectUrl || '/dashboard'
-      
-      // Set up the OAuth redirect to go through our client-side auth callback page
-      // Use a simple URL without query params to avoid Supabase redirect URL mismatch
-      const authCallbackUrl = `${currentOrigin}/auth/callback`
-      
-      // Store the redirect destination in both cookie (for server callback) and sessionStorage (fallback)
-      document.cookie = `auth_redirect_destination=${encodeURIComponent(finalRedirect)}; path=/; max-age=300; samesite=lax`
-      sessionStorage.setItem('auth_redirect_destination', finalRedirect)
-      
-      // Check if there's a pending prompt and preserve it
-      const pendingPrompt = sessionStorage.getItem('pending_prompt')
-      if (pendingPrompt) {
-      }
-      
-      
+      const authCallbackUrl = prepareAuthRedirect()
+
       // Use Supabase's built-in OAuth flow
       // This will redirect to Google, then Google will redirect to our callback route
       const { error } = await supabase.auth.signInWithOAuth({
@@ -88,7 +86,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
       if (error) {
         console.error('❌ Supabase OAuth error:', error)
         setError(error.message)
-        setLoading(false)
+        setLoadingMethod(null)
       }
       // If successful, browser will redirect to Google OAuth
       // Then Google will redirect to Supabase callback
@@ -96,9 +94,49 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
     } catch (err) {
       console.error('❌ Exception in handleGoogleAuth:', err)
       setError("An unexpected error occurred. Please try again.")
-      setLoading(false)
+      setLoadingMethod(null)
     }
   }
+
+  const handleEmailAuth = async (event) => {
+    event.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setError("Enter your email address to continue.")
+      return
+    }
+
+    setLoadingMethod("email")
+    setError("")
+    setEmailSent(false)
+
+    try {
+      const authCallbackUrl = prepareAuthRedirect()
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: authCallbackUrl,
+          shouldCreateUser: true,
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+        setLoadingMethod(null)
+        return
+      }
+
+      console.log("[auth] magic link sent", normalizedEmail)
+      setEmailSent(true)
+    } catch (err) {
+      console.error("❌ Exception in handleEmailAuth:", err)
+      setError("Could not send a magic link. Please try again.")
+    } finally {
+      setLoadingMethod(null)
+    }
+  }
+
+  const loading = Boolean(loadingMethod)
 
   const blurredOverlayStyle = showBlurredBackground
     ? {
@@ -132,7 +170,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
           overlayStyle={blurredOverlayStyle}
         >
         <DialogTitle className="sr-only">Authentication</DialogTitle>
-        <div className="sr-only">Sign in or create an account to continue building Chrome extensions</div>
+        <div className="sr-only">Sign in or create an account to continue using Chromie automations</div>
         <div className="relative">
           <Card className="bg-transparent border-none shadow-none">
             <CardHeader className="text-center pb-6">
@@ -185,6 +223,38 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
                   {loading ? (isSignUp ? "Signing up..." : "Signing in...") : "Continue with Google"}
                 </span>
               </Button>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-700" />
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-500">or</span>
+                <div className="h-px flex-1 bg-slate-700" />
+              </div>
+
+              <form className="space-y-3" onSubmit={handleEmailAuth}>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    setEmailSent(false)
+                  }}
+                  placeholder="you@company.com"
+                  disabled={loading}
+                  className="border-slate-700 bg-slate-950/60 text-white placeholder:text-slate-500"
+                />
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-slate-700 text-white hover:bg-slate-600"
+                >
+                  {loadingMethod === "email" ? "Sending magic link..." : "Continue with email"}
+                </Button>
+                {emailSent ? (
+                  <p className="text-center text-sm text-emerald-300">
+                    Check your inbox for a secure sign-in link.
+                  </p>
+                ) : null}
+              </form>
 
               {/* <div className="text-center">
                 <p className="text-slate-400 text-sm">

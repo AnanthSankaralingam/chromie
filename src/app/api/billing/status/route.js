@@ -47,7 +47,7 @@ export async function GET() {
     const now = new Date()
     const activeSubscription = purchases.find(
       (p) =>
-        (p.plan === 'pro' || p.plan === 'builder') &&
+        p.plan === 'pro' &&
         subscriptionPurchaseEntitled(p, now)
     )
     if (activeSubscription) {

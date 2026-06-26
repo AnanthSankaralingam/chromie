@@ -1,1322 +1,154 @@
- "use client"
+"use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
-import { useSession } from '@/components/SessionProviderClient'
-import { useBillingPlan } from '@/components/BillingPlanProviderClient'
-import { useRouter, usePathname } from 'next/navigation'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useSession } from "@/components/SessionProviderClient"
+import AppBarDashboard from "@/components/ui/app-bars/app-bar-dashboard"
+import {
+  APP_PAGE,
+  BTN_OUTLINE,
+  BTN_PRIMARY,
+  CARD_CLASS,
+  SECTION_LABEL,
+} from "@/components/ui/app-dashboard-theme"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/forms-and-input/input"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/feedback/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, Edit, User, Mail, Calendar, CreditCard, Crown, Zap, ArrowUpRight, ExternalLink, Share, Copy, Check, X, Download, Eye, Clock, Upload, FileText, Shield } from "lucide-react"
-import AppBar from "@/components/ui/app-bars/app-bar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import PaywallModal from "@/components/ui/modals/modal-paywall"
-import { navigateToBuilderWithProject, cn } from "@/lib/utils"
-import React from "react"
-import TokenUsageDisplay from "@/components/ui/chat/token-usage-display"
-import BrowserUsageDisplay from "@/components/ui/chat/browser-usage-display"
-import { validateExtensionFiles, FILE_VALIDATION_LIMITS, ALLOWED_EXTENSIONS } from "@/lib/utils/file-validation"
-import { subscriptionPurchaseEntitled } from "@/lib/subscription-entitlement"
-import { BILLING_SUBSCRIBE } from "@/lib/constants"
+import { Calendar, LogOut, Mail, User } from "lucide-react"
+
+function userInitials(user) {
+  const fromName = user?.user_metadata?.name
+    ?.split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+
+  return fromName || user?.email?.[0]?.toUpperCase() || "U"
+}
+
+function formatDate(value) {
+  if (!value) return "Unknown"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Unknown"
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
 
 export default function ProfilePage() {
   const { user, supabase } = useSession()
   const router = useRouter()
-  const pathname = usePathname()
-  const [projects, setProjects] = useState([])
-  const {
-    billing,
-    purchases: billingPurchases,
-    isLoading: billingLoading,
-    refreshBilling,
-  } = useBillingPlan()
+  const [showAuth, setShowAuth] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
-  // BillingPlanProvider only refetches when auth user id changes; after Stripe checkout,
-  // client navigation to /profile would otherwise keep stale purchases from the first load.
-  useEffect(() => {
-    if (!user || pathname !== '/profile') return
-    refreshBilling()
-  }, [user, pathname, refreshBilling])
-
-  // After Stripe Customer Portal (cancel flow), refetch when user returns to this tab
-  useEffect(() => {
-    if (!user || pathname !== '/profile') return
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') refreshBilling()
-    }
-    window.addEventListener('focus', onVisible)
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      window.removeEventListener('focus', onVisible)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
-  }, [user, pathname, refreshBilling])
-
-  const billingForProfile = useMemo(() => {
-    const now = new Date()
-    const purchases = billingPurchases || []
-
-    const entitledSub = purchases.find(
-      (p) =>
-        (p.plan === 'pro' || p.plan === 'builder') &&
-        subscriptionPurchaseEntitled(p, now)
-    )
-
-    if (entitledSub) {
-      const cancelAtPeriodEnd =
-        entitledSub.status === 'canceled' &&
-        entitledSub.expires_at &&
-        new Date(entitledSub.expires_at) > now
-
-      let status = 'active'
-      if (entitledSub.status === 'past_due') status = 'past_due'
-      else if (cancelAtPeriodEnd) status = 'canceling'
-
-      return {
-        plan: entitledSub.plan,
-        status,
-        valid_until: entitledSub.expires_at,
-        cancelAtPeriodEnd: Boolean(cancelAtPeriodEnd),
-      }
-    }
-
-    if (billing) {
-      return {
-        plan: billing.plan,
-        status: billing.status,
-        valid_until: billing.valid_until,
-        cancelAtPeriodEnd: false,
-      }
-    }
-
-    return null
-  }, [billing, billingPurchases])
-  const [loading, setLoading] = useState(true)
-  const [editingProject, setEditingProject] = useState(null)
-  const [newProjectName, setNewProjectName] = useState("")
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [projectToDelete, setProjectToDelete] = useState(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false)
-  const [billingDialogOpen, setBillingDialogOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState(null)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [shares, setShares] = useState([])
-  const [sharesLoading, setSharesLoading] = useState(true)
-  const [copiedShareId, setCopiedShareId] = useState(null)
-  const [revokingShareId, setRevokingShareId] = useState(null)
-  const [isGithubChecking, setIsGithubChecking] = useState(true)
-  const [isGithubConnected, setIsGithubConnected] = useState(false)
-  const [githubUsername, setGithubUsername] = useState(null)
-  const [isImportingExtension, setIsImportingExtension] = useState(false)
-  const [isPaywallModalOpen, setIsPaywallModalOpen] = useState(false)
-  const importInputRef = useRef(null)
-  const [privacyPolicies, setPrivacyPolicies] = useState([])
-  const [privacyPoliciesLoading, setPrivacyPoliciesLoading] = useState(true)
-  const [copiedPolicyId, setCopiedPolicyId] = useState(null)
-  const [resetProfileDialogOpen, setResetProfileDialogOpen] = useState(false)
-  const [isResettingProfile, setIsResettingProfile] = useState(false)
-
-  // Helper function to get user initials
-  const getUserInitials = (user) => {
-    if (user?.user_metadata?.name) {
-      return user.user_metadata.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase()
-    }
-    return 'U'
-  }
-
-  // Fetch user's projects
-  const fetchProjects = async () => {
+  async function signOut() {
+    setSigningOut(true)
     try {
-      const response = await fetch('/api/projects')
-      if (response.ok) {
-        const data = await response.json()
-        setProjects(data.projects || [])
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error)
+      await supabase?.auth.signOut()
+      router.push("/")
     } finally {
-      setLoading(false)
-    }
-  }
-
-  // Fetch user's shares
-  const fetchShares = async () => {
-    try {
-      setSharesLoading(true)
-      const response = await fetch('/api/shares')
-      if (response.ok) {
-        const data = await response.json()
-        setShares(data.shares || [])
-      } else {
-        console.error('Failed to fetch shares')
-      }
-    } catch (error) {
-      console.error('Error fetching shares:', error)
-    } finally {
-      setSharesLoading(false)
-    }
-  }
-
-  // Fetch user's privacy policies
-  const fetchPrivacyPolicies = async () => {
-    try {
-      setPrivacyPoliciesLoading(true)
-      const response = await fetch('/api/privacy-policy')
-      if (response.ok) {
-        const data = await response.json()
-        // Filter projects to only those with privacy policies
-        const projectsWithPolicies = (data.projects || []).filter(
-          project => project.privacy_slug
-        )
-        setPrivacyPolicies(projectsWithPolicies)
-      } else {
-        console.error('Failed to fetch privacy policies')
-      }
-    } catch (error) {
-      console.error('Error fetching privacy policies:', error)
-    } finally {
-      setPrivacyPoliciesLoading(false)
-    }
-  }
-
-  // Fetch GitHub connection status
-  const fetchGithubStatus = async () => {
-    try {
-      setIsGithubChecking(true)
-      const response = await fetch('/api/github/status')
-      if (response.ok) {
-        const data = await response.json()
-        setIsGithubConnected(!!data.connected)
-        setGithubUsername(data.username || null)
-      } else {
-        console.error('Failed to fetch GitHub status')
-        setIsGithubConnected(false)
-      }
-    } catch (error) {
-      console.error('Error fetching GitHub status:', error)
-      setIsGithubConnected(false)
-    } finally {
-      setIsGithubChecking(false)
-    }
-  }
-
-  useEffect(() => {
-    if (user) {
-      fetchProjects()
-      fetchShares()
-      fetchGithubStatus()
-      fetchPrivacyPolicies()
-    }
-  }, [user])
-
-  // Handle project rename
-  const handleRenameProject = async (projectId, newName) => {
-    if (!newName.trim()) return
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newName }),
-      })
-
-      if (response.ok) {
-        // Update the project in local state immediately
-        setProjects(projects.map(project =>
-          project.id === projectId
-            ? { ...project, name: newName }
-            : project
-        ))
-        setEditingProject(null)
-        setNewProjectName("")
-      } else {
-        const errorData = await response.json()
-        console.error('Failed to rename project:', errorData.error)
-        alert('Failed to rename project. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error renaming project:', error)
-      alert('Error renaming project. Please try again.')
-    }
-  }
-
-  // Handle project deletion
-  const handleDeleteProject = async (projectId) => {
-    if (!projectId) return
-
-    setIsDeleting(true)
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        // Remove the project from the local state
-        setProjects(projects.filter(project => project.id !== projectId))
-        setDeleteDialogOpen(false)
-        setProjectToDelete(null)
-      } else {
-        const errorData = await response.json()
-        console.error('Failed to delete project:', errorData.error)
-        alert('Failed to delete project. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      alert('Error deleting project. Please try again.')
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  // Handle billing actions
-  const handleBillingAction = (action, plan = null) => {
-    if (action === 'upgrade') {
-      setSelectedPlan(plan)
-      setBillingDialogOpen(true)
-    } else if (action === 'cancel') {
-      // Redirect to Stripe customer portal
-      window.open('/api/billing/portal', '_blank')
-    } else if (action === 'manage') {
-      // Redirect to Stripe customer portal using environment variable
-      const manageBillingUrl = process.env.NEXT_PUBLIC_STRIPE_MANAGE_BILLING || '/api/billing/portal'
-      window.open(manageBillingUrl, '_blank')
-    }
-  }
-
-  // Handle account deletion
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true)
-    try {
-      // FIXME For now, we'll just sign out the user
-      // In a production app, you'd want to implement proper account deletion
-      // through a server-side API endpoint with admin privileges
-      await supabase.auth.signOut()
-
-      // Redirect to home page
-      window.location.href = '/'
-    } catch (error) {
-      console.error('Error during account deletion:', error)
-      // Fallback: sign out the user
-      await supabase.auth.signOut()
-      window.location.href = '/'
-    }
-  }
-
-  // Handle share link copy
-  const handleCopyShareLink = async (shareUrl, shareId) => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopiedShareId(shareId)
-      setTimeout(() => setCopiedShareId(null), 2000)
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err)
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea")
-      textArea.value = shareUrl
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textArea)
-      setCopiedShareId(shareId)
-      setTimeout(() => setCopiedShareId(null), 2000)
-    }
-  }
-
-  // Handle privacy policy link copy
-  const handleCopyPolicyLink = async (policyUrl, policyId) => {
-    try {
-      await navigator.clipboard.writeText(policyUrl)
-      setCopiedPolicyId(policyId)
-      setTimeout(() => setCopiedPolicyId(null), 2000)
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err)
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea")
-      textArea.value = policyUrl
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textArea)
-      setCopiedPolicyId(policyId)
-      setTimeout(() => setCopiedPolicyId(null), 2000)
-    }
-  }
-
-  // Handle browser profile reset
-  const handleResetBrowserProfile = async () => {
-    setIsResettingProfile(true)
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ hyperbrowser_profile_id: null })
-        .eq('id', user.id)
-
-      if (error) {
-        console.error('Failed to reset browser profile:', error)
-        alert('Failed to reset browser profile. Please try again.')
-        return
-      }
-
-      setResetProfileDialogOpen(false)
-    } catch (error) {
-      console.error('Error resetting browser profile:', error)
-      alert('Error resetting browser profile. Please try again.')
-    } finally {
-      setIsResettingProfile(false)
-    }
-  }
-
-  // Handle share revocation
-  const handleRevokeShare = async (projectId, shareId) => {
-    try {
-      setRevokingShareId(shareId)
-      const response = await fetch(`/api/projects/${projectId}/share`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        // Remove the share from local state
-        setShares(shares.filter(share => share.id !== shareId))
-      } else {
-        const errorData = await response.json()
-        console.error('Failed to revoke share:', errorData.error)
-        alert('Failed to revoke share. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error revoking share:', error)
-      alert('Error revoking share. Please try again.')
-    } finally {
-      setRevokingShareId(null)
-    }
-  }
-
-  // Format date
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  // Calculate time remaining until expiry
-  const getTimeRemaining = (expiryDate) => {
-    const now = new Date()
-    const expiry = new Date(expiryDate)
-    // Admin never-expire sentinel (see ADMIN_SHARE_EXPIRES_AT)
-    if (expiry.getFullYear() >= 2090) return 'Does not expire'
-    const diff = expiry - now
-
-    if (diff <= 0) return 'Expired'
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-
-    if (days > 0) {
-      return `Expires in ${days}d ${hours}h`
-    }
-    return `Expires in ${hours}h`
-  }
-
-  // Get plan display info
-  const getPlanInfo = (plan) => {
-    const plans = {
-      pro: {
-        name: 'Pro',
-        price: '$9.99/month',
-        color: 'bg-gray-500',
-        icon: Crown
-      },
-      builder: {
-        name: 'Builder',
-        price: '$14.99/month',
-        color: 'bg-green-500',
-        icon: Zap
-      }
-    }
-    return plans[plan] || { name: 'Free', price: '$0/month', color: 'bg-slate-700', icon: User }
-  }
-
-  const handleImportExtensionClick = () => {
-    if (!user) {
-      router.push('/')
-      return
-    }
-    if (!billingForProfile) {
-      setIsPaywallModalOpen(true)
-      return
-    }
-    if (importInputRef.current) {
-      importInputRef.current.value = ''
-      importInputRef.current.click()
-    }
-  }
-
-  const handleImportExtensionFilesSelected = async (event) => {
-    try {
-      const files = Array.from(event.target.files || [])
-      if (!files.length) {
-        return
-      }
-
-      // Validate files before proceeding
-      const validation = validateExtensionFiles(files)
-      if (!validation.valid) {
-        let errorMessage = validation.error
-        if (validation.invalidFiles && validation.invalidFiles.length > 0) {
-          const allowedExtsList = [
-            ...Array.from(ALLOWED_EXTENSIONS.code),
-            ...Array.from(ALLOWED_EXTENSIONS.images)
-          ].join(', ')
-          errorMessage += `\n\nInvalid files:\n${validation.invalidFiles.slice(0, 10).join('\n')}`
-          if (validation.invalidFiles.length > 10) {
-            errorMessage += `\n... and ${validation.invalidFiles.length - 10} more`
-          }
-          errorMessage += `\n\nAllowed file types: ${allowedExtsList}`
-        }
-        alert(errorMessage)
-        return
-      }
-
-      const defaultName = "Imported Extension"
-      const projectName = window.prompt(
-        "Name your imported extension project:",
-        defaultName
-      )
-
-      if (!projectName) {
-        return
-      }
-
-      setIsImportingExtension(true)
-
-      const formData = new FormData()
-      formData.append('projectName', projectName)
-
-      files.forEach((file) => {
-        const relativePath = file.webkitRelativePath || file.name
-        formData.append('files', file, relativePath)
-      })
-
-      const response = await fetch('/api/projects/import-extension', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        const message = data?.error || 'Failed to import extension'
-        alert(message)
-        return
-      }
-
-      const newProjectId = data?.project?.id
-      if (!newProjectId) {
-        alert('Extension imported but project ID was missing in the response.')
-        return
-      }
-
-      sessionStorage.setItem('chromie_current_project_id', newProjectId)
-      router.push(`/builder?project=${newProjectId}`)
-    } catch (error) {
-      alert(error?.message || 'Failed to import extension')
-    } finally {
-      setIsImportingExtension(false)
-      if (event?.target) {
-        event.target.value = ''
-      }
+      setSigningOut(false)
     }
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
-        {/* Static Background */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
-          <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
-        </div>
-
-        <AppBar />
-        <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
-          <div>
-            <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-              <CardContent className="p-6">
-                <div className="text-center text-white space-y-4">
-                  <h2 className="text-2xl font-bold">Welcome to Your Profile</h2>
-                  <p className="text-slate-300">Sign in to view and manage your projects, billing, and account settings.</p>
-                  <Button
-                    onClick={() => setAuthModalOpen(true)}
-                    className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
-                  >
-                    Sign In
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <AuthModal
-          isOpen={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          redirectUrl="/profile"
-        />
+      <div className={APP_PAGE}>
+        <FilmGrain />
+        <AppBarDashboard />
+        <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center px-4">
+          <Card className={CARD_CLASS}>
+            <CardHeader>
+              <CardTitle>Sign in to view your profile</CardTitle>
+              <CardDescription>
+                Your Chromie profile manages access to automations and saved workflow settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className={BTN_PRIMARY} onClick={() => setShowAuth(true)}>
+                Sign in
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <AuthModal open={showAuth} onOpenChange={setShowAuth} />
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#0F111A] to-[#0A0A0F] text-white relative overflow-hidden">
-      {/* Static Background */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-gray-600/10 rounded-full filter blur-[100px]" />
-        <div className="absolute top-1/3 right-1/4 w-[700px] h-[700px] bg-gray-600/10 rounded-full filter blur-[100px]" />
-      </div>
+  const displayName = user.user_metadata?.name || user.user_metadata?.full_name || "Chromie user"
 
-      <AppBar />
-      <div className="max-w-4xl mx-auto space-y-6 p-6 pt-8 relative z-10">
-        <input
-          ref={importInputRef}
-          type="file"
-          multiple
-          webkitdirectory="true"
-          style={{ display: 'none' }}
-          onChange={handleImportExtensionFilesSelected}
-        />
-        {/* User Profile Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-            <CardHeader>
-              <CardTitle className="text-white">
-                Profile Information
-              </CardTitle>
-            </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage
-                  src={user?.user_metadata?.picture}
-                  alt={user?.user_metadata?.name || user?.email}
-                />
-                <AvatarFallback className="bg-gray-600 text-white text-lg font-medium">
-                  {getUserInitials(user)}
+  return (
+    <div className={APP_PAGE}>
+      <FilmGrain />
+      <AppBarDashboard />
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <div className="mb-8">
+          <p className={SECTION_LABEL}>Profile</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Account settings</h1>
+          <p className="mt-3 max-w-2xl text-sm text-zinc-400">
+            Manage your Chromie account and jump back into your automation workflows.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+          <Card className={CARD_CLASS}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <Avatar className="h-14 w-14 border border-white/15">
+                <AvatarImage src={user.user_metadata?.picture} alt={displayName} />
+                <AvatarFallback className="bg-white text-base font-semibold text-black">
+                  {userInitials(user)}
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                  <span className="text-white">{user.email}</span>
-                </div>
-                {user.user_metadata?.name && (
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-slate-400" />
-                    <span className="text-white">{user.user_metadata.name}</span>
-                  </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-300 text-sm">
-                    Member since {formatDate(user.created_at)}
-                  </span>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-medium text-white">{displayName}</p>
+                <div className="mt-2 space-y-1 text-sm text-zinc-400">
+                  <p className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-zinc-600" />
+                    <span className="truncate">{user.email}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-zinc-600" />
+                    <span>Joined {formatDate(user.created_at)}</span>
+                  </p>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* GitHub connection status */}
-            <div className="mt-4 p-3 rounded-lg border border-slate-700/60 bg-slate-900/40 flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-white">GitHub integration</div>
-                {isGithubChecking ? (
-                  <div className="text-xs text-slate-400">Checking GitHub connection...</div>
-                ) : isGithubConnected ? (
-                  <div className="text-xs text-green-400">
-                    Connected{githubUsername ? ` as ${githubUsername}` : ''}. You can export projects directly to GitHub from the builder.
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-400">
-                    Not connected. Connect GitHub once to enable one-click export from the builder.
-                  </div>
-                )}
-              </div>
-              <Button
-                size="sm"
-                variant={isGithubConnected ? "outline" : "default"}
-                className={isGithubConnected
-                  ? "border-slate-600 text-slate-200 hover:text-white hover:bg-slate-800"
-                  : "bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 hover:from-slate-700 hover:via-slate-600 hover:to-slate-700"}
-                onClick={() => {
-                  window.location.href = '/api/github/login'
-                }}
-              >
-                {isGithubConnected ? 'Reconnect GitHub' : 'Connect GitHub'}
+          <Card className={CARD_CLASS}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User className="h-4 w-4 text-cyan-300" />
+                Workspace
+              </CardTitle>
+              <CardDescription>Open the core automation surfaces.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className={`w-full ${BTN_PRIMARY}`} onClick={() => router.push("/dashboard")}>
+                My automations
               </Button>
-            </div>
-          </CardContent>
-          </Card>
-        </div>
-
-        {/* Billing Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-            <CardHeader>
-              <CardTitle className="text-white">
-                Billing & Subscription
-              </CardTitle>
-            </CardHeader>
-          <CardContent>
-            {billingLoading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading billing information...</div>
-              </div>
-            ) : billingForProfile ? (
-              <div className="space-y-4">
-                {/* Current Plan */}
-                <div className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-2 rounded-lg ${getPlanInfo(billingForProfile.plan).color}`}>
-                      {React.createElement(getPlanInfo(billingForProfile.plan).icon, { className: "h-5 w-5 text-white" })}
-                    </div>
-                    <div>
-                      <h3 className="text-white font-medium">{getPlanInfo(billingForProfile.plan).name}</h3>
-                      <p className="text-slate-400 text-sm">
-                        {getPlanInfo(billingForProfile.plan).originalPrice ? (
-                          <>
-                            <span className="line-through">{getPlanInfo(billingForProfile.plan).originalPrice}</span>
-                            <span className="ml-1 text-amber-400">{getPlanInfo(billingForProfile.plan).price}</span>
-                            <span className="text-amber-500/80 text-xs ml-1">(sale)</span>
-                          </>
-                        ) : (
-                          getPlanInfo(billingForProfile.plan).price
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={`${
-                      billingForProfile.status === 'active'
-                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                        : billingForProfile.status === 'past_due'
-                          ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                          : billingForProfile.status === 'canceling'
-                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
-                            : 'bg-red-500/10 text-red-400 border-red-500/20'
-                    }`}
-                  >
-                    {billingForProfile.status === 'active'
-                      ? 'Active'
-                      : billingForProfile.status === 'past_due'
-                        ? 'Past Due'
-                        : billingForProfile.status === 'canceling'
-                          ? 'Cancel scheduled'
-                          : billingForProfile.status}
-                  </Badge>
-                </div>
-
-                {/* Billing Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Button
-                    onClick={() => handleBillingAction('manage')}
-                    variant="outline"
-                    className="border-gray-500/50 text-gray-400 hover:bg-gray-500/10 hover:border-gray-500"
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Manage Billing
-                  </Button>
-
-                  {billingForProfile.plan === 'pro' && !billingForProfile.cancelAtPeriodEnd && (
-                    <Button
-                      onClick={() => handleBillingAction('upgrade', 'builder')}
-                      className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300 text-white"
-                    >
-                      <ArrowUpRight className="h-4 w-4 mr-2" />
-                      Upgrade to Builder
-                    </Button>
-                  )}
-
-                  {(billingForProfile.plan === 'pro' || billingForProfile.plan === 'builder') && !billingForProfile.cancelAtPeriodEnd && (
-                    <Button
-                      onClick={() => handleBillingAction('cancel')}
-                      variant="outline"
-                      className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
-                    >
-                      Cancel Subscription
-                    </Button>
-                  )}
-                </div>
-
-                {/* Subscription Details */}
-                <div className="text-sm text-slate-400 space-y-1">
-                  {billingForProfile.cancelAtPeriodEnd ? (
-                    <p>
-                      Subscription canceled — you keep access until{' '}
-                      {formatDate(billingForProfile.valid_until)}. Use Manage Billing to
-                      resume if you change your mind.
-                    </p>
-                  ) : (
-                    <p>Valid until: {formatDate(billingForProfile.valid_until)}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-slate-300 mb-4">No active subscription found.</div>
-                <Button
-                  onClick={() => { window.location.href = BILLING_SUBSCRIBE.pro }}
-                  className="bg-gradient-to-r from-gray-600 via-gray-500 to-gray-400 hover:from-gray-500 hover:via-gray-400 hover:to-gray-300 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/40 transition-all duration-300"
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  Subscribe Now
-                </Button>
-              </div>
-            )}
-          </CardContent>
-          </Card>
-        </div>
-
-        {/* Usage Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-            <CardHeader>
-              <CardTitle className="text-white">
-                Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center py-4 space-x-8">
-                <TokenUsageDisplay />
-                <BrowserUsageDisplay />
-              </div>
+              <Button className={`w-full ${BTN_OUTLINE}`} onClick={() => router.push("/gov")}>
+                Gov opportunities
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Projects Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white">Your Projects</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleImportExtensionClick}
-                disabled={isImportingExtension}
-                title="Upload an existing Chrome extension"
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">
-                  {isImportingExtension ? 'Importing…' : 'Upload extension'}
-                </span>
-                <span className="sm:hidden">Upload</span>
-              </Button>
-            </div>
+        <Card className={`mt-4 ${CARD_CLASS}`}>
+          <CardHeader>
+            <CardTitle>Session</CardTitle>
+            <CardDescription>Sign out of this browser when you are finished.</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading projects...</div>
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-slate-300">No projects found. Create your first project in the builder!</div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                    <div className="flex-1">
-                      {editingProject === project.id ? (
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            value={newProjectName}
-                            onChange={(e) => setNewProjectName(e.target.value)}
-                            className="backdrop-blur-xl bg-slate-700/30 border-slate-600/40 text-white placeholder:text-slate-400"
-                            placeholder="Enter new project name"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameProject(project.id, newProjectName)
-                              }
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleRenameProject(project.id, newProjectName)}
-                            className="bg-gray-600 hover:bg-gray-700"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingProject(null)
-                              setNewProjectName("")
-                            }}
-                            className="text-slate-400 hover:text-white hover:bg-slate-800"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-3">
-                          <div>
-                            <h3 className="text-white font-medium">{project.name}</h3>
-                            {project.description && (
-                              <p className="text-slate-400 text-sm">{project.description}</p>
-                            )}
-                            <p className="text-slate-500 text-xs mt-1">
-                              Created {formatDate(project.created_at)}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="bg-gray-500/10 text-gray-400 border-gray-500/20">
-                            {project.archived ? 'Archived' : 'Active'}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                    {editingProject !== project.id && (
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingProject(project.id)
-                            setNewProjectName(project.name)
-                          }}
-                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                          title="Rename project"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => router.push(`/metrics?project=${project.id}`)}
-                          className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                          title="See Metrics for this project"
-                        >
-                          See Metrics
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigateToBuilderWithProject(project.id)}
-                          className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
-                          title="Edit project in builder"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setProjectToDelete(project)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          title="Delete project"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-          </Card>
-        </div>
-
-        {/* Shares Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Share className="h-5 w-5" />
-                  <span>Shared Extensions</span>
-                </div>
-                {shares.length > 0 && (
-                  <div className="text-sm font-normal text-slate-400">
-                    {shares.reduce((total, share) => total + (share.view_count || 0), 0)} total views
-                  </div>
-                )}
-              </CardTitle>
-            </CardHeader>
-          <CardContent>
-            {sharesLoading ? (
-              <div className="text-center py-8">
-                <div className="text-white">Loading shares...</div>
-              </div>
-            ) : shares.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-slate-300">No shared extensions yet. Share your projects from the builder!</div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {shares.map((share) => (
-                  <div key={share.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <h3 className="text-white font-medium">{share.project.name}</h3>
-                          {share.project.description && (
-                            <p className="text-slate-400 text-sm">{share.project.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 text-xs text-slate-500 mt-2">
-                            <span className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>Shared {formatDate(share.created_at)}</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <Eye className="h-3 w-3" />
-                              <span>{share.view_count || 0} views</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <Download className="h-3 w-3" />
-                              <span>{share.download_count || 0} downloads</span>
-                            </span>
-                          </div>
-                          {share.last_accessed_at && (
-                            <div className="flex items-center space-x-1 text-xs text-slate-600 mt-1">
-                              <Clock className="h-3 w-3" />
-                              <span>Last accessed {formatDate(share.last_accessed_at)}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end space-y-2">
-                          <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                            Active
-                          </Badge>
-                          {share.expires_at && (
-                            <span className="text-xs text-slate-500">
-                              {getTimeRemaining(share.expires_at)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleCopyShareLink(share.share_url, share.id)}
-                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
-                        title="Copy share link"
-                      >
-                        {copiedShareId === share.id ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => window.open(share.share_url, '_blank')}
-                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
-                        title="View share page"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRevokeShare(share.project.id, share.id)}
-                        disabled={revokingShareId === share.id}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        title="Revoke share link"
-                      >
-                        {revokingShareId === share.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-400 border-t-transparent"></div>
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-          </Card>
-        </div>
-
-        {/* Privacy Policies Section */}
-        <div>
-          <Card className="backdrop-blur-xl bg-slate-800/30 border-slate-700/40">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Privacy Policies</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {privacyPoliciesLoading ? (
-                <div className="text-center py-8">
-                  <div className="text-white">Loading privacy policies...</div>
-                </div>
-              ) : privacyPolicies.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-slate-300">No privacy policies yet. Create one from the builder!</div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {privacyPolicies.map((project) => {
-                    const policyUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/privacy-policy/${project.privacy_slug}`
-                    return (
-                      <div key={project.id} className="flex items-center justify-between p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                              <FileText className="h-4 w-4 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-white font-medium">{project.name} - Privacy Policy</h3>
-                              {project.description && (
-                                <p className="text-slate-400 text-sm">{project.description}</p>
-                              )}
-                              <div className="flex items-center space-x-4 text-xs text-slate-500 mt-1">
-                                {project.privacy_policy_last_updated && (
-                                  <span className="flex items-center space-x-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>Updated {formatDate(project.privacy_policy_last_updated)}</span>
-                                  </span>
-                                )}
-                              </div>
-                              <div className="mt-1 text-xs text-slate-400 font-mono truncate max-w-md">
-                                {policyUrl}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleCopyPolicyLink(policyUrl, project.id)}
-                            className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
-                            title="Copy policy link"
-                          >
-                            {copiedPolicyId === project.id ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => window.open(policyUrl, '_blank')}
-                            className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10"
-                            title="View privacy policy"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Reset Browser Profile & Sign Out Buttons */}
-        <div className="flex justify-center gap-4 pt-4">
-          <Dialog open={resetProfileDialogOpen} onOpenChange={setResetProfileDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-slate-500/50 text-slate-400 hover:bg-slate-500/10 hover:border-slate-500">
-                Reset my testing browser profile
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
-              <DialogHeader>
-                <DialogTitle className="text-white">Reset Testing Browser Profile</DialogTitle>
-                <DialogDescription asChild>
-                  <div className="text-slate-300 space-y-4 pt-2">
-                    <p>This will clear:</p>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-400">
-                      <li>Cookies and saved logins</li>
-                      <li>Authentication state from previous sessions</li>
-                      <li>Any cached extension data</li>
-                    </ul>
-                    <p className="text-sm text-slate-400">
-                      Recommended when building multiple extensions to prevent conflicts.
-                    </p>
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setResetProfileDialogOpen(false)}
-                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleResetBrowserProfile}
-                  disabled={isResettingProfile}
-                  className="bg-slate-600 hover:bg-slate-700 text-white"
-                >
-                  {isResettingProfile ? 'Resetting...' : 'Reset Profile'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500">
-                Sign Out
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
-              <DialogHeader>
-                <DialogTitle className="text-red-400">Sign Out</DialogTitle>
-                <DialogDescription className="text-slate-300">
-                  Are you sure you want to sign out?
-                  Your projects and data will remain safe and you can sign back in anytime.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setSignOutDialogOpen(false)}
-                  className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteAccount}
-                  disabled={isDeleting}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  {isDeleting ? 'Signing out...' : 'Sign Out'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Project Deletion Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
-            <DialogHeader>
-              <DialogTitle className="text-red-400">Delete Project</DialogTitle>
-              <DialogDescription className="text-slate-300">
-                {projectToDelete ? (
-                  <>
-                    Are you sure you want to delete <strong>"{projectToDelete.name}"</strong>?
-                    This action cannot be undone and will permanently remove the project and all its files.
-                  </>
-                ) : (
-                  "Are you sure you want to delete this project? This action cannot be undone."
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDeleteDialogOpen(false)
-                  setProjectToDelete(null)
-                }}
-                className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDeleteProject(projectToDelete?.id)}
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Project'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Billing Modal */}
-      <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-        <DialogContent className="backdrop-blur-xl bg-slate-800/90 border-slate-700/60">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {selectedPlan === 'pro' ? 'Upgrade to Pro' : selectedPlan === 'builder' ? 'Upgrade to Builder' : 'Choose a Plan'}
-            </DialogTitle>
-            <DialogDescription className="text-slate-300">
-              {selectedPlan === 'pro'
-                ? 'Upgrade to Pro for more features and higher limits.'
-                : selectedPlan === 'builder'
-                  ? 'Upgrade to Builder for the highest monthly limits.'
-                  : 'Select a plan that fits your needs.'
-              }
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {selectedPlan && (
-              <div className="p-4 bg-slate-700/20 rounded-lg border border-slate-600/30">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${getPlanInfo(selectedPlan).color}`}>
-                    {React.createElement(getPlanInfo(selectedPlan).icon, { className: "h-5 w-5 text-white" })}
-                  </div>
-                  <div>
-                    <h3 className="text-white font-medium">{getPlanInfo(selectedPlan).name}</h3>
-                    <p className="text-slate-400 text-sm">{getPlanInfo(selectedPlan).price}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBillingDialogOpen(false)}
-              className="border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800"
-            >
-              Cancel
+            <Button className={BTN_OUTLINE} onClick={signOut} disabled={signingOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {signingOut ? "Signing out..." : "Sign out"}
             </Button>
-            <Button
-              onClick={() => {
-                if (selectedPlan === 'pro') {
-                  window.location.href = BILLING_SUBSCRIBE.pro
-                } else if (selectedPlan === 'builder') {
-                  window.location.href = BILLING_SUBSCRIBE.builder
-                }
-                setBillingDialogOpen(false)
-              }}
-              className="bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 hover:from-purple-500 hover:via-purple-400 hover:to-blue-500 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 transition-all duration-300"
-            >
-              {selectedPlan === 'pro' || selectedPlan === 'builder' ? 'Upgrade Now' : 'Continue'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <PaywallModal
-        isOpen={isPaywallModalOpen}
-        onClose={() => setIsPaywallModalOpen(false)}
-        featureName="Uploading an extension"
-      />
+          </CardContent>
+        </Card>
+      </main>
     </div>
   )
 }

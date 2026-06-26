@@ -6,7 +6,6 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 
 const PRICE_BY_PLAN = {
   pro: process.env.STRIPE_PRICE_PRO,
-  builder: process.env.STRIPE_PRICE_BUILDER,
 }
 
 function appBaseUrl(request) {
@@ -31,13 +30,13 @@ export async function GET(request) {
   }
 
   const plan = request.nextUrl.searchParams.get('plan')
-  if (plan !== 'pro' && plan !== 'builder') {
+  if (plan !== 'pro') {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 
   const priceId = PRICE_BY_PLAN[plan]
   if (!priceId) {
-    console.error('[billing/subscribe] Missing STRIPE_PRICE_PRO or STRIPE_PRICE_BUILDER for plan:', plan)
+    console.error('[billing/subscribe] Missing STRIPE_PRICE_PRO for plan:', plan)
     return NextResponse.json({ error: 'Subscription pricing not configured' }, { status: 503 })
   }
 

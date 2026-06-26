@@ -1,13 +1,11 @@
 // llm-service.js
 // Unified LLM service that provides a consistent interface across different providers
 import { ProviderRegistry } from './provider-registry.js'
-import { ChatMessagesService } from './chat-messages-service.js'
 import { MODEL_SELECTION } from '@/lib/constants.js'
 
 export class LLMService {
   constructor() {
     this.providerRegistry = new ProviderRegistry()
-    this.chatMessages = new ChatMessagesService()
     
     // Define fallback provider hierarchy
     this.fallbackHierarchy = {
@@ -123,11 +121,7 @@ export class LLMService {
           continue
         }
 
-        // Get conversation history if session_id is provided
-        let conversation_history = []
-        if (session_id) {
-          conversation_history = await this.chatMessages.getHistory(session_id)
-        }
+        const conversation_history = []
 
         // Use provided model for primary provider, default model for fallbacks
         const modelToUse = currentProvider === provider 
@@ -145,18 +139,6 @@ export class LLMService {
           store,
           thinkingConfig
         })
-
-        // Store the response in conversation history if session_id is provided
-        if (session_id && store) {
-          await this.chatMessages.addMessage(session_id, {
-            role: 'user',
-            content: typeof input === 'string' ? input : JSON.stringify(input)
-          })
-          await this.chatMessages.addMessage(session_id, {
-            role: 'assistant',
-            content: response.output_text || response.choices?.[0]?.message?.content || ''
-          })
-        }
 
         // If we get here, the request succeeded
         if (currentProvider !== provider) {
@@ -225,11 +207,7 @@ export class LLMService {
           continue
         }
 
-        // Get conversation history if session_id is provided
-        let conversation_history = []
-        if (session_id) {
-          conversation_history = await this.chatMessages.getHistory(session_id)
-        }
+        const conversation_history = []
 
         // Use provided model for primary provider, default model for fallbacks
         const modelToUse = currentProvider === provider 
@@ -281,7 +259,7 @@ export class LLMService {
    * @returns {Array} Conversation history
    */
   getConversationHistory(session_id) {
-    return this.chatMessages.getHistory(session_id)
+    return []
   }
 
   /**
@@ -289,7 +267,7 @@ export class LLMService {
    * @param {string} session_id - Session ID
    */
   async clearConversationHistory(session_id) {
-    await this.chatMessages.clearHistory(session_id)
+    return undefined
   }
 
   /**

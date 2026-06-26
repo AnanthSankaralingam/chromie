@@ -4,18 +4,13 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Github, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useSession } from '@/components/SessionProviderClient'
 import { useState } from "react"
-import { useIsMobile } from "@/hooks"
-import { usePathname, useRouter } from "next/navigation"
 
 export default function AppBar() {
   const { user, supabase } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const isMobile = useIsMobile()
-  const pathname = usePathname()
-  const router = useRouter()
 
   // Helper function to get user initials
   const getUserInitials = (user) => {
@@ -28,71 +23,11 @@ export default function AppBar() {
     return 'U'
   }
 
-  // Handle "Featured creations" click - scroll if on home page, navigate otherwise
-  const handleFeaturedCreationsClick = (e) => {
-    e.preventDefault()
-    if (pathname === '/') {
-      const section = document.getElementById('featured-creations')
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' })
-      }
-    } else if (pathname === '/gallery') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      router.push('/gallery')
-    }
-  }
-
-  // Handle "Pricing" click - scroll if on home page, navigate otherwise
-  const handlePricingClick = (e) => {
-    e.preventDefault()
-    if (pathname === '/') {
-      // On home page - scroll to section
-      const section = document.getElementById('pricing')
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' })
-      }
-    } else {
-      // On other page - navigate to home page with hash
-      router.push('/#pricing')
-    }
-  }
-
-  // Handle "Blog" click - scroll if on home page, navigate otherwise
-  const handleBlogClick = (e) => {
-    e.preventDefault()
-    if (pathname === '/') {
-      // On home page - scroll to section
-      const section = document.getElementById('blog')
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' })
-      }
-    } else {
-      // On other page - navigate to home page with hash
-      router.push('/#blog')
-    }
-  }
-
-  // Handle "Contact" click - scroll if on home page, navigate otherwise
-  const handleContactClick = (e) => {
-    e.preventDefault()
-    if (pathname === '/') {
-      // On home page - scroll to section
-      const section = document.getElementById('contact')
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' })
-      }
-    } else {
-      // On other page - navigate to home page with hash
-      router.push('/#contact')
-    }
-  }
-
-  // Handle "Get Started" - directly trigger Google OAuth, redirect back to home
+  // Handle "Get Started" - directly trigger Google OAuth, redirect to the dashboard.
   const handleGetStarted = async () => {
     const currentOrigin = window.location.origin
-    document.cookie = `auth_redirect_destination=${encodeURIComponent('/')}; path=/; max-age=300; samesite=lax`
-    sessionStorage.setItem('auth_redirect_destination', '/')
+    document.cookie = `auth_redirect_destination=${encodeURIComponent('/dashboard')}; path=/; max-age=300; samesite=lax`
+    sessionStorage.setItem('auth_redirect_destination', '/dashboard')
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -116,34 +51,15 @@ export default function AppBar() {
 
           <div className="flex items-center gap-4">
             <nav className="hidden md:flex items-center space-x-6">
-              <a
-                href="#featured-creations"
-                onClick={handleFeaturedCreationsClick}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
-              >
-                gallery
-              </a>
-              <a
-                href="#pricing"
-                onClick={handlePricingClick}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
-              >
-                pricing
-              </a>
-              <a
-                href="#blog"
-                onClick={handleBlogClick}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
-              >
+              <Link href="/use-cases" className="text-zinc-400 hover:text-white transition-colors text-sm">
+                use cases
+              </Link>
+              <Link href="/blog" className="text-zinc-400 hover:text-white transition-colors text-sm">
                 blog
-              </a>
-              <a
-                href="#contact"
-                onClick={handleContactClick}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
-              >
-                contact
-              </a>
+              </Link>
+              <Link href="/book-demo" className="text-zinc-400 hover:text-white transition-colors text-sm">
+                book demo
+              </Link>
             </nav>
 
             <div className="flex items-center space-x-3">
@@ -181,46 +97,27 @@ export default function AppBar() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-white/[0.06] mt-3 pt-3 px-2">
             <div className="flex flex-col space-y-3">
-              <a
-                href="#featured-creations"
-                onClick={(e) => {
-                  handleFeaturedCreationsClick(e)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
+              <Link
+                href="/use-cases"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-400 hover:text-white transition-colors text-sm"
               >
-                gallery
-              </a>
-              <a
-                href="#pricing"
-                onClick={(e) => {
-                  handlePricingClick(e)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
-              >
-                pricing
-              </a>
-              <a
-                href="#blog"
-                onClick={(e) => {
-                  handleBlogClick(e)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
+                use cases
+              </Link>
+              <Link
+                href="/blog"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-400 hover:text-white transition-colors text-sm"
               >
                 blog
-              </a>
-              <a
-                href="#contact"
-                onClick={(e) => {
-                  handleContactClick(e)
-                  setIsMobileMenuOpen(false)
-                }}
-                className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-sm"
+              </Link>
+              <Link
+                href="/book-demo"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-400 hover:text-white transition-colors text-sm"
               >
-                contact
-              </a>
+                book demo
+              </Link>
               {!user && (
                 <Button
                   className="bg-transparent border border-white/20 text-white hover:bg-white/5 hover:border-white/30 transition-all"
