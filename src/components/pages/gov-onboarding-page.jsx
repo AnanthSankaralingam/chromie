@@ -14,19 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/forms-and-input/input"
 import { ArrowRight, Building2 } from "lucide-react"
 
-const PERSONAL_EMAIL_DOMAINS = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "hotmail.com",
-  "icloud.com",
-  "live.com",
-  "me.com",
-  "outlook.com",
-  "proton.me",
-  "protonmail.com",
-  "yahoo.com",
-])
-
 function normalizeDomain(value) {
   const raw = String(value || "").trim().toLowerCase()
   if (!raw) return ""
@@ -57,7 +44,6 @@ export default function GovOnboardingPage() {
   })
 
   const emailDomain = useMemo(() => domainFromEmail(user?.email), [user?.email])
-  const likelyPersonalEmail = emailDomain ? PERSONAL_EMAIL_DOMAINS.has(emailDomain) : false
 
   useEffect(() => {
     if (sessionLoading) return
@@ -65,10 +51,10 @@ export default function GovOnboardingPage() {
       setShowAuth(true)
       return
     }
-    if (emailDomain && !likelyPersonalEmail) {
+    if (emailDomain) {
       setForm((prev) => (prev.company_domain ? prev : { ...prev, company_domain: emailDomain }))
     }
-  }, [emailDomain, likelyPersonalEmail, sessionLoading, user])
+  }, [emailDomain, sessionLoading, user])
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -150,13 +136,6 @@ export default function GovOnboardingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
-              {likelyPersonalEmail ? (
-                <GovAlertBanner variant="warning">
-                  You are signed in with a personal email domain. Only env-allowlisted admin/test
-                  emails can continue by entering a target company domain.
-                </GovAlertBanner>
-              ) : null}
-
               {error ? <GovAlertBanner>{error}</GovAlertBanner> : null}
 
               <GovField label="Company name">
@@ -171,11 +150,7 @@ export default function GovOnboardingPage() {
 
               <GovField
                 label="Company domain"
-                hint={
-                  likelyPersonalEmail
-                    ? "Allowlisted admins can enter the target customer domain, like morphworks.ai."
-                    : `This should match your work email domain (${emailDomain || "company.com"}).`
-                }
+                hint="Teammates with the same domain are linked to this shared company profile."
               >
                 <Input
                   value={form.company_domain}

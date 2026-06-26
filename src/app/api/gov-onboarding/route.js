@@ -3,21 +3,6 @@ import { withAuth } from "@/lib/api/with-auth"
 import { parseTextList } from "@/lib/gov-profiles"
 import { createServiceClient } from "@/lib/supabase/service"
 
-const PERSONAL_EMAIL_DOMAINS = new Set([
-  "aol.com",
-  "gmail.com",
-  "googlemail.com",
-  "hotmail.com",
-  "icloud.com",
-  "live.com",
-  "me.com",
-  "msn.com",
-  "outlook.com",
-  "proton.me",
-  "protonmail.com",
-  "yahoo.com",
-])
-
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase()
 }
@@ -51,15 +36,6 @@ function isValidDomain(domain) {
 
 function isEmailVerified(user) {
   return Boolean(user?.email && (user.email_confirmed_at || user.confirmed_at))
-}
-
-function getAllowlistedEmails() {
-  return new Set(
-    String(process.env.GOV_ONBOARDING_ADMIN_EMAILS || "")
-      .split(",")
-      .map(normalizeEmail)
-      .filter(Boolean),
-  )
 }
 
 function getProvider(user) {
@@ -127,38 +103,14 @@ export const POST = withAuth(async ({ request, user }) => {
     const body = await request.json()
     const userEmail = normalizeEmail(user.email)
     const emailDomain = domainFromEmail(userEmail)
-    const allowlistedEmails = getAllowlistedEmails()
-    const isAllowlisted = allowlistedEmails.has(userEmail)
     const submittedDomain = normalizeDomain(body.company_domain || body.company_website)
-    const companyDomain = isAllowlisted ? submittedDomain : emailDomain
+    const companyDomain = submittedDomain || emailDomain
 
     if (!companyDomain || !isValidDomain(companyDomain)) {
       return NextResponse.json(
         { error: "Enter a valid company domain to continue." },
         { status: 400 },
       )
-    }
-
-    if (PERSONAL_EMAIL_DOMAINS.has(companyDomain)) {
-      return NextResponse.json(
-        { error: "Please use a company domain, not a personal email domain." },
-        { status: 400 },
-      )
-    }
-
-    if (!isAllowlisted) {
-      if (!emailDomain || PERSONAL_EMAIL_DOMAINS.has(emailDomain)) {
-        return NextResponse.json(
-          { error: "Please sign up with your work email to set up government onboarding." },
-          { status: 400 },
-        )
-      }
-      if (submittedDomain && submittedDomain !== emailDomain) {
-        return NextResponse.json(
-          { error: `Your company domain must match your work email domain (${emailDomain}).` },
-          { status: 400 },
-        )
-      }
     }
 
     const companyName = String(body.name || body.company_name || "").trim()
@@ -201,7 +153,6 @@ export const POST = withAuth(async ({ request, user }) => {
       return NextResponse.json({
         gov_profile: linkedGovProfile,
         already_linked: true,
-        allowlisted: isAllowlisted,
       })
     }
 
@@ -279,7 +230,6 @@ export const POST = withAuth(async ({ request, user }) => {
     return NextResponse.json({
       gov_profile: govProfile,
       linked_existing: linkedExisting,
-      allowlisted: isAllowlisted,
     })
   } catch (err) {
     console.error("[gov-onboarding POST]", err)
