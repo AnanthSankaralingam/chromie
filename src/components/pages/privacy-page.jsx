@@ -15,16 +15,16 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="text-slate-400 mb-8 text-center max-w-xl mx-auto">
-            We respect your privacy and the intellectual property you create using our platform.
+            We respect your privacy and the operational data you manage in Chromie.
           </p>
 
           <div className="border-l-2 border-slate-600/60 bg-slate-800/40 rounded-r-xl p-6 mb-8">
             <h2 className="text-lg font-semibold text-slate-50 mb-3">
-              Your Code is Protected
+              Your Workflow Data is Protected
             </h2>
             <p className="text-slate-300">
-              <strong className="text-slate-50">We will never sell, share, or misuse the code you create using Chromie.</strong>{' '}
-              Your creations remain your intellectual property, and we are committed to protecting your privacy.
+              <strong className="text-slate-50">We will never sell, share, or misuse the data you manage using Chromie.</strong>{' '}
+              Your automations, profiles, and run history are handled with care.
             </p>
           </div>
 
@@ -33,7 +33,7 @@ export default function PrivacyPolicyPage() {
           </h2>
           <ul className="list-disc pl-6 mb-8 text-slate-400 space-y-1">
             <li>Account information (email, name) for authentication</li>
-            <li>Usage data to improve our service</li>
+            <li>Automation and workflow usage data to improve our service</li>
             <li>Payment information (processed securely by our payment providers)</li>
           </ul>
 
@@ -42,9 +42,8 @@ export default function PrivacyPolicyPage() {
           </h2>
           <ul className="list-disc pl-6 mb-8 text-slate-400 space-y-1">
             <li>We do not sell your personal information</li>
-            <li>We do not access, read, or analyze your code content</li>
-            <li>We do not share your code with third parties</li>
-            <li>We do not use your code for training AI models</li>
+            <li>We do not share your workflow data with third parties except to operate requested services</li>
+            <li>We do not use your workflow data for training AI models</li>
           </ul>
 
           <h2 className="text-xl font-semibold text-slate-50 mb-3">
@@ -56,7 +55,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="border-l-2 border-slate-600/60 bg-slate-800/40 rounded-r-xl p-6">
             <p className="text-slate-300">
-              Your trust is important to us. We&apos;re committed to transparency and protecting your privacy while you build amazing Chrome extensions with Chromie.
+              Your trust is important to us. We&apos;re committed to transparency and protecting your privacy while you run automations with Chromie.
             </p>
           </div>
 

@@ -1,0 +1,291 @@
+import { NextResponse } from "next/server"
+import { withAuth } from "@/lib/api/with-auth"
+import { parseTextList } from "@/lib/gov-profiles"
+import { createServiceClient } from "@/lib/supabase/service"
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "aol.com",
+  "gmail.com",
+  "googlemail.com",
+  "hotmail.com",
+  "icloud.com",
+  "live.com",
+  "me.com",
+  "msn.com",
+  "outlook.com",
+  "proton.me",
+  "protonmail.com",
+  "yahoo.com",
+])
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase()
+}
+
+function domainFromEmail(email) {
+  const [, domain = ""] = normalizeEmail(email).split("@")
+  return normalizeDomain(domain)
+}
+
+function normalizeDomain(value) {
+  const raw = String(value || "").trim().toLowerCase()
+  if (!raw) return ""
+
+  try {
+    const withProtocol = raw.includes("://") ? raw : `https://${raw}`
+    const hostname = new URL(withProtocol).hostname
+    return hostname.replace(/^www\./, "")
+  } catch {
+    return raw
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+      .split(":")[0]
+      .trim()
+  }
+}
+
+function isValidDomain(domain) {
+  return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(domain)
+}
+
+function isEmailVerified(user) {
+  return Boolean(user?.email && (user.email_confirmed_at || user.confirmed_at))
+}
+
+function getAllowlistedEmails() {
+  return new Set(
+    String(process.env.GOV_ONBOARDING_ADMIN_EMAILS || "")
+      .split(",")
+      .map(normalizeEmail)
+      .filter(Boolean),
+  )
+}
+
+function getProvider(user) {
+  return (
+    user?.app_metadata?.provider ||
+    user?.identities?.[0]?.provider ||
+    "email"
+  )
+}
+
+function getDisplayName(user, fallbackEmail) {
+  return (
+    user?.user_metadata?.name ||
+    user?.user_metadata?.full_name ||
+    fallbackEmail.split("@")[0] ||
+    fallbackEmail
+  )
+}
+
+function buildBlankFieldPatch(existingProfile, submitted) {
+  const patch = {}
+  if (!existingProfile.name && submitted.name) {
+    patch.name = submitted.name
+  }
+  if (
+    (!Array.isArray(existingProfile.search_keywords) || existingProfile.search_keywords.length === 0) &&
+    submitted.search_keywords.length > 0
+  ) {
+    patch.search_keywords = submitted.search_keywords
+  }
+  if (
+    (!Array.isArray(existingProfile.naics_codes) || existingProfile.naics_codes.length === 0) &&
+    submitted.naics_codes.length > 0
+  ) {
+    patch.naics_codes = submitted.naics_codes
+  }
+  if (!String(existingProfile.corporate_overview || "").trim() && submitted.corporate_overview) {
+    patch.corporate_overview = submitted.corporate_overview
+  }
+  return patch
+}
+
+async function findGovProfileByDomain(service, domain) {
+  const { data, error } = await service
+    .from("gov_profiles")
+    .select("*")
+    .eq("company_domain", domain)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+  return data
+}
+
+export const POST = withAuth(async ({ request, user }) => {
+  try {
+    if (!isEmailVerified(user)) {
+      return NextResponse.json(
+        { error: "Please verify your email before setting up government onboarding." },
+        { status: 400 },
+      )
+    }
+
+    const body = await request.json()
+    const userEmail = normalizeEmail(user.email)
+    const emailDomain = domainFromEmail(userEmail)
+    const allowlistedEmails = getAllowlistedEmails()
+    const isAllowlisted = allowlistedEmails.has(userEmail)
+    const submittedDomain = normalizeDomain(body.company_domain || body.company_website)
+    const companyDomain = isAllowlisted ? submittedDomain : emailDomain
+
+    if (!companyDomain || !isValidDomain(companyDomain)) {
+      return NextResponse.json(
+        { error: "Enter a valid company domain to continue." },
+        { status: 400 },
+      )
+    }
+
+    if (PERSONAL_EMAIL_DOMAINS.has(companyDomain)) {
+      return NextResponse.json(
+        { error: "Please use a company domain, not a personal email domain." },
+        { status: 400 },
+      )
+    }
+
+    if (!isAllowlisted) {
+      if (!emailDomain || PERSONAL_EMAIL_DOMAINS.has(emailDomain)) {
+        return NextResponse.json(
+          { error: "Please sign up with your work email to set up government onboarding." },
+          { status: 400 },
+        )
+      }
+      if (submittedDomain && submittedDomain !== emailDomain) {
+        return NextResponse.json(
+          { error: `Your company domain must match your work email domain (${emailDomain}).` },
+          { status: 400 },
+        )
+      }
+    }
+
+    const companyName = String(body.name || body.company_name || "").trim()
+    if (!companyName) {
+      return NextResponse.json(
+        { error: "Company name is required." },
+        { status: 400 },
+      )
+    }
+
+    const service = createServiceClient()
+    if (!service) {
+      return NextResponse.json(
+        { error: "Server is missing Supabase service credentials." },
+        { status: 500 },
+      )
+    }
+
+    const { data: existingProfileRow, error: profileLookupError } = await service
+      .from("profiles")
+      .select("gov_profile_id")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profileLookupError) {
+      return NextResponse.json({ error: profileLookupError.message }, { status: 500 })
+    }
+
+    if (existingProfileRow?.gov_profile_id) {
+      const { data: linkedGovProfile, error: linkedError } = await service
+        .from("gov_profiles")
+        .select("*")
+        .eq("id", existingProfileRow.gov_profile_id)
+        .single()
+
+      if (linkedError) {
+        return NextResponse.json({ error: linkedError.message }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        gov_profile: linkedGovProfile,
+        already_linked: true,
+        allowlisted: isAllowlisted,
+      })
+    }
+
+    const submittedProfile = {
+      name: companyName,
+      company_domain: companyDomain,
+      search_keywords: parseTextList(body.search_keywords),
+      naics_codes: parseTextList(body.naics_codes),
+      corporate_overview: String(body.corporate_overview || "").trim() || null,
+    }
+
+    let govProfile = await findGovProfileByDomain(service, companyDomain)
+    let linkedExisting = Boolean(govProfile)
+
+    if (!govProfile) {
+      const { data: inserted, error: insertError } = await service
+        .from("gov_profiles")
+        .insert(submittedProfile)
+        .select()
+        .single()
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          govProfile = await findGovProfileByDomain(service, companyDomain)
+          linkedExisting = Boolean(govProfile)
+        } else {
+          return NextResponse.json({ error: insertError.message }, { status: 500 })
+        }
+      } else {
+        govProfile = inserted
+      }
+    }
+
+    if (!govProfile) {
+      return NextResponse.json(
+        { error: "Could not create or find a company profile for this domain." },
+        { status: 500 },
+      )
+    }
+
+    const blankFieldPatch = buildBlankFieldPatch(govProfile, submittedProfile)
+    if (Object.keys(blankFieldPatch).length > 0) {
+      const { data: updated, error: updateError } = await service
+        .from("gov_profiles")
+        .update(blankFieldPatch)
+        .eq("id", govProfile.id)
+        .select()
+        .single()
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      }
+      govProfile = updated
+    }
+
+    const { error: upsertError } = await service
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          name: getDisplayName(user, userEmail),
+          email: userEmail,
+          provider: getProvider(user),
+          gov_profile_id: govProfile.id,
+          last_used_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      )
+
+    if (upsertError) {
+      return NextResponse.json({ error: upsertError.message }, { status: 500 })
+    }
+
+    console.log("[gov-onboarding] linked", userEmail, govProfile.id, companyDomain)
+    return NextResponse.json({
+      gov_profile: govProfile,
+      linked_existing: linkedExisting,
+      allowlisted: isAllowlisted,
+    })
+  } catch (err) {
+    console.error("[gov-onboarding POST]", err)
+    return NextResponse.json(
+      { error: err.message || "Failed to complete government onboarding." },
+      { status: 500 },
+    )
+  }
+})

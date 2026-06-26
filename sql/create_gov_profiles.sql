@@ -5,6 +5,7 @@
 create table if not exists public.gov_profiles (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  company_domain text,
   search_keywords text[] not null default '{}',
   naics_codes text[] not null default '{}',
   corporate_overview text,
@@ -18,6 +19,10 @@ alter table public.profiles
   add column if not exists gov_profile_id uuid references public.gov_profiles(id) on delete set null;
 
 create index if not exists idx_profiles_gov_profile_id on public.profiles(gov_profile_id);
+
+create unique index if not exists gov_profiles_company_domain_key
+  on public.gov_profiles (lower(company_domain))
+  where company_domain is not null;
 
 create or replace function public.set_gov_profiles_updated_at()
 returns trigger

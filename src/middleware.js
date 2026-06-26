@@ -34,7 +34,7 @@ export async function middleware(request) {
   // This will refresh session if expired - required for Server Components
   await supabase.auth.getUser()
 
-  // Redirect old auth pages to home or builder
+  // Redirect old auth pages to the current landing page.
   if (request.nextUrl.pathname.startsWith('/auth/signin') ||
       request.nextUrl.pathname.startsWith('/auth/signup')) {
     const landing = request.nextUrl.clone()

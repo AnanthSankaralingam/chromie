@@ -26,26 +26,26 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata = {
   metadataBase: new URL('https://www.chromie.dev'),
   title: {
-    default: "chromie.dev — AI Chrome Extension Builder",
+    default: "chromie.dev — Automation Hub",
     template: "%s | chromie.dev",
   },
-  description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
-  keywords: ["chrome extension builder", "AI chrome extension", "no-code chrome extension", "build chrome extension", "browser extension generator"],
+  description: "Schedule, inspect, and improve reliable browser automations with Chromie.",
+  keywords: ["browser automation", "web agents", "automation hub", "workflow automation", "gov contracting automation"],
   icons: {
     icon: '/chromie-logo-1.png',
   },
   openGraph: {
     type: "website",
     siteName: "chromie.dev",
-    title: "chromie.dev — AI Chrome Extension Builder",
-    description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
+    title: "chromie.dev — Automation Hub",
+    description: "Schedule, inspect, and improve reliable browser automations with Chromie.",
     url: "https://chromie.dev",
     images: [SITE_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "chromie.dev — AI Chrome Extension Builder",
-    description: "Build and deploy Chrome extensions in seconds using AI. No coding required — just describe your idea.",
+    title: "chromie.dev — Automation Hub",
+    description: "Schedule, inspect, and improve reliable browser automations with Chromie.",
     images: [SITE_OG_IMAGE.url],
   },
   verification: {

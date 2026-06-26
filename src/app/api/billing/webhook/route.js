@@ -48,10 +48,8 @@ async function upsertBillingForUser(userId, payload) {
 const PLAN_BY_PRICE_ID = {
   // Legacy known IDs
   price_1SFlPyCOAm3tJxqm3GX5der2: 'pro',
-  price_1THBZSCOAm3tJxqmb7D3A6u0: 'builder',
   // Preferred env-driven IDs
   ...(process.env.STRIPE_PRICE_PRO ? { [process.env.STRIPE_PRICE_PRO]: 'pro' } : {}),
-  ...(process.env.STRIPE_PRICE_BUILDER ? { [process.env.STRIPE_PRICE_BUILDER]: 'builder' } : {}),
 }
 
 function planFromPriceId(priceId) {
@@ -222,9 +220,7 @@ async function handleSubscriptionCreated(subscription) {
         total_credits: 0,
         total_tokens: 0,
         browser_minutes: 0,
-        extension_proxy_tokens: 0,
         monthly_reset: cycleAnchorISO,
-        extension_proxy_monthly_reset: cycleAnchorISO,
       },
       { onConflict: 'user_id' }
     )
@@ -322,9 +318,7 @@ async function handlePaymentSucceeded(invoice) {
         total_credits: 0,
         total_tokens: 0,
         browser_minutes: 0,
-        extension_proxy_tokens: 0,
         monthly_reset: cycleAnchorISO,
-        extension_proxy_monthly_reset: cycleAnchorISO,
       })
       .eq('user_id', purchase.user_id)
     

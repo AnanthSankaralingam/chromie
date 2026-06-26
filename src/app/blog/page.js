@@ -3,13 +3,13 @@ import { openGraphWithImage } from "@/lib/site-metadata"
 
 export const metadata = {
   title: "Blog",
-  description: "Engineering updates, product launches, and tips for building Chrome extensions with AI. From the chromie.dev team.",
+  description: "Engineering updates, product launches, and notes on reliable browser automation from the chromie.dev team.",
   alternates: {
     canonical: "https://chromie.dev/blog",
   },
   openGraph: openGraphWithImage({
     title: "Blog | chromie.dev",
-    description: "Engineering updates, product launches, and tips for building Chrome extensions with AI.",
+    description: "Engineering updates, product launches, and notes on reliable browser automation.",
     url: "https://chromie.dev/blog",
   }),
 }
