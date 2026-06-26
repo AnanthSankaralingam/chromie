@@ -64,7 +64,7 @@ export default function LandingHeroSection() {
                   Book a demo
                 </PrimaryButton>
                 <SecondaryButton onClick={handleTryItOut}>
-                  Try it out free
+                  GovCon? Try free
                 </SecondaryButton>
               </motion.div>
             </motion.div>
