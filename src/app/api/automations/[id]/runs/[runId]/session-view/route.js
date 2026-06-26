@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getReplayMetadata, getSessionLiveViewUrl } from "@/lib/browserbase"
-import { browserSessionsForRun } from "@/lib/workflow-audit"
+import { resolveBrowserSessionId } from "@/lib/workflow-audit"
 import { getOwnedWorkflowRun } from "@/lib/workflow-run-access"
 
 export const GET = withAuth(async ({ supabase, user, request, params }) => {
@@ -14,10 +14,7 @@ export const GET = withAuth(async ({ supabase, user, request, params }) => {
 
   const { searchParams } = new URL(request.url)
   const requestedSessionId = searchParams.get("session_id")
-  const sessions = browserSessionsForRun(run)
-  const matchedSession =
-    sessions.find((session) => session.browserbase_session_id === requestedSessionId) || sessions[0]
-  const sessionId = matchedSession?.browserbase_session_id || run.browserbase_session_id
+  const sessionId = resolveBrowserSessionId(run, requestedSessionId)
 
   if (!sessionId) {
     if (run.status === "running") {

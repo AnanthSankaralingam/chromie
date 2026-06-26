@@ -1,18 +1,27 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getReplayPlaylist } from "@/lib/browserbase"
+import { resolveBrowserSessionId } from "@/lib/workflow-audit"
 import { getOwnedWorkflowRun } from "@/lib/workflow-run-access"
 
-export const GET = withAuth(async ({ supabase, user, params }) => {
+export const GET = withAuth(async ({ supabase, user, request, params }) => {
   const { id: automationId, runId, pageId } = await params
   const run = await getOwnedWorkflowRun(supabase, user.id, automationId, runId)
 
-  if (!run?.browserbase_session_id) {
+  if (!run) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 })
   }
 
+  const { searchParams } = new URL(request.url)
+  const requestedSessionId = searchParams.get("session_id")
+  const sessionId = resolveBrowserSessionId(run, requestedSessionId)
+
+  if (!sessionId) {
+    return NextResponse.json({ error: "No Browserbase session for this run" }, { status: 404 })
+  }
+
   try {
-    const body = await getReplayPlaylist(run.browserbase_session_id, pageId)
+    const body = await getReplayPlaylist(sessionId, pageId)
     return new NextResponse(body, {
       status: 200,
       headers: {
