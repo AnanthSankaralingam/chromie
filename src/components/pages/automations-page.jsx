@@ -98,17 +98,11 @@ function sourceLabel(source) {
   return source.replace(/_/g, " ")
 }
 
-function truncateText(value, maxLength = 220) {
-  const text = String(value || "").trim()
-  if (text.length <= maxLength) return text
-  return `${text.slice(0, maxLength).trim()}...`
-}
-
 function GovMatchCard({ run, expanded, onToggle }) {
   const fitLabel = formatFitScore(run.fit_score)
   const publishedDate = formatGovDate(run.published_date)
   const responseDate = formatGovDate(run.response_date)
-  const summaryPreview = truncateText(run.contract_summary)
+  const summary = String(run.contract_summary || "").trim()
 
   return (
     <article className={`${LIST_ITEM} overflow-hidden bg-[#0a0a0a]`}>
@@ -141,8 +135,10 @@ function GovMatchCard({ run, expanded, onToggle }) {
             {responseDate ? <span className="text-amber-200/90">Due {responseDate}</span> : null}
           </div>
 
-          {summaryPreview ? (
-            <p className="mt-3 text-sm leading-relaxed text-zinc-400">{summaryPreview}</p>
+          {summary ? (
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
+              {summary}
+            </p>
           ) : null}
         </div>
 
@@ -168,10 +164,10 @@ function GovMatchCard({ run, expanded, onToggle }) {
 
       {expanded ? (
         <div className="border-t border-white/10 bg-black/40 px-4 py-4 text-sm leading-relaxed text-zinc-300">
-          {run.contract_summary ? (
+          {summary ? (
             <div>
               <p className={LABEL_CLASS}>Contract summary</p>
-              <p className="mt-2 whitespace-pre-wrap text-zinc-300">{run.contract_summary}</p>
+              <p className="mt-2 whitespace-pre-wrap text-zinc-300">{summary}</p>
             </div>
           ) : null}
 
