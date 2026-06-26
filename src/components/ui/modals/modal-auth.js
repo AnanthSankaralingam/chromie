@@ -54,13 +54,15 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
   const prepareAuthRedirect = () => {
     const currentOrigin = window.location.origin
     const finalRedirect = redirectUrl?.trim() || ""
-    const authCallbackUrl = `${currentOrigin}/auth/callback`
+    const secure = window.location.protocol === "https:" ? "; Secure" : ""
+    let authCallbackUrl = `${currentOrigin}/auth/callback`
 
     if (finalRedirect) {
-      document.cookie = `auth_redirect_destination=${encodeURIComponent(finalRedirect)}; path=/; max-age=300; samesite=lax`
+      authCallbackUrl += `?next=${encodeURIComponent(finalRedirect)}`
+      document.cookie = `auth_redirect_destination=${encodeURIComponent(finalRedirect)}; path=/; max-age=300; samesite=lax${secure}`
       sessionStorage.setItem("auth_redirect_destination", finalRedirect)
     } else {
-      document.cookie = "auth_redirect_destination=; path=/; max-age=0; samesite=lax"
+      document.cookie = `auth_redirect_destination=; path=/; max-age=0; samesite=lax`
       sessionStorage.removeItem("auth_redirect_destination")
     }
 
