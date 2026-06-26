@@ -7,6 +7,7 @@ function resolvePostAuthPath(pathname) {
     pathname === '/dashboard' ||
     pathname === '/automations' ||
     pathname === '/gov' ||
+    pathname === '/gov/dashboard' ||
     pathname === '/gov/onboarding' ||
     pathname === '/profile'
   ) {

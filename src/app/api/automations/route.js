@@ -63,6 +63,24 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     params.recipient_email = email
   }
 
+  if (body.ensure_singleton) {
+    const { data: existing, error: existingError } = await supabase
+      .from("automations")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("scenario_id", scenario_id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 500 })
+    }
+    if (existing) {
+      return NextResponse.json({ automation: existing })
+    }
+  }
+
   const { data, error } = await supabase
     .from("automations")
     .insert({
