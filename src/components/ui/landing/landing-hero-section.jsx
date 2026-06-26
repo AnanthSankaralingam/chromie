@@ -17,38 +17,20 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/landing/landing-
 import { BLURB, CAL_URL } from "@/components/ui/landing/landing-content"
 import AuthModal from "@/components/ui/modals/modal-auth"
 
-const TRY_GOV_REDIRECT = "/gov/dashboard?provision=try"
+const TRY_GOV_REDIRECT = "/gov/onboarding"
 
 export default function LandingHeroSection() {
   const router = useRouter()
   const { user } = useSession()
   const [showAuth, setShowAuth] = useState(false)
-  const [trying, setTrying] = useState(false)
 
-  async function handleTryItOut() {
+  function handleTryItOut() {
     if (!user) {
       setShowAuth(true)
       return
     }
 
-    setTrying(true)
-    try {
-      const res = await fetch("/api/gov-try", { method: "POST" })
-      if (res.status === 401) {
-        setShowAuth(true)
-        return
-      }
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        console.error("[landing] gov try failed", json.error)
-        alert(json.error || "Could not set up your profile. Please try again.")
-        return
-      }
-      console.log("[landing] gov try ready", json.gov_profile?.id)
-      router.push("/gov/dashboard")
-    } finally {
-      setTrying(false)
-    }
+    router.push("/gov/onboarding")
   }
 
   return (
@@ -81,8 +63,8 @@ export default function LandingHeroSection() {
                 <PrimaryButton href={CAL_URL} external>
                   Book a demo
                 </PrimaryButton>
-                <SecondaryButton onClick={handleTryItOut} disabled={trying}>
-                  {trying ? "Setting up..." : "Try it out free"}
+                <SecondaryButton onClick={handleTryItOut}>
+                  Try it out free
                 </SecondaryButton>
               </motion.div>
             </motion.div>

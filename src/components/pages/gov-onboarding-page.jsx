@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { BTN_OUTLINE, BTN_PRIMARY, CARD_CLASS, INPUT_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
@@ -13,21 +13,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { ArrowRight, Building2 } from "lucide-react"
-
-function normalizeDomain(value) {
-  const raw = String(value || "").trim().toLowerCase()
-  if (!raw) return ""
-  try {
-    const withProtocol = raw.includes("://") ? raw : `https://${raw}`
-    return new URL(withProtocol).hostname.replace(/^www\./, "")
-  } catch {
-    return raw.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0].split(":")[0]
-  }
-}
-
-function domainFromEmail(email) {
-  return normalizeDomain(String(email || "").split("@")[1] || "")
-}
 
 export default function GovOnboardingPage() {
   const router = useRouter()
@@ -43,18 +28,12 @@ export default function GovOnboardingPage() {
     corporate_overview: "",
   })
 
-  const emailDomain = useMemo(() => domainFromEmail(user?.email), [user?.email])
-
   useEffect(() => {
     if (sessionLoading) return
     if (!user) {
       setShowAuth(true)
-      return
     }
-    if (emailDomain) {
-      setForm((prev) => (prev.company_domain ? prev : { ...prev, company_domain: emailDomain }))
-    }
-  }, [emailDomain, sessionLoading, user])
+  }, [sessionLoading, user])
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -155,7 +134,7 @@ export default function GovOnboardingPage() {
                 <Input
                   value={form.company_domain}
                   onChange={(event) => updateField("company_domain", event.target.value)}
-                  placeholder={emailDomain || "company.com"}
+                  placeholder="company.com"
                   className={INPUT_CLASS}
                   required
                 />
