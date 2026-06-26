@@ -38,6 +38,15 @@ export function browserSessionsForRun(run) {
   return []
 }
 
+/** Resolve which Browserbase session ID to use for a run (supports multi-session workflows). */
+export function resolveBrowserSessionId(run, requestedSessionId) {
+  const sessions = browserSessionsForRun(run)
+  const matchedSession =
+    sessions.find((session) => session.browserbase_session_id === requestedSessionId) ||
+    sessions[0]
+  return matchedSession?.browserbase_session_id || run.browserbase_session_id || null
+}
+
 export function statusTone(status) {
   if (status === "success") return "success"
   if (status === "failed") return "failed"
