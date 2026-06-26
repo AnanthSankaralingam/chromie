@@ -24,6 +24,9 @@ create unique index if not exists gov_profiles_company_domain_key
   on public.gov_profiles (lower(company_domain))
   where company_domain is not null;
 
+create index if not exists gov_profiles_updated_at_idx
+  on public.gov_profiles (updated_at desc);
+
 create or replace function public.set_gov_profiles_updated_at()
 returns trigger
 language plpgsql

@@ -38,6 +38,10 @@ Shared company profile for government-contracting customers.
 | `past_rfps` | Uploaded RFP PDF metadata stored in bucket `gov-profile-rfps`. |
 | `created_at`, `updated_at` | Audit timestamps. |
 
+Indexes:
+- `gov_profiles_company_domain_key` — unique on `lower(company_domain)` where set; prevents duplicate company profiles during self-serve onboarding.
+- `gov_profiles_updated_at_idx` — supports recent-profile listing/sorting.
+
 SQL files:
 - `sql/create_gov_profiles.sql`
 - `sql/add_gov_profiles_company_domain.sql`
@@ -58,7 +62,14 @@ Normalized government opportunity results, typically produced from SAM.gov workf
 | Analysis fields | `contract_summary`, `fit_score`, `fit_rationale`, `profile_fit_verified`. |
 | Timestamps | `created_at`, `updated_at`. |
 
-SQL file: `sql/create_gov_runs_table.sql`
+Indexes:
+- `gov_runs_profile_source_ref_key` — unique on `(gov_profile_id, source, source_ref)`; one row per opportunity per company profile.
+- `gov_runs_profile_fit_created_idx` — `(gov_profile_id, fit_score desc, created_at desc)` for dashboard listing.
+- `gov_runs_run_id_idx`, `gov_runs_automation_id_idx`, `gov_runs_scenario_id_idx`, `gov_runs_response_date_idx` — linkage and filtering.
+
+SQL files:
+- `sql/create_gov_runs_table.sql`
+- `sql/add_gov_indexes_and_opportunity_dedup.sql`
 
 RLS: users can read rows for the `gov_profiles` record linked from their profile.
 
