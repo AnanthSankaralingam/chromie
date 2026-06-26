@@ -20,6 +20,7 @@ export default function SamMonitorScheduleCard({
   onSave,
   saving,
   automationId,
+  canRun,
   initializing = false,
   onRunNow,
   running,
@@ -73,7 +74,7 @@ export default function SamMonitorScheduleCard({
           </Button>
           <Button
             className={BTN_OUTLINE}
-            disabled={running || initializing || !automationId}
+            disabled={running || initializing || !(canRun ?? automationId)}
             onClick={onRunNow}
           >
             <Play className="mr-2 h-4 w-4" />

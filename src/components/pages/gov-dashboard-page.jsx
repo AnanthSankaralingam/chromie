@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { scheduleStateFromAutomation } from "@/components/automations/automation-schedule-fields"
@@ -80,6 +80,7 @@ function applySchedulePatch(prev, patch) {
 export default function GovDashboardPage() {
   const router = useRouter()
   const { user, supabase, isLoading: sessionLoading } = useSession()
+  const auditRef = useRef(null)
   const [showAuth, setShowAuth] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
   const [monitorLoading, setMonitorLoading] = useState(false)
@@ -88,7 +89,6 @@ export default function GovDashboardPage() {
   const [schedule, setSchedule] = useState(() => scheduleStateFromAutomation(null))
   const [runs, setRuns] = useState([])
   const [selectedRunId, setSelectedRunId] = useState(null)
-  const [auditRefreshKey, setAuditRefreshKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
   const [stopping, setStopping] = useState(false)
@@ -287,8 +287,10 @@ export default function GovDashboardPage() {
   }, [schedule])
 
   async function refreshProgress(items = automations) {
-    await (items?.length ? loadRuns(items) : Promise.resolve([]))
-    setAuditRefreshKey((key) => key + 1)
+    await Promise.all([
+      items?.length ? loadRuns(items) : Promise.resolve([]),
+      auditRef.current?.refresh?.(),
+    ])
   }
 
   async function saveSchedule() {
@@ -330,26 +332,29 @@ export default function GovDashboardPage() {
   }
 
   async function runNow() {
-    if (!automationReady) {
+    if (!govProfileLinked) {
       setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
       return
     }
     setRunning(true)
     setError("")
     try {
-      const responses = await Promise.all(
-        automations.map(async (item) => {
-          const res = await fetch(`/api/automations/${item.id}/run`, { method: "POST" })
-          const json = await res.json().catch(() => ({}))
-          return { res, json }
-        }),
-      )
-      const failed = responses.find(({ res }) => !res.ok)
-      if (failed) {
-        setError(failed.json.error || "Could not start one of the contract search runs.")
+      const res = await fetch("/api/gov-monitor/run", { method: "POST" })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error || "Could not start the contract search runs.")
         return
       }
-      await refreshProgress(automations)
+      const nextAutomations = json.automations || automations
+      if (nextAutomations.length) {
+        setAutomations(nextAutomations)
+      }
+      await refreshProgress(nextAutomations)
+      window.setTimeout(() => {
+        refreshProgress(nextAutomations).catch((err) => {
+          console.error("[gov-dashboard] delayed audit refresh failed", err)
+        })
+      }, 1500)
     } finally {
       setRunning(false)
     }
@@ -437,6 +442,7 @@ export default function GovDashboardPage() {
               onSave={saveSchedule}
               saving={saving}
               automationId={automationReady ? automationId : null}
+              canRun={Boolean(govProfileLinked)}
               initializing={monitorLoading}
               onRunNow={runNow}
               running={running}
@@ -447,7 +453,7 @@ export default function GovDashboardPage() {
           </div>
 
           <AutomationAuditSection
-            key={auditRefreshKey}
+            ref={auditRef}
             user={user}
             scenarioIds={GOV_MATCH_SCENARIO_IDS}
             selectedAutomationIds={automationIds}
