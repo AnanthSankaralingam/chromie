@@ -9,6 +9,10 @@ import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
 } from "@/lib/workflow-automations"
+import {
+  getGovProfileForUser,
+  mergeGovProfileIntoScenarioParams,
+} from "@/lib/gov-profiles"
 
 export const GET = withAuth(async ({ supabase, user }) => {
   const { data, error } = await supabase
@@ -27,8 +31,20 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   const body = await request.json()
   const scenario_id = body.scenario_id || DEFAULT_WORKFLOW_SCENARIO_ID
   const name = (body.name || "Workflow automation").trim()
-  const params =
-    body.params || defaultParamsForScenario(scenario_id, user.email || "")
+
+  let govProfile = null
+  try {
+    govProfile = await getGovProfileForUser(supabase, user.id)
+  } catch (err) {
+    console.error("[automations POST] gov profile lookup failed:", err)
+  }
+
+  const defaults = mergeGovProfileIntoScenarioParams(
+    govProfile,
+    scenario_id,
+    user.email || "",
+  )
+  const params = body.params || defaults
   let scheduleFields
   try {
     scheduleFields = resolveScheduleFieldsFromBody(body)

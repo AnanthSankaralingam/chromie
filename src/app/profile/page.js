@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import ProfilePage from "@/components/pages/profile-page"
+import ProfileRouter from "@/components/pages/profile-router"
 
 function ProfileLoading() {
   return (
@@ -12,7 +12,7 @@ function ProfileLoading() {
 export default function Profile() {
   return (
     <Suspense fallback={<ProfileLoading />}>
-      <ProfilePage />
+      <ProfileRouter />
     </Suspense>
   )
 }

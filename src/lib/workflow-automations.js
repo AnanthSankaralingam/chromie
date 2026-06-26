@@ -49,7 +49,7 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
       min_opportunities: 3,
       max_keyword_searches: 4,
       max_pages_per_keyword: 3,
-      keyword_search_mode: "ALL",
+      keyword_search_mode: "ANY",
       require_signed_in: false,
     }
   }
