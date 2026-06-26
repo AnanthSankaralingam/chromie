@@ -19,7 +19,6 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     customer_name: govProfile.name,
     search_keywords: govProfile.search_keywords ?? base.search_keywords,
     naics_codes: govProfile.naics_codes ?? base.naics_codes,
-    keyword_search_mode: govProfile.keyword_search_mode ?? base.keyword_search_mode,
     gov_profile_id: govProfile.id,
   }
 }
@@ -99,12 +98,6 @@ export function sanitizeGovProfilePatch(body) {
   }
   if (body.naics_codes != null) {
     patch.naics_codes = parseTextList(body.naics_codes)
-  }
-  if (typeof body.keyword_search_mode === "string") {
-    const mode = body.keyword_search_mode.toUpperCase()
-    if (["ALL", "ANY", "EXACT"].includes(mode)) {
-      patch.keyword_search_mode = mode
-    }
   }
   if (body.corporate_overview != null) {
     patch.corporate_overview =
