@@ -23,6 +23,21 @@ const SORT_OPTIONS = [
   { id: "newest", label: "Newest" },
 ]
 
+function runsDataKey(runs) {
+  return runs
+    .map((run) =>
+      [
+        run.id,
+        run.updated_at,
+        run.fit_score,
+        run.title,
+        run.response_date,
+        run.profile_fit_verified,
+      ].join(":"),
+    )
+    .join("|")
+}
+
 export default function GovPage() {
   const { user, isLoading: sessionLoading } = useSession()
   const router = useRouter()
@@ -34,6 +49,8 @@ export default function GovPage() {
   const [sortBy, setSortBy] = useState("fit")
   const [expandedId, setExpandedId] = useState(null)
   const [error, setError] = useState("")
+
+  const handleRequireAuth = useCallback(() => setShowAuth(true), [])
 
   const loadPageData = useCallback(async () => {
     setError("")
@@ -62,10 +79,15 @@ export default function GovPage() {
 
     if (statusRes.ok) {
       const statusJson = await statusRes.json().catch(() => ({}))
-      setMonitorStatus(statusJson)
+      setMonitorStatus((prev) => {
+        const next = statusJson
+        if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev
+        return next
+      })
     }
 
-    setRuns(runsJson.runs || [])
+    const nextRuns = runsJson.runs || []
+    setRuns((prev) => (runsDataKey(prev) === runsDataKey(nextRuns) ? prev : nextRuns))
     setLoading(false)
   }, [])
 
@@ -79,15 +101,17 @@ export default function GovPage() {
     loadPageData()
   }, [user, sessionLoading, loadPageData])
 
+  const activeRunId = monitorStatus?.active_run?.id ?? null
+
   useEffect(() => {
-    if (!monitorStatus?.active_run || loading) return
+    if (!activeRunId || loading) return
     const interval = window.setInterval(() => {
       loadPageData().catch((err) => {
         console.error("[gov-page] refresh while running failed", err)
       })
     }, 8000)
     return () => window.clearInterval(interval)
-  }, [monitorStatus?.active_run, loading, loadPageData])
+  }, [activeRunId, loading, loadPageData])
 
   const sortedRuns = useMemo(() => sortOpportunityRuns(runs, sortBy), [runs, sortBy])
   const withDeadline = useMemo(() => runs.filter((run) => isOpenOpportunity(run)).length, [runs])
@@ -213,10 +237,7 @@ export default function GovPage() {
         </div>
       )}
 
-      <GovMonitorSection
-        onRequireAuth={() => setShowAuth(true)}
-        auditDefaultCollapsed
-      />
+      <GovMonitorSection onRequireAuth={handleRequireAuth} auditDefaultCollapsed />
     </GovPageShell>
   )
 }
