@@ -39,6 +39,6 @@ export const GET = withAuth(async ({ supabase, user, request }) => {
   }
 
   return NextResponse.json({
-    runs: mergedRuns.map(normalizeAuditRun),
+    runs: mergedRuns.map((row) => normalizeAuditRun(row, { log: true })),
   })
 })
