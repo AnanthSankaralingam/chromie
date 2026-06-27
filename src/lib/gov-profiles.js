@@ -6,6 +6,65 @@ import {
 export const GOV_PROFILE_RFP_BUCKET = "gov-profile-rfps"
 export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024
 
+/** Federal-facing SAM search terms appended to company-specific keywords. */
+export const FEDERAL_SEARCH_KEYWORD_BOOSTS = [
+  "IT modernization",
+  "software development",
+  "systems integration",
+]
+
+/** Default ICP competency terms used alongside profile search keywords. */
+export const DEFAULT_GOV_ICP_KEYWORDS = [
+  "it modernization",
+  "modernization",
+  "digital transformation",
+  "data integration",
+  "data analysis",
+  "data visualization",
+  "asset management",
+  "risk management",
+  "cloud migration",
+  "technology consolidation",
+  "systems integration",
+  "application rationalization",
+  "legacy systems",
+  "program management",
+  "cybersecurity",
+  "compliance",
+  "governance",
+  "automation",
+  "analytics",
+  "cyber hygiene",
+  "software development",
+]
+
+/** @param {...unknown} lists */
+export function mergeUniqueKeywordList(...lists) {
+  const seen = new Set()
+  /** @type {string[]} */
+  const out = []
+  for (const list of lists) {
+    for (const raw of parseTextList(list)) {
+      const key = raw.toLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        out.push(raw)
+      }
+    }
+  }
+  return out
+}
+
+/** @param {unknown} profileKeywords */
+export function broadenGovSearchKeywords(profileKeywords) {
+  return mergeUniqueKeywordList(profileKeywords, FEDERAL_SEARCH_KEYWORD_BOOSTS).slice(0, 4)
+}
+
+/** @param {unknown} profileKeywords @param {unknown} [extra] */
+export function mergeGovIcpKeywords(profileKeywords, extra = []) {
+  return mergeUniqueKeywordList(profileKeywords, extra, DEFAULT_GOV_ICP_KEYWORDS)
+}
+
 /**
  * @param {Record<string, unknown> | null | undefined} govProfile
  * @param {string} scenarioId
@@ -18,11 +77,17 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
   }
 
   const { corporate_overview_path: _ignoredPath, ...baseWithoutOverviewFile } = base
+  const profileSearch = parseTextList(govProfile.search_keywords)
+  const searchKeywords = profileSearch.length
+    ? broadenGovSearchKeywords(profileSearch)
+    : base.search_keywords
+  const icpKeywords = mergeGovIcpKeywords(profileSearch.length ? profileSearch : searchKeywords)
 
   return {
     ...baseWithoutOverviewFile,
     customer_name: govProfile.name,
-    search_keywords: govProfile.search_keywords ?? base.search_keywords,
+    search_keywords: searchKeywords,
+    icp_keywords: icpKeywords,
     naics_codes: govProfile.naics_codes ?? base.naics_codes,
     corporate_overview: String(govProfile.corporate_overview || "").trim(),
     corporate_overview_path: "",
@@ -101,7 +166,7 @@ export function sanitizeGovProfilePatch(body) {
     patch.name = body.name.trim()
   }
   if (body.search_keywords != null) {
-    patch.search_keywords = parseTextList(body.search_keywords)
+    patch.search_keywords = broadenGovSearchKeywords(body.search_keywords)
   }
   if (body.naics_codes != null) {
     patch.naics_codes = parseTextList(body.naics_codes)

@@ -1,4 +1,5 @@
 import { isIP } from "node:net"
+import { broadenGovSearchKeywords } from "@/lib/gov-profiles"
 import llmService from "@/lib/services/llm-service"
 
 const PRIVATE_IPV4_RANGES = [
@@ -201,10 +202,11 @@ function companyNameFromDomain(domain) {
 
 function normalizeLlmProfile(profile, fallbackName) {
   const name = String(profile?.name || fallbackName || "").trim()
+  const productKeywords = cleanStringArray(profile?.search_keywords, 3)
   return {
     name,
     corporate_overview: String(profile?.corporate_overview || "").trim(),
-    search_keywords: cleanStringArray(profile?.search_keywords, 3),
+    search_keywords: broadenGovSearchKeywords(productKeywords),
     naics_codes: cleanNaicsCodes(profile?.naics_codes),
     confidence: ["low", "medium", "high"].includes(profile?.confidence) ? profile.confidence : "medium",
   }
@@ -244,7 +246,8 @@ async function normalizePageWithLlm({ domain, sourceUrl, pageContent }) {
 Rules:
 - Use only the website content below. Do not invent certifications, past performance, agencies, customers, or contract vehicles.
 - Write corporate_overview as one concise paragraph, 2-4 sentences, grounded in specific website copy.
-- Infer 2-3 SAM.gov search keywords that describe the company's likely opportunity searches.
+- Infer 2-3 SAM.gov search keywords specific to the company's products or services (not generic federal IT terms).
+- Federal-facing discovery terms (IT modernization, software development, systems integration) are added automatically after enrichment.
 - Infer likely NAICS codes as numeric strings, using conservative guesses when the website clearly describes the business.
 - If the company name is unclear, infer a clean name from the domain.
 
