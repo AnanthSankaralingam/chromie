@@ -17,44 +17,75 @@ import {
 } from "@/lib/gov-domain"
 import { ArrowRight, Lock } from "lucide-react"
 
-const TEASER_OPPORTUNITIES = [
+const TEASER_OPPORTUNITY_POOL = [
   {
     id: "teaser-1",
     title: "Enterprise IT modernization and cloud migration support services",
     agency: "Department of Veterans Affairs",
     source: "sam_gov",
-    fit_score: 0.94,
-    response_date: "2026-08-15",
-    published_date: "2026-06-10",
   },
   {
     id: "teaser-2",
     title: "Cybersecurity operations center managed services",
     agency: "Department of Homeland Security",
     source: "sam_gov",
-    fit_score: 0.91,
-    response_date: "2026-07-28",
-    published_date: "2026-06-05",
   },
   {
     id: "teaser-3",
     title: "Data analytics platform development and sustainment",
     agency: "General Services Administration",
     source: "sam_gov",
-    fit_score: 0.88,
-    response_date: "2026-09-01",
-    published_date: "2026-06-01",
   },
   {
     id: "teaser-4",
     title: "Engineering research and development for defense systems",
     agency: "Air Force Research Laboratory",
     source: "sbir",
-    fit_score: 0.86,
-    response_date: "2026-08-20",
-    published_date: "2026-05-28",
+  },
+  {
+    id: "teaser-5",
+    title: "Systems engineering and technical assistance support",
+    agency: "Department of Defense",
+    source: "sam_gov",
   },
 ]
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function shuffleArray(items) {
+  const copy = [...items]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+function formatOffsetDate(daysFromNow) {
+  const date = new Date()
+  date.setDate(date.getDate() + daysFromNow)
+  return date.toISOString().slice(0, 10)
+}
+
+function buildTeaserData() {
+  const total = randomInt(3, 5)
+  const openDeadlines = randomInt(1, total)
+  const highFitCount = randomInt(1, total)
+  const opportunities = shuffleArray(TEASER_OPPORTUNITY_POOL)
+    .slice(0, total)
+    .map((item, index) => ({
+      ...item,
+      fit_score: randomInt(85, 96) / 100,
+      published_date: formatOffsetDate(-randomInt(3, 21)),
+      response_date: formatOffsetDate(randomInt(14, 90)),
+      id: `${item.id}-${index}`,
+    }))
+
+  console.log("[gov-share] generated teaser stats", { total, openDeadlines, highFitCount })
+  return { total, openDeadlines, highFitCount, opportunities }
+}
 
 function formatFitScore(score) {
   if (score == null || Number.isNaN(Number(score))) return null
@@ -99,6 +130,7 @@ function GovShareContent() {
   const { user, isLoading: sessionLoading } = useSession()
   const [showAuth, setShowAuth] = useState(false)
   const [checkingProfile, setCheckingProfile] = useState(false)
+  const [teaserData, setTeaserData] = useState(null)
 
   const rawCompany = searchParams.get("company") || ""
   const companyDomain = useMemo(() => normalizeDomain(rawCompany), [rawCompany])
@@ -107,6 +139,11 @@ function GovShareContent() {
   const onboardingPath = isValidCompany
     ? `/gov/onboarding?company=${encodeURIComponent(companyDomain)}`
     : "/gov/onboarding"
+
+  useEffect(() => {
+    if (!isValidCompany) return
+    setTeaserData(buildTeaserData())
+  }, [isValidCompany])
 
   useEffect(() => {
     if (sessionLoading || !user || !isValidCompany) return
@@ -144,7 +181,7 @@ function GovShareContent() {
     }
   }, [sessionLoading, user, isValidCompany, onboardingPath, router])
 
-  if (sessionLoading || checkingProfile) {
+  if (sessionLoading || checkingProfile || (isValidCompany && !teaserData)) {
     return <GovLoadingState message="Loading your invite…" />
   }
 
@@ -176,11 +213,15 @@ function GovShareContent() {
         description={`We found federal contract opportunities matched to ${companyName}. Sign up with your @${companyDomain} email to unlock your personalized dashboard.`}
       />
 
-      <OpportunityStats total={12} openDeadlines={7} highFitCount={4} />
+      <OpportunityStats
+        total={teaserData.total}
+        openDeadlines={teaserData.openDeadlines}
+        highFitCount={teaserData.highFitCount}
+      />
 
       <div className="relative mt-8">
         <div className="space-y-2">
-          {TEASER_OPPORTUNITIES.map((run) => (
+          {teaserData.opportunities.map((run) => (
             <TeaserOpportunityRow key={run.id} run={run} />
           ))}
         </div>
@@ -192,7 +233,7 @@ function GovShareContent() {
                 <Lock className="h-5 w-5 text-cyan-300" />
               </div>
               <p className="mt-4 text-lg font-semibold text-white">
-                {TEASER_OPPORTUNITIES.length}+ opportunities waiting
+                {teaserData.total} opportunities waiting
               </p>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
                 Create a free account with your <strong className="text-zinc-200">@{companyDomain}</strong>{" "}
