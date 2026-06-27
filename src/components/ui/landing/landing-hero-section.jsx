@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { useSession } from "@/components/SessionProviderClient"
 import { BackedByYCombinatorPill } from "@/components/ui/backed-by-y-combinator-pill"
 import DemoBrowserMockup from "@/components/ui/landing/demo-browser-mockup"
 import HeroUseCaseHeadline from "@/components/ui/landing/hero-use-case-headline"
@@ -15,23 +13,9 @@ import {
 } from "@/components/ui/landing/landing-motion"
 import { PrimaryButton, SecondaryButton } from "@/components/ui/landing/landing-buttons"
 import { BLURB, CAL_URL } from "@/components/ui/landing/landing-content"
-import AuthModal from "@/components/ui/modals/modal-auth"
-
-const TRY_GOV_REDIRECT = "/gov/onboarding"
 
 export default function LandingHeroSection() {
   const router = useRouter()
-  const { user } = useSession()
-  const [showAuth, setShowAuth] = useState(false)
-
-  function handleTryItOut() {
-    if (!user) {
-      setShowAuth(true)
-      return
-    }
-
-    router.push("/gov/onboarding")
-  }
 
   return (
     <>
@@ -63,7 +47,7 @@ export default function LandingHeroSection() {
                 <PrimaryButton href={CAL_URL} external>
                   Book a demo
                 </PrimaryButton>
-                <SecondaryButton onClick={handleTryItOut}>
+                <SecondaryButton onClick={() => router.push("/gov/onboarding")}>
                   GovCon? Try free
                 </SecondaryButton>
               </motion.div>
@@ -84,12 +68,6 @@ export default function LandingHeroSection() {
           <LandingTrustedBy />
         </div>
       </section>
-
-      <AuthModal
-        isOpen={showAuth}
-        onClose={() => setShowAuth(false)}
-        redirectUrl={TRY_GOV_REDIRECT}
-      />
     </>
   )
 }

@@ -58,22 +58,14 @@ export default function AppBarDashboard({ showOpportunities = true }) {
         <div className="flex items-center gap-5 sm:gap-6">
           <nav className="hidden items-center gap-5 md:flex" aria-label="Dashboard">
             {govProfileLinked ? (
-              <>
+              showOpportunities ? (
                 <Link
-                  href="/gov/dashboard"
+                  href="/gov"
                   className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
                 >
-                  Dashboard
+                  Opportunities
                 </Link>
-                {showOpportunities ? (
-                  <Link
-                    href="/gov"
-                    className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
-                  >
-                    Opportunities
-                  </Link>
-                ) : null}
-              </>
+              ) : null
             ) : user ? (
               <Link
                 href="/gov/onboarding"
@@ -113,24 +105,15 @@ export default function AppBarDashboard({ showOpportunities = true }) {
         <nav className="border-t border-white/10 px-4 py-4 md:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-3">
             {govProfileLinked ? (
-              <>
+              showOpportunities ? (
                 <Link
-                  href="/gov/dashboard"
+                  href="/gov"
                   onClick={() => setMobileOpen(false)}
                   className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
                 >
-                  Dashboard
+                  Opportunities
                 </Link>
-                {showOpportunities ? (
-                  <Link
-                    href="/gov"
-                    onClick={() => setMobileOpen(false)}
-                    className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
-                  >
-                    Opportunities
-                  </Link>
-                ) : null}
-              </>
+              ) : null
             ) : user ? (
               <Link
                 href="/gov/onboarding"

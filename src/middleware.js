@@ -43,6 +43,12 @@ export async function middleware(request) {
     return NextResponse.redirect(landing)
   }
 
+  if (request.nextUrl.pathname === '/gov/dashboard') {
+    const opportunities = request.nextUrl.clone()
+    opportunities.pathname = '/gov'
+    return NextResponse.redirect(opportunities)
+  }
+
   if (!isAllowedPagePath(request.nextUrl.pathname)) {
     const landing = request.nextUrl.clone()
     landing.pathname = '/'

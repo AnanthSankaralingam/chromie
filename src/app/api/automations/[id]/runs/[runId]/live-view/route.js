@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getSessionLiveViewUrl, isBrowserbaseDashboardUrl } from "@/lib/browserbase"
-import { getOwnedWorkflowRun } from "@/lib/workflow-run-access"
+import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
 
 /** @deprecated Prefer GET .../session-view — this route never returns dashboard URLs. */
 export const GET = withAuth(async ({ supabase, user, params }) => {
   const { id: automationId, runId } = await params
-  const run = await getOwnedWorkflowRun(supabase, user.id, automationId, runId)
+  const run = await getAccessibleWorkflowRun(supabase, user.id, automationId, runId)
 
   if (!run) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 })

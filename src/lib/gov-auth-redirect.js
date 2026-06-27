@@ -6,7 +6,6 @@ export function isExplicitPostAuthPath(pathname) {
   return (
     pathname === "/" ||
     pathname === "/gov" ||
-    pathname === "/gov/dashboard" ||
     pathname === "/gov/onboarding" ||
     pathname === "/profile"
   )
@@ -64,5 +63,5 @@ export async function resolveGovHomePath(supabase, userId) {
     return "/gov/onboarding"
   }
 
-  return data?.gov_profile_id ? "/gov/dashboard" : "/gov/onboarding"
+  return data?.gov_profile_id ? "/gov" : "/gov/onboarding"
 }

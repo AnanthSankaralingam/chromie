@@ -1,20 +1,16 @@
 "use client"
 
-import Link from "next/link"
 import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { scheduleStateFromAutomation } from "@/components/automations/automation-schedule-fields"
-import { BTN_OUTLINE, CARD_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
-import { Button } from "@/components/ui/button"
+import { CARD_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   GovProfileRequiredGate,
   GovSignInGate,
 } from "@/components/ui/gov/gov-gate-cards"
-import GovPageHeader from "@/components/ui/gov/gov-page-header"
-import GovPageShell from "@/components/ui/gov/gov-page-shell"
 import {
   GOV_MATCH_SCENARIO_IDS,
   GOV_WORKFLOW_SCENARIOS,
@@ -69,11 +65,10 @@ function applySchedulePatch(prev, patch) {
   }
 }
 
-export default function GovDashboardPage() {
+export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed = false }) {
   const router = useRouter()
   const { user, supabase, isLoading: sessionLoading } = useSession()
   const auditRef = useRef(null)
-  const [showAuth, setShowAuth] = useState(false)
   const [profileLoading, setProfileLoading] = useState(true)
   const [monitorLoading, setMonitorLoading] = useState(false)
   const [govProfileLinked, setGovProfileLinked] = useState(null)
@@ -139,7 +134,7 @@ export default function GovDashboardPage() {
       }),
     )
     if (results.some((result) => result.unauthorized)) {
-      setShowAuth(true)
+      onRequireAuth?.()
       return null
     }
     const paramsByScenario = Object.fromEntries(
@@ -150,7 +145,7 @@ export default function GovDashboardPage() {
     const govProfileId = results.find((result) => result.json?.gov_profile_id)?.json?.gov_profile_id
     setGovProfileLinked(Boolean(govProfileId))
     return { paramsByScenario, gov_profile_id: govProfileId || null }
-  }, [])
+  }, [onRequireAuth])
 
   const createBaseAutomation = useCallback(async (scenarioId, params) => {
     const scenario = GOV_WORKFLOW_SCENARIOS.find((item) => item.id === scenarioId)
@@ -167,7 +162,7 @@ export default function GovDashboardPage() {
     })
 
     if (res.status === 401) {
-      setShowAuth(true)
+      onRequireAuth?.()
       return null
     }
 
@@ -178,12 +173,12 @@ export default function GovDashboardPage() {
     }
 
     return json.automation || null
-  }, [defaultSchedule])
+  }, [defaultSchedule, onRequireAuth])
 
   const loadAutomation = useCallback(async ({ createIfMissing = false, params } = {}) => {
     const res = await fetch("/api/automations")
     if (res.status === 401) {
-      setShowAuth(true)
+      onRequireAuth?.()
       return null
     }
     if (!res.ok) {
@@ -217,7 +212,7 @@ export default function GovDashboardPage() {
       setSelectedRunId(null)
     }
     return govAutomations
-  }, [createBaseAutomation, loadRuns])
+  }, [createBaseAutomation, loadRuns, onRequireAuth])
 
   useEffect(() => {
     if (sessionLoading) return
@@ -256,9 +251,9 @@ export default function GovDashboardPage() {
     }
 
     loadPage().catch((err) => {
-      console.error("[gov-dashboard] load failed", err)
+      console.error("[gov-monitor] load failed", err)
       if (!cancelled) {
-        setError("Could not load your government dashboard.")
+        setError("Could not load contract monitoring.")
         setProfileLoading(false)
         setMonitorLoading(false)
       }
@@ -346,7 +341,7 @@ export default function GovDashboardPage() {
       for (const delayMs of [1500, 4000, 8000]) {
         window.setTimeout(() => {
           refreshProgress(nextAutomations).catch((err) => {
-            console.error("[gov-dashboard] delayed audit refresh failed", err)
+            console.error("[gov-monitor] delayed audit refresh failed", err)
           })
         }, delayMs)
       }
@@ -382,27 +377,17 @@ export default function GovDashboardPage() {
   }
 
   return (
-    <GovPageShell
-      maxWidth="5xl"
-      authOpen={showAuth}
-      onAuthClose={() => setShowAuth(false)}
-      authRedirect="/gov/dashboard"
-    >
-      <GovPageHeader
-        label="Government dashboard"
-        title="Government contract monitoring"
-        description="Set when Chromie should search government contract sources, run it on demand, and review execution audits. Your company profile controls the search terms and opportunity fit."
-        actions={
-          <>
-            <Button asChild className={BTN_OUTLINE}>
-              <Link href="/gov">View opportunities</Link>
-            </Button>
-            <Button asChild className={BTN_OUTLINE}>
-              <Link href="/profile">Company profile</Link>
-            </Button>
-          </>
-        }
-      />
+    <section id="gov-monitor" className="mt-12 border-t border-white/10 pt-12">
+      <div>
+        <p className={SECTION_LABEL}>Contract monitoring</p>
+        <h2 className="mt-3 text-xl font-bold tracking-tight text-white sm:text-2xl">
+          Government contract monitoring
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+          Set when Chromie should search government contract sources, run it on demand, and review
+          execution audits.
+        </p>
+      </div>
 
       {sessionLoading ? (
         <Card className={`mt-8 ${CARD_CLASS}`}>
@@ -413,7 +398,7 @@ export default function GovDashboardPage() {
       ) : !user ? (
         <GovSignInGate
           message="Sign in to manage your government monitoring schedule."
-          onSignIn={() => setShowAuth(true)}
+          onSignIn={() => onRequireAuth?.()}
         />
       ) : profileLoading ? (
         <Card className={`mt-8 ${CARD_CLASS}`}>
@@ -454,15 +439,16 @@ export default function GovDashboardPage() {
             selectedAutomationIds={automationIds}
             selectedRunId={selectedRunId}
             title="Government contract execution audit"
-            description="Status, validation notes, and session details for search runs."
+            description="Status, validation notes, and session details for search runs across your organization."
             emptyMessage="No contract search executions yet. Run the monitor to see audit history here."
             onSelectRun={selectAuditRun}
             onRefresh={() => refreshProgress(automations)}
             pollWhileRunning
-            autoExpandRunning
+            autoExpandRunning={!auditDefaultCollapsed}
+            defaultCollapsed={auditDefaultCollapsed}
           />
         </>
       )}
-    </GovPageShell>
+    </section>
   )
 }

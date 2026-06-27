@@ -91,6 +91,110 @@ async function findGovProfileByDomain(service, domain) {
   return data
 }
 
+async function getLinkedGovProfile(service, userId) {
+  const { data: existingProfileRow, error: profileLookupError } = await service
+    .from("profiles")
+    .select("gov_profile_id")
+    .eq("id", userId)
+    .maybeSingle()
+
+  if (profileLookupError) {
+    throw new Error(profileLookupError.message)
+  }
+
+  if (!existingProfileRow?.gov_profile_id) {
+    return { linkedGovProfile: null, alreadyLinked: false }
+  }
+
+  const { data: linkedGovProfile, error: linkedError } = await service
+    .from("gov_profiles")
+    .select("*")
+    .eq("id", existingProfileRow.gov_profile_id)
+    .single()
+
+  if (linkedError) {
+    throw new Error(linkedError.message)
+  }
+
+  return { linkedGovProfile, alreadyLinked: true }
+}
+
+async function linkUserToGovProfile(service, user, govProfile) {
+  const userEmail = normalizeEmail(user.email)
+  const { error: upsertError } = await service
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        name: getDisplayName(user, userEmail),
+        email: userEmail,
+        provider: getProvider(user),
+        gov_profile_id: govProfile.id,
+        last_used_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    )
+
+  if (upsertError) {
+    throw new Error(upsertError.message)
+  }
+
+  return govProfile
+}
+
+export const GET = withAuth(async ({ user }) => {
+  try {
+    const service = createServiceClient()
+    if (!service) {
+      return NextResponse.json(
+        { error: "Server is missing Supabase service credentials." },
+        { status: 500 },
+      )
+    }
+
+    const userEmail = normalizeEmail(user.email)
+    const emailDomain = domainFromEmail(userEmail)
+    const { linkedGovProfile, alreadyLinked } = await getLinkedGovProfile(service, user.id)
+
+    if (alreadyLinked) {
+      return NextResponse.json({
+        status: "already_linked",
+        gov_profile: linkedGovProfile,
+        email_domain: emailDomain || null,
+      })
+    }
+
+    if (!emailDomain || !isValidDomain(emailDomain)) {
+      return NextResponse.json({
+        status: "needs_setup",
+        gov_profile: null,
+        email_domain: emailDomain || null,
+      })
+    }
+
+    const existingGovProfile = await findGovProfileByDomain(service, emailDomain)
+    if (existingGovProfile) {
+      return NextResponse.json({
+        status: "existing_company",
+        gov_profile: existingGovProfile,
+        email_domain: emailDomain,
+      })
+    }
+
+    return NextResponse.json({
+      status: "needs_setup",
+      gov_profile: null,
+      email_domain: emailDomain,
+    })
+  } catch (err) {
+    console.error("[gov-onboarding GET]", err)
+    return NextResponse.json(
+      { error: err.message || "Failed to load onboarding status." },
+      { status: 500 },
+    )
+  }
+})
+
 export const POST = withAuth(async ({ request, user }) => {
   try {
     if (!isEmailVerified(user)) {
@@ -103,6 +207,47 @@ export const POST = withAuth(async ({ request, user }) => {
     const body = await request.json()
     const userEmail = normalizeEmail(user.email)
     const emailDomain = domainFromEmail(userEmail)
+
+    const service = createServiceClient()
+    if (!service) {
+      return NextResponse.json(
+        { error: "Server is missing Supabase service credentials." },
+        { status: 500 },
+      )
+    }
+
+    const { linkedGovProfile, alreadyLinked } = await getLinkedGovProfile(service, user.id)
+    if (alreadyLinked) {
+      return NextResponse.json({
+        gov_profile: linkedGovProfile,
+        already_linked: true,
+      })
+    }
+
+    if (body.link_existing) {
+      if (!emailDomain || !isValidDomain(emailDomain)) {
+        return NextResponse.json(
+          { error: "Your email domain is not a valid company domain to join an existing profile." },
+          { status: 400 },
+        )
+      }
+
+      const existingGovProfile = await findGovProfileByDomain(service, emailDomain)
+      if (!existingGovProfile) {
+        return NextResponse.json(
+          { error: "No company profile exists for your email domain yet." },
+          { status: 404 },
+        )
+      }
+
+      const govProfile = await linkUserToGovProfile(service, user, existingGovProfile)
+      console.log("[gov-onboarding] auto-linked existing company", userEmail, govProfile.id, emailDomain)
+      return NextResponse.json({
+        gov_profile: govProfile,
+        linked_existing: true,
+      })
+    }
+
     const submittedDomain = normalizeDomain(body.company_domain || body.company_website)
     const companyDomain = submittedDomain || emailDomain
 
@@ -119,41 +264,6 @@ export const POST = withAuth(async ({ request, user }) => {
         { error: "Company name is required." },
         { status: 400 },
       )
-    }
-
-    const service = createServiceClient()
-    if (!service) {
-      return NextResponse.json(
-        { error: "Server is missing Supabase service credentials." },
-        { status: 500 },
-      )
-    }
-
-    const { data: existingProfileRow, error: profileLookupError } = await service
-      .from("profiles")
-      .select("gov_profile_id")
-      .eq("id", user.id)
-      .maybeSingle()
-
-    if (profileLookupError) {
-      return NextResponse.json({ error: profileLookupError.message }, { status: 500 })
-    }
-
-    if (existingProfileRow?.gov_profile_id) {
-      const { data: linkedGovProfile, error: linkedError } = await service
-        .from("gov_profiles")
-        .select("*")
-        .eq("id", existingProfileRow.gov_profile_id)
-        .single()
-
-      if (linkedError) {
-        return NextResponse.json({ error: linkedError.message }, { status: 500 })
-      }
-
-      return NextResponse.json({
-        gov_profile: linkedGovProfile,
-        already_linked: true,
-      })
     }
 
     const submittedProfile = {
@@ -208,23 +318,7 @@ export const POST = withAuth(async ({ request, user }) => {
       govProfile = updated
     }
 
-    const { error: upsertError } = await service
-      .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          name: getDisplayName(user, userEmail),
-          email: userEmail,
-          provider: getProvider(user),
-          gov_profile_id: govProfile.id,
-          last_used_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      )
-
-    if (upsertError) {
-      return NextResponse.json({ error: upsertError.message }, { status: 500 })
-    }
+    await linkUserToGovProfile(service, user, govProfile)
 
     console.log("[gov-onboarding] linked", userEmail, govProfile.id, companyDomain)
     return NextResponse.json({

@@ -6,7 +6,6 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/book-demo",
   "/dashboard",
   "/gov",
-  "/gov/dashboard",
   "/gov/onboarding",
   "/landing",
   "/profile",

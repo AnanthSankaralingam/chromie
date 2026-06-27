@@ -212,6 +212,7 @@ export default forwardRef(function AutomationAuditSection(
     onRefresh,
     pollWhileRunning = true,
     autoExpandRunning = true,
+    defaultCollapsed = false,
   },
   ref,
 ) {
@@ -219,6 +220,7 @@ export default forwardRef(function AutomationAuditSection(
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [expandedId, setExpandedId] = useState(null)
+  const [sectionExpanded, setSectionExpanded] = useState(!defaultCollapsed)
 
   const loadAudit = useCallback(async () => {
     const res = await fetch("/api/automations/audit?limit=40")
@@ -278,16 +280,32 @@ export default forwardRef(function AutomationAuditSection(
 
   return (
     <Card className={`mt-8 ${CARD_CLASS}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-white/10 pb-4">
-        <div>
+      <CardHeader
+        className={`flex flex-row items-center justify-between space-y-0 pb-4 ${
+          sectionExpanded ? "border-b border-white/10" : ""
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setSectionExpanded((prev) => !prev)}
+          aria-expanded={sectionExpanded}
+          className="min-w-0 flex-1 text-left"
+        >
           <p className={SECTION_LABEL}>Audit</p>
-          <CardTitle className="mt-1 text-base font-bold text-white">{title}</CardTitle>
+          <CardTitle className="mt-1 flex items-center gap-2 text-base font-bold text-white">
+            {title}
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-zinc-500 transition-transform ${
+                sectionExpanded ? "rotate-180" : ""
+              }`}
+            />
+          </CardTitle>
           <CardDescription className="text-zinc-400">{description}</CardDescription>
-        </div>
+        </button>
         <Button
           size="sm"
           variant="outline"
-          className={BTN_OUTLINE}
+          className={`${BTN_OUTLINE} shrink-0`}
           disabled={refreshing}
           onClick={handleRefresh}
           aria-label="Refresh audit log"
@@ -295,6 +313,7 @@ export default forwardRef(function AutomationAuditSection(
           <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
         </Button>
       </CardHeader>
+      {sectionExpanded && (
       <CardContent className="space-y-2 pt-4 max-h-[32rem] overflow-y-auto">
         {loading && <p className="text-sm text-zinc-500">Loading audit log…</p>}
         {!loading && runs.length === 0 && (
@@ -316,6 +335,7 @@ export default forwardRef(function AutomationAuditSection(
           />
         ))}
       </CardContent>
+      )}
     </Card>
   )
 })

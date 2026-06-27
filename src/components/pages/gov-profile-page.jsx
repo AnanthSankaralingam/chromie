@@ -190,9 +190,6 @@ export default function GovProfilePage() {
         actions={
           <>
             <Button asChild className={BTN_OUTLINE}>
-              <Link href="/gov/dashboard">Dashboard</Link>
-            </Button>
-            <Button asChild className={BTN_OUTLINE}>
               <Link href="/gov">Opportunities</Link>
             </Button>
           </>

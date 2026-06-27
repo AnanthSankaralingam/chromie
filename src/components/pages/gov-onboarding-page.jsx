@@ -14,10 +14,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/forms-and-input/input"
 import { ArrowRight, Building2 } from "lucide-react"
 
+function govProfileToForm(profile) {
+  return {
+    name: profile?.name || "",
+    company_domain: profile?.company_domain || "",
+    corporate_overview: profile?.corporate_overview || "",
+    search_keywords: Array.isArray(profile?.search_keywords)
+      ? profile.search_keywords.join("\n")
+      : String(profile?.search_keywords || ""),
+    naics_codes: Array.isArray(profile?.naics_codes)
+      ? profile.naics_codes.join("\n")
+      : String(profile?.naics_codes || ""),
+  }
+}
+
 export default function GovOnboardingPage() {
   const router = useRouter()
   const { user, isLoading: sessionLoading } = useSession()
   const [showAuth, setShowAuth] = useState(false)
+  const [checkingExisting, setCheckingExisting] = useState(false)
+  const [autoLinking, setAutoLinking] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [enriching, setEnriching] = useState(false)
   const [error, setError] = useState("")
@@ -35,8 +51,79 @@ export default function GovOnboardingPage() {
     if (sessionLoading) return
     if (!user) {
       setShowAuth(true)
+      setCheckingExisting(false)
+      return
     }
-  }, [sessionLoading, user])
+
+    let cancelled = false
+
+    async function resolveOnboardingState() {
+      setCheckingExisting(true)
+      setError("")
+      try {
+        const res = await fetch("/api/gov-onboarding")
+        const json = await res.json().catch(() => ({}))
+        if (cancelled) return
+
+        if (res.status === 401) {
+          setShowAuth(true)
+          return
+        }
+        if (!res.ok) {
+          setError(json.error || "Could not load onboarding status.")
+          return
+        }
+
+        if (json.status === "already_linked") {
+          router.push("/gov")
+          return
+        }
+
+        if (json.status === "existing_company") {
+          setForm((prev) => ({ ...prev, ...govProfileToForm(json.gov_profile) }))
+          setAutoLinking(true)
+          const linkRes = await fetch("/api/gov-onboarding", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ link_existing: true }),
+          })
+          const linkJson = await linkRes.json().catch(() => ({}))
+          if (cancelled) return
+
+          if (linkRes.status === 401) {
+            setShowAuth(true)
+            return
+          }
+          if (!linkRes.ok) {
+            setError(linkJson.error || "Could not join your company profile.")
+            return
+          }
+
+          console.log("[gov-onboarding] auto-linked existing company", linkJson.gov_profile?.id)
+          router.push("/gov")
+          router.refresh()
+          return
+        }
+
+        if (json.email_domain) {
+          setForm((prev) => ({
+            ...prev,
+            company_domain: prev.company_domain || json.email_domain,
+          }))
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingExisting(false)
+          setAutoLinking(false)
+        }
+      }
+    }
+
+    resolveOnboardingState()
+    return () => {
+      cancelled = true
+    }
+  }, [sessionLoading, user, router])
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -135,15 +222,23 @@ export default function GovOnboardingPage() {
       }
 
       console.log("[gov-onboarding] completed", json.gov_profile?.id)
-      router.push("/gov/dashboard")
+      router.push("/gov")
       router.refresh()
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (sessionLoading) {
-    return <GovLoadingState message="Loading onboarding…" />
+  if (sessionLoading || checkingExisting || autoLinking) {
+    return (
+      <GovLoadingState
+        message={
+          autoLinking
+            ? "Joining your company profile…"
+            : "Loading onboarding…"
+        }
+      />
+    )
   }
 
   return (
@@ -279,9 +374,9 @@ export default function GovOnboardingPage() {
             <Button
               type="button"
               className={BTN_OUTLINE}
-              onClick={() => router.push("/gov/dashboard")}
+              onClick={() => router.push("/gov")}
             >
-              Back to dashboard
+              View opportunities
             </Button>
           </div>
         </form>
