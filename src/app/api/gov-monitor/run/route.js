@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getGovProfileForUser } from "@/lib/gov-profiles"
 import { bootstrapGovMonitor } from "@/lib/gov-monitor-bootstrap"
+import { GOV_PROFILE_DAILY_RUN_LIMIT } from "@/lib/gov-workflow-access"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const POST = withAuth(async ({ supabase, user }) => {
@@ -33,7 +34,7 @@ export const POST = withAuth(async ({ supabase, user }) => {
       mode: "manual",
     })
 
-    if (!result.invoked && result.skipped_reason === "already_ran_today") {
+    if (!result.invoked && result.skipped_reason === "daily_run_limit_reached") {
       return NextResponse.json({
         ok: true,
         skipped: true,
@@ -41,7 +42,7 @@ export const POST = withAuth(async ({ supabase, user }) => {
         automations: result.automations,
         ensureFailures: result.ensureFailures,
         next_run_at: result.next_run_at,
-        message: "This company profile already ran a contract search today.",
+        message: `This company profile has reached the daily limit of ${GOV_PROFILE_DAILY_RUN_LIMIT} contract searches.`,
       })
     }
 

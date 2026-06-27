@@ -76,20 +76,45 @@ export async function findOrgScheduledSamAutomation(service, govProfileId) {
   )
 }
 
+export const GOV_PROFILE_DAILY_RUN_LIMIT = 5
+
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} service
  * @param {string} govProfileId
  * @param {string} timezone
  * @param {Date} [referenceDate]
  */
-export async function hasGovProfileRunToday(service, govProfileId, timezone, referenceDate = new Date()) {
+export async function countGovProfileRunsToday(
+  service,
+  govProfileId,
+  timezone,
+  referenceDate = new Date(),
+) {
   const runs = await loadGovOrgAuditRuns(service, govProfileId, 50)
   const todayKey = calendarDayKey(referenceDate, timezone)
 
-  return runs.some((run) => {
+  return runs.filter((run) => {
     if (!run?.started_at) return false
     return calendarDayKey(new Date(run.started_at), timezone) === todayKey
-  })
+  }).length
+}
+
+/**
+ * @param {import('@supabase/supabase-js').SupabaseClient} service
+ * @param {string} govProfileId
+ * @param {string} timezone
+ * @param {number} [limit]
+ * @param {Date} [referenceDate]
+ */
+export async function hasGovProfileReachedDailyRunLimit(
+  service,
+  govProfileId,
+  timezone,
+  limit = GOV_PROFILE_DAILY_RUN_LIMIT,
+  referenceDate = new Date(),
+) {
+  const count = await countGovProfileRunsToday(service, govProfileId, timezone, referenceDate)
+  return count >= limit
 }
 
 export function calendarDayKey(date, timezone) {

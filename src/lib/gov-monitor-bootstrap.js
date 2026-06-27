@@ -6,7 +6,8 @@ import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
 import { mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
 import {
   findOrgScheduledSamAutomation,
-  hasGovProfileRunToday,
+  GOV_PROFILE_DAILY_RUN_LIMIT,
+  hasGovProfileReachedDailyRunLimit,
   loadGovOrgAuditRuns,
   loadGovOrgAutomations,
 } from "@/lib/gov-workflow-access"
@@ -207,10 +208,14 @@ export async function invokeGovDualSourceIfAllowed({
     return { invoked: false, skipped_reason: "missing_automation" }
   }
 
-  const alreadyRanToday = await hasGovProfileRunToday(service, govProfile.id, timezone)
-  if (alreadyRanToday) {
-    console.log("[gov-monitor-bootstrap] skipped invoke — org already ran today", govProfile.id)
-    return { invoked: false, skipped_reason: "already_ran_today" }
+  const atDailyLimit = await hasGovProfileReachedDailyRunLimit(service, govProfile.id, timezone)
+  if (atDailyLimit) {
+    console.log(
+      "[gov-monitor-bootstrap] skipped invoke — org daily run limit reached",
+      govProfile.id,
+      GOV_PROFILE_DAILY_RUN_LIMIT,
+    )
+    return { invoked: false, skipped_reason: "daily_run_limit_reached" }
   }
 
   if (!hasWorkflowAwsCredentials()) {

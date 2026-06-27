@@ -15,6 +15,7 @@ import UserProfileCard from "@/components/ui/gov/user-profile-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
+import { GOV_PROFILE_DAILY_RUN_LIMIT } from "@/lib/gov-workflow-access"
 import { normalizePastRfpPdfs } from "@/lib/gov-profiles"
 import { LogOut, Save } from "lucide-react"
 
@@ -31,6 +32,7 @@ export default function GovProfilePage() {
   const [forbidden, setForbidden] = useState(false)
   const [form, setForm] = useState(null)
   const [pastRfpPdfs, setPastRfpPdfs] = useState([])
+  const [saveNotice, setSaveNotice] = useState(null)
 
   const loadProfile = useCallback(async () => {
     const res = await fetch("/api/gov-profile")
@@ -76,6 +78,7 @@ export default function GovProfilePage() {
   async function saveProfile() {
     if (!form) return
     setSaving(true)
+    setSaveNotice(null)
     try {
       const res = await fetch("/api/gov-profile", {
         method: "PATCH",
@@ -87,7 +90,34 @@ export default function GovProfilePage() {
         alert(json.error || "Failed to save")
         return
       }
-      console.log("[gov-profile] saved", json.gov_profile?.id)
+      console.log("[gov-profile] saved", json.gov_profile?.id, json.monitor)
+      const monitor = json.monitor
+      if (monitor?.error) {
+        setSaveNotice({
+          tone: "error",
+          message: monitor.error,
+        })
+      } else if (monitor?.invoked) {
+        setSaveNotice({
+          tone: "success",
+          message: "Profile saved. A new contract search is running with your updated settings.",
+        })
+      } else if (monitor?.skipped_reason === "daily_run_limit_reached") {
+        setSaveNotice({
+          tone: "warning",
+          message: `Profile saved. Your organization has already run ${GOV_PROFILE_DAILY_RUN_LIMIT} contract searches today.`,
+        })
+      } else if (monitor?.skipped_reason === "aws_not_configured") {
+        setSaveNotice({
+          tone: "warning",
+          message: "Profile saved, but contract search could not start (workflow AWS is not configured).",
+        })
+      } else {
+        setSaveNotice({
+          tone: "success",
+          message: "Profile saved.",
+        })
+      }
     } finally {
       setSaving(false)
     }
@@ -259,6 +289,20 @@ export default function GovProfilePage() {
         <div className="mt-8">
           <UserProfileCard user={user} />
         </div>
+      ) : null}
+
+      {saveNotice ? (
+        <p
+          className={`mt-6 text-sm ${
+            saveNotice.tone === "error"
+              ? "text-red-400"
+              : saveNotice.tone === "warning"
+                ? "text-amber-400"
+                : "text-emerald-400"
+          }`}
+        >
+          {saveNotice.message}
+        </p>
       ) : null}
 
       <div className="mt-8 flex flex-wrap gap-3">
