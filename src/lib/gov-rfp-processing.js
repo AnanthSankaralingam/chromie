@@ -1,10 +1,38 @@
 import llmService from "@/lib/services/llm-service"
 
 let pdfParseClassPromise = null
+let pdfPolyfillsPromise = null
+
+async function ensurePdfjsNodePolyfills() {
+  if (!pdfPolyfillsPromise) {
+    pdfPolyfillsPromise = (async () => {
+      if (typeof globalThis.DOMMatrix !== "undefined") return
+
+      try {
+        const canvas = await import("@napi-rs/canvas")
+        if (canvas.DOMMatrix) globalThis.DOMMatrix = canvas.DOMMatrix
+        if (canvas.ImageData) globalThis.ImageData = canvas.ImageData
+        if (canvas.Path2D) globalThis.Path2D = canvas.Path2D
+        console.log("[gov-rfp-processing] loaded pdfjs node polyfills from @napi-rs/canvas")
+      } catch (error) {
+        console.error("[gov-rfp-processing] failed to load @napi-rs/canvas:", error)
+        throw new Error("PDF processing is unavailable in this environment")
+      }
+
+      if (typeof globalThis.DOMMatrix === "undefined") {
+        throw new Error("DOMMatrix is not defined")
+      }
+    })()
+  }
+  await pdfPolyfillsPromise
+}
 
 async function loadPdfParseClass() {
   if (!pdfParseClassPromise) {
-    pdfParseClassPromise = import("pdf-parse").then((mod) => mod.PDFParse)
+    pdfParseClassPromise = ensurePdfjsNodePolyfills().then(async () => {
+      const mod = await import("pdf-parse")
+      return mod.PDFParse
+    })
   }
   return pdfParseClassPromise
 }
