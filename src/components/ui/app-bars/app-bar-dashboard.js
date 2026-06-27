@@ -74,10 +74,18 @@ export default function AppBarDashboard({ showOpportunities = true }) {
                 Set up gov profile
               </Link>
             ) : null}
+            {user ? (
+              <Link
+                href="/profile"
+                className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+              >
+                Profile
+              </Link>
+            ) : null}
           </nav>
 
           {user ? (
-            <Link href="/profile" className="hidden sm:block">
+            <Link href="/profile">
               <Avatar className="h-8 w-8 cursor-pointer border border-white/15 transition-opacity hover:opacity-80">
                 <AvatarImage
                   src={user?.user_metadata?.picture}
@@ -121,6 +129,15 @@ export default function AppBarDashboard({ showOpportunities = true }) {
                 className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
               >
                 Set up gov profile
+              </Link>
+            ) : null}
+            {user ? (
+              <Link
+                href="/profile"
+                onClick={() => setMobileOpen(false)}
+                className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+              >
+                Profile
               </Link>
             ) : null}
           </div>
