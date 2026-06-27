@@ -19,7 +19,7 @@ const llmProfileSchema = {
     search_keywords: {
       type: "array",
       description:
-        "SAM.gov Simple Search phrases (max 3 words each) written in federal procurement language, not product marketing copy.",
+        "SAM.gov Simple Search phrases (1-3 words each) written in federal procurement language, not product marketing copy.",
       items: {
         type: "string",
         description:
@@ -252,7 +252,7 @@ async function normalizePageWithLlm({ domain, sourceUrl, pageContent }) {
 Rules:
 - Use only the website content below. Do not invent certifications, past performance, agencies, customers, or contract vehicles.
 - corporate_overview: one concise paragraph, 2-4 sentences, grounded in website copy. Explain what products and services the company offers.
-- search_keywords: 2-3 SAM.gov phrases (max 3 words each). Write how agencies describe the work in solicitations—not product names, marketing copy, or internal jargon.
+- search_keywords: 2-3 SAM.gov phrases (1-3 words each). Write how agencies describe the work in solicitations—not product names, marketing copy, or internal jargon.
 - naics_codes: likely numeric NAICS strings from what the company actually does.
 - If the company name is unclear, infer a clean name from the domain.
 
