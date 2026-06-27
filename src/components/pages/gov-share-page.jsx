@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
-import { BTN_PRIMARY, CARD_CLASS, LIST_ITEM, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
+import { BTN_PRIMARY, CARD_CLASS, LIST_ITEM } from "@/components/ui/app-dashboard-theme"
 import GovLoadingState from "@/components/ui/gov/gov-loading-state"
 import GovPageHeader from "@/components/ui/gov/gov-page-header"
 import GovPageShell from "@/components/ui/gov/gov-page-shell"
@@ -14,7 +14,7 @@ import {
   companyNameFromDomain,
   isValidDomain,
   normalizeDomain,
-} from "@/lib/gov-company-enrichment"
+} from "@/lib/gov-domain"
 import { ArrowRight, Lock } from "lucide-react"
 
 const TEASER_OPPORTUNITIES = [

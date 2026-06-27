@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { BTN_OUTLINE, BTN_PRIMARY, CARD_CLASS, INPUT_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
@@ -17,7 +17,7 @@ import {
   emailDomainMatchesInvite,
   isValidDomain,
   normalizeDomain,
-} from "@/lib/gov-company-enrichment"
+} from "@/lib/gov-domain"
 import { ArrowRight, Building2 } from "lucide-react"
 
 function govProfileToForm(profile) {
@@ -55,7 +55,9 @@ function GovOnboardingContent() {
     corporate_overview: "",
   })
   const autoEnrichAttempted = useRef(false)
-  const onboardingReady = useRef(false)
+  const formRef = useRef(form)
+  const enrichRef = useRef(null)
+  formRef.current = form
 
   const rawInviteDomain = searchParams.get("company") || ""
   const inviteDomain = useMemo(() => normalizeDomain(rawInviteDomain), [rawInviteDomain])
@@ -64,7 +66,7 @@ function GovOnboardingContent() {
     ? `/gov/onboarding?company=${encodeURIComponent(inviteDomain)}`
     : "/gov/onboarding"
 
-  const enrichFromWebsite = useCallback(async (requestedUrlOverride) => {
+  async function enrichFromWebsite(requestedUrlOverride) {
     if (!user) {
       setShowAuth(true)
       return false
@@ -76,7 +78,7 @@ function GovOnboardingContent() {
       return false
     }
 
-    const formAtRequestStart = form
+    const formAtRequestStart = formRef.current
     setEnriching(true)
     setError("")
     if (!requestedUrlOverride) {
@@ -135,21 +137,20 @@ function GovOnboardingContent() {
     } finally {
       setEnriching(false)
     }
-  }, [user, companyUrl, form])
+  }
+  enrichRef.current = enrichFromWebsite
 
   useEffect(() => {
     if (sessionLoading) return
     if (!user) {
       setShowAuth(true)
       setCheckingExisting(false)
-      onboardingReady.current = false
       return
     }
 
     let cancelled = false
 
     async function resolveOnboardingState() {
-      onboardingReady.current = false
       setCheckingExisting(true)
       setError("")
       setInviteNotice("")
@@ -220,7 +221,21 @@ function GovOnboardingContent() {
           }))
         }
 
-        onboardingReady.current = true
+        if (
+          hasValidInvite &&
+          emailDomainMatchesInvite(user.email, inviteDomain) &&
+          !autoEnrichAttempted.current
+        ) {
+          autoEnrichAttempted.current = true
+          const inviteUrl = `https://${inviteDomain}`
+          const enriched = await enrichRef.current?.(inviteUrl)
+          if (cancelled) return
+          if (enriched) {
+            setEnrichmentStatus(
+              `Invite matched your company email — we pre-filled your profile from ${inviteDomain}. Review before creating.`,
+            )
+          }
+        }
       } finally {
         if (!cancelled) {
           setCheckingExisting(false)
@@ -234,30 +249,6 @@ function GovOnboardingContent() {
       cancelled = true
     }
   }, [sessionLoading, user, router, hasValidInvite, inviteDomain])
-
-  useEffect(() => {
-    if (!user || checkingExisting || autoLinking || !onboardingReady.current) return
-    if (!hasValidInvite || !emailDomainMatchesInvite(user.email, inviteDomain)) return
-    if (autoEnrichAttempted.current) return
-
-    autoEnrichAttempted.current = true
-    const inviteUrl = `https://${inviteDomain}`
-
-    enrichFromWebsite(inviteUrl).then((success) => {
-      if (success) {
-        setEnrichmentStatus(
-          `Invite matched your company email — we pre-filled your profile from ${inviteDomain}. Review before creating.`,
-        )
-      }
-    })
-  }, [
-    user,
-    checkingExisting,
-    autoLinking,
-    hasValidInvite,
-    inviteDomain,
-    enrichFromWebsite,
-  ])
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -305,7 +296,7 @@ function GovOnboardingContent() {
         message={
           autoLinking
             ? "Joining your company profile…"
-            : enriching && hasValidInvite
+            : enriching
               ? "Pre-filling your company profile…"
               : "Loading onboarding…"
         }
