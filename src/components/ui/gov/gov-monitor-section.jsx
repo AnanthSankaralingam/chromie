@@ -352,7 +352,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
             onSelectRun={selectAuditRun}
             onRefresh={() => refreshProgress(automations)}
             pollWhileRunning
-            autoExpandRunning={!auditDefaultCollapsed}
+            autoExpandRunning={false}
             defaultCollapsed={auditDefaultCollapsed}
           />
         </>

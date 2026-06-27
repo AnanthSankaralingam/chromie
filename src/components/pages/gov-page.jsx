@@ -237,7 +237,7 @@ export default function GovPage() {
         </div>
       )}
 
-      <GovMonitorSection onRequireAuth={handleRequireAuth} auditDefaultCollapsed />
+      <GovMonitorSection onRequireAuth={handleRequireAuth} />
     </GovPageShell>
   )
 }

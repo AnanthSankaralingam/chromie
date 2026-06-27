@@ -227,7 +227,7 @@ Rules:
 - Use only the website content below. Do not invent certifications, past performance, agencies, customers, or contract vehicles.
 - corporate_overview: one concise paragraph, 2-4 sentences, grounded in website copy. Explain what products and services the company offers.
 - search_keywords: 2-3 SAM.gov phrases (1-3 words each). Write how agencies describe the work in solicitations—not product names, marketing copy, or internal jargon.
-- naics_codes: likely numeric NAICS strings from what the company actually does.
+- naics_codes: 3-5 likely numeric NAICS strings from what the company actually does.
 - If the company name is unclear, infer a clean name from the domain.
 
 Domain: ${domain}

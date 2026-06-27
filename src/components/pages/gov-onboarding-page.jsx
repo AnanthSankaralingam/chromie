@@ -46,6 +46,8 @@ function GovOnboardingContent() {
   const [error, setError] = useState("")
   const [enrichmentStatus, setEnrichmentStatus] = useState("")
   const [inviteNotice, setInviteNotice] = useState("")
+  const [isOnboardingAdmin, setIsOnboardingAdmin] = useState(false)
+  const [adminLinkedProfile, setAdminLinkedProfile] = useState(null)
   const [companyUrl, setCompanyUrl] = useState("")
   const [form, setForm] = useState({
     name: "",
@@ -155,20 +157,6 @@ function GovOnboardingContent() {
       setError("")
       setInviteNotice("")
 
-      if (hasValidInvite) {
-        if (emailDomainMatchesInvite(user.email, inviteDomain)) {
-          setForm((prev) => ({
-            ...prev,
-            company_domain: prev.company_domain || inviteDomain,
-          }))
-          setCompanyUrl(`https://${inviteDomain}`)
-        } else {
-          setInviteNotice(
-            `This invite was for ${inviteDomain}. Your email domain (${domainFromEmail(user.email) || "unknown"}) doesn't match, so you can set up your company manually below.`,
-          )
-        }
-      }
-
       try {
         const res = await fetch("/api/gov-onboarding")
         const json = await res.json().catch(() => ({}))
@@ -183,12 +171,16 @@ function GovOnboardingContent() {
           return
         }
 
+        const adminMode = Boolean(json.is_onboarding_admin)
+        setIsOnboardingAdmin(adminMode)
+        setAdminLinkedProfile(json.currently_linked_profile || null)
+
         if (json.status === "already_linked") {
           router.push("/gov")
           return
         }
 
-        if (json.status === "existing_company") {
+        if (json.status === "existing_company" && !adminMode) {
           setForm((prev) => ({ ...prev, ...govProfileToForm(json.gov_profile) }))
           setAutoLinking(true)
           const linkRes = await fetch("/api/gov-onboarding", {
@@ -214,7 +206,22 @@ function GovOnboardingContent() {
           return
         }
 
-        if (json.email_domain && !hasValidInvite) {
+        if (hasValidInvite) {
+          const inviteMatches = adminMode || emailDomainMatchesInvite(user.email, inviteDomain)
+          if (inviteMatches) {
+            setForm((prev) => ({
+              ...prev,
+              company_domain: prev.company_domain || inviteDomain,
+            }))
+            setCompanyUrl(`https://${inviteDomain}`)
+          } else {
+            setInviteNotice(
+              `This invite was for ${inviteDomain}. Your email domain (${domainFromEmail(user.email) || "unknown"}) doesn't match, so you can set up your company manually below.`,
+            )
+          }
+        }
+
+        if (json.email_domain && !hasValidInvite && !adminMode) {
           setForm((prev) => ({
             ...prev,
             company_domain: prev.company_domain || json.email_domain,
@@ -223,7 +230,7 @@ function GovOnboardingContent() {
 
         if (
           hasValidInvite &&
-          emailDomainMatchesInvite(user.email, inviteDomain) &&
+          (adminMode || emailDomainMatchesInvite(user.email, inviteDomain)) &&
           !autoEnrichAttempted.current
         ) {
           autoEnrichAttempted.current = true
@@ -232,7 +239,9 @@ function GovOnboardingContent() {
           if (cancelled) return
           if (enriched) {
             setEnrichmentStatus(
-              `Invite matched your company email — we pre-filled your profile from ${inviteDomain}. Review before creating.`,
+              adminMode
+                ? `Admin mode — pre-filled profile from ${inviteDomain}. Review before linking.`
+                : `Invite matched your company email — we pre-filled your profile from ${inviteDomain}. Review before creating.`,
             )
           }
         }
@@ -338,12 +347,21 @@ function GovOnboardingContent() {
             <CardHeader className="border-b border-white/10 pb-4">
               <CardTitle className="text-base font-bold text-white">Company identity</CardTitle>
               <CardDescription className="text-zinc-400">
-                Your signed-in email is {user.email}. We use the company domain to link teammates to
-                the same shared profile.
+                {isOnboardingAdmin
+                  ? `Admin onboarding for ${user.email}. Enter any company domain to create or join a gov profile.`
+                  : `Your signed-in email is ${user.email}. We use the company domain to link teammates to the same shared profile.`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
               {error ? <GovAlertBanner>{error}</GovAlertBanner> : null}
+              {isOnboardingAdmin ? (
+                <p className="border border-violet-400/20 bg-violet-400/10 px-3 py-2 text-sm text-violet-100">
+                  Admin mode enabled
+                  {adminLinkedProfile?.company_domain
+                    ? ` — currently linked to ${adminLinkedProfile.company_domain}. Submitting will switch profiles.`
+                    : ". You can rerun this flow anytime at /gov/onboarding."}
+                </p>
+              ) : null}
               {inviteNotice ? (
                 <p className="border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
                   {inviteNotice}
