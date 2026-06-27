@@ -69,6 +69,23 @@ function isInternalRunNote(text) {
   return /^agent=\w+,?\s*dry_tools=(?:True|False)$/i.test(trimmed)
 }
 
+/** Summarize gov_runs persistence from email_delivery metadata. */
+function govRunsDeliverySummary(email) {
+  if (!email?.gov_runs_delivery) return null
+  const delivery = email.gov_runs_delivery
+  if (Array.isArray(delivery.branches)) {
+    const inserted = delivery.branches.reduce((total, branch) => total + (branch.inserted || 0), 0)
+    const error = delivery.branches.find((branch) => branch.error)?.error
+    const skippedReason = delivery.branches.find((branch) => branch.skipped && branch.reason)?.reason
+    return { inserted, error, skippedReason }
+  }
+  return {
+    inserted: delivery.inserted || 0,
+    error: delivery.error,
+    skippedReason: delivery.skipped ? delivery.reason : null,
+  }
+}
+
 export function executionLogLines(run) {
   const lines = []
   const evaluation = run.evaluation || {}
@@ -107,6 +124,18 @@ export function executionLogLines(run) {
     lines.push({ level: "info", text: `Email sent to ${email.recipient || "recipient"}` })
   } else if (email?.error) {
     lines.push({ level: "error", text: `Email failed: ${email.error}` })
+  }
+
+  const govRuns = govRunsDeliverySummary(email)
+  if (govRuns?.inserted > 0) {
+    lines.push({
+      level: "info",
+      text: `Saved ${govRuns.inserted} opportunit${govRuns.inserted === 1 ? "y" : "ies"} to gov runs`,
+    })
+  } else if (govRuns?.error) {
+    lines.push({ level: "error", text: `Gov runs save failed: ${govRuns.error}` })
+  } else if (govRuns?.skippedReason) {
+    lines.push({ level: "meta", text: `Gov runs not saved: ${govRuns.skippedReason}` })
   }
 
   if (lines.length === 0 && run.status === "success") {
