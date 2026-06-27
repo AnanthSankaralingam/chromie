@@ -199,4 +199,121 @@ export function parseCronExpression(cron) {
   return null
 }
 
+function getDatePartsInTimezone(date, timezone) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone || "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(date)
+  const get = (type) => parts.find((part) => part.type === type)?.value || "0"
+  const hourRaw = get("hour")
+  return {
+    year: Number(get("year")),
+    month: Number(get("month")),
+    day: Number(get("day")),
+    hour: Number(hourRaw === "24" ? "0" : hourRaw),
+    minute: Number(get("minute")),
+  }
+}
+
+function localTimeInZoneToUtc(year, month, day, hour, minute, timeZone) {
+  let utcMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0)
+  for (let i = 0; i < 4; i += 1) {
+    const parts = getDatePartsInTimezone(new Date(utcMs), timeZone)
+    const wantMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0)
+    const gotMs = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0, 0)
+    utcMs += wantMs - gotMs
+  }
+  return new Date(utcMs)
+}
+
+function addCalendarDays(year, month, day, days) {
+  const shifted = new Date(Date.UTC(year, month - 1, day + days))
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  }
+}
+
+/**
+ * @param {string | null | undefined} cronExpression
+ * @param {string} scheduleTimezone
+ * @param {Date} [fromDate]
+ * @returns {string | null} ISO timestamp of the next scheduled run
+ */
+export function computeNextScheduledRun(cronExpression, scheduleTimezone, fromDate = new Date()) {
+  if (!cronExpression?.trim()) return null
+
+  const firstExpr = cronExpression.split("|").map((part) => part.trim()).find(Boolean)
+  if (!firstExpr) return null
+
+  const parsed = parseCronExpression(firstExpr)
+  if (!parsed?.times?.length) return null
+
+  const timezone = scheduleTimezone || "UTC"
+  const { hour, minute } = parseTimeString(parsed.times[0])
+  const nowParts = getDatePartsInTimezone(fromDate, timezone)
+
+  let candidate = localTimeInZoneToUtc(
+    nowParts.year,
+    nowParts.month,
+    nowParts.day,
+    hour,
+    minute,
+    timezone,
+  )
+
+  if (candidate <= fromDate) {
+    const nextDay = addCalendarDays(nowParts.year, nowParts.month, nowParts.day, 1)
+    candidate = localTimeInZoneToUtc(
+      nextDay.year,
+      nextDay.month,
+      nextDay.day,
+      hour,
+      minute,
+      timezone,
+    )
+  }
+
+  if (parsed.frequency === "weekly" && parsed.weekdays?.length) {
+    const weekdayIndex = {
+      SUN: 0,
+      MON: 1,
+      TUE: 2,
+      WED: 3,
+      THU: 4,
+      FRI: 5,
+      SAT: 6,
+    }
+    const allowed = new Set(parsed.weekdays.map((day) => weekdayIndex[day]).filter((n) => n !== undefined))
+    let guard = 0
+    while (guard < 8) {
+      const candidateParts = getDatePartsInTimezone(candidate, timezone)
+      const dow = new Date(Date.UTC(candidateParts.year, candidateParts.month - 1, candidateParts.day)).getUTCDay()
+      if (allowed.has(dow) && candidate > fromDate) break
+      const nextDay = addCalendarDays(candidateParts.year, candidateParts.month, candidateParts.day, 1)
+      candidate = localTimeInZoneToUtc(nextDay.year, nextDay.month, nextDay.day, hour, minute, timezone)
+      guard += 1
+    }
+  }
+
+  return candidate.toISOString()
+}
+
+/**
+ * @param {Date} [date]
+ * @param {string} [timezone]
+ */
+export function currentTimeHHMMInTimezone(timezone, date = new Date()) {
+  const parts = getDatePartsInTimezone(date, timezone || "UTC")
+  return `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`
+}
+
 export { WEEKDAYS }

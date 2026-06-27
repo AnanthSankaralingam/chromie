@@ -1,4 +1,7 @@
-import { GOV_MATCH_SCENARIO_IDS } from "@/lib/workflow-automations"
+import {
+  GOV_MATCH_SCENARIO_IDS,
+  PRIMARY_GOV_SCENARIO_ID,
+} from "@/lib/workflow-automations"
 
 export const AUDIT_RUN_SELECT = `
   id,
@@ -30,7 +33,7 @@ export async function getUserGovProfileId(supabase, userId) {
   return data?.gov_profile_id || null
 }
 
-export async function loadGovOrgAuditRuns(service, govProfileId, limit) {
+export async function getGovOrgTeammateIds(service, govProfileId) {
   const { data: teammates, error: teammateError } = await service
     .from("profiles")
     .select("id")
@@ -40,7 +43,67 @@ export async function loadGovOrgAuditRuns(service, govProfileId, limit) {
     throw new Error(teammateError.message)
   }
 
-  const teammateIds = (teammates || []).map((row) => row.id).filter(Boolean)
+  return (teammates || []).map((row) => row.id).filter(Boolean)
+}
+
+export async function loadGovOrgAutomations(service, govProfileId) {
+  const teammateIds = await getGovOrgTeammateIds(service, govProfileId)
+  if (!teammateIds.length) return []
+
+  const { data: automations, error: automationError } = await service
+    .from("automations")
+    .select("*")
+    .in("user_id", teammateIds)
+    .in("scenario_id", GOV_MATCH_SCENARIO_IDS)
+    .order("updated_at", { ascending: false })
+
+  if (automationError) {
+    throw new Error(automationError.message)
+  }
+
+  return automations || []
+}
+
+export async function findOrgScheduledSamAutomation(service, govProfileId) {
+  const automations = await loadGovOrgAutomations(service, govProfileId)
+  return (
+    automations.find(
+      (row) =>
+        row.scenario_id === PRIMARY_GOV_SCENARIO_ID &&
+        row.schedule_kind === "cron" &&
+        row.cron_expression?.trim(),
+    ) || null
+  )
+}
+
+/**
+ * @param {import('@supabase/supabase-js').SupabaseClient} service
+ * @param {string} govProfileId
+ * @param {string} timezone
+ * @param {Date} [referenceDate]
+ */
+export async function hasGovProfileRunToday(service, govProfileId, timezone, referenceDate = new Date()) {
+  const runs = await loadGovOrgAuditRuns(service, govProfileId, 50)
+  const todayKey = calendarDayKey(referenceDate, timezone)
+
+  return runs.some((run) => {
+    if (!run?.started_at) return false
+    return calendarDayKey(new Date(run.started_at), timezone) === todayKey
+  })
+}
+
+export function calendarDayKey(date, timezone) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone || "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+  return formatter.format(date)
+}
+
+export async function loadGovOrgAuditRuns(service, govProfileId, limit) {
+  const teammateIds = await getGovOrgTeammateIds(service, govProfileId)
   if (!teammateIds.length) return []
 
   const { data: automations, error: automationError } = await service

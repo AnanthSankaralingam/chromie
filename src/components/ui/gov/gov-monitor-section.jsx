@@ -4,7 +4,6 @@ import dynamic from "next/dynamic"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
-import { scheduleStateFromAutomation } from "@/components/automations/automation-schedule-fields"
 import { CARD_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/gov/gov-gate-cards"
 import {
   GOV_MATCH_SCENARIO_IDS,
-  GOV_WORKFLOW_SCENARIOS,
   PRIMARY_GOV_SCENARIO_ID,
 } from "@/lib/workflow-automations"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
@@ -41,30 +39,6 @@ const AutomationAuditSection = dynamic(
   },
 )
 
-function schedulePayload(schedule) {
-  return {
-    schedule_enabled: schedule.scheduleEnabled,
-    schedule_kind: schedule.scheduleEnabled ? "cron" : "on_demand",
-    schedule_frequency: schedule.scheduleFrequency,
-    schedule_times: schedule.scheduleTimes,
-    schedule_weekday: schedule.scheduleWeekday,
-    schedule_timezone: schedule.scheduleTimezone,
-  }
-}
-
-function applySchedulePatch(prev, patch) {
-  return {
-    ...prev,
-    ...(patch.schedule_enabled !== undefined ? { scheduleEnabled: patch.schedule_enabled } : {}),
-    ...(patch.schedule_frequency !== undefined
-      ? { scheduleFrequency: patch.schedule_frequency }
-      : {}),
-    ...(patch.schedule_times !== undefined ? { scheduleTimes: patch.schedule_times } : {}),
-    ...(patch.schedule_weekday !== undefined ? { scheduleWeekday: patch.schedule_weekday } : {}),
-    ...(patch.schedule_timezone !== undefined ? { scheduleTimezone: patch.schedule_timezone } : {}),
-  }
-}
-
 export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed = false }) {
   const router = useRouter()
   const { user, supabase, isLoading: sessionLoading } = useSession()
@@ -73,21 +47,17 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
   const [monitorLoading, setMonitorLoading] = useState(false)
   const [govProfileLinked, setGovProfileLinked] = useState(null)
   const [automations, setAutomations] = useState([])
-  const [schedule, setSchedule] = useState(() => scheduleStateFromAutomation(null))
+  const [monitorStatus, setMonitorStatus] = useState(null)
   const [runs, setRuns] = useState([])
   const [selectedRunId, setSelectedRunId] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [running, setRunning] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [error, setError] = useState("")
 
-  const activeRun = runs.find((run) => run.status === "running")
-  const primaryAutomation =
-    automations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || automations[0] || null
-  const automationId = primaryAutomation?.id
+  const activeRun =
+    runs.find((run) => run.status === "running") || monitorStatus?.active_run || null
   const automationIds = useMemo(() => automations.map((item) => item.id).filter(Boolean), [automations])
-  const automationReady = automationIds.length === GOV_MATCH_SCENARIO_IDS.length
-  const defaultSchedule = useMemo(() => scheduleStateFromAutomation(null), [])
+  const scheduleSummary = monitorStatus?.schedule?.summary || "Not scheduled yet"
+  const scheduleTimezone = monitorStatus?.schedule?.timezone || "America/New_York"
 
   const loadRuns = useCallback(async (items) => {
     const list = Array.isArray(items) ? items.filter(Boolean) : items ? [items] : []
@@ -117,6 +87,25 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
     }
     return next
   }, [])
+
+  const loadMonitorStatus = useCallback(async () => {
+    const res = await fetch("/api/gov-monitor/status")
+    if (res.status === 401) {
+      onRequireAuth?.()
+      return null
+    }
+    if (res.status === 403) {
+      setGovProfileLinked(false)
+      return null
+    }
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(json.error || "Could not load contract search status.")
+      return null
+    }
+    setMonitorStatus(json)
+    return json
+  }, [onRequireAuth])
 
   const loadDefaults = useCallback(async () => {
     const results = await Promise.all(
@@ -148,16 +137,16 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
   }, [onRequireAuth])
 
   const createBaseAutomation = useCallback(async (scenarioId, params) => {
-    const scenario = GOV_WORKFLOW_SCENARIOS.find((item) => item.id === scenarioId)
     const res = await fetch("/api/automations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: scenario?.label || "Contract opportunity search",
+        name: "Contract opportunity search",
         scenario_id: scenarioId,
         params: params || undefined,
         ensure_singleton: true,
-        ...schedulePayload(defaultSchedule),
+        schedule_enabled: false,
+        schedule_kind: "on_demand",
       }),
     })
 
@@ -173,7 +162,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
     }
 
     return json.automation || null
-  }, [defaultSchedule, onRequireAuth])
+  }, [onRequireAuth])
 
   const loadAutomation = useCallback(async ({ createIfMissing = false, params } = {}) => {
     const res = await fetch("/api/automations")
@@ -201,10 +190,6 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
     }
 
     setAutomations(govAutomations)
-    const primary = govAutomations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID)
-      || govAutomations[0]
-      || null
-    setSchedule(scheduleStateFromAutomation(primary))
     if (govAutomations.length) {
       await loadRuns(govAutomations)
     } else {
@@ -223,6 +208,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
       setGovProfileLinked(false)
       setAutomations([])
       setRuns([])
+      setMonitorStatus(null)
       return
     }
 
@@ -242,10 +228,13 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
       setProfileLoading(false)
       if (linked) {
         setMonitorLoading(true)
-        await loadAutomation({
-          createIfMissing: true,
-          params: defaults,
-        })
+        await Promise.all([
+          loadMonitorStatus(),
+          loadAutomation({
+            createIfMissing: true,
+            params: defaults,
+          }),
+        ])
         if (!cancelled) setMonitorLoading(false)
       }
     }
@@ -262,100 +251,24 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
     return () => {
       cancelled = true
     }
-  }, [loadAutomation, loadDefaults, sessionLoading, supabase, user])
-
-  const scheduleSummary = useMemo(() => {
-    if (!schedule.scheduleEnabled) return "On demand only"
-    const times = schedule.scheduleTimes.join(", ")
-    if (schedule.scheduleFrequency === "weekly") {
-      return `Weekly on ${schedule.scheduleWeekday} at ${times} (${schedule.scheduleTimezone})`
-    }
-    return `Daily at ${times} (${schedule.scheduleTimezone})`
-  }, [schedule])
+  }, [loadAutomation, loadDefaults, loadMonitorStatus, sessionLoading, supabase, user])
 
   async function refreshProgress(items = automations) {
     await Promise.all([
+      loadMonitorStatus(),
       items?.length ? loadRuns(items) : Promise.resolve([]),
       auditRef.current?.refresh?.(),
     ])
   }
 
-  async function saveSchedule() {
-    if (!govProfileLinked) return
-    if (!automationReady) {
-      setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
-      return
-    }
-    setSaving(true)
-    setError("")
-    try {
-      const body = { ...schedulePayload(schedule) }
-      const primary =
-        automations.find((item) => item.scenario_id === PRIMARY_GOV_SCENARIO_ID) || automations[0]
-      if (!primary) {
-        setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
-        return
-      }
-      const res = await fetch(`/api/automations/${primary.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(json.error || "Could not save the contract search schedule.")
-        return
-      }
-      const nextPrimary = json.automation
-      if (nextPrimary) {
-        setAutomations((prev) =>
-          prev.map((item) => (item.id === nextPrimary.id ? nextPrimary : item)),
-        )
-        setSchedule(scheduleStateFromAutomation(nextPrimary))
-        await refreshProgress(automations.map((item) => (item.id === nextPrimary.id ? nextPrimary : item)))
-      }
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function runNow() {
-    if (!govProfileLinked) {
-      setError("Chromie is still initializing your contract search monitor. Refresh and try again.")
-      return
-    }
-    setRunning(true)
-    setError("")
-    try {
-      const res = await fetch("/api/gov-monitor/run", { method: "POST" })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(json.error || "Could not start the contract search run.")
-        return
-      }
-      const nextAutomations = json.automations || automations
-      if (nextAutomations.length) {
-        setAutomations(nextAutomations)
-      }
-      await refreshProgress(nextAutomations)
-      for (const delayMs of [1500, 4000, 8000]) {
-        window.setTimeout(() => {
-          refreshProgress(nextAutomations).catch((err) => {
-            console.error("[gov-monitor] delayed audit refresh failed", err)
-          })
-        }, delayMs)
-      }
-    } finally {
-      setRunning(false)
-    }
-  }
-
   async function stopActiveRun() {
-    if (!activeRun?.automation_id) return
+    const runAutomationId = activeRun?.automation_id
+    const runId = activeRun?.id
+    if (!runAutomationId || !runId) return
     setStopping(true)
     setError("")
     try {
-      const res = await fetch(`/api/automations/${activeRun.automation_id}/runs/${activeRun.id}/stop`, {
+      const res = await fetch(`/api/automations/${runAutomationId}/runs/${runId}/stop`, {
         method: "POST",
       })
       const json = await res.json().catch(() => ({}))
@@ -384,8 +297,8 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
           Government contract monitoring
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-          Set when Chromie should search government contract sources, run it on demand, and review
-          execution audits.
+          Chromie searches government contract sources automatically each day. Review execution
+          audits below for run history and session details.
         </p>
       </div>
 
@@ -397,7 +310,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
         </Card>
       ) : !user ? (
         <GovSignInGate
-          message="Sign in to manage your government monitoring schedule."
+          message="Sign in to view your government monitoring schedule."
           onSignIn={() => onRequireAuth?.()}
         />
       ) : profileLoading ? (
@@ -417,15 +330,10 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
             <SamMonitorScheduleCard
               error={error}
               scheduleSummary={scheduleSummary}
-              schedule={schedule}
-              onScheduleChange={(patch) => setSchedule((prev) => applySchedulePatch(prev, patch))}
-              onSave={saveSchedule}
-              saving={saving}
-              automationId={automationReady ? automationId : null}
-              canRun={Boolean(govProfileLinked)}
+              nextRunAt={monitorStatus?.next_run_at}
+              lastRunAt={monitorStatus?.last_run_at}
+              scheduleTimezone={scheduleTimezone}
               initializing={monitorLoading}
-              onRunNow={runNow}
-              running={running}
               activeRun={activeRun}
               onStopRun={stopActiveRun}
               stopping={stopping}
@@ -440,7 +348,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
             selectedRunId={selectedRunId}
             title="Government contract execution audit"
             description="Status, validation notes, and session details for search runs across your organization."
-            emptyMessage="No contract search executions yet. Run the monitor to see audit history here."
+            emptyMessage="No contract search executions yet. Your first automatic search will appear here once it starts."
             onSelectRun={selectAuditRun}
             onRefresh={() => refreshProgress(automations)}
             pollWhileRunning

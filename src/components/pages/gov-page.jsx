@@ -14,6 +14,7 @@ import GovPageShell from "@/components/ui/gov/gov-page-shell"
 import OpportunityEmptyState from "@/components/ui/gov/opportunity-empty-state"
 import OpportunityRow from "@/components/ui/gov/opportunity-row"
 import OpportunityStats from "@/components/ui/gov/opportunity-stats"
+import { formatNextRunLabel } from "@/components/ui/gov/sam-monitor-schedule-card"
 import { isOpenOpportunity, sortOpportunityRuns } from "@/components/ui/gov/opportunity-utils"
 
 const SORT_OPTIONS = [
@@ -29,30 +30,42 @@ export default function GovPage() {
   const [loading, setLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
   const [runs, setRuns] = useState([])
+  const [monitorStatus, setMonitorStatus] = useState(null)
   const [sortBy, setSortBy] = useState("fit")
   const [expandedId, setExpandedId] = useState(null)
   const [error, setError] = useState("")
 
-  const loadRuns = useCallback(async () => {
+  const loadPageData = useCallback(async () => {
     setError("")
-    const res = await fetch("/api/gov-runs")
-    if (res.status === 401) {
+    const [runsRes, statusRes] = await Promise.all([
+      fetch("/api/gov-runs"),
+      fetch("/api/gov-monitor/status"),
+    ])
+
+    if (runsRes.status === 401 || statusRes.status === 401) {
       setShowAuth(true)
       setLoading(false)
       return
     }
-    if (res.status === 403) {
+    if (runsRes.status === 403) {
       setForbidden(true)
       setLoading(false)
       return
     }
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setError(json.error || "Failed to load opportunities")
+
+    const runsJson = await runsRes.json().catch(() => ({}))
+    if (!runsRes.ok) {
+      setError(runsJson.error || "Failed to load opportunities")
       setLoading(false)
       return
     }
-    setRuns(json.runs || [])
+
+    if (statusRes.ok) {
+      const statusJson = await statusRes.json().catch(() => ({}))
+      setMonitorStatus(statusJson)
+    }
+
+    setRuns(runsJson.runs || [])
     setLoading(false)
   }, [])
 
@@ -63,8 +76,18 @@ export default function GovPage() {
       setLoading(false)
       return
     }
-    loadRuns()
-  }, [user, sessionLoading, loadRuns])
+    loadPageData()
+  }, [user, sessionLoading, loadPageData])
+
+  useEffect(() => {
+    if (!monitorStatus?.active_run || loading) return
+    const interval = window.setInterval(() => {
+      loadPageData().catch((err) => {
+        console.error("[gov-page] refresh while running failed", err)
+      })
+    }, 8000)
+    return () => window.clearInterval(interval)
+  }, [monitorStatus?.active_run, loading, loadPageData])
 
   const sortedRuns = useMemo(() => sortOpportunityRuns(runs, sortBy), [runs, sortBy])
   const withDeadline = useMemo(() => runs.filter((run) => isOpenOpportunity(run)).length, [runs])
@@ -72,6 +95,30 @@ export default function GovPage() {
     () => runs.filter((run) => Number(run.fit_score) >= 0.9).length,
     [runs],
   )
+
+  const statusBanner = useMemo(() => {
+    if (!monitorStatus) return null
+    if (monitorStatus.active_run) {
+      return {
+        tone: "active",
+        message:
+          "Searching SAM.gov and the SBIR Tech Marketplace now. Results usually appear within 1–5 minutes.",
+      }
+    }
+    if (monitorStatus.schedule?.enabled && monitorStatus.next_run_at) {
+      return {
+        tone: "scheduled",
+        message: `Next automatic search: ${formatNextRunLabel(
+          monitorStatus.next_run_at,
+          monitorStatus.schedule.timezone,
+        )}.`,
+      }
+    }
+    return {
+      tone: "idle",
+      message: "Automatic daily contract searches will appear here once monitoring is configured.",
+    }
+  }, [monitorStatus])
 
   if (loading || sessionLoading) {
     return <GovLoadingState message="Loading opportunities…" />
@@ -105,7 +152,7 @@ export default function GovPage() {
       <GovPageHeader
         label="Government contracting"
         title="Opportunity search"
-        description="Contract opportunities discovered by your contract discovery automations, ranked by profile fit."
+        description="Contract opportunities discovered by your daily contract searches, ranked by profile fit."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild className={BTN_OUTLINE}>
@@ -130,13 +177,26 @@ export default function GovPage() {
         }
       />
 
+      {statusBanner ? (
+        <div
+          className={
+            statusBanner.tone === "active"
+              ? "mt-6 border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100"
+              : "mt-6 border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-300"
+          }
+        >
+          {statusBanner.message}
+        </div>
+      ) : null}
+
       <OpportunityStats total={runs.length} openDeadlines={withDeadline} highFitCount={highFitCount} />
 
       {error ? (
         <p className="mt-8 text-sm text-red-400">{error}</p>
       ) : sortedRuns.length === 0 ? (
         <OpportunityEmptyState
-          onGoToMonitor={() =>
+          monitorStatus={monitorStatus}
+          onScrollToMonitor={() =>
             document.getElementById("gov-monitor")?.scrollIntoView({ behavior: "smooth" })
           }
         />

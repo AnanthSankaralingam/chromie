@@ -197,13 +197,20 @@ function cleanNaicsCodes(value) {
     .filter(Boolean)
 }
 
-function companyNameFromDomain(domain) {
+export function companyNameFromDomain(domain) {
   return normalizeDomain(domain)
     .split(".")[0]
     .split("-")
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ")
+}
+
+export function emailDomainMatchesInvite(userEmail, inviteDomain) {
+  const emailDomain = domainFromEmail(userEmail)
+  const normalizedInvite = normalizeDomain(inviteDomain)
+  if (!emailDomain || !normalizedInvite) return false
+  return emailDomain === normalizedInvite
 }
 
 function normalizeLlmProfile(profile, fallbackName) {

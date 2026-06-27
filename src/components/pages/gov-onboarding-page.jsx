@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
 import { BTN_OUTLINE, BTN_PRIMARY, CARD_CLASS, INPUT_CLASS, SECTION_LABEL } from "@/components/ui/app-dashboard-theme"
 import GovAlertBanner from "@/components/ui/gov/gov-alert-banner"
@@ -12,6 +12,12 @@ import GovPageShell from "@/components/ui/gov/gov-page-shell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
+import {
+  domainFromEmail,
+  emailDomainMatchesInvite,
+  isValidDomain,
+  normalizeDomain,
+} from "@/lib/gov-company-enrichment"
 import { ArrowRight, Building2 } from "lucide-react"
 
 function govProfileToForm(profile) {
@@ -28,8 +34,9 @@ function govProfileToForm(profile) {
   }
 }
 
-export default function GovOnboardingPage() {
+function GovOnboardingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, isLoading: sessionLoading } = useSession()
   const [showAuth, setShowAuth] = useState(false)
   const [checkingExisting, setCheckingExisting] = useState(false)
@@ -38,6 +45,7 @@ export default function GovOnboardingPage() {
   const [enriching, setEnriching] = useState(false)
   const [error, setError] = useState("")
   const [enrichmentStatus, setEnrichmentStatus] = useState("")
+  const [inviteNotice, setInviteNotice] = useState("")
   const [companyUrl, setCompanyUrl] = useState("")
   const [form, setForm] = useState({
     name: "",
@@ -46,20 +54,120 @@ export default function GovOnboardingPage() {
     naics_codes: "",
     corporate_overview: "",
   })
+  const autoEnrichAttempted = useRef(false)
+  const onboardingReady = useRef(false)
+
+  const rawInviteDomain = searchParams.get("company") || ""
+  const inviteDomain = useMemo(() => normalizeDomain(rawInviteDomain), [rawInviteDomain])
+  const hasValidInvite = Boolean(inviteDomain && isValidDomain(inviteDomain))
+  const authRedirect = hasValidInvite
+    ? `/gov/onboarding?company=${encodeURIComponent(inviteDomain)}`
+    : "/gov/onboarding"
+
+  const enrichFromWebsite = useCallback(async (requestedUrlOverride) => {
+    if (!user) {
+      setShowAuth(true)
+      return false
+    }
+
+    const requestedUrl = String(requestedUrlOverride || companyUrl).trim()
+    if (!requestedUrl) {
+      setError("Enter your company website URL first.")
+      return false
+    }
+
+    const formAtRequestStart = form
+    setEnriching(true)
+    setError("")
+    if (!requestedUrlOverride) {
+      setEnrichmentStatus("")
+    }
+    try {
+      const res = await fetch("/api/gov-onboarding/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_url: requestedUrl }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.status === 401) {
+        setShowAuth(true)
+        return false
+      }
+      if (!res.ok) {
+        setError(json.error || "Could not fill your company profile from this website.")
+        return false
+      }
+
+      const profile = json.profile || {}
+      const nextValues = {
+        name: profile.name || "",
+        company_domain: profile.company_domain || "",
+        corporate_overview: profile.corporate_overview || "",
+        search_keywords: Array.isArray(profile.search_keywords)
+          ? profile.search_keywords.join("\n")
+          : String(profile.search_keywords || ""),
+        naics_codes: Array.isArray(profile.naics_codes)
+          ? profile.naics_codes.join("\n")
+          : String(profile.naics_codes || ""),
+      }
+
+      setForm((prev) => {
+        const merged = { ...prev }
+        for (const [key, value] of Object.entries(nextValues)) {
+          if (!value) continue
+          if (!prev[key] || prev[key] === formAtRequestStart[key]) {
+            merged[key] = value
+          }
+        }
+        return merged
+      })
+
+      if (!requestedUrlOverride) {
+        setEnrichmentStatus(
+          `Filled profile details from ${profile.company_domain || requestedUrl}. Review before creating the profile.`,
+        )
+      }
+      console.log("[gov-onboarding] website enrichment completed", {
+        domain: profile.company_domain,
+        confidence: profile.confidence,
+      })
+      return true
+    } finally {
+      setEnriching(false)
+    }
+  }, [user, companyUrl, form])
 
   useEffect(() => {
     if (sessionLoading) return
     if (!user) {
       setShowAuth(true)
       setCheckingExisting(false)
+      onboardingReady.current = false
       return
     }
 
     let cancelled = false
 
     async function resolveOnboardingState() {
+      onboardingReady.current = false
       setCheckingExisting(true)
       setError("")
+      setInviteNotice("")
+
+      if (hasValidInvite) {
+        if (emailDomainMatchesInvite(user.email, inviteDomain)) {
+          setForm((prev) => ({
+            ...prev,
+            company_domain: prev.company_domain || inviteDomain,
+          }))
+          setCompanyUrl(`https://${inviteDomain}`)
+        } else {
+          setInviteNotice(
+            `This invite was for ${inviteDomain}. Your email domain (${domainFromEmail(user.email) || "unknown"}) doesn't match, so you can set up your company manually below.`,
+          )
+        }
+      }
+
       try {
         const res = await fetch("/api/gov-onboarding")
         const json = await res.json().catch(() => ({}))
@@ -105,12 +213,14 @@ export default function GovOnboardingPage() {
           return
         }
 
-        if (json.email_domain) {
+        if (json.email_domain && !hasValidInvite) {
           setForm((prev) => ({
             ...prev,
             company_domain: prev.company_domain || json.email_domain,
           }))
         }
+
+        onboardingReady.current = true
       } finally {
         if (!cancelled) {
           setCheckingExisting(false)
@@ -123,77 +233,34 @@ export default function GovOnboardingPage() {
     return () => {
       cancelled = true
     }
-  }, [sessionLoading, user, router])
+  }, [sessionLoading, user, router, hasValidInvite, inviteDomain])
+
+  useEffect(() => {
+    if (!user || checkingExisting || autoLinking || !onboardingReady.current) return
+    if (!hasValidInvite || !emailDomainMatchesInvite(user.email, inviteDomain)) return
+    if (autoEnrichAttempted.current) return
+
+    autoEnrichAttempted.current = true
+    const inviteUrl = `https://${inviteDomain}`
+
+    enrichFromWebsite(inviteUrl).then((success) => {
+      if (success) {
+        setEnrichmentStatus(
+          `Invite matched your company email — we pre-filled your profile from ${inviteDomain}. Review before creating.`,
+        )
+      }
+    })
+  }, [
+    user,
+    checkingExisting,
+    autoLinking,
+    hasValidInvite,
+    inviteDomain,
+    enrichFromWebsite,
+  ])
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  async function enrichFromWebsite() {
-    if (!user) {
-      setShowAuth(true)
-      return
-    }
-
-    const requestedUrl = companyUrl.trim()
-    if (!requestedUrl) {
-      setError("Enter your company website URL first.")
-      return
-    }
-
-    const formAtRequestStart = form
-    setEnriching(true)
-    setError("")
-    setEnrichmentStatus("")
-    try {
-      const res = await fetch("/api/gov-onboarding/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_url: requestedUrl }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (res.status === 401) {
-        setShowAuth(true)
-        return
-      }
-      if (!res.ok) {
-        setError(json.error || "Could not fill your company profile from this website.")
-        return
-      }
-
-      const profile = json.profile || {}
-      const nextValues = {
-        name: profile.name || "",
-        company_domain: profile.company_domain || "",
-        corporate_overview: profile.corporate_overview || "",
-        search_keywords: Array.isArray(profile.search_keywords)
-          ? profile.search_keywords.join("\n")
-          : String(profile.search_keywords || ""),
-        naics_codes: Array.isArray(profile.naics_codes)
-          ? profile.naics_codes.join("\n")
-          : String(profile.naics_codes || ""),
-      }
-
-      setForm((prev) => {
-        const merged = { ...prev }
-        for (const [key, value] of Object.entries(nextValues)) {
-          if (!value) continue
-          if (!prev[key] || prev[key] === formAtRequestStart[key]) {
-            merged[key] = value
-          }
-        }
-        return merged
-      })
-      setEnrichmentStatus(
-        `Filled profile details from ${profile.company_domain || requestedUrl}. Review before creating the profile.`,
-      )
-      console.log("[gov-onboarding] website enrichment completed", {
-        domain: profile.company_domain,
-        confidence: profile.confidence,
-      })
-    } finally {
-      setEnriching(false)
-    }
   }
 
   async function submitOnboarding(event) {
@@ -209,7 +276,10 @@ export default function GovOnboardingPage() {
       const res = await fetch("/api/gov-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
       })
       const json = await res.json().catch(() => ({}))
       if (res.status === 401) {
@@ -235,7 +305,9 @@ export default function GovOnboardingPage() {
         message={
           autoLinking
             ? "Joining your company profile…"
-            : "Loading onboarding…"
+            : enriching && hasValidInvite
+              ? "Pre-filling your company profile…"
+              : "Loading onboarding…"
         }
       />
     )
@@ -246,7 +318,7 @@ export default function GovOnboardingPage() {
       maxWidth="3xl"
       authOpen={showAuth}
       onAuthClose={() => setShowAuth(false)}
-      authRedirect="/gov/onboarding"
+      authRedirect={authRedirect}
     >
       <div className="flex items-start gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/[0.03]">
@@ -281,6 +353,11 @@ export default function GovOnboardingPage() {
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
               {error ? <GovAlertBanner>{error}</GovAlertBanner> : null}
+              {inviteNotice ? (
+                <p className="border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+                  {inviteNotice}
+                </p>
+              ) : null}
               {enrichmentStatus ? (
                 <p className="border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">
                   {enrichmentStatus}
@@ -302,7 +379,7 @@ export default function GovOnboardingPage() {
                     type="button"
                     disabled={enriching || submitting}
                     className={`${BTN_OUTLINE} mt-1.5 shrink-0`}
-                    onClick={enrichFromWebsite}
+                    onClick={() => enrichFromWebsite()}
                   >
                     {enriching ? "Filling..." : "Fill from website"}
                   </Button>
@@ -367,7 +444,7 @@ export default function GovOnboardingPage() {
           </Card>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button type="submit" disabled={submitting} className={BTN_PRIMARY}>
+            <Button type="submit" disabled={submitting || enriching} className={BTN_PRIMARY}>
               {submitting ? "Setting up..." : "Create company profile"}
               {!submitting ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
             </Button>
@@ -382,5 +459,13 @@ export default function GovOnboardingPage() {
         </form>
       )}
     </GovPageShell>
+  )
+}
+
+export default function GovOnboardingPage() {
+  return (
+    <Suspense fallback={<GovLoadingState message="Loading onboarding…" />}>
+      <GovOnboardingContent />
+    </Suspense>
   )
 }
