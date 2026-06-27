@@ -1,4 +1,8 @@
 import { Resend } from 'resend'
+import { BLURB, CONTACT_EMAIL } from '@/components/ui/landing/landing-content'
+
+const CHROMIE_TAGLINE =
+    'The deterministic stack for web agents. Intelligence and reliability on the live web.'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -13,6 +17,135 @@ export class EmailService {
             : this.fromParts.length > 1
                 ? this.fromParts.map((p) => p.match(/<([^>]+)>/)?.[1] || p).filter(Boolean)
                 : null
+    }
+
+    /**
+     * Send branded magic-link sign-in email
+     * @param {string} email - Recipient email
+     * @param {string} magicLinkUrl - Supabase action link
+     * @returns {Promise<Object>} Email sending result
+     */
+    async sendMagicLinkEmail(email, magicLinkUrl) {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn('RESEND_API_KEY not configured, skipping magic link email')
+            return { success: false, error: 'Email service not configured' }
+        }
+
+        try {
+            const payload = {
+                from: this.from,
+                to: [email],
+                subject: 'Sign in to chromie.dev',
+                html: this.generateMagicLinkEmailHTML(magicLinkUrl),
+                text: this.generateMagicLinkEmailText(magicLinkUrl),
+            }
+            if (this.replyTo?.length) payload.replyTo = this.replyTo
+
+            const { data, error } = await resend.emails.send(payload)
+
+            if (error) {
+                console.error('Failed to send magic link email:', error)
+                return { success: false, error }
+            }
+
+            console.log('[email] magic link sent', email)
+            return { success: true, data }
+        } catch (error) {
+            console.error('Error sending magic link email:', error)
+            return { success: false, error: error.message }
+        }
+    }
+
+    generateMagicLinkEmailHTML(magicLinkUrl) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'
+
+        return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
+    <title>Sign in to chromie.dev</title>
+</head>
+<body style="margin:0;padding:24px 16px;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fafafa;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;margin:0 auto;">
+        <tr>
+            <td style="padding:28px 32px 20px;background-color:#141414;border:1px solid #27272a;border-radius:12px 12px 0 0;">
+                <div style="font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">
+                    chromie<span style="font-weight:400;color:#71717a;">.dev</span>
+                </div>
+                <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#a1a1aa;">
+                    ${CHROMIE_TAGLINE}
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:28px 32px;background-color:#141414;border-left:1px solid #27272a;border-right:1px solid #27272a;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 28px;">
+                    <tr>
+                        <td align="center">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="border-radius:8px;background-color:#ffffff;">
+                                        <a href="${magicLinkUrl}" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;color:#0a0a0a;text-decoration:none;">
+                                            Sign in to chromie
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#71717a;text-align:center;">
+                    ${BLURB}
+                </p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#71717a;text-align:center;">
+                    If the button does not work, copy and paste this link into your browser:<br>
+                    <a href="${magicLinkUrl}" style="color:#d4d4d8;word-break:break-all;">${magicLinkUrl}</a>
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:20px 32px 24px;background-color:#0a0a0a;border:1px solid #27272a;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
+                <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#71717a;">
+                    Did not request this email? You can safely ignore it.
+                </p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#71717a;">
+                    <a href="${appUrl}" style="color:#ffffff;text-decoration:none;">chromie.dev</a>
+                    ·
+                    <a href="mailto:${CONTACT_EMAIL}" style="color:#a1a1aa;text-decoration:none;">${CONTACT_EMAIL}</a>
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+        `.trim()
+    }
+
+    generateMagicLinkEmailText(magicLinkUrl) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://chromie.dev'
+
+        return `
+Sign in to chromie.dev
+
+${CHROMIE_TAGLINE}
+
+Use this secure link to sign in to your chromie account:
+
+${magicLinkUrl}
+
+This link expires soon and can only be used once.
+
+${BLURB}
+
+If you did not request this email, you can safely ignore it.
+
+${appUrl}
+${CONTACT_EMAIL}
+        `.trim()
     }
 
     /**

@@ -119,21 +119,23 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
 
     try {
       const authCallbackUrl = prepareAuthRedirect()
-      const { error } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          emailRedirectTo: authCallbackUrl,
-          shouldCreateUser: true,
-        },
+      const response = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          redirectTo: authCallbackUrl,
+        }),
       })
 
-      if (error) {
-        setError(error.message)
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(payload.error || "Could not send a magic link. Please try again.")
         setLoadingMethod(null)
         return
       }
 
-      console.log("[auth] magic link sent", normalizedEmail)
+      console.log("[auth] magic link sent", normalizedEmail, payload.provider || "unknown")
       setEmailSent(true)
     } catch (err) {
       console.error("❌ Exception in handleEmailAuth:", err)
