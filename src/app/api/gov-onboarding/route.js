@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { parseTextList, normalizeGovSearchKeywords } from "@/lib/gov-profiles"
+import {
+  bootstrapGovMonitor,
+  normalizeGovScheduleTimezone,
+} from "@/lib/gov-monitor-bootstrap"
 import { createServiceClient } from "@/lib/supabase/service"
 
 function normalizeEmail(value) {
@@ -195,7 +199,7 @@ export const GET = withAuth(async ({ user }) => {
   }
 })
 
-export const POST = withAuth(async ({ request, user }) => {
+export const POST = withAuth(async ({ request, supabase, user }) => {
   try {
     if (!isEmailVerified(user)) {
       return NextResponse.json(
@@ -320,10 +324,38 @@ export const POST = withAuth(async ({ request, user }) => {
 
     await linkUserToGovProfile(service, user, govProfile)
 
+    let monitor = null
+    const shouldBootstrap = !body.link_existing && !linkedExisting
+    if (shouldBootstrap) {
+      try {
+        const scheduleTimezone = normalizeGovScheduleTimezone(body.schedule_timezone)
+        monitor = await bootstrapGovMonitor({
+          supabase,
+          service,
+          user,
+          govProfile,
+          timezone: scheduleTimezone,
+          mode: "onboarding",
+        })
+        console.log("[gov-onboarding] monitor bootstrap", govProfile.id, {
+          scheduled: monitor.scheduled,
+          invoked: monitor.invoked,
+          skipped_reason: monitor.skipped_reason,
+          next_run_at: monitor.next_run_at,
+        })
+      } catch (bootstrapErr) {
+        console.error("[gov-onboarding] monitor bootstrap failed", bootstrapErr)
+        monitor = {
+          error: bootstrapErr.message || "Failed to initialize contract search monitoring.",
+        }
+      }
+    }
+
     console.log("[gov-onboarding] linked", userEmail, govProfile.id, companyDomain)
     return NextResponse.json({
       gov_profile: govProfile,
       linked_existing: linkedExisting,
+      monitor,
     })
   } catch (err) {
     console.error("[gov-onboarding POST]", err)

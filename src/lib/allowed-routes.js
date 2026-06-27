@@ -7,6 +7,7 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/dashboard",
   "/gov",
   "/gov/onboarding",
+  "/gov/share",
   "/landing",
   "/profile",
   "/privacy",
