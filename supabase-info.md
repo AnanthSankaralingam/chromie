@@ -48,7 +48,7 @@ SQL files:
 - `sql/alter_gov_profiles_simplify.sql`
 - `sql/gov_profile_rfp_storage.sql`
 
-RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile.
+RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile. When a signed-in user's work-email domain matches an existing `company_domain`, `/api/gov-onboarding` auto-links them to that shared profile on onboarding load so teammates inherit the same search config and opportunity context without re-entering company details.
 
 ### `gov_runs`
 
@@ -101,7 +101,7 @@ Execution/audit log for automations.
 
 Used by dashboard run history, live/session/replay routes, and `gov_runs.run_id`.
 
-RLS: users can read runs through automations they own.
+RLS: users can read runs through automations they own. Gov contract monitor audits and session replays are also readable via `/api/automations/audit` and session-view/replay routes when the run belongs to a government scenario automation owned by any user linked to the same `gov_profiles` record.
 
 ### `workflow_editable_params`
 

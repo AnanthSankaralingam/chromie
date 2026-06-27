@@ -262,18 +262,6 @@ export default function AuthModal({ isOpen, onClose, redirectUrl, showBlurredBac
                   </p>
                 ) : null}
               </form>
-
-              {/* <div className="text-center">
-                <p className="text-slate-400 text-sm">
-                  {isSignUp ? "Already have an account? " : "Don't have an account? "}
-                  <button
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-blue-400 hover:text-blue-300 underline"
-                  >
-                    {isSignUp ? "Sign in" : "Sign up"}
-                  </button>
-                </p>
-              </div> */}
             </CardContent>
           </Card>
         </div>

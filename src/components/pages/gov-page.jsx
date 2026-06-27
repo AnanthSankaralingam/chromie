@@ -1,11 +1,14 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/components/SessionProviderClient"
-import { LABEL_CLASS } from "@/components/ui/app-dashboard-theme"
+import { BTN_OUTLINE, LABEL_CLASS } from "@/components/ui/app-dashboard-theme"
+import { Button } from "@/components/ui/button"
 import { GovForbiddenState } from "@/components/ui/gov/gov-gate-cards"
 import GovLoadingState from "@/components/ui/gov/gov-loading-state"
+import GovMonitorSection from "@/components/ui/gov/gov-monitor-section"
 import GovPageHeader from "@/components/ui/gov/gov-page-header"
 import GovPageShell from "@/components/ui/gov/gov-page-shell"
 import OpportunityEmptyState from "@/components/ui/gov/opportunity-empty-state"
@@ -93,13 +96,21 @@ export default function GovPage() {
   }
 
   return (
-    <GovPageShell authOpen={showAuth} onAuthClose={() => setShowAuth(false)} authRedirect="/gov">
+    <GovPageShell
+      maxWidth="5xl"
+      authOpen={showAuth}
+      onAuthClose={() => setShowAuth(false)}
+      authRedirect="/gov"
+    >
       <GovPageHeader
         label="Government contracting"
         title="Opportunity search"
         description="Contract opportunities discovered by your contract discovery automations, ranked by profile fit."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild className={BTN_OUTLINE}>
+              <Link href="/profile">Company profile</Link>
+            </Button>
             <label htmlFor="gov-sort" className={`${LABEL_CLASS} sr-only`}>
               Sort by
             </label>
@@ -124,7 +135,11 @@ export default function GovPage() {
       {error ? (
         <p className="mt-8 text-sm text-red-400">{error}</p>
       ) : sortedRuns.length === 0 ? (
-        <OpportunityEmptyState onGoToDashboard={() => router.push("/gov/dashboard")} />
+        <OpportunityEmptyState
+          onGoToMonitor={() =>
+            document.getElementById("gov-monitor")?.scrollIntoView({ behavior: "smooth" })
+          }
+        />
       ) : (
         <div className="mt-8 space-y-2">
           {sortedRuns.map((run) => (
@@ -137,6 +152,11 @@ export default function GovPage() {
           ))}
         </div>
       )}
+
+      <GovMonitorSection
+        onRequireAuth={() => setShowAuth(true)}
+        auditDefaultCollapsed
+      />
     </GovPageShell>
   )
 }
