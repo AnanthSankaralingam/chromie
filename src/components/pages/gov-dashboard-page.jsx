@@ -15,20 +15,12 @@ import {
 } from "@/components/ui/gov/gov-gate-cards"
 import GovPageHeader from "@/components/ui/gov/gov-page-header"
 import GovPageShell from "@/components/ui/gov/gov-page-shell"
+import {
+  GOV_MATCH_SCENARIO_IDS,
+  GOV_WORKFLOW_SCENARIOS,
+  PRIMARY_GOV_SCENARIO_ID,
+} from "@/lib/workflow-automations"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
-
-const GOV_WORKFLOW_SCENARIOS = [
-  {
-    id: "morphworks_sam_gov",
-    name: "SAM.gov opportunity search",
-  },
-  {
-    id: "morphworks_sbir_tech_marketplace",
-    name: "SBIR Tech Marketplace search",
-  },
-]
-const GOV_MATCH_SCENARIO_IDS = GOV_WORKFLOW_SCENARIOS.map((scenario) => scenario.id)
-const PRIMARY_GOV_SCENARIO_ID = "morphworks_sam_gov"
 
 const AutomationAuditSection = dynamic(
   () => import("@/components/automations/automation-audit-section"),
@@ -166,7 +158,7 @@ export default function GovDashboardPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: scenario?.name || "Contract opportunity search",
+        name: scenario?.label || "Contract opportunity search",
         scenario_id: scenarioId,
         params: params || undefined,
         ensure_singleton: true,

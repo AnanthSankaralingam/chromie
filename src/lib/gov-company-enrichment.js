@@ -1,5 +1,5 @@
 import { isIP } from "node:net"
-import { broadenGovSearchKeywords } from "@/lib/gov-profiles"
+import { normalizeGovSearchKeywords } from "@/lib/gov-profiles"
 import llmService from "@/lib/services/llm-service"
 
 const PRIVATE_IPV4_RANGES = [
@@ -18,7 +18,13 @@ const llmProfileSchema = {
     corporate_overview: { type: "string" },
     search_keywords: {
       type: "array",
-      items: { type: "string" },
+      description:
+        "SAM.gov Simple Search phrases (max 3 words each) written in federal procurement language, not product marketing copy.",
+      items: {
+        type: "string",
+        description:
+          "A phrase likely to appear in a federal solicitation title or statement of work for work this company could perform.",
+      },
       minItems: 2,
       maxItems: 3,
     },
@@ -206,7 +212,7 @@ function normalizeLlmProfile(profile, fallbackName) {
   return {
     name,
     corporate_overview: String(profile?.corporate_overview || "").trim(),
-    search_keywords: broadenGovSearchKeywords(productKeywords),
+    search_keywords: normalizeGovSearchKeywords(productKeywords),
     naics_codes: cleanNaicsCodes(profile?.naics_codes),
     confidence: ["low", "medium", "high"].includes(profile?.confidence) ? profile.confidence : "medium",
   }
@@ -245,10 +251,9 @@ async function normalizePageWithLlm({ domain, sourceUrl, pageContent }) {
 
 Rules:
 - Use only the website content below. Do not invent certifications, past performance, agencies, customers, or contract vehicles.
-- Write corporate_overview as one concise paragraph, 2-4 sentences, grounded in specific website copy.
-- Infer 2-3 SAM.gov search keywords specific to the company's products or services (not generic federal IT terms).
-- Federal-facing discovery terms (IT modernization, software development, systems integration) are added automatically after enrichment.
-- Infer likely NAICS codes as numeric strings, using conservative guesses when the website clearly describes the business.
+- corporate_overview: one concise paragraph, 2-4 sentences, grounded in website copy. Explain what products and services the company offers.
+- search_keywords: 2-3 SAM.gov phrases (max 3 words each). Write how agencies describe the work in solicitations—not product names, marketing copy, or internal jargon.
+- naics_codes: likely numeric NAICS strings from what the company actually does.
 - If the company name is unclear, infer a clean name from the domain.
 
 Domain: ${domain}
@@ -259,8 +264,8 @@ Website text:
 ${pageContent.bodyText}`
 
   const response = await llmService.createResponse({
-    provider: "openai",
-    model: process.env.GOV_ONBOARDING_LLM_MODEL || "gpt-4o-mini",
+    provider: "gemini",
+    model: process.env.GOV_ONBOARDING_LLM_MODEL || "gemini-3.1-flash-lite",
     input,
     response_format: {
       type: "json_schema",
@@ -276,8 +281,8 @@ ${pageContent.bodyText}`
 }
 
 export async function enrichGovCompanyProfile(companyUrl) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Server is missing OpenAI credentials.")
+  if (!process.env.GOOGLE_AI_API_KEY) {
+    throw new Error("Server is missing Google AI credentials.")
   }
 
   const normalized = normalizeCompanyUrl(companyUrl)

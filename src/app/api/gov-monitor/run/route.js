@@ -2,17 +2,12 @@ import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getGovProfileForUser, mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
 import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
+import { GOV_WORKFLOW_SCENARIOS } from "@/lib/workflow-automations"
 
-const GOV_WORKFLOW_SCENARIOS = [
-  {
-    id: "morphworks_sam_gov",
-    name: "SAM.gov opportunity search",
-  },
-  {
-    id: "morphworks_sbir_tech_marketplace",
-    name: "SBIR Tech Marketplace search",
-  },
-]
+const GOV_MONITOR_SCENARIOS = GOV_WORKFLOW_SCENARIOS.map(({ id, label }) => ({
+  id,
+  name: label,
+}))
 
 async function ensureAutomation({ supabase, user, govProfile, scenario }) {
   const { data: existing, error: existingError } = await supabase
@@ -65,7 +60,7 @@ export const POST = withAuth(async ({ supabase, user }) => {
 
   try {
     const ensured = await Promise.allSettled(
-      GOV_WORKFLOW_SCENARIOS.map((scenario) =>
+      GOV_MONITOR_SCENARIOS.map((scenario) =>
         ensureAutomation({ supabase, user, govProfile, scenario }),
       ),
     )

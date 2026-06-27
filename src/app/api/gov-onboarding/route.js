@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { parseTextList, broadenGovSearchKeywords } from "@/lib/gov-profiles"
+import { parseTextList, normalizeGovSearchKeywords } from "@/lib/gov-profiles"
 import { createServiceClient } from "@/lib/supabase/service"
 
 function normalizeEmail(value) {
@@ -159,7 +159,7 @@ export const POST = withAuth(async ({ request, user }) => {
     const submittedProfile = {
       name: companyName,
       company_domain: companyDomain,
-      search_keywords: broadenGovSearchKeywords(body.search_keywords),
+      search_keywords: normalizeGovSearchKeywords(body.search_keywords),
       naics_codes: parseTextList(body.naics_codes),
       corporate_overview: String(body.corporate_overview || "").trim() || null,
     }
