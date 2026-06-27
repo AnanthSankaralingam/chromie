@@ -17,12 +17,15 @@ import {
   embeddableBrowserbaseUrl,
   executionLogLines,
   formatDuration,
-  statusTone,
+  runStatusLabel,
+  runStatusTone,
+  sanitizeRunForClient,
 } from "@/lib/workflow-audit"
 import { ChevronDown, RefreshCw } from "lucide-react"
 
 const STATUS_CLASS = {
   success: "text-emerald-400",
+  no_matches: "text-sky-300",
   failed: "text-red-400",
   cancelled: "text-zinc-400",
   running: "text-amber-400",
@@ -135,7 +138,7 @@ function AuditSessionEmbed({ run }) {
 
 function AuditRunRow({ run, expanded, onToggle, onSelect, selected }) {
   const logs = executionLogLines(run)
-  const tone = statusTone(run.status)
+  const tone = runStatusTone(run)
   const hasSession = browserSessionsForRun(run).length > 0
 
   return (
@@ -155,7 +158,7 @@ function AuditRunRow({ run, expanded, onToggle, onSelect, selected }) {
               <div className="font-medium text-zinc-100 truncate">{runDisplayName(run)}</div>
               <div className="text-xs text-zinc-500 truncate">
                 {SCENARIO_DISPLAY_NAMES[run.scenario_id] || run.scenario_id}
-                <span className={`ml-2 ${STATUS_CLASS[tone]}`}>{run.status}</span>
+                <span className={`ml-2 ${STATUS_CLASS[tone]}`}>{runStatusLabel(run)}</span>
               </div>
             </div>
             <div className="text-xs text-zinc-500 shrink-0 text-right">
@@ -230,7 +233,7 @@ export default forwardRef(function AutomationAuditSection(
     const next = scenarioFilter
       ? (json.runs || []).filter((run) => scenarioFilter.includes(run.scenario_id))
       : json.runs || []
-    setRuns(next)
+    setRuns(next.map((run) => sanitizeRunForClient(run)))
     return next
   }, [scenarioId, scenarioIds])
 

@@ -27,7 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/forms-and-input/input"
 import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import { formatDuration } from "@/lib/workflow-audit"
+import { formatDuration, isGovEmptyResultRun, resolveRunPresentation } from "@/lib/workflow-audit"
 import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
@@ -52,6 +52,7 @@ function FilterField({ label, children }) {
 
 function runFailureHint(run) {
   if (run.status === "cancelled") return null
+  if (isGovEmptyResultRun(run)) return null
   if (run.status !== "failed") return null
   const eval_ = run.evaluation || {}
   const addrCount = eval_.addresses_extracted?.length ?? 0
@@ -629,7 +630,9 @@ export default function AutomationsPage() {
                   {selected && runs.length === 0 && (
                     <p className="text-sm text-zinc-500">No runs yet.</p>
                   )}
-                  {runs.map((r) => (
+                  {runs.map((r) => {
+                    const presentation = resolveRunPresentation(r)
+                    return (
                     <button
                       key={r.id}
                       type="button"
@@ -643,16 +646,18 @@ export default function AutomationsPage() {
                       <div className="flex justify-between gap-2">
                         <span
                           className={
-                            r.status === "success"
+                            presentation.tone === "success"
                               ? "text-emerald-400"
-                              : r.status === "failed"
+                              : presentation.tone === "no_matches"
+                                ? "text-sky-300"
+                              : presentation.tone === "failed"
                                 ? "text-red-400"
-                                : r.status === "cancelled"
+                                : presentation.tone === "cancelled"
                                   ? "text-zinc-400"
                                   : "text-amber-400"
                           }
                         >
-                          {r.status}
+                          {presentation.label}
                           {r.status === "running" && (
                             <span className="ml-2 text-zinc-500 font-normal">live</span>
                           )}
@@ -664,18 +669,23 @@ export default function AutomationsPage() {
                           )}
                         </span>
                       </div>
-                      {r.error_message && (
+                      {presentation.isEmptyResult ? (
+                        <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                          {presentation.summary}
+                        </p>
+                      ) : r.error_message ? (
                         <p className="text-xs text-red-300/90 mt-1.5 font-medium">
                           {r.error_message}
                         </p>
-                      )}
+                      ) : null}
                       {runFailureHint(r) && (
                         <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
                           {runFailureHint(r)}
                         </p>
                       )}
                     </button>
-                  ))}
+                    )
+                  })}
                 </CardContent>
               </Card>
             </div>
