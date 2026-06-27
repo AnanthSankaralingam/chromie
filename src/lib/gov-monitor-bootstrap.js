@@ -2,6 +2,7 @@ import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
 } from "@/lib/automation-schedule-sync"
+import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
 import { mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
 import {
   findOrgScheduledSamAutomation,
@@ -55,7 +56,23 @@ async function ensureAutomation({ supabase, user, govProfile, scenario }) {
     throw new Error(existingError.message)
   }
   if (existing) {
-    return existing
+    const params = syncedGovAutomationParams(
+      existing.params,
+      govProfile,
+      scenario.id,
+      user.email || "",
+    )
+    const { data, error } = await supabase
+      .from("automations")
+      .update({ params, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+    return data
   }
 
   const params = mergeGovProfileIntoScenarioParams(govProfile, scenario.id, user.email || "")

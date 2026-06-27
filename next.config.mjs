@@ -16,7 +16,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  serverExternalPackages: ['esbuild'],
+  serverExternalPackages: ['esbuild', 'pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
   webpack: (config, { isServer }) => {
     // Handle .wasm files
     config.module = config.module || {}
@@ -42,6 +42,7 @@ const nextConfig = {
       })
       
       // Keep explicit ones added earlier
+      config.externals.push('pdf-parse', 'pdfjs-dist', '@napi-rs/canvas')
       config.externals.push({
         'chromium-bidi': 'commonjs chromium-bidi',
         'chromium-bidi/lib/cjs/bidiMapper/BidiMapper': 'commonjs chromium-bidi/lib/cjs/bidiMapper/BidiMapper',

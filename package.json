@@ -32,6 +32,7 @@
     "lucide-react": "^0.454.0",
     "next": "^15.5.12",
     "openai": "latest",
+    "pdf-parse": "^2.4.5",
     "posthog-js": "^1.352.0",
     "react": "^18",
     "react-dom": "^18",

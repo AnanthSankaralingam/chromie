@@ -1,19 +1,32 @@
 import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
 import {
   buildRfpStoragePath,
   getGovProfileForUser,
   GOV_PROFILE_RFP_BUCKET,
   GOV_PROFILE_RFP_MAX_BYTES,
   normalizePastRfpPdfs,
+  requireGovProfileServiceClient,
 } from "@/lib/gov-profiles"
+import { processPastRfpPdf } from "@/lib/gov-rfp-processing"
+
+export const runtime = "nodejs"
 
 export const POST = withAuth(async ({ request, supabase, user }) => {
   try {
     const govProfile = await getGovProfileForUser(supabase, user.id)
     if (!govProfile) {
       return NextResponse.json({ error: "No gov profile linked" }, { status: 403 })
+    }
+
+    let service
+    try {
+      service = requireGovProfileServiceClient()
+    } catch (serviceError) {
+      console.error("[gov-profile/rfps POST] service client:", serviceError)
+      return NextResponse.json({ error: serviceError.message }, { status: 500 })
     }
 
     const formData = await request.formData()
@@ -43,9 +56,10 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       storage_path: storagePath,
       size_bytes: buffer.length,
       uploaded_at: new Date().toISOString(),
+      processing_status: "pending",
     }
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await service.storage
       .from(GOV_PROFILE_RFP_BUCKET)
       .upload(storagePath, buffer, {
         contentType: "application/pdf",
@@ -57,8 +71,25 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    const pastRfps = [...normalizePastRfpPdfs(govProfile.past_rfps), entry]
-    const { data, error } = await supabase
+    let processedEntry = entry
+    try {
+      const processed = await processPastRfpPdf({
+        buffer,
+        filename,
+        companyName: govProfile.name,
+      })
+      processedEntry = { ...entry, ...processed }
+    } catch (processingError) {
+      console.error("[gov-profile/rfps POST] processing:", processingError)
+      processedEntry = {
+        ...entry,
+        processing_status: "failed",
+        processing_error: processingError.message || "Failed to process PDF",
+      }
+    }
+
+    const pastRfps = [...normalizePastRfpPdfs(govProfile.past_rfps), processedEntry]
+    const { data, error } = await service
       .from("gov_profiles")
       .update({ past_rfps: pastRfps })
       .eq("id", govProfile.id)
@@ -66,12 +97,28 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       .single()
 
     if (error) {
-      await supabase.storage.from(GOV_PROFILE_RFP_BUCKET).remove([storagePath])
+      await service.storage.from(GOV_PROFILE_RFP_BUCKET).remove([storagePath])
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log("[gov-profile/rfps POST] uploaded", storagePath, buffer.length, "bytes")
-    return NextResponse.json({ pdf: entry, past_rfps: data?.past_rfps ?? pastRfps })
+    try {
+      await refreshGovAutomationParamsForProfile({
+        supabase,
+        govProfile: { ...govProfile, past_rfps: data?.past_rfps ?? pastRfps },
+        userId: user.id,
+      })
+    } catch (syncError) {
+      console.error("[gov-profile/rfps POST] automation sync:", syncError)
+    }
+
+    console.log(
+      "[gov-profile/rfps POST] uploaded",
+      storagePath,
+      buffer.length,
+      "bytes",
+      processedEntry.processing_status,
+    )
+    return NextResponse.json({ pdf: processedEntry, past_rfps: data?.past_rfps ?? pastRfps })
   } catch (err) {
     console.error("[gov-profile/rfps POST]", err)
     return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 })

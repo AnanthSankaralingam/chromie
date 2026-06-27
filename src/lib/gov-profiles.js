@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/supabase/service"
 import {
   defaultParamsForScenario,
   GOV_PROFILE_SCENARIO_IDS,
@@ -5,6 +6,7 @@ import {
 
 export const GOV_PROFILE_RFP_BUCKET = "gov-profile-rfps"
 export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024
+export const GOV_PROFILE_RFP_CONTEXT_MAX_CHARS = 3500
 
 /** @param {...unknown} lists */
 export function mergeUniqueKeywordList(...lists) {
@@ -43,6 +45,11 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
   const profileSearch = normalizeGovSearchKeywords(govProfile.search_keywords)
   const searchKeywords = profileSearch.length ? profileSearch : base.search_keywords
   const icpKeywords = profileSearch.length ? profileSearch : searchKeywords
+  const corporateOverview = String(govProfile.corporate_overview || "").trim()
+  const pastRfpContext = buildPastRfpContext(govProfile.past_rfps)
+  const combinedOverview = [corporateOverview, pastRfpContext && `Past completed RFP context:\n${pastRfpContext}`]
+    .filter(Boolean)
+    .join("\n\n")
 
   return {
     ...baseWithoutOverviewFile,
@@ -50,9 +57,10 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     search_keywords: searchKeywords,
     icp_keywords: icpKeywords,
     naics_codes: govProfile.naics_codes ?? base.naics_codes,
-    corporate_overview: String(govProfile.corporate_overview || "").trim(),
+    corporate_overview: combinedOverview,
     corporate_overview_path: "",
     gov_profile_id: govProfile.id,
+    past_rfp_context: pastRfpContext,
   }
 }
 
@@ -112,8 +120,45 @@ export function normalizePastRfpPdfs(value) {
       storage_path: String(row.storage_path || "").trim(),
       size_bytes: Number(row.size_bytes) || 0,
       uploaded_at: String(row.uploaded_at || "").trim(),
+      processing_status: normalizeRfpProcessingStatus(row.processing_status),
+      processed_at: String(row.processed_at || "").trim(),
+      processing_error: String(row.processing_error || "").trim(),
+      summary: String(row.summary || "").trim(),
+      capabilities: parseTextList(row.capabilities).slice(0, 8),
+      agencies: parseTextList(row.agencies).slice(0, 6),
+      naics_codes: parseTextList(row.naics_codes).slice(0, 6),
+      contract_keywords: parseTextList(row.contract_keywords).slice(0, 10),
+      fit_context: String(row.fit_context || "").trim(),
     }))
     .filter((row) => row.id && row.storage_path && row.filename)
+}
+
+export function normalizeRfpProcessingStatus(value) {
+  const status = String(value || "").trim()
+  if (["processed", "failed", "pending"].includes(status)) return status
+  return "pending"
+}
+
+export function buildPastRfpContext(pastRfps) {
+  const processed = normalizePastRfpPdfs(pastRfps).filter(
+    (row) => row.processing_status === "processed" && (row.fit_context || row.summary),
+  )
+  if (!processed.length) return ""
+
+  const sections = processed.map((row, index) => {
+    const parts = [
+      processed.length > 1 && `Past completed RFP ${index + 1}:`,
+      row.fit_context && `Fit signal: ${row.fit_context}`,
+      row.summary && `Summary: ${row.summary}`,
+      row.capabilities.length && `Capabilities: ${row.capabilities.join(", ")}`,
+      row.agencies.length && `Agencies/customers: ${row.agencies.join(", ")}`,
+      row.naics_codes.length && `NAICS: ${row.naics_codes.join(", ")}`,
+      row.contract_keywords.length && `Keywords: ${row.contract_keywords.join(", ")}`,
+    ].filter(Boolean)
+    return parts.join("\n")
+  })
+
+  return sections.join("\n\n").slice(0, GOV_PROFILE_RFP_CONTEXT_MAX_CHARS).trim()
 }
 
 /**
@@ -147,4 +192,13 @@ export function buildRfpStoragePath(govProfileId, fileId) {
 /** @param {unknown} pastRfps */
 export function findPastRfpPdf(pastRfps, fileId) {
   return normalizePastRfpPdfs(pastRfps).find((row) => row.id === fileId) || null
+}
+
+/** Server-side writes for past RFP storage/metadata bypass storage RLS after auth checks. */
+export function requireGovProfileServiceClient() {
+  const service = createServiceClient()
+  if (!service) {
+    throw new Error("Server is missing Supabase service credentials.")
+  }
+  return service
 }

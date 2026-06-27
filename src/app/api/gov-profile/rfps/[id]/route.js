@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
 import {
   findPastRfpPdf,
   getGovProfileForUser,
   GOV_PROFILE_RFP_BUCKET,
   normalizePastRfpPdfs,
+  requireGovProfileServiceClient,
 } from "@/lib/gov-profiles"
 
 export const GET = withAuth(async ({ supabase, user, params }) => {
@@ -20,7 +22,15 @@ export const GET = withAuth(async ({ supabase, user, params }) => {
       return NextResponse.json({ error: "PDF not found" }, { status: 404 })
     }
 
-    const { data, error } = await supabase.storage
+    let service
+    try {
+      service = requireGovProfileServiceClient()
+    } catch (serviceError) {
+      console.error("[gov-profile/rfps GET] service client:", serviceError)
+      return NextResponse.json({ error: serviceError.message }, { status: 500 })
+    }
+
+    const { data, error } = await service.storage
       .from(GOV_PROFILE_RFP_BUCKET)
       .createSignedUrl(pdf.storage_path, 60 * 10)
 
@@ -48,7 +58,15 @@ export const DELETE = withAuth(async ({ supabase, user, params }) => {
       return NextResponse.json({ error: "PDF not found" }, { status: 404 })
     }
 
-    const { error: storageError } = await supabase.storage
+    let service
+    try {
+      service = requireGovProfileServiceClient()
+    } catch (serviceError) {
+      console.error("[gov-profile/rfps DELETE] service client:", serviceError)
+      return NextResponse.json({ error: serviceError.message }, { status: 500 })
+    }
+
+    const { error: storageError } = await service.storage
       .from(GOV_PROFILE_RFP_BUCKET)
       .remove([pdf.storage_path])
 
@@ -58,7 +76,7 @@ export const DELETE = withAuth(async ({ supabase, user, params }) => {
     }
 
     const pastRfps = normalizePastRfpPdfs(govProfile.past_rfps).filter((row) => row.id !== fileId)
-    const { data, error } = await supabase
+    const { data, error } = await service
       .from("gov_profiles")
       .update({ past_rfps: pastRfps })
       .eq("id", govProfile.id)
@@ -67,6 +85,16 @@ export const DELETE = withAuth(async ({ supabase, user, params }) => {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    try {
+      await refreshGovAutomationParamsForProfile({
+        supabase,
+        govProfile: { ...govProfile, past_rfps: data?.past_rfps ?? pastRfps },
+        userId: user.id,
+      })
+    } catch (syncError) {
+      console.error("[gov-profile/rfps DELETE] automation sync:", syncError)
     }
 
     console.log("[gov-profile/rfps DELETE] removed", pdf.storage_path)

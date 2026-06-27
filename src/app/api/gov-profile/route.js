@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
 import { getGovProfileForUser, sanitizeGovProfilePatch } from "@/lib/gov-profiles"
 
 export const GET = withAuth(async ({ supabase, user }) => {
@@ -45,6 +46,12 @@ export const PATCH = withAuth(async ({ request, supabase, user }) => {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    try {
+      await refreshGovAutomationParamsForProfile({ supabase, govProfile: data, userId: user.id })
+    } catch (syncError) {
+      console.error("[gov-profile PATCH] automation sync:", syncError)
     }
 
     console.log("[gov-profile PATCH] updated", profile.gov_profile_id, Object.keys(patch))

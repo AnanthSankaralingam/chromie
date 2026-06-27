@@ -9,6 +9,7 @@ import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
 } from "@/lib/workflow-automations"
+import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
 import {
   getGovProfileForUser,
   mergeGovProfileIntoScenarioParams,
@@ -44,7 +45,11 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     scenario_id,
     user.email || "",
   )
-  const params = body.params || defaults
+  const params = body.params
+    ? govProfile
+      ? syncedGovAutomationParams(body.params, govProfile, scenario_id, user.email || "")
+      : body.params
+    : defaults
   let scheduleFields
   try {
     scheduleFields = resolveScheduleFieldsFromBody(body)
