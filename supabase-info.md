@@ -47,11 +47,7 @@ SQL files:
 - `sql/add_gov_profiles_company_domain.sql`
 - `sql/alter_gov_profiles_simplify.sql`
 
-RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile. When a signed-in user's work-email domain matches an existing `company_domain`, `/api/gov-onboarding` auto-links them to that shared profile on onboarding load so teammates inherit the same search config and opportunity context without re-entering company details.
-
-**Gov contract monitor auto-provisioning:** When the first user completes self-serve onboarding for a new company (`/api/gov-onboarding` POST, not `link_existing`), Chromie automatically creates SAM.gov + SBIR monitor automations for that user, sets a **single org-level daily EventBridge schedule** on the primary SAM automation (`morphworks_sam_gov`) at the onboarding time (browser timezone), and kicks off the first dual-source search immediately when the org has not already run today. Teammates who join an existing company inherit the org schedule/status via `/api/gov-monitor/status` and do not receive a second schedule or onboarding invoke. Once-per-day dedup is enforced app-side before Chromie-initiated invokes by checking org-wide `workflow_runs` for the linked `gov_profile_id` on the current calendar day in the schedule timezone.
-
-**Gov outreach share links:** No schema changes. Outreach uses public URLs like `/gov/share?company=acmefederal.com` (`company` is a normalized domain only). The share page shows illustrative blurred opportunities and sends sign-ups to `/gov/onboarding?company=…`. Profiles are **not** pre-created. After auth, if the user's verified work-email domain exactly matches the invite domain, onboarding auto-enriches from `https://{domain}` and pre-fills the review form before the existing `/api/gov-onboarding` POST creates/links the `gov_profiles` row. If the email domain does not match, onboarding shows a notice and falls back to the standard manual flow.
+RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile.
 
 `past_rfps` entries are JSON objects. The stable file fields are `id`, `filename`, `storage_path`, `size_bytes`, and `uploaded_at`. Upload processing adds `processing_status` (`pending`, `processed`, or `failed`), `processed_at`, `processing_error`, `summary`, `capabilities`, `agencies`, `naics_codes`, `contract_keywords`, and `fit_context`. The app builds a compact `past_rfp_context` from processed entries and injects it into government automation params; it is also appended to `corporate_overview` for compatibility with the workflow scorer.
 
@@ -106,7 +102,7 @@ Execution/audit log for automations.
 
 Used by dashboard run history, live/session/replay routes, and `gov_runs.run_id`.
 
-RLS: users can read runs through automations they own. Gov contract monitor audits and session replays are also readable via `/api/automations/audit` and session-view/replay routes when the run belongs to a government scenario automation owned by any user linked to the same `gov_profiles` record.
+RLS: users can read runs through automations they own.
 
 ### `workflow_editable_params`
 
