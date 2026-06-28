@@ -4,6 +4,11 @@ import { getReplayMetadata, getSessionLiveViewUrl } from "@/lib/browserbase"
 import { resolveBrowserSessionId } from "@/lib/workflow-audit"
 import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
 
+function isStoppedLiveSessionError(err) {
+  const message = String(err?.message || "")
+  return message.includes("(410)") || /session stopped/i.test(message)
+}
+
 export const GET = withAuth(async ({ supabase, user, request, params }) => {
   const { id: automationId, runId } = await params
   const run = await getAccessibleWorkflowRun(supabase, user.id, automationId, runId)
@@ -34,6 +39,15 @@ export const GET = withAuth(async ({ supabase, user, request, params }) => {
       }
     } catch (err) {
       console.error("[session-view/live]", err)
+      if (isStoppedLiveSessionError(err)) {
+        return NextResponse.json(
+          {
+            pending: true,
+            message: "The live browser session has ended. The recording will appear here once it finishes processing.",
+          },
+          { status: 202 },
+        )
+      }
       return NextResponse.json(
         { pending: true, message: err.message || "Live view not ready yet" },
         { status: 202 },

@@ -22,6 +22,14 @@ export default function WorkflowSessionViewer({
   const [pending, setPending] = useState(true)
   const [error, setError] = useState(null)
 
+  function friendlySessionMessage(message) {
+    const text = String(message || "")
+    if (text.includes("(410)") || /session stopped/i.test(text)) {
+      return "The live browser session has ended. The recording will appear here once it finishes processing."
+    }
+    return text
+  }
+
   const loadSessionView = useCallback(async () => {
     if (!automationId || !runId) return
     const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ""
@@ -33,13 +41,13 @@ export default function WorkflowSessionViewer({
       setMode(null)
       setLiveUrl(null)
       setPlaylistUrl(null)
-      if (json.message) setError(json.message)
+      if (json.message) setError(friendlySessionMessage(json.message))
       return
     }
     if (!res.ok) {
       const json = await res.json().catch(() => ({}))
       setPending(false)
-      setError(json.error || "Could not load session")
+      setError(friendlySessionMessage(json.error || "Could not load session"))
       return
     }
     const json = await res.json()
