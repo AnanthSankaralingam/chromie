@@ -1,42 +1,17 @@
 import { DEMO_USE_CASES } from "@/lib/demo-use-cases"
 
-export const USE_CASE_TABS = DEMO_USE_CASES.map(({ id, label, videoId }) => ({
+export const USE_CASE_TABS = DEMO_USE_CASES.slice().sort((a, b) => {
+  if (a.id === "government-contracts") return -1
+  if (b.id === "government-contracts") return 1
+  return 0
+}).map(({ id, label, videoId }) => ({
   id,
   label,
   videoId,
 }))
 
-export const HERO_USE_CASES = [
-  {
-    id: "pharma-intelligence",
-    useCase: "market intelligence",
-    industry: "pharma",
-  },
-  {
-    id: "clinical-trials",
-    useCase: "trial tracking",
-    industry: "clinical teams",
-  },
-  {
-    id: "insurance",
-    useCase: "payer portals",
-    industry: "insurance",
-  },
-  {
-    id: "government-contracts",
-    useCase: "contract search",
-    industry: "gov teams",
-  },
-].map((line) => {
-  const demoUseCase = DEMO_USE_CASES.find((useCase) => useCase.id === line.id)
-  return {
-    ...line,
-    label: demoUseCase?.label ?? line.industry,
-  }
-})
-
 export const BLURB =
-  "Current automation either sacrifices intelligence for reliability, or reliability for intelligence. We provide both through AI augmented with deterministic tooling."
+  "Mission-critical workflows can't afford one production failure. chromie.dev gives web agents deterministic skills that keep automations reliable when sites, layouts, & edge cases change."
 
 export const CONTACT_EMAIL = "founders@chromie.dev"
 export const CAL_URL = "https://cal.com/chromie"
