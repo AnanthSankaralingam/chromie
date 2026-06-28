@@ -74,7 +74,7 @@ export default function SamMonitorScheduleCard({
           <div className="border border-cyan-400/20 bg-cyan-400/10 px-3 py-3">
             <p className="text-sm font-medium text-cyan-100">Search in progress</p>
             <p className="mt-1 text-sm text-cyan-100/80">
-              Chromie is searching government sources now. Results usually appear within 1–5 minutes.
+              We're searching government sources now. Results usually appear within 1–5 minutes.
             </p>
           </div>
         ) : null}

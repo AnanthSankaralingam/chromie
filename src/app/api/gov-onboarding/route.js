@@ -6,6 +6,7 @@ import {
   bootstrapGovMonitor,
   normalizeGovScheduleTimezone,
 } from "@/lib/gov-monitor-bootstrap"
+import { isGovOnboardingAdmin } from "@/lib/gov-onboarding-admin"
 import { createServiceClient } from "@/lib/supabase/service"
 
 function normalizeEmail(value) {
@@ -165,13 +166,25 @@ export const GET = withAuth(async ({ user }) => {
 
     const userEmail = normalizeEmail(user.email)
     const emailDomain = domainFromEmail(userEmail)
+    const isAdmin = isGovOnboardingAdmin(userEmail)
     const { linkedGovProfile, alreadyLinked } = await getLinkedGovProfile(service, user.id)
 
-    if (alreadyLinked) {
+    if (alreadyLinked && !isAdmin) {
       return NextResponse.json({
         status: "already_linked",
         gov_profile: linkedGovProfile,
         email_domain: emailDomain || null,
+      })
+    }
+
+    if (isAdmin) {
+      console.log("[gov-onboarding GET] admin re-onboard allowed", userEmail)
+      return NextResponse.json({
+        status: "needs_setup",
+        is_onboarding_admin: true,
+        gov_profile: null,
+        email_domain: emailDomain || null,
+        currently_linked_profile: alreadyLinked ? linkedGovProfile : null,
       })
     }
 
@@ -218,6 +231,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     const body = await request.json()
     const userEmail = normalizeEmail(user.email)
     const emailDomain = domainFromEmail(userEmail)
+    const isAdmin = isGovOnboardingAdmin(userEmail)
 
     const service = createServiceClient()
     if (!service) {
@@ -228,7 +242,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     }
 
     const { linkedGovProfile, alreadyLinked } = await getLinkedGovProfile(service, user.id)
-    if (alreadyLinked) {
+    if (alreadyLinked && !isAdmin) {
       return NextResponse.json({
         gov_profile: linkedGovProfile,
         already_linked: true,
@@ -236,35 +250,54 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     }
 
     if (body.link_existing) {
-      if (!emailDomain || !isValidDomain(emailDomain)) {
+      const targetDomain = isAdmin
+        ? normalizeDomain(body.company_domain || body.company_website)
+        : emailDomain
+
+      if (!targetDomain || !isValidDomain(targetDomain)) {
         return NextResponse.json(
-          { error: "Your email domain is not a valid company domain to join an existing profile." },
+          {
+            error: isAdmin
+              ? "Enter a valid company domain to join an existing profile."
+              : "Your email domain is not a valid company domain to join an existing profile.",
+          },
           { status: 400 },
         )
       }
 
-      const existingGovProfile = await findGovProfileByDomain(service, emailDomain)
+      const existingGovProfile = await findGovProfileByDomain(service, targetDomain)
       if (!existingGovProfile) {
         return NextResponse.json(
-          { error: "No company profile exists for your email domain yet." },
+          { error: "No company profile exists for that domain yet." },
           { status: 404 },
         )
       }
 
       const govProfile = await linkUserToGovProfile(service, user, existingGovProfile)
-      console.log("[gov-onboarding] auto-linked existing company", userEmail, govProfile.id, emailDomain)
+      console.log(
+        "[gov-onboarding] linked existing company",
+        userEmail,
+        govProfile.id,
+        targetDomain,
+        isAdmin ? "(admin)" : "",
+      )
       return NextResponse.json({
         gov_profile: govProfile,
         linked_existing: true,
+        relinked: alreadyLinked && isAdmin,
       })
     }
 
     const submittedDomain = normalizeDomain(body.company_domain || body.company_website)
-    const companyDomain = submittedDomain || emailDomain
+    const companyDomain = isAdmin ? submittedDomain : submittedDomain || emailDomain
 
     if (!companyDomain || !isValidDomain(companyDomain)) {
       return NextResponse.json(
-        { error: "Enter a valid company domain to continue." },
+        {
+          error: isAdmin
+            ? "Enter the target company domain to onboard."
+            : "Enter a valid company domain to continue.",
+        },
         { status: 400 },
       )
     }
@@ -359,10 +392,17 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       }
     }
 
-    console.log("[gov-onboarding] linked", userEmail, govProfile.id, companyDomain)
+    console.log(
+      "[gov-onboarding] linked",
+      userEmail,
+      govProfile.id,
+      companyDomain,
+      isAdmin ? "(admin)" : "",
+    )
     return NextResponse.json({
       gov_profile: govProfile,
       linked_existing: linkedExisting,
+      relinked: alreadyLinked && isAdmin,
       monitor,
     })
   } catch (err) {
