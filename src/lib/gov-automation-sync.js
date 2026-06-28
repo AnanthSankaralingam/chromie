@@ -6,6 +6,7 @@ const PROFILE_PARAM_KEYS = [
   "customer_name",
   "search_keywords",
   "icp_keywords",
+  "max_keyword_searches",
   "naics_codes",
   "corporate_overview",
   "corporate_overview_path",

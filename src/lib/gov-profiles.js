@@ -46,6 +46,9 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
   const profileSearch = normalizeGovSearchKeywords(govProfile.search_keywords)
   const searchKeywords = profileSearch.length ? profileSearch : base.search_keywords
   const icpKeywords = profileSearch.length ? profileSearch : searchKeywords
+  const maxKeywordSearches = profileSearch.length
+    ? Math.min(profileSearch.length, Number(base.max_keyword_searches) || profileSearch.length)
+    : base.max_keyword_searches
   const sbirCategories = normalizeSbirCategories(govProfile.sbir_categories)
   const isSbirMarketplace = scenarioId === "morphworks_sbir_tech_marketplace"
   const corporateOverview = String(govProfile.corporate_overview || "").trim()
@@ -59,6 +62,7 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     customer_name: govProfile.name,
     search_keywords: searchKeywords,
     icp_keywords: icpKeywords,
+    max_keyword_searches: maxKeywordSearches,
     naics_codes: govProfile.naics_codes ?? base.naics_codes,
     corporate_overview: combinedOverview,
     corporate_overview_path: "",
