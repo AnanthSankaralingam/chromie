@@ -28,6 +28,12 @@ export default function LandingPage() {
       <FilmGrain />
       <HeroScrollGlow />
 
+      <a
+        href="/gov/onboarding"
+        className="relative z-50 block border-b border-cyan-400/30 bg-cyan-400 px-4 py-2 text-center text-sm font-semibold text-black transition-colors hover:bg-cyan-300"
+      >
+        🚀 New Launch: Try our free, self-serve automation tool for Government Contracting →
+      </a>
       <LandingHeader />
       <HatchBand />
 

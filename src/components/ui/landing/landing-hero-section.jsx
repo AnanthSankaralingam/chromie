@@ -45,10 +45,10 @@ export default function LandingHeroSection() {
 
               <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-3">
                 <PrimaryButton href={CAL_URL} external>
-                  Book a demo
+                  Build Custom Automations
                 </PrimaryButton>
                 <SecondaryButton onClick={() => router.push("/gov/onboarding")}>
-                  GovCon? Try free
+                  Try Free GovCon Tool ↗
                 </SecondaryButton>
               </motion.div>
             </motion.div>

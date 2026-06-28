@@ -6,12 +6,13 @@ import { getDemoEmbedUrl, getDemoThumbnailUrl } from "@/lib/demo-use-cases"
 export default function DemoVideoEmbed({
   videoId,
   title,
+  autoPlay = false,
   engaged = false,
   playKey = 0,
   onEngage,
   className = "absolute inset-0 h-full w-full",
 }) {
-  if (!engaged) {
+  if (!autoPlay && !engaged) {
     return (
       <button
         type="button"
@@ -36,7 +37,7 @@ export default function DemoVideoEmbed({
     <iframe
       key={`${videoId}-${playKey}`}
       title={title}
-      src={getDemoEmbedUrl(videoId, { autoplay: true })}
+      src={getDemoEmbedUrl(videoId, { autoplay: true, muted: autoPlay })}
       className={className}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       allowFullScreen

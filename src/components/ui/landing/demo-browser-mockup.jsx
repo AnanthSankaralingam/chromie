@@ -6,7 +6,7 @@ import { USE_CASE_TABS } from "@/components/ui/landing/landing-content"
 import { BASE_DEMO_VIDEO_ID } from "@/lib/demo-use-cases"
 
 export default function DemoBrowserMockup({ id = "hero" }) {
-  const [activeTabId, setActiveTabId] = useState(null)
+  const [activeTabId, setActiveTabId] = useState("government-contracts")
   const [playGeneration, setPlayGeneration] = useState(0)
   const activeTab = activeTabId ? USE_CASE_TABS.find((tab) => tab.id === activeTabId) : null
   const videoId = activeTab?.videoId ?? BASE_DEMO_VIDEO_ID
@@ -18,10 +18,9 @@ export default function DemoBrowserMockup({ id = "hero" }) {
   }
 
   function selectTab(tabId) {
-    const nextTabId = tabId === activeTabId ? null : tabId
-    setActiveTabId(nextTabId)
+    setActiveTabId(tabId)
     setPlayGeneration((generation) => generation + 1)
-    console.log("[landing] demo tab:", nextTabId ?? "default")
+    console.log("[landing] demo tab:", tabId)
   }
 
   return (
@@ -34,6 +33,7 @@ export default function DemoBrowserMockup({ id = "hero" }) {
         <DemoVideoEmbed
           videoId={videoId}
           title={videoTitle}
+          autoPlay
           engaged={playGeneration > 0}
           playKey={playGeneration}
           onEngage={engageDemo}
