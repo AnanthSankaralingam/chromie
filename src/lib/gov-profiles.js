@@ -3,6 +3,7 @@ import {
   defaultParamsForScenario,
   GOV_PROFILE_SCENARIO_IDS,
 } from "@/lib/workflow-automations"
+import { normalizeSbirCategories } from "@/lib/gov-sbir-categories"
 
 export const GOV_PROFILE_RFP_BUCKET = "gov-profile-rfps"
 export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024
@@ -45,6 +46,8 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
   const profileSearch = normalizeGovSearchKeywords(govProfile.search_keywords)
   const searchKeywords = profileSearch.length ? profileSearch : base.search_keywords
   const icpKeywords = profileSearch.length ? profileSearch : searchKeywords
+  const sbirCategories = normalizeSbirCategories(govProfile.sbir_categories)
+  const isSbirMarketplace = scenarioId === "morphworks_sbir_tech_marketplace"
   const corporateOverview = String(govProfile.corporate_overview || "").trim()
   const pastRfpContext = buildPastRfpContext(govProfile.past_rfps)
   const combinedOverview = [corporateOverview, pastRfpContext && `Past completed RFP context:\n${pastRfpContext}`]
@@ -61,6 +64,11 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     corporate_overview_path: "",
     gov_profile_id: govProfile.id,
     past_rfp_context: pastRfpContext,
+    ...(isSbirMarketplace && sbirCategories.length
+      ? {
+          sbir_tech_marketplace_categories: sbirCategories,
+        }
+      : {}),
   }
 }
 
@@ -176,6 +184,9 @@ export function sanitizeGovProfilePatch(body) {
   }
   if (body.naics_codes != null) {
     patch.naics_codes = parseTextList(body.naics_codes)
+  }
+  if (body.sbir_categories != null) {
+    patch.sbir_categories = normalizeSbirCategories(body.sbir_categories)
   }
   if (body.corporate_overview != null) {
     patch.corporate_overview =

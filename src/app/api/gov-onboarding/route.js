@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { parseTextList, normalizeGovSearchKeywords } from "@/lib/gov-profiles"
+import { normalizeSbirCategories } from "@/lib/gov-sbir-categories"
 import {
   bootstrapGovMonitor,
   normalizeGovScheduleTimezone,
@@ -76,6 +77,12 @@ function buildBlankFieldPatch(existingProfile, submitted) {
     submitted.naics_codes.length > 0
   ) {
     patch.naics_codes = submitted.naics_codes
+  }
+  if (
+    (!Array.isArray(existingProfile.sbir_categories) || existingProfile.sbir_categories.length === 0) &&
+    submitted.sbir_categories.length > 0
+  ) {
+    patch.sbir_categories = submitted.sbir_categories
   }
   if (!String(existingProfile.corporate_overview || "").trim() && submitted.corporate_overview) {
     patch.corporate_overview = submitted.corporate_overview
@@ -308,6 +315,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       company_domain: companyDomain,
       search_keywords: normalizeGovSearchKeywords(body.search_keywords),
       naics_codes: parseTextList(body.naics_codes),
+      sbir_categories: normalizeSbirCategories(body.sbir_categories),
       corporate_overview: String(body.corporate_overview || "").trim() || null,
     }
 

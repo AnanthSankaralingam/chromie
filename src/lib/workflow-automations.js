@@ -61,6 +61,7 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
               "https://thesbirtechmarketplace.com/?view=marketplace",
             sbir_tech_marketplace_status: ["Active"],
             sbir_tech_marketplace_listing_types: ["Contract"],
+            sbir_tech_marketplace_categories: ["Software", "Cybersecurity"],
           }
         : {}),
       customer_name: "",
