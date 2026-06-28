@@ -9,7 +9,7 @@ import {
   SBIR_TECH_MARKETPLACE_CATEGORIES,
   normalizeSbirCategories,
 } from "@/lib/gov-sbir-categories"
-import llmService from "@/lib/services/llm-service"
+import { OpenAIAdapter } from "@/lib/services/adapters/openai-adapter"
 
 export {
   companyNameFromDomain,
@@ -27,6 +27,9 @@ const PRIVATE_IPV4_RANGES = [
   /^172\.(1[6-9]|2\d|3[0-1])\./,
   /^192\.168\./,
 ]
+
+const GOV_ONBOARDING_OPENAI_MODEL = "gpt-5.4-nano-2026-03-17"
+const openaiAdapter = new OpenAIAdapter()
 
 const llmProfileSchema = {
   type: "object",
@@ -261,9 +264,8 @@ Meta description: ${pageContent.metaDescription}
 Website text:
 ${pageContent.bodyText}`
 
-  const response = await llmService.createResponse({
-    provider: "gemini",
-    model: process.env.GOV_ONBOARDING_LLM_MODEL || "gemini-3.1-flash-lite",
+  const response = await openaiAdapter.createResponse({
+    model: GOV_ONBOARDING_OPENAI_MODEL,
     input,
     response_format: {
       type: "json_schema",
@@ -279,8 +281,8 @@ ${pageContent.bodyText}`
 }
 
 export async function enrichGovCompanyProfile(companyUrl) {
-  if (!process.env.GOOGLE_AI_API_KEY) {
-    throw new Error("Server is missing Google AI credentials.")
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Server is missing OpenAI credentials.")
   }
 
   const normalized = normalizeCompanyUrl(companyUrl)

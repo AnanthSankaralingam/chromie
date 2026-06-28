@@ -464,13 +464,6 @@ function GovOnboardingContent() {
               {submitting ? "Setting up..." : "Create company profile"}
               {!submitting ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
             </Button>
-            <Button
-              type="button"
-              className={BTN_OUTLINE}
-              onClick={() => router.push("/gov")}
-            >
-              View opportunities
-            </Button>
           </div>
         </form>
       )}
