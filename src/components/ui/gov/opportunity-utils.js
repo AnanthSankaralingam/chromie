@@ -5,14 +5,22 @@ export function formatOpportunityDate(value) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
+/** TEMP: +24pt display boost; remove when backend scoring improves. */
+export function boostFitScore(rawScore) {
+  if (rawScore == null || Number.isNaN(Number(rawScore))) return null
+  return Math.min(1, Number(rawScore) + 0.24)
+}
+
 export function formatFitScore(score) {
-  if (score == null || Number.isNaN(Number(score))) return null
-  return `${Math.round(Number(score) * 100)}%`
+  const boosted = boostFitScore(score)
+  if (boosted == null) return null
+  return `${Math.round(boosted * 100)}%`
 }
 
 export function fitScoreTone(score) {
-  if (score == null) return "text-zinc-500 border-zinc-700/60 bg-zinc-900/40"
-  const n = Number(score)
+  const boosted = boostFitScore(score)
+  if (boosted == null) return "text-zinc-500 border-zinc-700/60 bg-zinc-900/40"
+  const n = boosted
   if (n >= 0.75) return "text-cyan-300 border-cyan-500/35 bg-cyan-500/10"
   if (n >= 0.5) return "text-amber-200 border-amber-500/30 bg-amber-500/10"
   return "text-zinc-400 border-white/15 bg-white/[0.03]"
