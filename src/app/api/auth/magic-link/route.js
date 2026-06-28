@@ -29,15 +29,31 @@ async function generateMagicLink(service, email, redirectTo) {
 
   let result = await attempt("magiclink")
   if (!result.error) {
-    return result
+    return { ...result, linkType: "magiclink" }
   }
 
   const message = result.error.message?.toLowerCase() || ""
   if (message.includes("not found") || message.includes("user not found")) {
     result = await attempt("signup")
+    if (!result.error) {
+      return { ...result, linkType: "signup" }
+    }
   }
 
-  return result
+  return { ...result, linkType: "magiclink" }
+}
+
+function buildCallbackMagicLink(redirectTo, hashedToken, type) {
+  if (!hashedToken) return null
+
+  try {
+    const callbackUrl = new URL(redirectTo)
+    callbackUrl.searchParams.set("token_hash", hashedToken)
+    callbackUrl.searchParams.set("type", type)
+    return callbackUrl.toString()
+  } catch {
+    return null
+  }
 }
 
 async function sendSupabaseMagicLink(email, redirectTo) {
@@ -108,7 +124,7 @@ export async function POST(request) {
       return NextResponse.json({ success: true, provider: fallback.provider })
     }
 
-    const { data, error } = await generateMagicLink(service, email, redirectTo)
+    const { data, error, linkType } = await generateMagicLink(service, email, redirectTo)
     if (error) {
       console.error("[auth/magic-link] generateLink failed, using Supabase OTP:", error)
       const fallback = await sendSupabaseMagicLink(email, redirectTo)
@@ -118,7 +134,9 @@ export async function POST(request) {
       return NextResponse.json({ success: true, provider: fallback.provider })
     }
 
-    const magicLinkUrl = data?.properties?.action_link
+    const magicLinkUrl =
+      buildCallbackMagicLink(redirectTo, data?.properties?.hashed_token, linkType) ||
+      data?.properties?.action_link
     if (!magicLinkUrl) {
       console.error("[auth/magic-link] missing action_link, using Supabase OTP")
       const fallback = await sendSupabaseMagicLink(email, redirectTo)

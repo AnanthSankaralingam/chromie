@@ -7,6 +7,8 @@ import {
   resolveGovHomePath,
 } from "@/lib/gov-auth-redirect"
 
+const EMAIL_LINK_TYPES = new Set(["magiclink", "signup", "invite", "recovery", "email_change"])
+
 /**
  * Server-side auth callback - exchanges OAuth code for session and sets cookies.
  * This is required so server routes can read the session.
@@ -15,6 +17,8 @@ import {
 export async function GET(request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
+  const tokenHash = requestUrl.searchParams.get("token_hash")
+  const type = requestUrl.searchParams.get("type")
   const error = requestUrl.searchParams.get("error")
 
   if (error) {
@@ -22,14 +26,18 @@ export async function GET(request) {
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error)}`, request.url))
   }
 
-  if (code) {
+  if (code || tokenHash) {
     const cookieStore = await cookies()
     const supabase = await createClient()
 
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    const { error: exchangeError } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : EMAIL_LINK_TYPES.has(type)
+        ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+        : { error: new Error("Invalid email link type") }
 
     if (exchangeError) {
-      console.error("AuthCallback route: exchangeCodeForSession error:", exchangeError)
+      console.error("AuthCallback route: session exchange error:", exchangeError)
       return NextResponse.redirect(new URL("/?error=auth_exchange_failed", request.url))
     }
 

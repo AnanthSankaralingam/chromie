@@ -21,7 +21,20 @@ function AuthHandlerContent() {
       router.replace("/")
       return
     }
-  }, [searchParams, router])
+
+    const code = searchParams.get("code")
+    if (!code || !supabase) return
+
+    supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
+      if (exchangeError) {
+        console.error("[AuthHandler] auth code exchange failed", exchangeError)
+        router.replace("/?error=auth_exchange_failed")
+        return
+      }
+
+      router.replace(window.location.pathname || "/")
+    })
+  }, [searchParams, supabase, router])
 
   useEffect(() => {
     if (isLoading || !session?.user || !supabase) return
