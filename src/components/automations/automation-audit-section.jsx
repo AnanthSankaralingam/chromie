@@ -21,6 +21,7 @@ import {
   runStatusTone,
   sanitizeRunForClient,
 } from "@/lib/workflow-audit"
+import { canonicalGovScenarioId } from "@/lib/workflow-automations"
 import { ChevronDown, RefreshCw } from "lucide-react"
 
 const STATUS_CLASS = {
@@ -53,7 +54,11 @@ function runDisplayName(run) {
   if (sessions.length > 1) {
     return "Government contract monitor"
   }
-  return SCENARIO_DISPLAY_NAMES[run.scenario_id] || run.automation_name || "Deleted automation"
+  return (
+    SCENARIO_DISPLAY_NAMES[canonicalGovScenarioId(run.scenario_id)] ||
+    run.automation_name ||
+    "Deleted automation"
+  )
 }
 
 function AuditSessionPanel({ run, session }) {

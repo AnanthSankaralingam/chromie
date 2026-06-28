@@ -1,7 +1,9 @@
 import { createServiceClient } from "@/lib/supabase/service"
 import {
+  canonicalGovScenarioId,
   defaultParamsForScenario,
   GOV_PROFILE_SCENARIO_IDS,
+  isGovSbirScenarioId,
 } from "@/lib/workflow-automations"
 import { normalizeSbirCategories } from "@/lib/gov-sbir-categories"
 
@@ -37,8 +39,9 @@ export function normalizeGovSearchKeywords(profileKeywords) {
  * @param {string} userEmail
  */
 export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEmail = "") {
-  const base = defaultParamsForScenario(scenarioId, userEmail)
-  if (!govProfile || !GOV_PROFILE_SCENARIO_IDS.has(scenarioId)) {
+  const canonicalScenarioId = canonicalGovScenarioId(scenarioId)
+  const base = defaultParamsForScenario(canonicalScenarioId, userEmail)
+  if (!govProfile || !GOV_PROFILE_SCENARIO_IDS.has(canonicalScenarioId)) {
     return base
   }
 
@@ -50,7 +53,7 @@ export function mergeGovProfileIntoScenarioParams(govProfile, scenarioId, userEm
     ? Math.min(profileSearch.length, Number(base.max_keyword_searches) || profileSearch.length)
     : base.max_keyword_searches
   const sbirCategories = normalizeSbirCategories(govProfile.sbir_categories)
-  const isSbirMarketplace = scenarioId === "morphworks_sbir_tech_marketplace"
+  const isSbirMarketplace = isGovSbirScenarioId(canonicalScenarioId)
   const corporateOverview = String(govProfile.corporate_overview || "").trim()
   const pastRfpContext = buildPastRfpContext(govProfile.past_rfps)
   const combinedOverview = [corporateOverview, pastRfpContext && `Past completed RFP context:\n${pastRfpContext}`]

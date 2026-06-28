@@ -14,8 +14,11 @@ import { hasWorkflowAwsCredentials } from "@/lib/workflow-aws-config"
 import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
 import { syncAutomationSchedule } from "@/lib/workflow-schedule"
 import {
+  GOV_CONTRACT_SBIR_TECH_MARKETPLACE_SCENARIO_ID,
   GOV_WORKFLOW_SCENARIOS,
   PRIMARY_GOV_SCENARIO_ID,
+  canonicalGovScenarioId,
+  govScenarioIdAliases,
 } from "@/lib/workflow-automations"
 import {
   computeNextScheduledRun,
@@ -25,7 +28,11 @@ import {
 
 export const DEFAULT_GOV_SCHEDULE_TIMEZONE = "America/New_York"
 
-const SBIR_SCENARIO_ID = "morphworks_sbir_tech_marketplace"
+const SBIR_SCENARIO_ID = GOV_CONTRACT_SBIR_TECH_MARKETPLACE_SCENARIO_ID
+const isPrimaryGovScenarioId = (scenarioId) =>
+  canonicalGovScenarioId(scenarioId) === PRIMARY_GOV_SCENARIO_ID
+const isSbirGovScenarioId = (scenarioId) =>
+  canonicalGovScenarioId(scenarioId) === SBIR_SCENARIO_ID
 
 const GOV_MONITOR_SCENARIOS = GOV_WORKFLOW_SCENARIOS.map(({ id, label }) => ({
   id,
@@ -48,7 +55,7 @@ async function ensureAutomation({ service, user, govProfile, scenario }) {
     .from("automations")
     .select("*")
     .eq("gov_profile_id", govProfile.id)
-    .eq("scenario_id", scenario.id)
+    .in("scenario_id", govScenarioIdAliases(scenario.id))
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -124,9 +131,9 @@ export async function ensureUserGovAutomations({ service, user, govProfile }) {
     }))
 
   const samAutomation =
-    automations.find((automation) => automation.scenario_id === PRIMARY_GOV_SCENARIO_ID) || null
+    automations.find((automation) => isPrimaryGovScenarioId(automation.scenario_id)) || null
   const sbirAutomation =
-    automations.find((automation) => automation.scenario_id === SBIR_SCENARIO_ID) || null
+    automations.find((automation) => isSbirGovScenarioId(automation.scenario_id)) || null
 
   return { automations, samAutomation, sbirAutomation, ensureFailures }
 }
@@ -137,7 +144,7 @@ function findSbirAutomationForSamOwner(orgAutomations, samAutomation) {
     orgAutomations.find(
       (row) =>
         row.gov_profile_id === samAutomation.gov_profile_id &&
-        row.scenario_id === SBIR_SCENARIO_ID,
+        isSbirGovScenarioId(row.scenario_id),
     ) || null
   )
 }
@@ -279,8 +286,8 @@ export async function getGovMonitorStatus({ service, govProfileId }) {
   const lastRun = runs[0] || null
   const activeRun = runs.find((run) => run.status === "running") || null
   const automationReady =
-    orgAutomations.some((row) => row.scenario_id === PRIMARY_GOV_SCENARIO_ID) &&
-    orgAutomations.some((row) => row.scenario_id === SBIR_SCENARIO_ID)
+    orgAutomations.some((row) => isPrimaryGovScenarioId(row.scenario_id)) &&
+    orgAutomations.some((row) => isSbirGovScenarioId(row.scenario_id))
 
   return {
     gov_profile_id: govProfileId,
@@ -326,14 +333,14 @@ export async function bootstrapGovMonitor({
 
   if (!samAutomation) {
     throw new Error(
-      ensureFailures.find((failure) => failure.scenario_id === PRIMARY_GOV_SCENARIO_ID)?.error ||
+      ensureFailures.find((failure) => isPrimaryGovScenarioId(failure.scenario_id))?.error ||
         "Failed to initialize the SAM.gov monitor automation",
     )
   }
 
   if (!sbirAutomation) {
     throw new Error(
-      ensureFailures.find((failure) => failure.scenario_id === SBIR_SCENARIO_ID)?.error ||
+      ensureFailures.find((failure) => isSbirGovScenarioId(failure.scenario_id))?.error ||
         "Failed to initialize the SBIR Tech Marketplace monitor automation",
     )
   }
@@ -341,7 +348,7 @@ export async function bootstrapGovMonitor({
   let scheduleAutomation = await findOrgScheduledSamAutomation(service, govProfile.id)
   let scheduled = false
 
-  if (mode === "onboarding" && !scheduleAutomation) {
+  if (!scheduleAutomation) {
     const scheduleResult = await ensureOrgDailySchedule({
       service,
       govProfile,
