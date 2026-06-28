@@ -4,6 +4,7 @@ import { getGovProfileForUser } from "@/lib/gov-profiles"
 import { bootstrapGovMonitor } from "@/lib/gov-monitor-bootstrap"
 import { GOV_PROFILE_DAILY_RUN_LIMIT } from "@/lib/gov-workflow-access"
 import { createServiceClient } from "@/lib/supabase/service"
+import { canonicalGovScenarioId, PRIMARY_GOV_SCENARIO_ID } from "@/lib/workflow-automations"
 
 export const POST = withAuth(async ({ supabase, user }) => {
   let govProfile = null
@@ -63,7 +64,7 @@ export const POST = withAuth(async ({ supabase, user }) => {
       invocation: result.invocation
         ? {
             automation_id: result.scheduleAutomation?.id || result.automations.find(
-              (item) => item.scenario_id === "morphworks_sam_gov",
+              (item) => canonicalGovScenarioId(item.scenario_id) === PRIMARY_GOV_SCENARIO_ID,
             )?.id,
             gov_dual_source: true,
             ...result.invocation,

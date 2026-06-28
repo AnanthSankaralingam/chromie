@@ -6,6 +6,7 @@ import {
   bootstrapGovMonitor,
   normalizeGovScheduleTimezone,
 } from "@/lib/gov-monitor-bootstrap"
+import { findOrgScheduledSamAutomation } from "@/lib/gov-workflow-access"
 import { isGovOnboardingAdmin } from "@/lib/gov-onboarding-admin"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -154,6 +155,28 @@ async function linkUserToGovProfile(service, user, govProfile) {
   return govProfile
 }
 
+async function bootstrapGovMonitorIfNeeded({
+  supabase,
+  service,
+  user,
+  govProfile,
+  scheduleTimezone,
+}) {
+  const orgHasSchedule = await findOrgScheduledSamAutomation(service, govProfile.id)
+  if (orgHasSchedule) {
+    return null
+  }
+
+  return bootstrapGovMonitor({
+    supabase,
+    service,
+    user,
+    govProfile,
+    timezone: scheduleTimezone,
+    mode: "onboarding",
+  })
+}
+
 export const GET = withAuth(async ({ user }) => {
   try {
     const service = createServiceClient()
@@ -243,9 +266,39 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
 
     const { linkedGovProfile, alreadyLinked } = await getLinkedGovProfile(service, user.id)
     if (alreadyLinked && !isAdmin) {
+      let monitor = null
+      try {
+        const scheduleTimezone = normalizeGovScheduleTimezone(body.schedule_timezone)
+        monitor = await bootstrapGovMonitorIfNeeded({
+          supabase,
+          service,
+          user,
+          govProfile: linkedGovProfile,
+          scheduleTimezone,
+        })
+      } catch (bootstrapErr) {
+        console.error("[gov-onboarding] monitor repair failed", bootstrapErr)
+        return NextResponse.json(
+          {
+            error:
+              bootstrapErr.message ||
+              "Your company profile is linked, but Chromie could not finish setting up the contract search schedule.",
+            gov_profile: linkedGovProfile,
+            already_linked: true,
+            monitor: {
+              error:
+                bootstrapErr.message ||
+                "Failed to initialize contract search monitoring.",
+            },
+          },
+          { status: 503 },
+        )
+      }
+
       return NextResponse.json({
         gov_profile: linkedGovProfile,
         already_linked: true,
+        monitor,
       })
     }
 
@@ -274,6 +327,35 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
       }
 
       const govProfile = await linkUserToGovProfile(service, user, existingGovProfile)
+      let monitor = null
+      try {
+        const scheduleTimezone = normalizeGovScheduleTimezone(body.schedule_timezone)
+        monitor = await bootstrapGovMonitorIfNeeded({
+          supabase,
+          service,
+          user,
+          govProfile,
+          scheduleTimezone,
+        })
+      } catch (bootstrapErr) {
+        console.error("[gov-onboarding] monitor bootstrap failed (link existing)", bootstrapErr)
+        return NextResponse.json(
+          {
+            error:
+              bootstrapErr.message ||
+              "Joined the company profile, but Chromie could not finish setting up the contract search schedule.",
+            gov_profile: govProfile,
+            linked_existing: true,
+            relinked: alreadyLinked && isAdmin,
+            monitor: {
+              error:
+                bootstrapErr.message ||
+                "Failed to initialize contract search monitoring.",
+            },
+          },
+          { status: 503 },
+        )
+      }
       console.log(
         "[gov-onboarding] linked existing company",
         userEmail,
@@ -285,6 +367,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
         gov_profile: govProfile,
         linked_existing: true,
         relinked: alreadyLinked && isAdmin,
+        monitor,
       })
     }
 
@@ -366,7 +449,8 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     await linkUserToGovProfile(service, user, govProfile)
 
     let monitor = null
-    const shouldBootstrap = !body.link_existing && !linkedExisting
+    const orgHasSchedule = await findOrgScheduledSamAutomation(service, govProfile.id)
+    const shouldBootstrap = !orgHasSchedule
     if (shouldBootstrap) {
       try {
         const scheduleTimezone = normalizeGovScheduleTimezone(body.schedule_timezone)

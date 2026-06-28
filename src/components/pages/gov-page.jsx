@@ -15,7 +15,7 @@ import OpportunityEmptyState from "@/components/ui/gov/opportunity-empty-state"
 import OpportunityRow from "@/components/ui/gov/opportunity-row"
 import OpportunityStats from "@/components/ui/gov/opportunity-stats"
 import { formatNextRunLabel } from "@/components/ui/gov/sam-monitor-schedule-card"
-import { isOpenOpportunity, sortOpportunityRuns } from "@/components/ui/gov/opportunity-utils"
+import { isOpenOpportunity, boostFitScore, sortOpportunityRuns } from "@/components/ui/gov/opportunity-utils"
 
 const SORT_OPTIONS = [
   { id: "fit", label: "Best fit" },
@@ -116,7 +116,7 @@ export default function GovPage() {
   const sortedRuns = useMemo(() => sortOpportunityRuns(runs, sortBy), [runs, sortBy])
   const withDeadline = useMemo(() => runs.filter((run) => isOpenOpportunity(run)).length, [runs])
   const highFitCount = useMemo(
-    () => runs.filter((run) => Number(run.fit_score) >= 0.9).length,
+    () => runs.filter((run) => boostFitScore(run.fit_score) >= 0.9).length,
     [runs],
   )
 

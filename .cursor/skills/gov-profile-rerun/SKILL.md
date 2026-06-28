@@ -19,9 +19,9 @@ SELECT
 FROM gov_profiles gp
 JOIN profiles p ON p.gov_profile_id = gp.id
 JOIN automations sam
-  ON sam.user_id = p.id AND sam.scenario_id = 'morphworks_sam_gov'
+  ON sam.user_id = p.id AND sam.scenario_id = 'gov_contract_sam_gov'
 JOIN automations sbir
-  ON sbir.user_id = p.id AND sbir.scenario_id = 'morphworks_sbir_tech_marketplace'
+  ON sbir.user_id = p.id AND sbir.scenario_id = 'gov_contract_sbir_tech_marketplace'
 WHERE lower(gp.company_domain) = lower('COMPANY_DOMAIN')
 LIMIT 1;
 ```

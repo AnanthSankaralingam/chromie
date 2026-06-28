@@ -22,7 +22,7 @@ end $$;
 
 update public.automations
 set gov_profile_id = (params->>'gov_profile_id')::uuid
-where scenario_id in ('morphworks_sam_gov', 'morphworks_sbir_tech_marketplace')
+where scenario_id in ('gov_contract_sam_gov', 'gov_contract_sbir_tech_marketplace')
   and gov_profile_id is null
   and params ? 'gov_profile_id'
   and params->>'gov_profile_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -38,7 +38,7 @@ from public.profiles p
 where a.user_id = p.id
   and a.gov_profile_id is null
   and p.gov_profile_id is not null
-  and a.scenario_id in ('morphworks_sam_gov', 'morphworks_sbir_tech_marketplace');
+  and a.scenario_id in ('gov_contract_sam_gov', 'gov_contract_sbir_tech_marketplace');
 
 create index if not exists idx_automations_gov_profile_scenario
   on public.automations (gov_profile_id, scenario_id)
@@ -46,7 +46,7 @@ create index if not exists idx_automations_gov_profile_scenario
 
 create unique index if not exists automations_gov_profile_scenario_unique
   on public.automations (gov_profile_id, scenario_id)
-  where scenario_id in ('morphworks_sam_gov', 'morphworks_sbir_tech_marketplace')
+  where scenario_id in ('gov_contract_sam_gov', 'gov_contract_sbir_tech_marketplace')
     and gov_profile_id is not null;
 
 alter table public.automations
@@ -71,7 +71,7 @@ begin
   delete from public.automations
   where user_id = old.id
     and gov_profile_id is null
-    and scenario_id not in ('morphworks_sam_gov', 'morphworks_sbir_tech_marketplace');
+    and scenario_id not in ('gov_contract_sam_gov', 'gov_contract_sbir_tech_marketplace');
 
   return old;
 end;

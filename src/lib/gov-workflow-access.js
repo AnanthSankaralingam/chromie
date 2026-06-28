@@ -1,4 +1,5 @@
 import {
+  canonicalGovScenarioId,
   GOV_MATCH_SCENARIO_IDS,
   PRIMARY_GOV_SCENARIO_ID,
 } from "@/lib/workflow-automations"
@@ -66,7 +67,7 @@ export async function findOrgScheduledSamAutomation(service, govProfileId) {
   return (
     automations.find(
       (row) =>
-        row.scenario_id === PRIMARY_GOV_SCENARIO_ID &&
+        canonicalGovScenarioId(row.scenario_id) === PRIMARY_GOV_SCENARIO_ID &&
         row.schedule_kind === "cron" &&
         row.cron_expression?.trim() &&
         row.eventbridge_schedule_name?.trim(),
