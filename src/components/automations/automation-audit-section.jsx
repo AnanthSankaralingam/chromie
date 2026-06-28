@@ -44,6 +44,8 @@ const SESSION_FRAME_STYLE = { height: "min(50vh, 480px)" }
 const SCENARIO_DISPLAY_NAMES = {
   morphworks_sam_gov: "Government contract monitor",
   morphworks_sbir_tech_marketplace: "SBIR Tech Marketplace",
+  gov_contract_sam_gov: "Government contract monitor",
+  gov_contract_sbir_tech_marketplace: "SBIR Tech Marketplace",
 }
 
 function runDisplayName(run) {

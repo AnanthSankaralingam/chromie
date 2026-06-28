@@ -11,7 +11,7 @@ import {
   GovSignInGate,
 } from "@/components/ui/gov/gov-gate-cards"
 import {
-  PRIMARY_GOV_SCENARIO_ID,
+  GOV_SAM_SCENARIO_IDS,
 } from "@/lib/workflow-automations"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
 
@@ -254,7 +254,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
           <AutomationAuditSection
             ref={auditRef}
             user={user}
-            scenarioIds={[PRIMARY_GOV_SCENARIO_ID]}
+            scenarioIds={GOV_SAM_SCENARIO_IDS}
             selectedAutomationIds={automationIds}
             selectedRunId={selectedRunId}
             title="Government contract execution audit"

@@ -14,7 +14,13 @@ export const GOV_WORKFLOW_SCENARIOS = [
   },
 ]
 
-export const GOV_MATCH_SCENARIO_IDS = GOV_WORKFLOW_SCENARIOS.map((scenario) => scenario.id)
+export const LEGACY_GOV_SAM_SCENARIO_ID = "morphworks_sam_gov"
+export const LEGACY_GOV_SBIR_SCENARIO_ID = "morphworks_sbir_tech_marketplace"
+export const GOV_SAM_SCENARIO_ID = "gov_contract_sam_gov"
+export const GOV_SBIR_SCENARIO_ID = "gov_contract_sbir_tech_marketplace"
+export const GOV_SAM_SCENARIO_IDS = [LEGACY_GOV_SAM_SCENARIO_ID, GOV_SAM_SCENARIO_ID]
+export const GOV_SBIR_SCENARIO_IDS = [LEGACY_GOV_SBIR_SCENARIO_ID, GOV_SBIR_SCENARIO_ID]
+export const GOV_MATCH_SCENARIO_IDS = [...GOV_SAM_SCENARIO_IDS, ...GOV_SBIR_SCENARIO_IDS]
 export const PRIMARY_GOV_SCENARIO_ID = "morphworks_sam_gov"
 
 /** @type {WorkflowScenarioMeta[]} */
@@ -31,14 +37,10 @@ export const DEFAULT_WORKFLOW_SCENARIO_ID = PRIMARY_GOV_SCENARIO_ID
 
 export const EMAIL_DELIVERY_SCENARIO_IDS = new Set([
   "zillow_listing_alert",
-  "morphworks_sam_gov",
-  "morphworks_sbir_tech_marketplace",
+  ...GOV_MATCH_SCENARIO_IDS,
 ])
 
-export const GOV_PROFILE_SCENARIO_IDS = new Set([
-  "morphworks_sam_gov",
-  "morphworks_sbir_tech_marketplace",
-])
+export const GOV_PROFILE_SCENARIO_IDS = new Set(GOV_MATCH_SCENARIO_IDS)
 
 export const ZILLOW_DEFAULT_FILTERS = {
   city: "Suwanee, GA",
