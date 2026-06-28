@@ -66,7 +66,9 @@ Normalized government opportunity results, typically produced from SAM.gov workf
 | Profile/run linkage | `gov_profile_id`, optional `run_id` to `workflow_runs.id`. |
 | Source fields | `source`, `source_ref`, `source_url`, `scenario_id`. |
 | Opportunity fields | `title`, `agency`, `customer_name`, `published_date`, `response_date`. |
-| Analysis fields | `contract_summary`, `fit_score`, `fit_rationale`, `profile_fit_verified`. |
+| Analysis fields | `contract_summary`, `fit_score`, `fit_rationale`, `profile_fit_verified`, `analysis_payload`. |
+
+`analysis_payload` is JSON from the gov scoring workflow. Common keys include `criteria_status`, `icp_match_terms`, `matched_keyword`, and `compliance_checklist` (string array of submission/compliance steps shown in the opportunities UI as the compliance matrix).
 | Timestamps | `created_at`, `updated_at`. |
 
 Indexes:

@@ -1,3 +1,10 @@
+export function getComplianceChecklist(analysisPayload) {
+  if (!analysisPayload || typeof analysisPayload !== "object") return []
+  const list = analysisPayload.compliance_checklist ?? analysisPayload.compliance_matrix
+  if (!Array.isArray(list)) return []
+  return list.filter((item) => typeof item === "string" && item.trim())
+}
+
 export function formatOpportunityDate(value) {
   if (!value) return null
   const date = new Date(`${value}T12:00:00`)

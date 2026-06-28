@@ -33,6 +33,8 @@ function runsDataKey(runs) {
         run.title,
         run.response_date,
         run.profile_fit_verified,
+        run.analysis_payload?.criteria_status,
+        run.analysis_payload?.compliance_checklist?.length,
       ].join(":"),
     )
     .join("|")
