@@ -5,6 +5,10 @@ import {
   isValidDomain,
   normalizeDomain,
 } from "@/lib/gov-domain"
+import {
+  SBIR_TECH_MARKETPLACE_CATEGORIES,
+  normalizeSbirCategories,
+} from "@/lib/gov-sbir-categories"
 import llmService from "@/lib/services/llm-service"
 
 export {
@@ -48,12 +52,30 @@ const llmProfileSchema = {
       minItems: 1,
       maxItems: 5,
     },
+    sbir_categories: {
+      type: "array",
+      description:
+        "Relevant SBIR Tech Marketplace categories. Choose only from the provided category list.",
+      items: {
+        type: "string",
+        enum: SBIR_TECH_MARKETPLACE_CATEGORIES,
+      },
+      minItems: 1,
+      maxItems: 4,
+    },
     confidence: {
       type: "string",
       enum: ["low", "medium", "high"],
     },
   },
-  required: ["name", "corporate_overview", "search_keywords", "naics_codes", "confidence"],
+  required: [
+    "name",
+    "corporate_overview",
+    "search_keywords",
+    "naics_codes",
+    "sbir_categories",
+    "confidence",
+  ],
 }
 
 export function isEmailVerified(user) {
@@ -188,6 +210,7 @@ function normalizeLlmProfile(profile, fallbackName) {
     corporate_overview: String(profile?.corporate_overview || "").trim(),
     search_keywords: normalizeGovSearchKeywords(productKeywords),
     naics_codes: cleanNaicsCodes(profile?.naics_codes),
+    sbir_categories: normalizeSbirCategories(profile?.sbir_categories),
     confidence: ["low", "medium", "high"].includes(profile?.confidence) ? profile.confidence : "medium",
   }
 }
@@ -228,6 +251,7 @@ Rules:
 - corporate_overview: one concise paragraph, 2-4 sentences, grounded in website copy. Explain what products and services the company offers.
 - search_keywords: 2-3 SAM.gov phrases (1-3 words each). Write how agencies describe the work in solicitations—not product names, marketing copy, or internal jargon.
 - naics_codes: likely numeric NAICS strings from what the company actually does.
+- sbir_categories: 1-4 relevant SBIR Tech Marketplace categories. Choose only from: ${SBIR_TECH_MARKETPLACE_CATEGORIES.join(", ")}.
 - If the company name is unclear, infer a clean name from the domain.
 
 Domain: ${domain}

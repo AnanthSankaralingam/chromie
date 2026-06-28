@@ -34,6 +34,7 @@ Shared company profile for government-contracting customers.
 | `company_domain` | Normalized work-email/company domain used to link self-serve teammates to the same company profile. |
 | `search_keywords` | SAM.gov batch search terms. |
 | `naics_codes` | NAICS filters. |
+| `sbir_categories` | Internal SBIR Tech Marketplace category filters inferred during onboarding; not shown in the UI. |
 | `corporate_overview` | Company context used for fit analysis. |
 | `past_rfps` | Uploaded past RFP PDF metadata plus processed scoring context stored in bucket `gov-profile-rfps`. |
 | `created_at`, `updated_at` | Audit timestamps. |
@@ -46,6 +47,7 @@ SQL files:
 - `sql/create_gov_profiles.sql`
 - `sql/add_gov_profiles_company_domain.sql`
 - `sql/alter_gov_profiles_simplify.sql`
+- `sql/add_gov_profiles_sbir_categories.sql`
 
 RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile. When a signed-in user's work-email domain matches an existing `company_domain`, `/api/gov-onboarding` auto-links them to that shared profile on onboarding load so teammates inherit the same search config and opportunity context without re-entering company details.
 

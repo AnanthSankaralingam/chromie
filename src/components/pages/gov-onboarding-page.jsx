@@ -31,6 +31,9 @@ function govProfileToForm(profile) {
     naics_codes: Array.isArray(profile?.naics_codes)
       ? profile.naics_codes.join("\n")
       : String(profile?.naics_codes || ""),
+    sbir_categories: Array.isArray(profile?.sbir_categories)
+      ? profile.sbir_categories
+      : [],
   }
 }
 
@@ -52,6 +55,7 @@ function GovOnboardingContent() {
     company_domain: "",
     search_keywords: "",
     naics_codes: "",
+    sbir_categories: [],
     corporate_overview: "",
   })
   const autoEnrichAttempted = useRef(false)
@@ -111,6 +115,9 @@ function GovOnboardingContent() {
         naics_codes: Array.isArray(profile.naics_codes)
           ? profile.naics_codes.join("\n")
           : String(profile.naics_codes || ""),
+        sbir_categories: Array.isArray(profile.sbir_categories)
+          ? profile.sbir_categories
+          : [],
       }
 
       setForm((prev) => {

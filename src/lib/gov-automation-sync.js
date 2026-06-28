@@ -11,6 +11,7 @@ const PROFILE_PARAM_KEYS = [
   "corporate_overview_path",
   "gov_profile_id",
   "past_rfp_context",
+  "sbir_tech_marketplace_categories",
 ]
 
 function pickProfileParams(params) {
