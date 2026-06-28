@@ -11,7 +11,6 @@ import {
   GovSignInGate,
 } from "@/components/ui/gov/gov-gate-cards"
 import {
-  GOV_MATCH_SCENARIO_IDS,
   PRIMARY_GOV_SCENARIO_ID,
 } from "@/lib/workflow-automations"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
@@ -104,100 +103,9 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
       return null
     }
     setMonitorStatus(json)
+    setAutomations(json.automations || [])
     return json
   }, [onRequireAuth])
-
-  const loadDefaults = useCallback(async () => {
-    const results = await Promise.all(
-      GOV_MATCH_SCENARIO_IDS.map(async (scenarioId) => {
-        const res = await fetch(
-          `/api/automations/defaults?scenario_id=${encodeURIComponent(scenarioId)}`,
-        )
-        if (res.status === 401) {
-          return { scenarioId, unauthorized: true }
-        }
-        if (!res.ok) {
-          return { scenarioId, json: null }
-        }
-        return { scenarioId, json: await res.json() }
-      }),
-    )
-    if (results.some((result) => result.unauthorized)) {
-      onRequireAuth?.()
-      return null
-    }
-    const paramsByScenario = Object.fromEntries(
-      results
-        .filter((result) => result.json?.params)
-        .map((result) => [result.scenarioId, result.json.params]),
-    )
-    const govProfileId = results.find((result) => result.json?.gov_profile_id)?.json?.gov_profile_id
-    setGovProfileLinked(Boolean(govProfileId))
-    return { paramsByScenario, gov_profile_id: govProfileId || null }
-  }, [onRequireAuth])
-
-  const createBaseAutomation = useCallback(async (scenarioId, params) => {
-    const res = await fetch("/api/automations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Contract opportunity search",
-        scenario_id: scenarioId,
-        params: params || undefined,
-        ensure_singleton: true,
-        schedule_enabled: false,
-        schedule_kind: "on_demand",
-      }),
-    })
-
-    if (res.status === 401) {
-      onRequireAuth?.()
-      return null
-    }
-
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setError(json.error || "Could not initialize your contract search monitor.")
-      return null
-    }
-
-    return json.automation || null
-  }, [onRequireAuth])
-
-  const loadAutomation = useCallback(async ({ createIfMissing = false, params } = {}) => {
-    const res = await fetch("/api/automations")
-    if (res.status === 401) {
-      onRequireAuth?.()
-      return null
-    }
-    if (!res.ok) {
-      setError("Could not load your contract search monitor.")
-      return null
-    }
-    const json = await res.json()
-    const existing = json.automations || []
-    const paramsByScenario = params?.paramsByScenario || params || {}
-    const govAutomations = []
-
-    for (const scenarioId of GOV_MATCH_SCENARIO_IDS) {
-      let govAutomation = existing.find((item) => item.scenario_id === scenarioId) || null
-      if (!govAutomation && createIfMissing) {
-        govAutomation = await createBaseAutomation(scenarioId, paramsByScenario[scenarioId])
-      }
-      if (govAutomation) {
-        govAutomations.push(govAutomation)
-      }
-    }
-
-    setAutomations(govAutomations)
-    if (govAutomations.length) {
-      await loadRuns(govAutomations)
-    } else {
-      setRuns([])
-      setSelectedRunId(null)
-    }
-    return govAutomations
-  }, [createBaseAutomation, loadRuns, onRequireAuth])
 
   useEffect(() => {
     if (sessionLoading) return
@@ -218,23 +126,26 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
       setMonitorLoading(false)
       setError("")
 
-      const [{ data: profile }, defaults] = await Promise.all([
-        supabase.from("profiles").select("gov_profile_id").eq("id", user.id).maybeSingle(),
-        loadDefaults(),
-      ])
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("gov_profile_id")
+        .eq("id", user.id)
+        .maybeSingle()
       if (cancelled) return
-      const linked = Boolean(profile?.gov_profile_id || defaults?.gov_profile_id)
+      const linked = Boolean(profile?.gov_profile_id)
       setGovProfileLinked(linked)
       setProfileLoading(false)
       if (linked) {
         setMonitorLoading(true)
-        await Promise.all([
-          loadMonitorStatus(),
-          loadAutomation({
-            createIfMissing: true,
-            params: defaults,
-          }),
-        ])
+        const status = await loadMonitorStatus()
+        if (cancelled) return
+        const statusAutomations = status?.automations || []
+        if (statusAutomations.length) {
+          await loadRuns(statusAutomations)
+        } else {
+          setRuns([])
+          setSelectedRunId(null)
+        }
         if (!cancelled) setMonitorLoading(false)
       }
     }
@@ -251,7 +162,7 @@ export default function GovMonitorSection({ onRequireAuth, auditDefaultCollapsed
     return () => {
       cancelled = true
     }
-  }, [loadAutomation, loadDefaults, loadMonitorStatus, sessionLoading, supabase, user])
+  }, [loadMonitorStatus, loadRuns, sessionLoading, supabase, user])
 
   async function refreshProgress(items = automations) {
     await Promise.all([

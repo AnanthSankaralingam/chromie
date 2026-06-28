@@ -51,7 +51,7 @@ SQL files:
 
 RLS: users linked through `profiles.gov_profile_id` can select/update that company profile. Inserts/deletes are service-role/admin only. Self-serve onboarding uses a service-role API endpoint to create/find by `company_domain` and link the authenticated user's profile. When a signed-in user's work-email domain matches an existing `company_domain`, `/api/gov-onboarding` auto-links them to that shared profile on onboarding load so teammates inherit the same search config and opportunity context without re-entering company details.
 
-**Gov contract monitor auto-provisioning:** When the first user completes self-serve onboarding for a new company (`/api/gov-onboarding` POST, not `link_existing`), Chromie automatically creates SAM.gov + SBIR monitor automations for that user, sets a **single org-level daily EventBridge schedule** on the primary SAM automation (`morphworks_sam_gov`) at the onboarding time (browser timezone), and kicks off the first dual-source search immediately when the org is under the daily run cap. Teammates who join an existing company inherit the org schedule/status via `/api/gov-monitor/status` and do not receive a second schedule or onboarding invoke. A daily run cap of **5 org-wide searches per calendar day** (schedule timezone) is enforced app-side before Chromie-initiated invokes by counting org-wide `workflow_runs` for the linked `gov_profile_id` on the current calendar day.
+**Gov contract monitor auto-provisioning:** When the first user completes self-serve onboarding for a new company (`/api/gov-onboarding` POST, not `link_existing`), Chromie automatically creates company-owned SAM.gov + SBIR monitor automations linked to `automations.gov_profile_id`, sets a **single org-level daily EventBridge schedule** on the primary SAM automation (`morphworks_sam_gov`) at the onboarding time (browser timezone), and kicks off the first dual-source search immediately when the org is under the daily run cap. Teammates who join an existing company inherit the org schedule/status via `/api/gov-monitor/status` and do not receive a second schedule or onboarding invoke. A daily run cap of **5 org-wide searches per calendar day** (schedule timezone) is enforced app-side before Chromie-initiated invokes by counting org-wide `workflow_runs` for automations linked to the `gov_profile_id` on the current calendar day.
 
 **Gov outreach share links:** No schema changes. Outreach uses public URLs like `/gov/share?company=acmefederal.com` (`company` is a normalized domain only). The share page shows illustrative blurred opportunities and sends sign-ups to `/gov/onboarding?company=…`. Profiles are **not** pre-created. After auth, if the user's verified work-email domain exactly matches the invite domain, onboarding auto-enriches from `https://{domain}` and pre-fills the review form before the existing `/api/gov-onboarding` POST creates/links the `gov_profiles` row. If the email domain does not match, onboarding shows a notice and falls back to the standard manual flow.
 
@@ -86,14 +86,17 @@ User-owned workflow configuration.
 
 | Column Group | Purpose |
 | --- | --- |
-| Identity | `id`, `user_id`, `name`, `scenario_id`. |
+| Identity | `id`, nullable `user_id` creator/owner for personal workflows, nullable `gov_profile_id` owner for company gov monitors, `name`, `scenario_id`. |
 | Configuration | `params`, `enabled`. |
 | Scheduling | `schedule_kind`, `schedule_enabled`, `schedule_frequency`, `schedule_times`, `schedule_weekday`, `schedule_timezone`, `cron_expression`, `eventbridge_schedule_name`. |
 | Timestamps | `created_at`, `updated_at`, schedule timestamps. |
 
-SQL file in repo: `sql/workflow_automation_schedule.sql` adds/updates schedule fields. The base workflow schema may have been applied outside this repo and should be confirmed before production DB cleanup.
+SQL files in repo:
+- `sql/workflow_automation_schedule.sql` adds/updates schedule fields. The base workflow schema may have been applied outside this repo and should be confirmed before production DB cleanup.
+- `sql/company_owned_gov_automations.sql` adds `automations.gov_profile_id`, backfills valid gov monitor rows from `params.gov_profile_id` / `profiles.gov_profile_id`, changes `automations.user_id` to nullable `ON DELETE SET NULL`, and adds a cleanup trigger for non-gov personal automations before profile deletion.
+- `sql/scope_personal_automation_delete_trigger.sql` tightens that cleanup trigger so legacy unmapped gov monitor rows are not deleted without EventBridge cleanup.
 
-RLS: users can CRUD their own automation rows.
+RLS: users can CRUD their own personal automation rows through `user_id`. Gov monitor APIs use the service role to access company-owned rows by `gov_profile_id`; general automations UI/API does not directly expose org-owned gov rows. Deleting an auth/profile user no longer cascades to valid company-owned gov monitor automations or their `workflow_runs`; deleting a `gov_profiles` row cascades to its company-owned automations.
 
 ### `workflow_runs`
 

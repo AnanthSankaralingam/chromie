@@ -6,7 +6,7 @@ import {
 } from "@/lib/automation-schedule-sync"
 import {
   EMAIL_DELIVERY_SCENARIO_IDS,
-  defaultParamsForScenario,
+  GOV_PROFILE_SCENARIO_IDS,
   DEFAULT_WORKFLOW_SCENARIO_ID,
 } from "@/lib/workflow-automations"
 import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
@@ -14,6 +14,7 @@ import {
   getGovProfileForUser,
   mergeGovProfileIntoScenarioParams,
 } from "@/lib/gov-profiles"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export const GET = withAuth(async ({ supabase, user }) => {
   const { data, error } = await supabase
@@ -32,6 +33,7 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   const body = await request.json()
   const scenario_id = body.scenario_id || DEFAULT_WORKFLOW_SCENARIO_ID
   const name = (body.name || "Workflow automation").trim()
+  const isGovScenario = GOV_PROFILE_SCENARIO_IDS.has(scenario_id)
 
   let govProfile = null
   try {
@@ -39,6 +41,8 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   } catch (err) {
     console.error("[automations POST] gov profile lookup failed:", err)
   }
+  const service = isGovScenario && govProfile ? createServiceClient() : null
+  const automationClient = service || supabase
 
   const defaults = mergeGovProfileIntoScenarioParams(
     govProfile,
@@ -69,14 +73,18 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   }
 
   if (body.ensure_singleton) {
-    const { data: existing, error: existingError } = await supabase
+    let existingQuery = automationClient
       .from("automations")
       .select("*")
-      .eq("user_id", user.id)
       .eq("scenario_id", scenario_id)
       .order("updated_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+
+    existingQuery = isGovScenario && govProfile
+      ? existingQuery.eq("gov_profile_id", govProfile.id)
+      : existingQuery.eq("user_id", user.id)
+
+    const { data: existing, error: existingError } = await existingQuery.maybeSingle()
 
     if (existingError) {
       return NextResponse.json({ error: existingError.message }, { status: 500 })
@@ -86,10 +94,11 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await automationClient
     .from("automations")
     .insert({
       user_id: user.id,
+      gov_profile_id: isGovScenario && govProfile ? govProfile.id : null,
       name,
       scenario_id,
       params,
@@ -105,10 +114,10 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
   }
 
   try {
-    const synced = await syncAndPersistAutomationSchedule(supabase, data)
+    const synced = await syncAndPersistAutomationSchedule(automationClient, data)
     return NextResponse.json({ automation: synced })
   } catch (err) {
-    await supabase.from("automations").delete().eq("id", data.id)
+    await automationClient.from("automations").delete().eq("id", data.id)
     return NextResponse.json(
       { error: err.message || "Failed to configure schedule" },
       { status: 500 },

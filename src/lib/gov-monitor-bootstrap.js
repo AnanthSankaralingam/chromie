@@ -1,6 +1,5 @@
 import {
   resolveScheduleFieldsFromBody,
-  syncAndPersistAutomationSchedule,
 } from "@/lib/automation-schedule-sync"
 import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
 import { mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
@@ -13,6 +12,7 @@ import {
 } from "@/lib/gov-workflow-access"
 import { hasWorkflowAwsCredentials } from "@/lib/workflow-aws-config"
 import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
+import { syncAutomationSchedule } from "@/lib/workflow-schedule"
 import {
   GOV_WORKFLOW_SCENARIOS,
   PRIMARY_GOV_SCENARIO_ID,
@@ -43,11 +43,11 @@ export function normalizeGovScheduleTimezone(value) {
   }
 }
 
-async function ensureAutomation({ supabase, user, govProfile, scenario }) {
-  const { data: existing, error: existingError } = await supabase
+async function ensureAutomation({ service, user, govProfile, scenario }) {
+  const { data: existing, error: existingError } = await service
     .from("automations")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("gov_profile_id", govProfile.id)
     .eq("scenario_id", scenario.id)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -61,11 +61,15 @@ async function ensureAutomation({ supabase, user, govProfile, scenario }) {
       existing.params,
       govProfile,
       scenario.id,
-      user.email || "",
+      user?.email || "",
     )
-    const { data, error } = await supabase
+    const { data, error } = await service
       .from("automations")
-      .update({ params, updated_at: new Date().toISOString() })
+      .update({
+        params,
+        gov_profile_id: govProfile.id,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", existing.id)
       .select()
       .single()
@@ -76,11 +80,12 @@ async function ensureAutomation({ supabase, user, govProfile, scenario }) {
     return data
   }
 
-  const params = mergeGovProfileIntoScenarioParams(govProfile, scenario.id, user.email || "")
-  const { data, error } = await supabase
+  const params = mergeGovProfileIntoScenarioParams(govProfile, scenario.id, user?.email || "")
+  const { data, error } = await service
     .from("automations")
     .insert({
-      user_id: user.id,
+      user_id: user?.id || null,
+      gov_profile_id: govProfile.id,
       name: scenario.name,
       scenario_id: scenario.id,
       params,
@@ -97,10 +102,10 @@ async function ensureAutomation({ supabase, user, govProfile, scenario }) {
   return data
 }
 
-export async function ensureUserGovAutomations({ supabase, user, govProfile }) {
+export async function ensureUserGovAutomations({ service, user, govProfile }) {
   const ensured = await Promise.allSettled(
     GOV_MONITOR_SCENARIOS.map((scenario) =>
-      ensureAutomation({ supabase, user, govProfile, scenario }),
+      ensureAutomation({ service, user, govProfile, scenario }),
     ),
   )
 
@@ -131,15 +136,14 @@ function findSbirAutomationForSamOwner(orgAutomations, samAutomation) {
   return (
     orgAutomations.find(
       (row) =>
-        row.user_id === samAutomation.user_id && row.scenario_id === SBIR_SCENARIO_ID,
+        row.gov_profile_id === samAutomation.gov_profile_id &&
+        row.scenario_id === SBIR_SCENARIO_ID,
     ) || null
   )
 }
 
 export async function ensureOrgDailySchedule({
   service,
-  supabase,
-  user,
   govProfile,
   timezone,
   samAutomation,
@@ -162,14 +166,20 @@ export async function ensureOrgDailySchedule({
     schedule_timezone: timezone,
   })
 
-  const { data: updated, error } = await supabase
+  const { eventbridge_schedule_name } = await syncAutomationSchedule({
+    ...samAutomation,
+    ...scheduleFields,
+  })
+
+  const { data: updated, error } = await service
     .from("automations")
     .update({
       ...scheduleFields,
+      eventbridge_schedule_name,
       updated_at: new Date().toISOString(),
     })
     .eq("id", samAutomation.id)
-    .eq("user_id", user.id)
+    .eq("gov_profile_id", govProfile.id)
     .select()
     .single()
 
@@ -177,24 +187,15 @@ export async function ensureOrgDailySchedule({
     throw new Error(error.message)
   }
 
-  let scheduleAutomation = updated
-  if (hasWorkflowAwsCredentials()) {
-    scheduleAutomation = await syncAndPersistAutomationSchedule(supabase, updated)
-  } else {
-    console.warn(
-      "[gov-monitor-bootstrap] Skipping EventBridge schedule sync — AWS credentials not configured",
-    )
-  }
-
   console.log(
     "[gov-monitor-bootstrap] created org daily schedule",
     govProfile.id,
     scheduleTime,
     timezone,
-    scheduleAutomation.id,
+    updated.id,
   )
 
-  return { scheduleAutomation, created: true }
+  return { scheduleAutomation: updated, created: true }
 }
 
 export async function invokeGovDualSourceIfAllowed({
@@ -283,6 +284,11 @@ export async function getGovMonitorStatus({ service, govProfileId }) {
 
   return {
     gov_profile_id: govProfileId,
+    automations: orgAutomations.map((automation) => ({
+      id: automation.id,
+      scenario_id: automation.scenario_id,
+      name: automation.name,
+    })),
     schedule,
     next_run_at,
     last_run_at: lastRun?.started_at || null,
@@ -300,7 +306,6 @@ export async function getGovMonitorStatus({ service, govProfileId }) {
 
 /**
  * @param {{
- *   supabase: import('@supabase/supabase-js').SupabaseClient,
  *   service: import('@supabase/supabase-js').SupabaseClient,
  *   user: object,
  *   govProfile: object,
@@ -309,7 +314,6 @@ export async function getGovMonitorStatus({ service, govProfileId }) {
  * }} opts
  */
 export async function bootstrapGovMonitor({
-  supabase,
   service,
   user,
   govProfile,
@@ -318,7 +322,7 @@ export async function bootstrapGovMonitor({
 }) {
   const timezone = normalizeGovScheduleTimezone(timezoneInput)
   const { automations, samAutomation, sbirAutomation, ensureFailures } =
-    await ensureUserGovAutomations({ supabase, user, govProfile })
+    await ensureUserGovAutomations({ service, user, govProfile })
 
   if (!samAutomation) {
     throw new Error(
@@ -340,8 +344,6 @@ export async function bootstrapGovMonitor({
   if (mode === "onboarding" && !scheduleAutomation) {
     const scheduleResult = await ensureOrgDailySchedule({
       service,
-      supabase,
-      user,
       govProfile,
       timezone,
       samAutomation,

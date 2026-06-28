@@ -386,9 +386,22 @@ export const POST = withAuth(async ({ request, supabase, user }) => {
         })
       } catch (bootstrapErr) {
         console.error("[gov-onboarding] monitor bootstrap failed", bootstrapErr)
-        monitor = {
-          error: bootstrapErr.message || "Failed to initialize contract search monitoring.",
-        }
+        return NextResponse.json(
+          {
+            error:
+              bootstrapErr.message ||
+              "Company profile was created, but Chromie could not schedule and start the first contract search.",
+            gov_profile: govProfile,
+            linked_existing: linkedExisting,
+            relinked: alreadyLinked && isAdmin,
+            monitor: {
+              error:
+                bootstrapErr.message ||
+                "Failed to initialize contract search monitoring.",
+            },
+          },
+          { status: 503 },
+        )
       }
     }
 
