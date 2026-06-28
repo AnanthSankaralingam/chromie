@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { getOwnedWorkflowRun } from "@/lib/workflow-run-access"
+import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
 import { stopWorkflowRun } from "@/lib/workflow-run-stop"
 
 export const POST = withAuth(async ({ supabase, user, params }) => {
   const { id: automationId, runId } = await params
-  const run = await getOwnedWorkflowRun(supabase, user.id, automationId, runId)
+  const run = await getAccessibleWorkflowRun(supabase, user.id, automationId, runId)
 
   if (!run) {
     return NextResponse.json({ error: "Run not found" }, { status: 404 })

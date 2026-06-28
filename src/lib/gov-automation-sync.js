@@ -36,34 +36,15 @@ export function syncedGovAutomationParams(existingParams, govProfile, scenarioId
   }
 }
 
-export async function refreshGovAutomationParamsForProfile({ supabase, govProfile, userId = null }) {
+export async function refreshGovAutomationParamsForProfile({ supabase, govProfile }) {
   if (!govProfile?.id) return { updated: 0 }
 
   const service = createServiceClient()
   const client = service || supabase
-  let profileQuery = client
-    .from("profiles")
-    .select("id, email")
-    .eq("gov_profile_id", govProfile.id)
-
-  if (!service && userId) {
-    profileQuery = profileQuery.eq("id", userId)
-  }
-
-  const { data: profiles, error: profileError } = await profileQuery
-  if (profileError) {
-    throw new Error(profileError.message)
-  }
-
-  const profileRows = profiles || []
-  const userIds = profileRows.map((row) => row.id).filter(Boolean)
-  if (!userIds.length) return { updated: 0 }
-
-  const emailByUserId = new Map(profileRows.map((row) => [row.id, row.email || ""]))
   const { data: automations, error: automationError } = await client
     .from("automations")
-    .select("id, user_id, scenario_id, params")
-    .in("user_id", userIds)
+    .select("id, scenario_id, params")
+    .eq("gov_profile_id", govProfile.id)
     .in("scenario_id", [...GOV_PROFILE_SCENARIO_IDS])
 
   if (automationError) {
@@ -76,7 +57,7 @@ export async function refreshGovAutomationParamsForProfile({ supabase, govProfil
         automation.params,
         govProfile,
         automation.scenario_id,
-        emailByUserId.get(automation.user_id) || "",
+        "",
       )
       return client
         .from("automations")

@@ -46,11 +46,27 @@ export async function getAccessibleWorkflowRun(supabase, userId, automationId, r
 
   const { data: automation } = await service
     .from("automations")
-    .select("id, user_id, scenario_id")
+    .select("id, user_id, scenario_id, gov_profile_id")
     .eq("id", automationId)
     .maybeSingle()
 
   if (!automation || !GOV_PROFILE_SCENARIO_IDS.has(automation.scenario_id)) {
+    return null
+  }
+
+  if (automation.gov_profile_id === govProfileId) {
+    const { data: run, error } = await service
+      .from("workflow_runs")
+      .select(WORKFLOW_RUN_ACCESS_SELECT)
+      .eq("id", runId)
+      .eq("automation_id", automationId)
+      .maybeSingle()
+
+    if (error || !run) return null
+    return run
+  }
+
+  if (!automation.user_id) {
     return null
   }
 

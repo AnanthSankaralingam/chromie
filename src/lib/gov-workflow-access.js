@@ -47,13 +47,10 @@ export async function getGovOrgTeammateIds(service, govProfileId) {
 }
 
 export async function loadGovOrgAutomations(service, govProfileId) {
-  const teammateIds = await getGovOrgTeammateIds(service, govProfileId)
-  if (!teammateIds.length) return []
-
   const { data: automations, error: automationError } = await service
     .from("automations")
     .select("*")
-    .in("user_id", teammateIds)
+    .eq("gov_profile_id", govProfileId)
     .in("scenario_id", GOV_MATCH_SCENARIO_IDS)
     .order("updated_at", { ascending: false })
 
@@ -71,7 +68,8 @@ export async function findOrgScheduledSamAutomation(service, govProfileId) {
       (row) =>
         row.scenario_id === PRIMARY_GOV_SCENARIO_ID &&
         row.schedule_kind === "cron" &&
-        row.cron_expression?.trim(),
+        row.cron_expression?.trim() &&
+        row.eventbridge_schedule_name?.trim(),
     ) || null
   )
 }
@@ -128,13 +126,10 @@ export function calendarDayKey(date, timezone) {
 }
 
 export async function loadGovOrgAuditRuns(service, govProfileId, limit) {
-  const teammateIds = await getGovOrgTeammateIds(service, govProfileId)
-  if (!teammateIds.length) return []
-
   const { data: automations, error: automationError } = await service
     .from("automations")
     .select("id")
-    .in("user_id", teammateIds)
+    .eq("gov_profile_id", govProfileId)
     .in("scenario_id", GOV_MATCH_SCENARIO_IDS)
 
   if (automationError) {
