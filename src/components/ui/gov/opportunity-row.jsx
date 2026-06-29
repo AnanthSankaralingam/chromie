@@ -11,6 +11,7 @@ import {
   formatFitScore,
   formatOpportunityDate,
   fitScoreTone,
+  getComplianceChecklist,
 } from "@/components/ui/gov/opportunity-utils"
 
 function SourceBadge({ source }) {
@@ -24,6 +25,7 @@ function SourceBadge({ source }) {
 
 export default function OpportunityRow({ run, expanded, onToggle }) {
   const fitLabel = formatFitScore(run.fit_score)
+  const complianceChecklist = getComplianceChecklist(run.analysis_payload)
   const responseFormatted = formatOpportunityDate(run.response_date)
   const publishedFormatted = formatOpportunityDate(run.published_date)
   const dueIn = daysUntil(run.response_date)
@@ -95,6 +97,19 @@ export default function OpportunityRow({ run, expanded, onToggle }) {
             <div className="mb-4">
               <p className={LABEL_CLASS}>Fit rationale</p>
               <p className="mt-2 whitespace-pre-wrap text-zinc-400">{run.fit_rationale}</p>
+            </div>
+          ) : null}
+
+          {complianceChecklist.length > 0 ? (
+            <div className="mb-4">
+              <p className={LABEL_CLASS}>Compliance matrix</p>
+              <ol className="mt-2 list-decimal space-y-2 pl-5 text-zinc-400">
+                {complianceChecklist.map((item, index) => (
+                  <li key={index} className="leading-relaxed">
+                    {item}
+                  </li>
+                ))}
+              </ol>
             </div>
           ) : null}
 

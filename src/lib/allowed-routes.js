@@ -17,8 +17,8 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/waitlist",
 ])
 
-/** Auth flow required for dashboard sign-in. */
-export const ALLOWED_PAGE_PREFIXES = ["/auth/callback", "/blog/"]
+/** Auth flow and dynamic public pages that must remain reachable. */
+export const ALLOWED_PAGE_PREFIXES = ["/auth/callback", "/blog/", "/gov/share/"]
 
 export function isAllowedPagePath(pathname) {
   if (ALLOWED_PAGE_PATHS.has(pathname)) return true
