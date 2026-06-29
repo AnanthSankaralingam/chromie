@@ -125,7 +125,7 @@ export default function GovProfileSharePage({ govProfileId }) {
       <GovPageHeader
         label="Government contracting"
         title={`Contract opportunities for ${govProfile?.name || "this company"}`}
-        description="A no-login preview of contract opportunities discovered by Chromie, ranked by profile fit."
+        description="A preview of contract opportunities discovered by Chromie, ranked by profile fit."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button className={BTN_PRIMARY} onClick={() => setShowAuth(true)}>
