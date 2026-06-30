@@ -44,6 +44,32 @@ export async function getSessionLiveViewUrl(sessionId) {
   return data.debuggerFullscreenUrl || data.debuggerUrl || null
 }
 
+export async function createBrowserbaseContext() {
+  const apiKey = requireApiKey()
+  const projectId = process.env.BROWSERBASE_PROJECT_ID?.trim()
+  const body = projectId ? { projectId } : {}
+  const res = await fetch(`${API_BASE}/contexts`, {
+    method: "POST",
+    headers: {
+      "X-BB-API-Key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "")
+    throw new Error(`Browserbase context create failed (${res.status}): ${detail}`)
+  }
+
+  const data = await res.json()
+  if (!data?.id) {
+    throw new Error("Browserbase context create returned no id")
+  }
+  return data.id
+}
+
 export async function getReplayMetadata(sessionId) {
   const apiKey = requireApiKey()
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/replays`, {

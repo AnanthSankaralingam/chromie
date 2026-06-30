@@ -1,4 +1,5 @@
 import { resolveScheduleFieldsFromBody } from "@/lib/automation-schedule-sync"
+import { createBrowserbaseContext } from "@/lib/browserbase"
 import { EVIIVO_DATA_PULL_SCENARIO_ID, defaultParamsForScenario } from "@/lib/workflow-automations"
 
 export const DEFAULT_HOSPITALITY_TIMEZONE = "UTC"
@@ -119,6 +120,12 @@ export function hospitalityParamsForProfile(hospitalityProfile) {
   }
 }
 
+async function ensureBrowserbaseContextId(existingAutomation) {
+  const existingContextId = String(existingAutomation?.browserbase_context_id || "").trim()
+  if (existingContextId) return existingContextId
+  return createBrowserbaseContext()
+}
+
 export async function ensureHospitalityAutomation({ service, user, hospitalityProfile }) {
   const { data: existing, error: existingError } = await service
     .from("automations")
@@ -132,12 +139,14 @@ export async function ensureHospitalityAutomation({ service, user, hospitalityPr
   if (existingError) throw new Error(existingError.message)
 
   const params = hospitalityParamsForProfile(hospitalityProfile)
+  const browserbaseContextId = await ensureBrowserbaseContextId(existing)
   if (existing) {
     const { data, error } = await service
       .from("automations")
       .update({
         name: "eviivo hospitality data pull",
         params,
+        browserbase_context_id: browserbaseContextId,
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id)
@@ -160,6 +169,7 @@ export async function ensureHospitalityAutomation({ service, user, hospitalityPr
       name: "eviivo hospitality data pull",
       scenario_id: EVIIVO_DATA_PULL_SCENARIO_ID,
       params,
+      browserbase_context_id: browserbaseContextId,
       env_overrides: {},
       enabled: true,
       ...scheduleFields,
