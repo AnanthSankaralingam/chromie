@@ -3,6 +3,7 @@
 export const GOV_CONTRACT_SAM_GOV_SCENARIO_ID = "gov_contract_sam_gov"
 export const GOV_CONTRACT_SBIR_TECH_MARKETPLACE_SCENARIO_ID =
   "gov_contract_sbir_tech_marketplace"
+export const EVIIVO_DATA_PULL_SCENARIO_ID = "eviivo_data_pull"
 
 const LEGACY_GOV_CONTRACT_SAM_GOV_SCENARIO_ID = "morphworks_sam_gov"
 const LEGACY_GOV_CONTRACT_SBIR_TECH_MARKETPLACE_SCENARIO_ID =
@@ -67,6 +68,11 @@ export const WORKFLOW_SCENARIOS = [
     label: "Zillow listing alert",
     description: "Search Zillow and email matching listings.",
   },
+  {
+    id: EVIIVO_DATA_PULL_SCENARIO_ID,
+    label: "eviivo data pull",
+    description: "Pull booking, report, and cleaning data from eviivo.",
+  },
 ]
 
 export const DEFAULT_WORKFLOW_SCENARIO_ID = PRIMARY_GOV_SCENARIO_ID
@@ -120,6 +126,19 @@ export function defaultParamsForScenario(scenarioId, userEmail = "") {
       max_keyword_searches: 4,
       ...(isSbirMarketplace ? {} : { max_pages_per_keyword: 3 }),
       require_signed_in: false,
+    }
+  }
+  if (scenarioId === EVIIVO_DATA_PULL_SCENARIO_ID) {
+    return {
+      id: EVIIVO_DATA_PULL_SCENARIO_ID,
+      eviivo_base_url: "https://on.eviivo.com",
+      calendar_path: "/suite/diary",
+      reports_path: "/suite/reporting",
+      cleaning_path: "/suite/cleaning",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      property_name: "",
+      pages: ["calendar", "reports", "cleaning"],
+      min_total_records: 1,
     }
   }
   return {

@@ -8,6 +8,7 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/gov",
   "/gov/onboarding",
   "/gov/share",
+  "/hospitality",
   "/landing",
   "/profile",
   "/privacy",

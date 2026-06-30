@@ -349,6 +349,18 @@ export function executionLogLines(run) {
     lines.push({ level: "info", text: `Found ${oppCount} government contract opportunit${oppCount === 1 ? "y" : "ies"}` })
   }
 
+  const eviivoCounts = evaluation.eviivo_records_extracted?.counts || evaluation.eviivo_records_extracted || {}
+  const eviivoTotal = Number(eviivoCounts.total_records || 0)
+  if (eviivoTotal > 0) {
+    const calendar = Number(eviivoCounts.calendar_records || 0)
+    const housekeeping = Number(eviivoCounts.housekeeping_rows || 0)
+    const reports = Number(eviivoCounts.report_entries || 0)
+    lines.push({
+      level: "info",
+      text: `Saved ${eviivoTotal} eviivo record${eviivoTotal === 1 ? "" : "s"} (${calendar} calendar, ${housekeeping} housekeeping, ${reports} reports).`,
+    })
+  }
+
   const email = evaluation.email_delivery
   if (email?.sent) {
     lines.push({ level: "info", text: `Email sent to ${email.recipient || "recipient"}` })

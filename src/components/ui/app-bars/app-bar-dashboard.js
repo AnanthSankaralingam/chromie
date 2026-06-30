@@ -12,23 +12,31 @@ export default function AppBarDashboard({ showOpportunities = true }) {
   const { user, supabase } = useSession()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [govProfileLinked, setGovProfileLinked] = useState(false)
+  const [hospitalityProfileLinked, setHospitalityProfileLinked] = useState(false)
 
   useEffect(() => {
     if (!user || !supabase) {
       setGovProfileLinked(false)
+      setHospitalityProfileLinked(false)
       return
     }
     let cancelled = false
     supabase
       .from("profiles")
-      .select("gov_profile_id")
+      .select("gov_profile_id, hosp_profile_id")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled) setGovProfileLinked(Boolean(data?.gov_profile_id))
+        if (!cancelled) {
+          setGovProfileLinked(Boolean(data?.gov_profile_id))
+          setHospitalityProfileLinked(Boolean(data?.hosp_profile_id))
+        }
       })
       .catch(() => {
-        if (!cancelled) setGovProfileLinked(false)
+        if (!cancelled) {
+          setGovProfileLinked(false)
+          setHospitalityProfileLinked(false)
+        }
       })
     return () => {
       cancelled = true
@@ -73,6 +81,16 @@ export default function AppBarDashboard({ showOpportunities = true }) {
               >
                 Set up gov profile
               </Link>
+            ) : null}
+            {user ? (
+              hospitalityProfileLinked ? (
+                <Link
+                  href="/hospitality"
+                  className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+                >
+                  Hospitality
+                </Link>
+              ) : null
             ) : null}
             {user ? (
               <Link
@@ -130,6 +148,17 @@ export default function AppBarDashboard({ showOpportunities = true }) {
               >
                 Set up gov profile
               </Link>
+            ) : null}
+            {user ? (
+              hospitalityProfileLinked ? (
+                <Link
+                  href="/hospitality"
+                  onClick={() => setMobileOpen(false)}
+                  className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+                >
+                  Hospitality
+                </Link>
+              ) : null
             ) : null}
             {user ? (
               <Link
