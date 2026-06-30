@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, getAuthUser } from "@/lib/supabase/server"
 
 /**
  * Middleware-style wrapper that injects Supabase client and authenticated user.
@@ -13,7 +13,7 @@ export function withAuth(handler) {
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser()
+    } = await getAuthUser(supabase)
 
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

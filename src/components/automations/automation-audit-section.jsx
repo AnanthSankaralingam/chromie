@@ -21,7 +21,7 @@ import {
   runStatusTone,
   sanitizeRunForClient,
 } from "@/lib/workflow-audit"
-import { canonicalGovScenarioId } from "@/lib/workflow-automations"
+import { EVIIVO_DATA_PULL_SCENARIO_ID, canonicalGovScenarioId } from "@/lib/workflow-automations"
 import { ChevronDown, RefreshCw } from "lucide-react"
 
 const STATUS_CLASS = {
@@ -47,6 +47,7 @@ const SCENARIO_DISPLAY_NAMES = {
   morphworks_sbir_tech_marketplace: "SBIR Tech Marketplace",
   gov_contract_sam_gov: "Government contract monitor",
   gov_contract_sbir_tech_marketplace: "SBIR Tech Marketplace",
+  [EVIIVO_DATA_PULL_SCENARIO_ID]: "eviivo data pull",
 }
 
 function runDisplayName(run) {
@@ -223,6 +224,8 @@ export default forwardRef(function AutomationAuditSection(
     pollWhileRunning = true,
     autoExpandRunning = true,
     defaultCollapsed = false,
+    requireUser = true,
+    className = "mt-8",
   },
   ref,
 ) {
@@ -233,10 +236,14 @@ export default forwardRef(function AutomationAuditSection(
   const [sectionExpanded, setSectionExpanded] = useState(!defaultCollapsed)
 
   const loadAudit = useCallback(async () => {
-    const res = await fetch("/api/automations/audit?limit=40")
+    const params = new URLSearchParams({ limit: "40" })
+    const scenarioFilter = scenarioIds || (scenarioId ? [scenarioId] : null)
+    if (scenarioFilter?.length) {
+      params.set("scenario_ids", scenarioFilter.join(","))
+    }
+    const res = await fetch(`/api/automations/audit?${params.toString()}`)
     if (!res.ok) return []
     const json = await res.json()
-    const scenarioFilter = scenarioIds || (scenarioId ? [scenarioId] : null)
     const next = scenarioFilter
       ? (json.runs || []).filter((run) => scenarioFilter.includes(run.scenario_id))
       : json.runs || []
@@ -247,13 +254,13 @@ export default forwardRef(function AutomationAuditSection(
   useImperativeHandle(ref, () => ({ refresh: loadAudit }), [loadAudit])
 
   useEffect(() => {
-    if (!user) {
+    if (requireUser && !user) {
       setRuns([])
       setLoading(false)
       return
     }
     loadAudit().finally(() => setLoading(false))
-  }, [user, loadAudit])
+  }, [user, loadAudit, requireUser])
 
   useEffect(() => {
     if (!autoExpandRunning) return
@@ -264,14 +271,14 @@ export default forwardRef(function AutomationAuditSection(
   }, [autoExpandRunning, runs])
 
   useEffect(() => {
-    if (!pollWhileRunning || !user) return
+    if (!pollWhileRunning || (requireUser && !user)) return
     const hasRunning = runs.some((run) => run.status === "running")
     if (!hasRunning) return
     const interval = window.setInterval(() => {
       loadAudit()
     }, 3000)
     return () => window.clearInterval(interval)
-  }, [loadAudit, pollWhileRunning, runs, user])
+  }, [loadAudit, pollWhileRunning, requireUser, runs, user])
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -286,10 +293,10 @@ export default forwardRef(function AutomationAuditSection(
     }
   }
 
-  if (!user) return null
+  if (requireUser && !user) return null
 
   return (
-    <Card className={`mt-8 ${CARD_CLASS}`}>
+    <Card className={`${className} ${CARD_CLASS}`}>
       <CardHeader
         className={`flex flex-row items-center justify-between space-y-0 pb-4 ${
           sectionExpanded ? "border-b border-white/10" : ""

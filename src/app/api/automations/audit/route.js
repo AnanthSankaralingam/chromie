@@ -12,13 +12,22 @@ import { normalizeAuditRun } from "@/lib/workflow-audit"
 export const GET = withAuth(async ({ supabase, user, request }) => {
   const { searchParams } = new URL(request.url)
   const limit = Math.min(Number(searchParams.get("limit") || 40), 100)
+  const scenarioIds = String(searchParams.get("scenario_ids") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
 
-  const { data: runs, error } = await supabase
+  let query = supabase
     .from("workflow_runs")
     .select(AUDIT_RUN_SELECT)
     .not("automation_id", "is", null)
     .order("started_at", { ascending: false })
     .limit(limit)
+  if (scenarioIds.length) {
+    query = query.in("scenario_id", scenarioIds)
+  }
+
+  const { data: runs, error } = await query
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
