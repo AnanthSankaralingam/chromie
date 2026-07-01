@@ -1,30 +1,30 @@
 import {
   resolveScheduleFieldsFromBody,
-} from "@/lib/automation-schedule-sync"
-import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
-import { mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
+} from "@/lib/workflow/automation-schedule-sync"
+import { syncedGovAutomationParams } from "@/lib/gov/gov-automation-sync"
+import { mergeGovProfileIntoScenarioParams } from "@/lib/gov/gov-profiles"
 import {
   findOrgScheduledSamAutomation,
   GOV_PROFILE_DAILY_RUN_LIMIT,
   hasGovProfileReachedDailyRunLimit,
   loadGovOrgAuditRuns,
   loadGovOrgAutomations,
-} from "@/lib/gov-workflow-access"
-import { hasWorkflowAwsCredentials } from "@/lib/workflow-aws-config"
-import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
-import { syncAutomationSchedule } from "@/lib/workflow-schedule"
+} from "@/lib/gov/gov-workflow-access"
+import { hasWorkflowAwsCredentials } from "@/lib/workflow/workflow-aws-config"
+import { invokeWorkflowLambda } from "@/lib/workflow/workflow-lambda"
+import { syncAutomationSchedule } from "@/lib/workflow/workflow-schedule"
 import {
   GOV_CONTRACT_SBIR_TECH_MARKETPLACE_SCENARIO_ID,
   GOV_WORKFLOW_SCENARIOS,
   PRIMARY_GOV_SCENARIO_ID,
   canonicalGovScenarioId,
   govScenarioIdAliases,
-} from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-automations"
 import {
   computeNextScheduledRun,
   currentTimeHHMMInTimezone,
   parseCronExpression,
-} from "@/lib/workflow-schedule-cron"
+} from "@/lib/workflow/workflow-schedule-cron"
 
 export const DEFAULT_GOV_SCHEDULE_TIMEZONE = "America/New_York"
 

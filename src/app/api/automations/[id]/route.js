@@ -3,9 +3,9 @@ import { withAuth } from "@/lib/api/with-auth"
 import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
-} from "@/lib/automation-schedule-sync"
-import { deleteAutomationSchedules } from "@/lib/workflow-schedule"
-import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
+} from "@/lib/workflow/automation-schedule-sync"
+import { deleteAutomationSchedules } from "@/lib/workflow/workflow-schedule"
+import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
 
 async function getOwnedAutomation(supabase, userId, id) {
   const { data, error } = await supabase

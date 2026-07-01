@@ -4,8 +4,8 @@ import {
   defaultParamsForScenario,
   GOV_PROFILE_SCENARIO_IDS,
   isGovSbirScenarioId,
-} from "@/lib/workflow-automations"
-import { normalizeSbirCategories } from "@/lib/gov-sbir-categories"
+} from "@/lib/workflow/workflow-automations"
+import { normalizeSbirCategories } from "@/lib/gov/gov-sbir-categories"
 
 export const GOV_PROFILE_RFP_BUCKET = "gov-profile-rfps"
 export const GOV_PROFILE_RFP_MAX_BYTES = 15 * 1024 * 1024

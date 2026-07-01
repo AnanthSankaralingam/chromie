@@ -1,4 +1,4 @@
-import { normalizeEmail } from "@/lib/gov-domain"
+import { normalizeEmail } from "@/lib/gov/gov-domain"
 
 /** Comma-separated allowlist from GOV_ONBOARDING_ADMIN_EMAILS (server-only). */
 export function getGovOnboardingAdminEmails() {

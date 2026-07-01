@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { parseTextList, normalizeGovSearchKeywords } from "@/lib/gov-profiles"
-import { normalizeSbirCategories } from "@/lib/gov-sbir-categories"
+import { parseTextList, normalizeGovSearchKeywords } from "@/lib/gov/gov-profiles"
+import { normalizeSbirCategories } from "@/lib/gov/gov-sbir-categories"
 import {
   bootstrapGovMonitor,
   normalizeGovScheduleTimezone,
-} from "@/lib/gov-monitor-bootstrap"
-import { findOrgScheduledSamAutomation } from "@/lib/gov-workflow-access"
-import { isGovOnboardingAdmin } from "@/lib/gov-onboarding-admin"
+} from "@/lib/gov/gov-monitor-bootstrap"
+import { findOrgScheduledSamAutomation } from "@/lib/gov/gov-workflow-access"
+import { isGovOnboardingAdmin } from "@/lib/gov/gov-onboarding-admin"
 import { createServiceClient } from "@/lib/supabase/service"
 
 function normalizeEmail(value) {

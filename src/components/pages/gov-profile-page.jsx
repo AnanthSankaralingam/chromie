@@ -15,8 +15,8 @@ import UserProfileCard from "@/components/ui/gov/user-profile-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
-import { GOV_PROFILE_DAILY_RUN_LIMIT } from "@/lib/gov-workflow-access"
-import { normalizePastRfpPdfs } from "@/lib/gov-profiles"
+import { GOV_PROFILE_DAILY_RUN_LIMIT } from "@/lib/gov/gov-workflow-access"
+import { normalizePastRfpPdfs } from "@/lib/gov/gov-profiles"
 import { LogOut, Save } from "lucide-react"
 
 export default function GovProfilePage() {

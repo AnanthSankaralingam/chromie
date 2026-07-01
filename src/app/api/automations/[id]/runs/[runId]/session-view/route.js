@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getReplayMetadata, getSessionLiveViewUrl } from "@/lib/browserbase"
-import { resolveBrowserSessionId } from "@/lib/workflow-audit"
-import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
+import { resolveBrowserSessionId } from "@/lib/workflow/workflow-audit"
+import { getAccessibleWorkflowRun } from "@/lib/workflow/workflow-run-access"
 
 function isStoppedLiveSessionError(err) {
   const message = String(err?.message || "")

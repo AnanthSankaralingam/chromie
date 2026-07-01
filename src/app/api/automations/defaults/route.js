@@ -3,11 +3,11 @@ import { withAuth } from "@/lib/api/with-auth"
 import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
-} from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-automations"
 import {
   getGovProfileForUser,
   mergeGovProfileIntoScenarioParams,
-} from "@/lib/gov-profiles"
+} from "@/lib/gov/gov-profiles"
 
 /** Default automation params, merged with linked gov profile when present. */
 export const GET = withAuth(async ({ supabase, user, request }) => {

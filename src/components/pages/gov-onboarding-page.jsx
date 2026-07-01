@@ -17,7 +17,7 @@ import {
   emailDomainMatchesInvite,
   isValidDomain,
   normalizeDomain,
-} from "@/lib/gov-domain"
+} from "@/lib/gov/gov-domain"
 import { ArrowRight, Building2 } from "lucide-react"
 
 function govProfileToForm(profile) {

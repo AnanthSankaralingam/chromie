@@ -14,7 +14,7 @@ import {
   companyNameFromDomain,
   isValidDomain,
   normalizeDomain,
-} from "@/lib/gov-domain"
+} from "@/lib/gov/gov-domain"
 import { ArrowRight, Lock } from "lucide-react"
 
 const TEASER_OPPORTUNITY_POOL = [

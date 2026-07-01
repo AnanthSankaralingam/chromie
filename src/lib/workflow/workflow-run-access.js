@@ -1,8 +1,8 @@
 /** Verify the user owns an automation run before proxying Browserbase APIs. */
 
 import { createServiceClient } from "@/lib/supabase/service"
-import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow-automations"
-import { getUserGovProfileId } from "@/lib/gov-workflow-access"
+import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
+import { getUserGovProfileId } from "@/lib/gov/gov-workflow-access"
 
 const WORKFLOW_RUN_ACCESS_SELECT =
   "id, status, browserbase_session_id, browserbase_debug_url, evaluation"

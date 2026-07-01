@@ -8,7 +8,7 @@ import {
   upsertHospitalityProfileForUser,
 } from "@/lib/hospitality"
 import { createServiceClient } from "@/lib/supabase/service"
-import { EVIIVO_DATA_PULL_SCENARIO_ID } from "@/lib/workflow-automations"
+import { EVIIVO_DATA_PULL_SCENARIO_ID } from "@/lib/workflow/workflow-automations"
 
 async function loadAutomation(service, userId) {
   const { data, error } = await service

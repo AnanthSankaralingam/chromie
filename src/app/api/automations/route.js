@@ -3,17 +3,17 @@ import { withAuth } from "@/lib/api/with-auth"
 import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
-} from "@/lib/automation-schedule-sync"
+} from "@/lib/workflow/automation-schedule-sync"
 import {
   EMAIL_DELIVERY_SCENARIO_IDS,
   GOV_PROFILE_SCENARIO_IDS,
   DEFAULT_WORKFLOW_SCENARIO_ID,
-} from "@/lib/workflow-automations"
-import { syncedGovAutomationParams } from "@/lib/gov-automation-sync"
+} from "@/lib/workflow/workflow-automations"
+import { syncedGovAutomationParams } from "@/lib/gov/gov-automation-sync"
 import {
   getGovProfileForUser,
   mergeGovProfileIntoScenarioParams,
-} from "@/lib/gov-profiles"
+} from "@/lib/gov/gov-profiles"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const GET = withAuth(async ({ supabase, user }) => {

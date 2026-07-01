@@ -1,13 +1,12 @@
 "use client"
 
-import { Clock3, FileText, MonitorUp, Radio, RotateCw, Square } from "lucide-react"
+import { Clipboard, Clock3, FileText, MonitorUp, Radio, RotateCw, Square } from "lucide-react"
 import {
   BTN_OUTLINE,
   BTN_PRIMARY,
   CARD_CLASS,
   INPUT_CLASS,
   LABEL_CLASS,
-  PANEL_INSET,
   SECTION_LABEL,
 } from "@/components/ui/app-dashboard-theme"
 import { Button } from "@/components/ui/button"
@@ -19,15 +18,6 @@ function formatTimer(seconds) {
   const minutes = Math.floor(safeSeconds / 60)
   const rest = safeSeconds % 60
   return `${minutes}:${String(rest).padStart(2, "0")}`
-}
-
-function formatLogTime(timestamp) {
-  if (!timestamp) return "time unknown"
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })
 }
 
 function sessionStatusLabel(status) {
@@ -201,12 +191,17 @@ export function ActionTranscriptCard({
   activity,
   description,
   hasCompletedSession,
-  logs,
   logsMessage,
   onRetry,
   pagesVisited,
-  transcriptMeta,
 }) {
+  const markdown = buildTranscriptMarkdown({ activity, description, pagesVisited })
+
+  async function copyMarkdown() {
+    if (!markdown || typeof navigator === "undefined" || !navigator.clipboard) return
+    await navigator.clipboard.writeText(markdown)
+  }
+
   return (
     <Card className={`mt-8 ${CARD_CLASS}`}>
       <CardHeader className="border-b border-white/10">
@@ -214,41 +209,43 @@ export function ActionTranscriptCard({
           <div>
             <CardTitle className="flex items-center gap-2 text-base font-bold text-white">
               <FileText className="h-4 w-4 text-cyan-300" aria-hidden />
-              Action transcript
+              Markdown transcript
             </CardTitle>
             <CardDescription className="mt-2 text-zinc-400">
-              Pages navigated and browser events captured live during the session.
+              Copy the run as clean markdown for reviewing or generating an automation.
             </CardDescription>
           </div>
-          {hasCompletedSession && (
-            <Button type="button" className={BTN_OUTLINE} onClick={onRetry}>
-              <RotateCw className="mr-2 h-4 w-4" aria-hidden />
-              Retry transcript
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" className={BTN_OUTLINE} disabled={!markdown} onClick={copyMarkdown}>
+              <Clipboard className="mr-2 h-4 w-4" aria-hidden />
+              Copy markdown
             </Button>
-          )}
+            {hasCompletedSession && (
+              <Button type="button" className={BTN_OUTLINE} onClick={onRetry}>
+                <RotateCw className="mr-2 h-4 w-4" aria-hidden />
+                Retry transcript
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        {description && <UserDescription description={description} />}
         {logsMessage && <TranscriptMessage message={logsMessage} />}
-        <PagesVisited pagesVisited={pagesVisited} />
-        <ActivitySection
-          activity={activity}
-          hasCompletedSession={hasCompletedSession}
-          logs={logs}
-          transcriptMeta={transcriptMeta}
-        />
+        {markdown ? (
+          <textarea
+            readOnly
+            value={markdown}
+            className="min-h-[420px] w-full resize-y border border-white/10 bg-black p-4 font-mono text-xs leading-6 text-zinc-200 outline-none"
+          />
+        ) : (
+          <div className="border border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-zinc-500">
+            {hasCompletedSession
+              ? "No action transcript returned yet."
+              : "Record and finish a session to populate this area."}
+          </div>
+        )}
       </CardContent>
     </Card>
-  )
-}
-
-function UserDescription({ description }) {
-  return (
-    <div className={PANEL_INSET}>
-      <p className={LABEL_CLASS}>User description</p>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-zinc-300">{description}</p>
-    </div>
   )
 }
 
@@ -260,102 +257,52 @@ function TranscriptMessage({ message }) {
   )
 }
 
-function PagesVisited({ pagesVisited }) {
-  if (pagesVisited.length === 0) return null
+function buildTranscriptMarkdown({ activity, description, pagesVisited }) {
+  if (!activity.length && !description && !pagesVisited.length) return ""
+  const lines = ["# Recorded workflow", ""]
 
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <p className={LABEL_CLASS}>Pages navigated</p>
-        <p className="font-mono text-[11px] text-zinc-600">
-          {pagesVisited.length} page{pagesVisited.length === 1 ? "" : "s"}
-        </p>
-      </div>
-      <ol className="space-y-2">
-        {pagesVisited.map((page) => (
-          <li
-            key={`${page.order}-${page.url}`}
-            className="flex items-start gap-3 border border-white/10 bg-white/[0.02] p-3"
-          >
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-cyan-300/30 font-mono text-[11px] text-cyan-300">
-              {page.order}
-            </span>
-            <div className="min-w-0 flex-1">
-              <a
-                href={page.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block break-all text-xs leading-5 text-cyan-200 hover:underline"
-              >
-                {page.url}
-              </a>
-              <div className="mt-1 flex flex-wrap gap-2 font-mono text-[11px] text-zinc-600">
-                {page.timestamp && <span>{formatLogTime(page.timestamp)}</span>}
-                {page.pageId !== null && page.pageId !== undefined && <span>tab {page.pageId}</span>}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
-
-function ActivitySection({ activity, hasCompletedSession, logs, transcriptMeta }) {
-  if (activity.length === 0) {
-    return (
-      <div className="border border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-zinc-500">
-        {hasCompletedSession
-          ? "No action transcript returned yet."
-          : "Record and finish a session to populate this area."}
-      </div>
-    )
+  if (description) {
+    lines.push("## User description", "", description.trim(), "")
   }
 
-  return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <p className={LABEL_CLASS}>Actions captured</p>
-        {logs.length > 0 && (
-          <p className="font-mono text-[11px] text-zinc-600">
-            {logs.length} raw event{logs.length === 1 ? "" : "s"} analyzed
-          </p>
-        )}
-      </div>
-      {transcriptMeta && <TranscriptMeta transcriptMeta={transcriptMeta} />}
-      <div className="max-h-[520px] space-y-2 overflow-y-auto bg-black pr-2">
-        {activity.map((item) => (
-          <ActivityItem item={item} key={`${item.index}-${item.type}`} />
-        ))}
-      </div>
-    </div>
-  )
+  if (pagesVisited.length) {
+    lines.push("## Pages visited", "")
+    pagesVisited.forEach((page, index) => {
+      lines.push(`${index + 1}. ${page.url}`)
+    })
+    lines.push("")
+  }
+
+  lines.push("## Actions", "")
+  if (!activity.length) {
+    lines.push("_No actions captured._")
+    return lines.join("\n")
+  }
+
+  activity.forEach((item, index) => {
+    lines.push(`${index + 1}. ${markdownLineForAction(item)}`)
+  })
+
+  return lines.join("\n")
 }
 
-function TranscriptMeta({ transcriptMeta }) {
-  return (
-    <p className="mb-3 font-mono text-[11px] text-zinc-600">
-      Source: {transcriptMeta.source || "unknown"}
-      {transcriptMeta.recorderStatus ? ` · recorder ${transcriptMeta.recorderStatus}` : ""}
-      {" · "}
-      {transcriptMeta.pageCount} page{transcriptMeta.pageCount === 1 ? "" : "s"}
-      {transcriptMeta.rawCount ? ` · ${transcriptMeta.rawCount} raw log events` : ""}
-    </p>
-  )
+function markdownLineForAction(item) {
+  if (item.type === "click") return markdownClickAction(item)
+  if (item.type === "navigation") return `Navigated to ${item.url || item.detail}`
+  if (item.type === "navigation-intent") return `Requested navigation to ${item.url || item.detail}`
+  if (item.type === "input") return `${item.label}: ${item.detail}`
+  if (item.type === "key") return `${item.label}${item.detail ? ` ${item.detail}` : ""}`
+  if (item.type === "submit") return `Submitted ${item.detail}`
+  if (item.type === "tab") return item.detail
+  return `${item.label}: ${item.detail || item.type}`
 }
 
-function ActivityItem({ item }) {
-  return (
-    <div className="border border-white/10 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-cyan-300">{item.label}</p>
-        <p className="font-mono text-[11px] text-zinc-600">{formatLogTime(item.timestamp)}</p>
-      </div>
-      <p className="mt-2 break-words text-xs leading-5 text-zinc-300">{item.detail}</p>
-      <div className="mt-2 flex flex-wrap gap-2 font-mono text-[11px] text-zinc-600">
-        <span>{item.type}</span>
-        {item.pageId !== null && item.pageId !== undefined && <span>page {item.pageId}</span>}
-      </div>
-    </div>
-  )
+function markdownClickAction(item) {
+  const detail = item.detail || "page"
+  const htmlIndex = detail.indexOf(" at <")
+  if (htmlIndex === -1) return `Clicked ${detail}`
+
+  const target = detail.slice(0, htmlIndex)
+  const html = detail.slice(htmlIndex + 4)
+  return [`Clicked ${target} at:`, "", "```html", html, "```"].join("\n")
 }

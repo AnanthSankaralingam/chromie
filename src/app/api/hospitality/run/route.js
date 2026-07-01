@@ -5,7 +5,7 @@ import {
   getHospitalityProfileForUser,
 } from "@/lib/hospitality"
 import { createServiceClient } from "@/lib/supabase/service"
-import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
+import { invokeWorkflowLambda } from "@/lib/workflow/workflow-lambda"
 
 export const POST = withAuth(async ({ user }) => {
   try {

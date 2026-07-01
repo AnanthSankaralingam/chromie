@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
-import { stopWorkflowRun } from "@/lib/workflow-run-stop"
+import { getAccessibleWorkflowRun } from "@/lib/workflow/workflow-run-access"
+import { stopWorkflowRun } from "@/lib/workflow/workflow-run-stop"
 
 export const POST = withAuth(async ({ supabase, user, params }) => {
   const { id: automationId, runId } = await params

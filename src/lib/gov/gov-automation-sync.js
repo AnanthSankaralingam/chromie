@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service"
-import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow-automations"
-import { mergeGovProfileIntoScenarioParams } from "@/lib/gov-profiles"
+import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
+import { mergeGovProfileIntoScenarioParams } from "@/lib/gov/gov-profiles"
 
 const PROFILE_PARAM_KEYS = [
   "customer_name",

@@ -27,14 +27,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/forms-and-input/input"
 import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import { formatDuration, isGovEmptyResultRun, resolveRunPresentation } from "@/lib/workflow-audit"
+import { formatDuration, isGovEmptyResultRun, resolveRunPresentation } from "@/lib/workflow/workflow-audit"
 import {
   defaultParamsForScenario,
   DEFAULT_WORKFLOW_SCENARIO_ID,
   GOV_PROFILE_SCENARIO_IDS,
   WORKFLOW_SCENARIOS,
   ZILLOW_DEFAULT_FILTERS,
-} from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-automations"
 import { Play, Plus, RefreshCw, Save, Square, Trash2 } from "lucide-react"
 
 function isGovProfileScenario(scenarioId) {

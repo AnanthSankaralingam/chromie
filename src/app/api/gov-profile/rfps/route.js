@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov/gov-automation-sync"
 import {
   buildRfpStoragePath,
   getGovProfileForUser,
@@ -9,8 +9,8 @@ import {
   GOV_PROFILE_RFP_MAX_BYTES,
   normalizePastRfpPdfs,
   requireGovProfileServiceClient,
-} from "@/lib/gov-profiles"
-import { processPastRfpPdf } from "@/lib/gov-rfp-processing"
+} from "@/lib/gov/gov-profiles"
+import { processPastRfpPdf } from "@/lib/gov/gov-rfp-processing"
 
 export const runtime = "nodejs"
 
