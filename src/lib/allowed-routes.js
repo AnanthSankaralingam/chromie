@@ -10,6 +10,7 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/gov/share",
   "/hospitality",
   "/landing",
+  "/new",
   "/profile",
   "/privacy",
   "/privacy-policy",
