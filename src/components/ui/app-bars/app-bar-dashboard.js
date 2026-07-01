@@ -65,6 +65,14 @@ export default function AppBarDashboard({ showOpportunities = true }) {
 
         <div className="flex items-center gap-5 sm:gap-6">
           <nav className="hidden items-center gap-5 md:flex" aria-label="Dashboard">
+            {user ? (
+              <Link
+                href="/dashboard"
+                className={`${SECTION_LABEL} text-zinc-400 transition-colors hover:text-white`}
+              >
+                Dashboard
+              </Link>
+            ) : null}
             {govProfileLinked ? (
               showOpportunities ? (
                 <Link
@@ -130,6 +138,15 @@ export default function AppBarDashboard({ showOpportunities = true }) {
       {mobileOpen && (
         <nav className="border-t border-white/10 px-4 py-4 md:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-3">
+            {user ? (
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className={`${SECTION_LABEL} text-zinc-400 hover:text-white`}
+              >
+                Dashboard
+              </Link>
+            ) : null}
             {govProfileLinked ? (
               showOpportunities ? (
                 <Link

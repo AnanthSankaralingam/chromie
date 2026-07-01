@@ -3,7 +3,6 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/",
   "/automations",
   "/blog",
-  "/book-demo",
   "/dashboard",
   "/gov",
   "/gov/onboarding",
@@ -16,7 +15,6 @@ export const ALLOWED_PAGE_PATHS = new Set([
   "/privacy-policy",
   "/unsubscribe",
   "/use-cases",
-  "/waitlist",
 ])
 
 /** Auth flow and dynamic public pages that must remain reachable. */

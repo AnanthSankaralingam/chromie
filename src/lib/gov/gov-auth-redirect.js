@@ -1,10 +1,11 @@
 /** Paths that should resolve to the user's gov home instead of rendering legacy surfaces. */
-export const LEGACY_HOME_PATHS = new Set(["/dashboard", "/automations"])
+export const LEGACY_HOME_PATHS = new Set(["/automations"])
 
 /** Explicit post-auth destinations that should be honored as-is. */
 export function isExplicitPostAuthPath(pathname) {
   return (
     pathname === "/" ||
+    pathname === "/dashboard" ||
     pathname === "/gov" ||
     pathname === "/gov/onboarding" ||
     pathname === "/profile"

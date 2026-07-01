@@ -14,9 +14,6 @@ Auth-linked user profile.
 | --- | --- |
 | `id` | Primary key, references `auth.users.id`. |
 | `name` / `email` / `provider` | User identity metadata. |
-| `stripe_customer_id` | Stripe customer reference for billing. |
-| `welcome_email_sent`, `welcome_email_sent_at` | Welcome email state. |
-| `email_campaign_stage`, `email_campaign_updated_at` | Email lifecycle state; stage `0` means unsubscribed/suppressed. |
 | `gov_profile_id` | Optional link to a shared `gov_profiles.id`; can be set by admin/service role or the self-serve gov onboarding API. |
 | `is_admin` | Optional admin flag from `sql/add_profiles_is_admin.sql`. |
 | `created_at`, `last_used_at` | Audit timestamps. |
@@ -152,18 +149,15 @@ Workflow tool registry used by the production automation runner to locate scenar
 
 Gov dual monitor (`gov_dual_source`) needs rows for both `gov_contract_sam_gov` and `gov_contract_sbir_tech_marketplace`, each pinned to a `github_ref` that includes SBIR scenario support (use `main`). Seed/migrate with `sql/chromie_tools_sbir.sql`.
 
-### Billing And Account Tables
+### Account Tables
 
-These are retained for account/subscription infrastructure:
+Remaining lightweight account-adjacent tables:
 
 | Table | Purpose |
 | --- | --- |
-| `billing` | Current Stripe customer/subscription status. Plans are now `free` or `pro`. |
-| `purchases` | Subscription ledger. Legacy `builder` values should be normalized to `pro` by `sql/drop_extension_builder_artifacts.sql`. |
-| `token_usage` | Retained usage/accounting row. Extension proxy columns are stale and should be dropped by the cleanup script. |
 | `global_feedback` | Product feedback submitted from the app. |
 
-Note: the `/api/waitlist` route still targets `public.waitlist`, but the current Supabase project does not include that table.
+Deprecated billing tables (`billing`, `purchases`, `token_usage`) and `profiles.stripe_customer_id` are removed by `sql/drop_deprecated_billing_tables.sql` after the billing APIs and paid-plan client plumbing were removed. The waitlist API was also removed; the current Supabase project did not include `public.waitlist`.
 
 ## Active Storage
 
@@ -177,6 +171,6 @@ The Chrome extension builder/codegen surface has been removed from the app code.
 
 - Tables: `projects`, `code_files`, `conversations`, `shared_links`, `shared_icons`, `featured_projects`, `project_assets`, `project_versions`, `project_databases`, `project_database_data`, `metrics_events`, `metrics_aggregates`, `cron_job_log`, `agent_file_operations`, `session_replays`, `project_collaborators`, `extension_templates`, `extension_project_metadata`, `extension_user_settings`, `scraper`, `scraper_misses`, `api_docs_cache`.
 - Functions: `create_project_version`, `get_next_version_number`, `add_conversation_message`, `generate_api_key`, `validate_api_key`, `metrics_dashboard`.
-- Stale columns: `profiles.project_count`, `profiles.hyperbrowser_profile_id`, GitHub builder export columns, and `token_usage` extension-proxy counters.
+- Stale columns: `profiles.project_count`, `profiles.hyperbrowser_profile_id`, and GitHub builder export columns.
 
-Billing tables are intentionally preserved for backwards compatibility.
+Unused profile email lifecycle columns are removed by `sql/drop_unused_profile_email_columns.sql`.

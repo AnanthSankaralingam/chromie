@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { resolveGovHomePath } from "@/lib/gov/gov-auth-redirect"
+import DashboardPage from "@/components/pages/dashboard-page"
 
 export const metadata = {
   title: "Dashboard",
@@ -17,5 +17,5 @@ export default async function Page() {
     redirect("/")
   }
 
-  redirect(await resolveGovHomePath(supabase, user.id))
+  return <DashboardPage />
 }
