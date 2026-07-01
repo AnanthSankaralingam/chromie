@@ -20,7 +20,7 @@ function lambdaClient() {
 }
 
 /**
- * @param {{ automation_id?: string, scenario_id?: string, params?: object, dry_tools?: boolean }} payload
+ * @param {{ automation_id?: string, scenario_id?: string, params?: object, dry_tools?: boolean, user_id?: string | null, gov_dual_source?: boolean, sbir_automation_id?: string }} payload
  */
 export async function invokeWorkflowLambda(payload) {
   requireWorkflowAwsCredentials("Manual workflow runs")
