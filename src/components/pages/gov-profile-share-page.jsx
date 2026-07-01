@@ -177,6 +177,7 @@ export default function GovProfileSharePage({ govProfileId }) {
               run={run}
               expanded={expandedId === run.id}
               onToggle={() => setExpandedId((id) => (id === run.id ? null : run.id))}
+              allowWinnerFetch={false}
             />
           ))}
           {lockedRuns.length > 0 ? (
@@ -188,6 +189,7 @@ export default function GovProfileSharePage({ govProfileId }) {
                     run={run}
                     expanded={false}
                     onToggle={() => {}}
+                    allowWinnerFetch={false}
                   />
                 ))}
               </div>
