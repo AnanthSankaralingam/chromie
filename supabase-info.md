@@ -17,7 +17,7 @@ Auth-linked user profile.
 | `gov_profile_id` | Optional link to a shared `gov_profiles.id`; can be set by admin/service role or the self-serve gov onboarding API. |
 | `is_admin` | Optional admin flag from `sql/add_profiles_is_admin.sql`. |
 | `browserbase_context_id` | Account-level (identity) Browserbase persisted Context (cookie jar) shared by all of the owner's **personal** automations — `/new` custom recorded automations AND eviivo (`eviivo_data_pull`); frozen on first use. Corporate users inherit the earliest teammate's context for their work-email domain; consumer/free-email users get their own. One login here covers every personal automation for the identity. **Gov monitors are excluded** (org/`gov_profile`-scoped, dedicated per-scenario contexts). Applied via Supabase migration `add_profiles_browserbase_context_id`. |
-| `browser_minutes` / `input_tokens` / `output_tokens` | Cumulative automation usage counters. The runner increments these after a `workflow_runs` row transitions out of `running`, using Browserbase session-minutes plus LLM prompt and completion usage from the run report. Applied directly to the Supabase project. |
+| `browser_minutes` / `input_tokens` / `output_tokens` | Cumulative automation usage counters. The runner increments these after a `workflow_runs` row transitions out of `running`, using measured Browserbase session-minutes plus LLM prompt and completion usage from the run report. Applied directly to the Supabase project. |
 | `created_at`, `last_used_at` | Audit timestamps. |
 
 RLS: users can read/update their own row. `gov_profile_id` is usually set by an admin or service role.
@@ -116,7 +116,7 @@ Execution/audit log for automations.
 | Linkage | `id`, `automation_id`. |
 | Status | `status`, `started_at`, `finished_at`. |
 | Runner data | Browserbase session/debug/replay fields and Lambda metadata. |
-| Results | `result`, `evaluation`, error details. `evaluation.input_tokens` and `evaluation.output_tokens` record per-run token usage for profile counter reconciliation. |
+| Results | `result`, `evaluation`, error details. `evaluation.browser_minutes`, `evaluation.input_tokens`, and `evaluation.output_tokens` record per-run usage for profile counter reconciliation. |
 
 Used by dashboard run history, live/session/replay routes, and `gov_runs.run_id`.
 
