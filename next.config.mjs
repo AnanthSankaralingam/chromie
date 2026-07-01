@@ -16,7 +16,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-  serverExternalPackages: ['esbuild', 'pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  serverExternalPackages: ['esbuild', 'pdf-parse', 'pdfjs-dist', '@napi-rs/canvas', 'ws'],
   outputFileTracingIncludes: {
     '/api/gov-profile/rfps': [
       './node_modules/pdf-parse/**/*',

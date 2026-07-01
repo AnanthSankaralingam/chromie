@@ -41,7 +41,8 @@
     "resend": "^6.2.2",
     "stripe": "^18.3.0",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
