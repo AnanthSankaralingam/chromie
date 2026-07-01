@@ -1,0 +1,23 @@
+---
+description: Building dashboard features that need Browserbase persisted browser auth (Contexts) — how to provision and store a stable context id
+globs: **/src/lib/hospitality.js,**/src/lib/workflow-automations.js,**/*browserbase*.{js,ts,jsx,tsx}
+alwaysApply: false
+---
+
+# Browserbase Persisted Context (dashboard side)
+
+When a feature needs a workflow to stay logged in across scheduled runs, it needs a
+Browserbase **Context**. The dashboard's only job is to provision ONE stable context
+and store it; auth reliability is handled runner-side (see below).
+
+## Do this
+- Reuse-or-create a **stable** context id per automation. Follow the `ensureBrowserbaseContextId` pattern: reuse `existingAutomation.browserbase_context_id` if present, else `createBrowserbaseContext()`. Never lazily create a new context on each run/save — inconsistent ids silently break persistence (the next run starts logged out).
+- Persist it on the `automations` row as `browserbase_context_id` at create/ensure time (see `ensureHospitalityAutomation`). The runner mirrors it to `workflow_browser_contexts`; both must agree.
+- Add the new scenario to the same provisioning path so its automation gets a context id too.
+
+## Know this
+- A Context persists **cookies + localStorage only — NOT sessionStorage**. A freshly created context is an **empty cookie jar**: automated runs will NOT be authenticated until a human completes the first login once via Live View (runner's `scripts/eviivo_login.py`). Build the UX to surface/allow that first login, and don't treat "context created" as "logged in".
+- Don't build a second context-creation path or stash the id elsewhere — one helper (`createBrowserbaseContext`), one column (`automations.browserbase_context_id`).
+
+## Reliability lives in the runner (don't reinvent here)
+For login-walled sources, IP/fingerprint **pinning**, the **captcha split** (auto-solve on for automated runs, off for manual login), and the **/login → dashboard reload-to-redirect** are all handled in `chromie-runner` / `chromie-tools`. See their `.cursor/rules` (`browserbase-persisted-auth`, `eviivo-auth-and-scraping`) before assuming a context alone is enough. If the site binds sessions to IP/fingerprint, the context must be paired with runner-side pinning or restored cookies get rejected.
