@@ -10,6 +10,7 @@ import {
   ActionTranscriptCard,
   NewAutomationHero,
   RecordingDraftCard,
+  SaveAutomationCard,
 } from "./new-automation-page-components"
 
 const SESSION_SECONDS = 300
@@ -29,6 +30,10 @@ export default function NewAutomationPage() {
   const [transcriptMeta, setTranscriptMeta] = useState(null)
   const [logsMessage, setLogsMessage] = useState(null)
   const [error, setError] = useState(null)
+  const [name, setName] = useState("")
+  const [saveStatus, setSaveStatus] = useState("idle")
+  const [saveError, setSaveError] = useState(null)
+  const [savedCompanyId, setSavedCompanyId] = useState(null)
   const finishInFlightRef = useRef(false)
 
   const isActive = status === "starting" || status === "recording"
@@ -159,6 +164,9 @@ export default function NewAutomationPage() {
     setLiveUrl(null)
     setSessionId(null)
     setRemainingSeconds(SESSION_SECONDS)
+    setSaveStatus("idle")
+    setSaveError(null)
+    setSavedCompanyId(null)
 
     try {
       const res = await fetch("/api/new-automation-sessions", {
@@ -202,6 +210,36 @@ export default function NewAutomationPage() {
     }
   }
 
+  async function saveAutomation() {
+    if (!sessionId || saveStatus === "saving") return
+    setSaveStatus("saving")
+    setSaveError(null)
+
+    try {
+      const res = await fetch(`/api/new-automation-sessions/${sessionId}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description,
+          activity,
+          pagesVisited,
+          transcriptMeta,
+          logs,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to save automation")
+      }
+      setSavedCompanyId(json.companyId || null)
+      setSaveStatus("saved")
+    } catch (err) {
+      setSaveError(err.message || "Failed to save automation")
+      setSaveStatus("error")
+    }
+  }
+
   return (
     <div className={APP_PAGE}>
       <FilmGrain />
@@ -224,6 +262,19 @@ export default function NewAutomationPage() {
             status={status}
             user={user}
           />
+
+          {hasCompletedSession && (
+            <SaveAutomationCard
+              name={name}
+              onNameChange={setName}
+              onSave={saveAutomation}
+              pagesVisited={pagesVisited}
+              activity={activity}
+              savedCompanyId={savedCompanyId}
+              saveError={saveError}
+              saveStatus={saveStatus}
+            />
+          )}
         </div>
 
         <ActionTranscriptCard

@@ -89,17 +89,20 @@ User-owned workflow configuration.
 
 | Column Group | Purpose |
 | --- | --- |
-| Identity | `id`, nullable `user_id` creator/owner for personal workflows, nullable `gov_profile_id` owner for company gov monitors, `name`, `scenario_id`. |
-| Configuration | `params`, `enabled`. |
-| Scheduling | `schedule_kind`, `schedule_enabled`, `schedule_frequency`, `schedule_times`, `schedule_weekday`, `schedule_timezone`, `cron_expression`, `eventbridge_schedule_name`. |
+| Identity | `id`, nullable `user_id` creator/owner for personal workflows, nullable `gov_profile_id` owner for company gov monitors, nullable `company_id` (normalized work-email domain) owner for company-shared recorded automations, `name`, `scenario_id`. |
+| Configuration | `params` (jsonb; also holds `/new` recorder capture — see below), `enabled`. |
+| Scheduling | `schedule_kind`, `schedule_timezone`, `cron_expression`, `eventbridge_schedule_name`. |
 | Timestamps | `created_at`, `updated_at`, schedule timestamps. |
 
 SQL files in repo:
 - `sql/workflow_automation_schedule.sql` adds/updates schedule fields. The base workflow schema may have been applied outside this repo and should be confirmed before production DB cleanup.
 - `sql/company_owned_gov_automations.sql` adds `automations.gov_profile_id`, backfills valid gov monitor rows from `params.gov_profile_id` / `profiles.gov_profile_id`, changes `automations.user_id` to nullable `ON DELETE SET NULL`, and adds a cleanup trigger for non-gov personal automations before profile deletion.
 - `sql/scope_personal_automation_delete_trigger.sql` tightens that cleanup trigger so legacy unmapped gov monitor rows are not deleted without EventBridge cleanup.
+- `company_id` (normalized corporate email domain) column plus additive company-scoped SELECT/UPDATE RLS policies were applied directly to the project (via Supabase migration `new_automation_company_access`). `company_id` is not backfilled, so existing personal automations stay private. (The `/new` recorder capture is stored in `params`, not in dedicated columns.)
 
-RLS: users can CRUD their own personal automation rows through `user_id`. Gov monitor APIs use the service role to access company-owned rows by `gov_profile_id`; general automations UI/API does not directly expose org-owned gov rows. Deleting an auth/profile user no longer cascades to valid company-owned gov monitor automations or their `workflow_runs`; deleting a `gov_profiles` row cascades to its company-owned automations.
+RLS: users can CRUD their own personal automation rows through `user_id`. Additive company policies grant SELECT/UPDATE to any authenticated user whose JWT email domain equals `company_id`, so recorded automations saved from `/new` are shared with teammates on the same **corporate** work-email domain (DELETE stays owner-only). The app only ever sets `company_id` for genuine corporate domains via `companyDomainFromEmail` (src/lib/gov-domain.js); consumer/free providers (gmail.com, outlook.com, etc.) resolve to `null`, so personal-email automations stay private to their creator and are never shared across a shared public domain. Gov monitor APIs use the service role to access company-owned rows by `gov_profile_id`; general automations UI/API does not directly expose org-owned gov rows. Deleting an auth/profile user no longer cascades to valid company-owned gov monitor automations or their `workflow_runs`; deleting a `gov_profiles` row cascades to its company-owned automations.
+
+**Recorded `/new` automations:** The self-serve recorder (`/new`) saves via `POST /api/new-automation-sessions/{sessionId}/save` with `scenario_id = 'custom_recorded_automation'`, `enabled = false`, `user_id = creator`, and `company_id = creator's corporate email domain` (null for consumer/free email providers, keeping those private to the creator). The captured recording is stored inside `params`: `source` (`'new_automation_page'`), `description`, `browserbase_session_id` (the ephemeral recording session — distinct from the reusable `automations.browserbase_context_id`), `pages_visited`, `action_transcript`, `recording_meta`, and `logs`.
 
 ### `workflow_runs`
 
