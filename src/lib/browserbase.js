@@ -67,31 +67,33 @@ function envInt(name, fallback) {
 }
 
 /**
- * Shared egress pin for the `/new` recorder. The cookies a user creates while
- * logging into a third-party site during recording are minted under this
- * region + Browserbase proxy + viewport; the runner MUST reuse the same identity
- * when it later replays the recorded automation, or the login-bound site rejects
- * the restored context. Keep these `BROWSERBASE_RECORDER_*` values in lockstep
- * with chromie-runner's `resolve_session_pinning("recorder")`.
+ * Egress pin for the account-level browser identity used by the `/new` recorder
+ * (and shared with eviivo runs on the runner). The cookies a user creates while
+ * logging into a third-party site are minted under this region + Browserbase proxy
+ * + viewport; the runner MUST reuse the same egress when it replays a run for that
+ * identity, or the login-bound site rejects the restored context. Keep these
+ * `BROWSERBASE_IDENTITY_*` values in lockstep with the runner's
+ * `resolve_session_pinning` identity pin (which also reads `BROWSERBASE_EVIIVO_*`
+ * as a fallback — see chromie-runner). Defaults match on both sides.
  */
-export function resolveRecorderSessionPinning() {
+export function resolveIdentitySessionPinning() {
   const region =
-    process.env.BROWSERBASE_RECORDER_REGION?.trim() ||
+    process.env.BROWSERBASE_IDENTITY_REGION?.trim() ||
     process.env.BROWSERBASE_REGION?.trim() ||
     "us-east-1"
 
   const viewport = {
-    width: envInt("BROWSERBASE_RECORDER_VIEWPORT_WIDTH", 1920),
-    height: envInt("BROWSERBASE_RECORDER_VIEWPORT_HEIGHT", 1080),
+    width: envInt("BROWSERBASE_IDENTITY_VIEWPORT_WIDTH", 1920),
+    height: envInt("BROWSERBASE_IDENTITY_VIEWPORT_HEIGHT", 1080),
   }
 
   let proxies
-  if (envFlag("BROWSERBASE_RECORDER_PROXIES", true)) {
-    const country = process.env.BROWSERBASE_RECORDER_PROXY_COUNTRY?.trim()
+  if (envFlag("BROWSERBASE_IDENTITY_PROXIES", true)) {
+    const country = process.env.BROWSERBASE_IDENTITY_PROXY_COUNTRY?.trim()
     if (country) {
       const geolocation = { country: country.toUpperCase() }
-      const state = process.env.BROWSERBASE_RECORDER_PROXY_STATE?.trim()
-      const city = process.env.BROWSERBASE_RECORDER_PROXY_CITY?.trim()
+      const state = process.env.BROWSERBASE_IDENTITY_PROXY_STATE?.trim()
+      const city = process.env.BROWSERBASE_IDENTITY_PROXY_CITY?.trim()
       if (state) geolocation.state = state.toUpperCase()
       if (city) geolocation.city = city.toUpperCase()
       proxies = [{ type: "browserbase", geolocation }]

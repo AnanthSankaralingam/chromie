@@ -4,7 +4,7 @@ import {
   buildConnectUrl,
   createBrowserbaseSession,
   getSessionLiveViewUrl,
-  resolveRecorderSessionPinning,
+  resolveIdentitySessionPinning,
 } from "@/lib/browserbase"
 import { startSessionRecording } from "@/lib/new-automation/session-recorder"
 import { ensureProfileBrowserbaseContextId } from "@/lib/new-automation/recording-context"
@@ -55,7 +55,7 @@ export const POST = withAuth(async ({ user, request }) => {
 
     // Pin egress (region + proxy + viewport) so the login cookies captured here
     // are minted under the same identity the runner reuses for scheduled runs.
-    const pinning = resolveRecorderSessionPinning()
+    const pinning = resolveIdentitySessionPinning()
 
     const session = await createBrowserbaseSession({
       contextId: browserbaseContextId,

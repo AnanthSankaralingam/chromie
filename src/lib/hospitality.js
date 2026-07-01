@@ -1,5 +1,5 @@
 import { resolveScheduleFieldsFromBody } from "@/lib/workflow/automation-schedule-sync"
-import { createBrowserbaseContext } from "@/lib/browserbase"
+import { ensureProfileBrowserbaseContextId } from "@/lib/new-automation/recording-context"
 import { EVIIVO_DATA_PULL_SCENARIO_ID, defaultParamsForScenario } from "@/lib/workflow/workflow-automations"
 
 export const DEFAULT_HOSPITALITY_TIMEZONE = "UTC"
@@ -120,12 +120,6 @@ export function hospitalityParamsForProfile(hospitalityProfile) {
   }
 }
 
-async function ensureBrowserbaseContextId(existingAutomation) {
-  const existingContextId = String(existingAutomation?.browserbase_context_id || "").trim()
-  if (existingContextId) return existingContextId
-  return createBrowserbaseContext()
-}
-
 export async function ensureHospitalityAutomation({ service, user, hospitalityProfile }) {
   const { data: existing, error: existingError } = await service
     .from("automations")
@@ -139,7 +133,12 @@ export async function ensureHospitalityAutomation({ service, user, hospitalityPr
   if (existingError) throw new Error(existingError.message)
 
   const params = hospitalityParamsForProfile(hospitalityProfile)
-  const browserbaseContextId = await ensureBrowserbaseContextId(existing)
+  // eviivo is identity-scoped: reuse the owner's account context (company-or-user),
+  // the same jar the /new recorder uses, so one login covers every eviivo run.
+  const { contextId: browserbaseContextId } = await ensureProfileBrowserbaseContextId(
+    service,
+    user,
+  )
   if (existing) {
     const { data, error } = await service
       .from("automations")
