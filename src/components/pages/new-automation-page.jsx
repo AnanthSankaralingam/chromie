@@ -21,6 +21,7 @@ export default function NewAutomationPage() {
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("idle")
   const [sessionId, setSessionId] = useState(null)
+  const [browserbaseContextId, setBrowserbaseContextId] = useState(null)
   const [liveUrl, setLiveUrl] = useState(null)
   const [expiresAt, setExpiresAt] = useState(null)
   const [remainingSeconds, setRemainingSeconds] = useState(SESSION_SECONDS)
@@ -163,6 +164,7 @@ export default function NewAutomationPage() {
     setLogsMessage(null)
     setLiveUrl(null)
     setSessionId(null)
+    setBrowserbaseContextId(null)
     setRemainingSeconds(SESSION_SECONDS)
     setSaveStatus("idle")
     setSaveError(null)
@@ -180,6 +182,7 @@ export default function NewAutomationPage() {
         throw new Error(json.error || "Failed to start recording")
       }
       setSessionId(json.sessionId)
+      setBrowserbaseContextId(json.browserbaseContextId || null)
       setLiveUrl(json.liveUrl || null)
       setExpiresAt(json.expiresAt || null)
       setStatus(json.liveUrl ? "recording" : "starting")
@@ -226,6 +229,7 @@ export default function NewAutomationPage() {
           pagesVisited,
           transcriptMeta,
           logs,
+          browserbaseContextId,
         }),
       })
       const json = await res.json().catch(() => ({}))

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { buildConnectUrl, createBrowserbaseSession, getSessionLiveViewUrl } from "@/lib/browserbase"
 import { startSessionRecording } from "@/lib/new-automation/session-recorder"
+import { ensureProfileBrowserbaseContextId } from "@/lib/new-automation/recording-context"
+import { createServiceClient } from "@/lib/supabase/service"
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -27,10 +29,33 @@ export const POST = withAuth(async ({ user, request }) => {
   try {
     const body = await request.json().catch(() => ({}))
     const description = String(body.description || "").trim().slice(0, 2000)
+
+    // Attach the identity-level persisted context (frozen on the profile): the
+    // company's shared context if corporate, else the user's own. A failure here
+    // must not block recording — fall back to a fresh, non-persisted cookie jar.
+    let browserbaseContextId = null
+    let companyId = null
+    try {
+      const service = createServiceClient()
+      if (service) {
+        const resolved = await ensureProfileBrowserbaseContextId(service, user)
+        browserbaseContextId = resolved.contextId
+        companyId = resolved.companyId
+      } else {
+        console.warn("[new-automation-sessions/create] service client unavailable; no persisted context")
+      }
+    } catch (contextErr) {
+      console.warn("[new-automation-sessions/create] context resolve failed", contextErr)
+    }
+
     const session = await createBrowserbaseSession({
+      contextId: browserbaseContextId,
+      persist: true,
       userMetadata: {
         source: "chromie-new-automation",
         userId: user.id,
+        ...(companyId ? { companyId } : {}),
+        ...(browserbaseContextId ? { browserbaseContextId } : {}),
         ...(description ? { description } : {}),
       },
     })
@@ -48,6 +73,8 @@ export const POST = withAuth(async ({ user, request }) => {
 
     return NextResponse.json({
       sessionId: session.id,
+      browserbaseContextId,
+      companyId,
       liveUrl,
       expiresAt: session.expiresAt,
       status: session.status,
