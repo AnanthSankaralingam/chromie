@@ -20,8 +20,8 @@ import {
   runStatusLabel,
   runStatusTone,
   sanitizeRunForClient,
-} from "@/lib/workflow-audit"
-import { EVIIVO_DATA_PULL_SCENARIO_ID, canonicalGovScenarioId } from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-audit"
+import { EVIIVO_DATA_PULL_SCENARIO_ID, canonicalGovScenarioId } from "@/lib/workflow/workflow-automations"
 import { ChevronDown, RefreshCw } from "lucide-react"
 
 const STATUS_CLASS = {

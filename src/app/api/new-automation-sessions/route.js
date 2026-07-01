@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { buildConnectUrl, createBrowserbaseSession, getSessionLiveViewUrl } from "@/lib/browserbase"
-import { startSessionRecording } from "@/lib/session-recorder"
+import { startSessionRecording } from "@/lib/new-automation/session-recorder"
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))

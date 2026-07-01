@@ -2,7 +2,7 @@ import {
   canonicalGovScenarioId,
   GOV_MATCH_SCENARIO_IDS,
   PRIMARY_GOV_SCENARIO_ID,
-} from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-automations"
 
 export const AUDIT_RUN_SELECT = `
   id,

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov/gov-automation-sync"
 import {
   findPastRfpPdf,
   getGovProfileForUser,
   GOV_PROFILE_RFP_BUCKET,
   normalizePastRfpPdfs,
   requireGovProfileServiceClient,
-} from "@/lib/gov-profiles"
+} from "@/lib/gov/gov-profiles"
 
 export const GET = withAuth(async ({ supabase, user, params }) => {
   try {

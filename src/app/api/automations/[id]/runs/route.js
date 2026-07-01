@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { getUserGovProfileId } from "@/lib/gov-workflow-access"
+import { getUserGovProfileId } from "@/lib/gov/gov-workflow-access"
 import { createServiceClient } from "@/lib/supabase/service"
-import { sanitizeRunForClient } from "@/lib/workflow-audit"
-import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow-automations"
+import { sanitizeRunForClient } from "@/lib/workflow/workflow-audit"
+import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
 
 export const GET = withAuth(async ({ supabase, user, params }) => {
   const { id } = await params

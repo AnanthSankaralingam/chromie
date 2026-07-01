@@ -1,6 +1,6 @@
 /** Format workflow run records for the dashboard audit log. */
 
-import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow-automations"
+import { GOV_PROFILE_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
 
 /** Dashboard URLs require Browserbase login — never embed in Chromie. */
 export function isBrowserbaseDashboardUrl(url) {

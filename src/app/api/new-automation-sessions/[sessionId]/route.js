@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getSessionLiveViewUrl, terminateBrowserbaseSession } from "@/lib/browserbase"
-import { loadSessionTranscript } from "@/lib/new-automation-session-transcript"
+import { loadSessionTranscript } from "@/lib/new-automation/new-automation-session-transcript"
 
 function wantsTranscript(searchParams) {
   return ["logs", "replay", "transcript"].some((key) => searchParams.get(key) === "1")

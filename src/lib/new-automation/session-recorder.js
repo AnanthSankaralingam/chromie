@@ -7,14 +7,15 @@
  *
  * A Chrome DevTools target accepts multiple concurrent CDP clients. The live
  * view iframe is one client; this recorder attaches a second client that only
- * enables observation domains (Page / Runtime / Log) and NEVER sends action
- * commands (no `Input.*`, no `Runtime.evaluate`), so it cannot perturb the run.
+ * enables observation domains (Page / Runtime / Log) and injects passive DOM
+ * listeners for text-only interaction telemetry. It NEVER sends action commands
+ * (no `Input.*`), so it cannot drive or perturb the run.
  *
- * What a passive observer CAN capture reliably: page navigations
- * (`Page.frameNavigated`), in-page/SPA navigations, new/closed tabs, dialogs,
- * and console output — because those are broadcast events. It CANNOT see the
- * human's individual clicks/keystrokes, because those are `Input.dispatch*`
- * commands issued by the live-view client and are not broadcast to observers.
+ * What CDP broadcasts reliably: page navigations (`Page.frameNavigated`),
+ * in-page/SPA navigations, new/closed tabs, dialogs, and console output. Human
+ * clicks/keystrokes are not broadcast CDP events, so each page gets a tiny
+ * capture-phase listener that reports those interactions back through a
+ * `Runtime.addBinding` callback.
  *
  * NOTE: State is kept in-process (module-level Map). This works for a
  * long-lived Node server (`next dev` / `next start`). In an ephemeral
@@ -23,9 +24,13 @@
  */
 
 import WebSocket from "ws"
+import { CHROMIE_INTERACTION_LISTENER_SOURCE } from "@/lib/new-automation/session-interaction-listener-source"
 
 const MAX_EVENTS = 2000
 const CLEANUP_DELAY_MS = 10 * 60 * 1000
+const INTERACTION_DEDUPE_WINDOW_MS = 400
+const INTERACTION_TYPES = new Set(["click", "input", "key", "submit"])
+const CHROMIE_BINDING_NAME = "__chromieEmit"
 
 // Survive Next.js dev HMR by hanging the store off globalThis.
 const store = globalThis.__chromieSessionRecorders || new Map()
@@ -37,12 +42,15 @@ function nowMs() {
 
 function pushEvent(rec, event) {
   if (rec.events.length >= MAX_EVENTS) return
+  const timestamp = event.timestamp ?? nowMs()
   const previous = rec.events[rec.events.length - 1]
   if (
     previous &&
     previous.type === event.type &&
     previous.label === event.label &&
-    previous.detail === event.detail
+    previous.detail === event.detail &&
+    (!INTERACTION_TYPES.has(event.type) ||
+      timestamp - (previous.timestamp || 0) < INTERACTION_DEDUPE_WINDOW_MS)
   ) {
     return
   }
@@ -53,7 +61,7 @@ function pushEvent(rec, event) {
     url: event.url ?? null,
     title: event.title ?? null,
     pageId: event.pageId ?? null,
-    timestamp: event.timestamp ?? nowMs(),
+    timestamp,
   })
 }
 
@@ -73,14 +81,16 @@ function registerPage(rec, cdpSessionId, targetInfo) {
   if (!page) {
     page = { index: rec.pageCounter++, url: targetInfo?.url || null, title: targetInfo?.title || null }
     rec.pages.set(cdpSessionId, page)
-    pushEvent(rec, {
-      type: "tab",
-      label: "Opened tab",
-      detail: `Tab ${page.index}${targetInfo?.url ? ` — ${targetInfo.url}` : ""}`,
-      url: targetInfo?.url || null,
-      title: targetInfo?.title || null,
-      pageId: page.index,
-    })
+    if (targetInfo?.url && targetInfo.url !== "about:blank") {
+      pushEvent(rec, {
+        type: "tab",
+        label: "Opened tab",
+        detail: `Tab ${page.index} - ${targetInfo.url}`,
+        url: targetInfo.url,
+        title: targetInfo?.title || null,
+        pageId: page.index,
+      })
+    }
   }
   return page
 }
@@ -90,14 +100,62 @@ function pageIndexFor(rec, cdpSessionId) {
   return page ? page.index : null
 }
 
-function consoleArgsText(args) {
-  if (!Array.isArray(args)) return null
-  const text = args
-    .map((arg) => arg?.value ?? arg?.description ?? arg?.unserializableValue)
-    .filter((value) => value !== undefined && value !== null)
-    .map(String)
-    .join(" ")
-  return text || null
+function detailTargetSuffix(payload) {
+  return payload.target ? ` in ${payload.target}` : ""
+}
+
+function interactionEventFromPayload(payload, cdpSessionId, rec) {
+  if (!payload || typeof payload !== "object") return null
+  const timestamp = typeof payload.timestamp === "number" ? payload.timestamp : nowMs()
+  const base = {
+    url: typeof payload.href === "string" ? payload.href : null,
+    title: typeof payload.title === "string" ? payload.title : null,
+    pageId: pageIndexFor(rec, cdpSessionId),
+    timestamp,
+  }
+
+  if (payload.kind === "click") {
+    const elementHtml = typeof payload.elementHtml === "string" ? payload.elementHtml : null
+    const target = payload.target || "page"
+    return {
+      ...base,
+      type: "click",
+      label: "Clicked",
+      detail: elementHtml ? `${target} at ${elementHtml}` : target,
+    }
+  }
+
+  if (payload.kind === "type") {
+    const value = typeof payload.value === "string" ? payload.value : ""
+    if (!value) return null
+    return {
+      ...base,
+      type: "input",
+      label: "Typed",
+      detail: `"${value}"${detailTargetSuffix(payload)}`,
+    }
+  }
+
+  if (payload.kind === "key") {
+    const key = typeof payload.key === "string" ? payload.key : "key"
+    return {
+      ...base,
+      type: "key",
+      label: `Pressed ${key}`,
+      detail: payload.target ? `in ${payload.target}` : key,
+    }
+  }
+
+  if (payload.kind === "submit") {
+    return {
+      ...base,
+      type: "submit",
+      label: "Submitted form",
+      detail: payload.target || "form",
+    }
+  }
+
+  return null
 }
 
 function handleCdpEvent(rec, msg) {
@@ -112,16 +170,34 @@ function handleCdpEvent(rec, msg) {
       send(rec, "Page.enable", {}, params.sessionId)
       send(rec, "Runtime.enable", {}, params.sessionId)
       send(rec, "Log.enable", {}, params.sessionId)
+      send(rec, "Runtime.addBinding", { name: CHROMIE_BINDING_NAME }, params.sessionId)
+      send(
+        rec,
+        "Page.addScriptToEvaluateOnNewDocument",
+        { source: CHROMIE_INTERACTION_LISTENER_SOURCE },
+        params.sessionId,
+      )
+      send(
+        rec,
+        "Runtime.evaluate",
+        {
+          expression: CHROMIE_INTERACTION_LISTENER_SOURCE,
+          awaitPromise: false,
+          returnByValue: false,
+        },
+        params.sessionId,
+      )
       return
     }
 
     case "Target.detachedFromTarget": {
       const page = rec.pages.get(params.sessionId)
       if (!page) return
+      if (!page.url || page.url === "about:blank") return
       pushEvent(rec, {
         type: "tab",
         label: "Closed tab",
-        detail: `Tab ${page.index} closed${page.url ? ` — ${page.url}` : ""}`,
+        detail: `Tab ${page.index} closed - ${page.url}`,
         url: page.url,
         pageId: page.index,
       })
@@ -200,28 +276,23 @@ function handleCdpEvent(rec, msg) {
       return
     }
 
-    case "Runtime.consoleAPICalled": {
-      const text = consoleArgsText(params.args)
-      if (!text) return
-      pushEvent(rec, {
-        type: "console",
-        label: `Console ${params.type || "log"}`,
-        detail: text.slice(0, 500),
-        pageId: pageIndexFor(rec, cdpSessionId),
-      })
+    case "Runtime.consoleAPICalled":
+      return
+
+    case "Runtime.bindingCalled": {
+      if (params.name !== CHROMIE_BINDING_NAME || typeof params.payload !== "string") return
+      let payload
+      try {
+        payload = JSON.parse(params.payload)
+      } catch {
+        return
+      }
+      const event = interactionEventFromPayload(payload, cdpSessionId, rec)
+      if (event) pushEvent(rec, event)
       return
     }
 
     case "Log.entryAdded": {
-      const entry = params.entry || {}
-      if (!entry.text) return
-      pushEvent(rec, {
-        type: entry.level === "error" ? "error" : "console",
-        label: entry.level ? `Browser ${entry.level}` : "Browser log",
-        detail: String(entry.text).slice(0, 500),
-        url: entry.url || null,
-        pageId: pageIndexFor(rec, cdpSessionId),
-      })
       return
     }
 

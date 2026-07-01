@@ -6,7 +6,7 @@ import {
   isValidDomain,
   normalizeCompanyUrl,
   normalizeEmail,
-} from "@/lib/gov-company-enrichment"
+} from "@/lib/gov/gov-company-enrichment"
 
 export const POST = withAuth(async ({ request, user }) => {
   try {

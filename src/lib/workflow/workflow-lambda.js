@@ -3,7 +3,7 @@
  */
 
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda"
-import { requireWorkflowAwsCredentials } from "@/lib/workflow-aws-config"
+import { requireWorkflowAwsCredentials } from "@/lib/workflow/workflow-aws-config"
 
 function lambdaClient() {
   const region = process.env.AWS_REGION || "us-east-1"

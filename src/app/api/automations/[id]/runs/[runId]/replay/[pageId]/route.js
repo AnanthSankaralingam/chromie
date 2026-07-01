@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getReplayPlaylist } from "@/lib/browserbase"
-import { resolveBrowserSessionId } from "@/lib/workflow-audit"
-import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
+import { resolveBrowserSessionId } from "@/lib/workflow/workflow-audit"
+import { getAccessibleWorkflowRun } from "@/lib/workflow/workflow-run-access"
 
 export const GET = withAuth(async ({ supabase, user, request, params }) => {
   const { id: automationId, runId, pageId } = await params

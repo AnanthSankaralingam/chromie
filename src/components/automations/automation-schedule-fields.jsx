@@ -1,6 +1,6 @@
 "use client"
 
-import { parseCronExpression, WEEKDAYS } from "@/lib/workflow-schedule-cron"
+import { parseCronExpression, WEEKDAYS } from "@/lib/workflow/workflow-schedule-cron"
 import { Plus, X } from "lucide-react"
 import {
   ACCENT,

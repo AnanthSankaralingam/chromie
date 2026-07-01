@@ -6,8 +6,8 @@ import {
   cronExpressionFromScheduleInput,
   syncAutomationSchedule,
   deleteAutomationSchedules,
-} from "@/lib/workflow-schedule"
-import { normalizeTimes } from "@/lib/workflow-schedule-cron"
+} from "@/lib/workflow/workflow-schedule"
+import { normalizeTimes } from "@/lib/workflow/workflow-schedule-cron"
 
 /**
  * @param {object} body - Request JSON

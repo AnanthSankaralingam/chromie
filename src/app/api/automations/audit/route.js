@@ -5,9 +5,9 @@ import {
   getUserGovProfileId,
   loadGovOrgAuditRuns,
   mergeAuditRuns,
-} from "@/lib/gov-workflow-access"
+} from "@/lib/gov/gov-workflow-access"
 import { createServiceClient } from "@/lib/supabase/service"
-import { normalizeAuditRun } from "@/lib/workflow-audit"
+import { normalizeAuditRun } from "@/lib/workflow/workflow-audit"
 
 export const GET = withAuth(async ({ supabase, user, request }) => {
   const { searchParams } = new URL(request.url)

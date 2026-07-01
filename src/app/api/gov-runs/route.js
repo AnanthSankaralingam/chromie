@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { getGovProfileForUser } from "@/lib/gov-profiles"
+import { getGovProfileForUser } from "@/lib/gov/gov-profiles"
 
 export const GET = withAuth(async ({ request, supabase, user }) => {
   try {
