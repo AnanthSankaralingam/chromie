@@ -2,8 +2,6 @@
  * Validation utilities for API endpoints
  */
 
-import { subscriptionPurchaseEntitled } from '@/lib/subscription-entitlement'
-
 // UUID v4 validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -213,68 +211,3 @@ export function generateSecureToken(length = 32) {
   return crypto.randomBytes(length).toString('hex')
 }
 
-/**
- * Check if user has a paid plan
- * @param {Object} supabase - Supabase client instance
- * @param {string} userId - User ID to check
- * @returns {Promise<Object>} - { isPaid: boolean, plan: string }
- */
-export async function checkPaidPlan(supabase, userId) {
-  try {
-    if (!userId) {
-      return { isPaid: false, plan: 'free' }
-    }
-
-    // Get all purchases for the user (including inactive ones to check expiration)
-    const { data: purchases, error: purchasesError } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('user_id', userId)
-      .in('status', ['active', 'canceled', 'past_due'])
-
-    if (purchasesError) {
-      console.error('Error checking paid plan (purchases):', purchasesError)
-    }
-
-    const now = new Date()
-
-    // Check if user has any active paid subscriptions.
-    const hasActivePurchase =
-      purchases &&
-      purchases.length > 0 &&
-      purchases.some((p) => subscriptionPurchaseEntitled(p, now))
-
-    // Also check billing table for backwards compatibility
-    const { data: billing, error: billingError } = await supabase
-      .from('billing')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (billingError) {
-      console.error('Error checking paid plan (billing):', billingError)
-    }
-
-    const hasActiveBilling = billing && billing.status === 'active'
-    const userIsPaid = hasActivePurchase || hasActiveBilling
-
-    // Determine plan name
-    let plan = 'free'
-    if (hasActivePurchase && purchases && purchases.length > 0) {
-      const activePurchase = purchases.find((p) =>
-        subscriptionPurchaseEntitled(p, now)
-      )
-      plan = activePurchase?.plan || 'free'
-    } else if (hasActiveBilling && billing) {
-      plan = billing.plan || 'free'
-    }
-
-    return { isPaid: userIsPaid, plan }
-  } catch (error) {
-    console.error('Error checking paid plan:', error)
-    return { isPaid: false, plan: 'free' }
-  }
-}

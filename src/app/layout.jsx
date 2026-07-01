@@ -3,7 +3,6 @@ import { Instrument_Serif } from "next/font/google";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import SessionProviderClient from "@/components/SessionProviderClient";
-import { BillingPlanProviderClient } from "@/components/BillingPlanProviderClient";
 import AuthHandler from "@/components/AuthHandler";
 import FloatingFeedbackButton from "@/components/ui/floating-feedback-button";
 import { ToastProvider, ToastViewport } from "@/components/ui/feedback/toast";
@@ -60,7 +59,6 @@ export default function RootLayout({ children }) {
       <body className={`${inter.className} ${instrumentSerif.variable} ${spaceGrotesk.variable}`}>
         <PostHogProvider>
           <SessionProviderClient>
-            <BillingPlanProviderClient>
             <AuthHandler />
             <ToastProvider>
               {children}
@@ -68,7 +66,6 @@ export default function RootLayout({ children }) {
               <Toaster />
               <ToastViewport />
             </ToastProvider>
-            </BillingPlanProviderClient>
           </SessionProviderClient>
         </PostHogProvider>
         <a href="https://foundrlist.com/product/chromiedev" target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>

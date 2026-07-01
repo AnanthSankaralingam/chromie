@@ -57,9 +57,6 @@ export default function AppBar() {
               <Link href="/blog" className="text-zinc-400 hover:text-white transition-colors text-sm">
                 blog
               </Link>
-              <Link href="/book-demo" className="text-zinc-400 hover:text-white transition-colors text-sm">
-                book demo
-              </Link>
             </nav>
 
             <div className="flex items-center space-x-3">
@@ -110,13 +107,6 @@ export default function AppBar() {
                 className="text-zinc-400 hover:text-white transition-colors text-sm"
               >
                 blog
-              </Link>
-              <Link
-                href="/book-demo"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-zinc-400 hover:text-white transition-colors text-sm"
-              >
-                book demo
               </Link>
               {!user && (
                 <Button

@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Mail } from "lucide-react"
+import { Mail } from "lucide-react"
 
 export const metadata = {
   title: "Page Not Found",
@@ -44,16 +44,9 @@ export default function NotFound() {
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/book-demo"
-                  className="inline-flex items-center justify-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
-                >
-                  Book a demo
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
                 <a
                   href="mailto:founders@chrome.dev"
-                  className="inline-flex items-center justify-center gap-2 border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/45 hover:bg-white/[0.04]"
+                  className="inline-flex items-center justify-center gap-2 border border-white bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
                 >
                   Contact support
                   <Mail className="h-4 w-4" />

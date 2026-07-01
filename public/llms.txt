@@ -25,12 +25,10 @@ Chromie helps teams automate web workflows for pharma market intelligence, clini
 
 - [Chromie Home](https://chromie.dev): Landing page and product overview
 - [Use Cases](https://chromie.dev/use-cases): Industry workflow examples and demos
-- [Book a demo](https://cal.com/chromie): Schedule a product walkthrough
 - [GovCon onboarding](https://chromie.dev/gov/onboarding): Free self-serve setup for government contract search
 - [Blog](https://chromie.dev/blog): Product updates and web automation insights
 
 ## Optional
 
-- [Book demo page](https://chromie.dev/book-demo): Demo request landing page
 - [Privacy Policy](https://chromie.dev/privacy-policy): Chromie's privacy practices
 - [Contact](mailto:founders@chromie.dev): Partnerships, pilots, and general inquiries

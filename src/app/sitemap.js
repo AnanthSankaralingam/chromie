@@ -17,7 +17,6 @@ export default function sitemap() {
   const staticPages = [
     entry("/", { priority: 1 }),
     entry("/use-cases", { priority: 0.9 }),
-    entry("/book-demo", { priority: 0.8, changeFrequency: "monthly" }),
     entry("/gov", { priority: 0.9 }),
     entry("/gov/onboarding", { priority: 0.8 }),
     entry("/blog", { priority: 0.7 }),

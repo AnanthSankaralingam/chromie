@@ -1,19 +1,3 @@
-// Plan limits for account billing. Automation usage is tracked separately in workflow_runs.
-export const PLAN_LIMITS = {
-  free: {
-    monthly_credits: 0,
-    monthly_browser_minutes: 0,
-    reset_type: "monthly",
-  },
-  pro: {
-    monthly_credits: 250,
-    monthly_browser_minutes: Infinity,
-    reset_type: "monthly",
-  },
-}
-
-export const DEFAULT_PLAN = "free"
-
 export const SUPPORTED_PROVIDERS = {
   GEMINI: "gemini",
   OPENAI: "openai",
@@ -29,13 +13,5 @@ export const MODEL_SELECTION = {
 }
 
 export const DEFAULT_PROVIDER = SUPPORTED_PROVIDERS.IONROUTER
-
-export const BILLING_SUBSCRIBE = {
-  pro: "https://buy.stripe.com/6oU3cu4ch6FW5BJby67kc07",
-}
-
-export const PLAN_RESET_TYPES = {
-  MONTHLY: "monthly",
-}
 
 export const CHROMIE_LOGO_URL = "/chromie-logo-1.png?v=2"
