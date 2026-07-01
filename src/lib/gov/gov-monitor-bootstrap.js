@@ -211,6 +211,7 @@ export async function invokeGovDualSourceIfAllowed({
   samAutomation,
   sbirAutomation,
   timezone,
+  user,
 }) {
   if (!samAutomation || !sbirAutomation) {
     return { invoked: false, skipped_reason: "missing_automation" }
@@ -237,6 +238,7 @@ export async function invokeGovDualSourceIfAllowed({
     automation_id: samAutomation.id,
     gov_dual_source: true,
     sbir_automation_id: sbirAutomation.id,
+    user_id: user?.id || null,
   })
 
   console.log(
@@ -369,6 +371,7 @@ export async function bootstrapGovMonitor({
     samAutomation: invokeSam,
     sbirAutomation: invokeSbir,
     timezone: scheduleAutomation?.schedule_timezone || timezone,
+    user,
   })
 
   const statusSchedule = buildGovScheduleSummary(scheduleAutomation)
