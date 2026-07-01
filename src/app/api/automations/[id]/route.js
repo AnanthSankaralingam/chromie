@@ -6,6 +6,7 @@ import {
 } from "@/lib/automation-schedule-sync"
 import { deleteAutomationSchedules } from "@/lib/workflow-schedule"
 import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
+import { companyDomainFromEmail } from "@/lib/gov-domain"
 
 async function getOwnedAutomation(supabase, userId, id) {
   const { data, error } = await supabase
@@ -18,9 +19,27 @@ async function getOwnedAutomation(supabase, userId, id) {
   return data
 }
 
+/** Owner OR a teammate on the same corporate company (company_id = email domain). */
+async function getAccessibleAutomation(supabase, user, id) {
+  const owned = await getOwnedAutomation(supabase, user.id, id)
+  if (owned) return owned
+
+  const companyDomain = companyDomainFromEmail(user.email)
+  if (!companyDomain) return null
+
+  const { data, error } = await supabase
+    .from("automations")
+    .select("*")
+    .eq("id", id)
+    .eq("company_id", companyDomain)
+    .maybeSingle()
+  if (error || !data) return null
+  return data
+}
+
 export const GET = withAuth(async ({ supabase, user, params }) => {
   const { id } = await params
-  const row = await getOwnedAutomation(supabase, user.id, id)
+  const row = await getAccessibleAutomation(supabase, user, id)
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
@@ -29,7 +48,8 @@ export const GET = withAuth(async ({ supabase, user, params }) => {
 
 export const PATCH = withAuth(async ({ request, supabase, user, params }) => {
   const { id } = await params
-  const existing = await getOwnedAutomation(supabase, user.id, id)
+  // Owner or a company teammate can edit; RLS enforces the same scope.
+  const existing = await getAccessibleAutomation(supabase, user, id)
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }

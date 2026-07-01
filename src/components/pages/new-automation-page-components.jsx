@@ -1,6 +1,16 @@
 "use client"
 
-import { Clock3, FileText, MonitorUp, Radio, RotateCw, Square } from "lucide-react"
+import {
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Loader2,
+  MonitorUp,
+  Radio,
+  RotateCw,
+  Save,
+  Square,
+} from "lucide-react"
 import {
   BTN_OUTLINE,
   BTN_PRIMARY,
@@ -12,6 +22,7 @@ import {
 } from "@/components/ui/app-dashboard-theme"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/forms-and-input/input"
 import { Textarea } from "@/components/ui/forms-and-input/textarea"
 
 function formatTimer(seconds) {
@@ -194,6 +205,88 @@ function WorkflowDescription({ description, disabled, onChange }) {
         disabled={disabled}
       />
     </div>
+  )
+}
+
+export function SaveAutomationCard({
+  name,
+  onNameChange,
+  onSave,
+  pagesVisited,
+  activity,
+  savedCompanyId,
+  saveError,
+  saveStatus,
+}) {
+  const isSaving = saveStatus === "saving"
+  const isSaved = saveStatus === "saved"
+
+  return (
+    <Card className={CARD_CLASS}>
+      <CardHeader className="border-b border-white/10">
+        <CardTitle className="flex items-center gap-2 text-lg font-bold text-white">
+          <Save className="h-4 w-4 text-cyan-300" aria-hidden />
+          Save automation
+        </CardTitle>
+        <CardDescription className="mt-2 text-zinc-400">
+          Save this recording to your automations. Teammates on your company
+          domain will be able to access it too.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label htmlFor="automation-name" className={LABEL_CLASS}>
+            Automation name
+          </label>
+          <Input
+            id="automation-name"
+            value={name}
+            onChange={(event) => onNameChange(event.target.value)}
+            placeholder="Download daily vendor invoices"
+            className={`${INPUT_CLASS} px-3 py-2`}
+            disabled={isSaving || isSaved}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-3 font-mono text-[11px] text-zinc-600">
+          <span>
+            {pagesVisited.length} page{pagesVisited.length === 1 ? "" : "s"} navigated
+          </span>
+          <span>
+            {activity.length} action{activity.length === 1 ? "" : "s"} captured
+          </span>
+        </div>
+
+        {saveError && (
+          <div className="border border-red-400/30 bg-red-950/20 px-3 py-2 text-sm text-red-200">
+            {saveError}
+          </div>
+        )}
+
+        {isSaved ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border border-emerald-400/30 bg-emerald-950/20 px-3 py-3 text-sm text-emerald-200">
+            <span className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" aria-hidden />
+              {savedCompanyId
+                ? `Saved and shared with everyone at ${savedCompanyId}.`
+                : "Saved to your automations."}
+            </span>
+            <a href="/automations" className="underline hover:text-emerald-100">
+              View automations
+            </a>
+          </div>
+        ) : (
+          <Button type="button" className={BTN_PRIMARY} disabled={isSaving} onClick={onSave}>
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Save className="mr-2 h-4 w-4" aria-hidden />
+            )}
+            {isSaving ? "Saving..." : "Save automation"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

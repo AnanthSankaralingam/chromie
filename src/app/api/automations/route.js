@@ -15,13 +15,19 @@ import {
   mergeGovProfileIntoScenarioParams,
 } from "@/lib/gov-profiles"
 import { createServiceClient } from "@/lib/supabase/service"
+import { companyDomainFromEmail } from "@/lib/gov-domain"
 
 export const GET = withAuth(async ({ supabase, user }) => {
-  const { data, error } = await supabase
-    .from("automations")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false })
+  // Return the user's own automations plus any shared with their company
+  // (company_id = corporate work-email domain; consumer domains are excluded).
+  // RLS enforces the same scope.
+  const companyDomain = companyDomainFromEmail(user.email)
+  let query = supabase.from("automations").select("*")
+  query = companyDomain
+    ? query.or(`user_id.eq.${user.id},company_id.eq.${companyDomain}`)
+    : query.eq("user_id", user.id)
+
+  const { data, error } = await query.order("updated_at", { ascending: false })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
