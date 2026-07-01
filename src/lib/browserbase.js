@@ -55,19 +55,91 @@ export async function getSessionLiveViewUrl(sessionId) {
   return data.debuggerFullscreenUrl || data.debuggerUrl || null
 }
 
-export async function createBrowserbaseSession({ userMetadata, contextId, persist = true } = {}) {
+function envFlag(name, fallback) {
+  const raw = String(process.env[name] ?? "").trim().toLowerCase()
+  if (!raw) return fallback
+  return ["1", "true", "yes", "on"].includes(raw)
+}
+
+function envInt(name, fallback) {
+  const raw = Number.parseInt(process.env[name] ?? "", 10)
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback
+}
+
+/**
+ * Shared egress pin for the `/new` recorder. The cookies a user creates while
+ * logging into a third-party site during recording are minted under this
+ * region + Browserbase proxy + viewport; the runner MUST reuse the same identity
+ * when it later replays the recorded automation, or the login-bound site rejects
+ * the restored context. Keep these `BROWSERBASE_RECORDER_*` values in lockstep
+ * with chromie-runner's `resolve_session_pinning("recorder")`.
+ */
+export function resolveRecorderSessionPinning() {
+  const region =
+    process.env.BROWSERBASE_RECORDER_REGION?.trim() ||
+    process.env.BROWSERBASE_REGION?.trim() ||
+    "us-east-1"
+
+  const viewport = {
+    width: envInt("BROWSERBASE_RECORDER_VIEWPORT_WIDTH", 1920),
+    height: envInt("BROWSERBASE_RECORDER_VIEWPORT_HEIGHT", 1080),
+  }
+
+  let proxies
+  if (envFlag("BROWSERBASE_RECORDER_PROXIES", true)) {
+    const country = process.env.BROWSERBASE_RECORDER_PROXY_COUNTRY?.trim()
+    if (country) {
+      const geolocation = { country: country.toUpperCase() }
+      const state = process.env.BROWSERBASE_RECORDER_PROXY_STATE?.trim()
+      const city = process.env.BROWSERBASE_RECORDER_PROXY_CITY?.trim()
+      if (state) geolocation.state = state.toUpperCase()
+      if (city) geolocation.city = city.toUpperCase()
+      proxies = [{ type: "browserbase", geolocation }]
+    } else {
+      proxies = true
+    }
+  }
+
+  return { region, proxies, viewport }
+}
+
+export async function createBrowserbaseSession({
+  userMetadata,
+  contextId,
+  persist = true,
+  region,
+  proxies,
+  viewport,
+  solveCaptchas,
+} = {}) {
   const apiKey = requireApiKey()
   const projectId = process.env.BROWSERBASE_PROJECT_ID?.trim()
   const metadata = cleanUserMetadata(userMetadata)
   const context = String(contextId || "").trim()
+  const resolvedRegion = String(region || "").trim()
+  const resolvedViewport =
+    viewport && Number(viewport.width) > 0 && Number(viewport.height) > 0
+      ? { width: Number(viewport.width), height: Number(viewport.height) }
+      : { width: 1440, height: 900 }
   const body = {
     ...(projectId ? { projectId } : {}),
     timeout: SESSION_TIMEOUT_SECONDS,
     keepAlive: true,
+    // Egress pinning (region + proxy) is top-level on the session; the viewport
+    // lives in browserSettings. Pin them so a restored context's cookies aren't
+    // rejected by login-bound sites that bind sessions to IP/fingerprint.
+    ...(resolvedRegion ? { region: resolvedRegion } : {}),
+    ...(proxies ? { proxies } : {}),
     browserSettings: {
       recordSession: true,
       logSession: true,
-      viewport: { width: 1440, height: 900 },
+      viewport: resolvedViewport,
+      // Captcha handling is split by path (matches chromie-runner): a human-driven
+      // login session passes solveCaptchas:false so the real challenge renders for
+      // the person to solve — auto-solving a login Turnstile submits a token the
+      // site rejects. Automated runs leave it at the Browserbase default (on) to
+      // clear the bot-check unattended. Omitted => Browserbase default.
+      ...(typeof solveCaptchas === "boolean" ? { solveCaptchas } : {}),
       // Persisted login: restore cookies/localStorage from the context and, with
       // persist:true, save whatever the user logs into back to it for next time.
       ...(context ? { context: { id: context, persist: Boolean(persist) } } : {}),

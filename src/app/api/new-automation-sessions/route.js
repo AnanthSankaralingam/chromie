@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { buildConnectUrl, createBrowserbaseSession, getSessionLiveViewUrl } from "@/lib/browserbase"
+import {
+  buildConnectUrl,
+  createBrowserbaseSession,
+  getSessionLiveViewUrl,
+  resolveRecorderSessionPinning,
+} from "@/lib/browserbase"
 import { startSessionRecording } from "@/lib/new-automation/session-recorder"
 import { ensureProfileBrowserbaseContextId } from "@/lib/new-automation/recording-context"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -48,9 +53,20 @@ export const POST = withAuth(async ({ user, request }) => {
       console.warn("[new-automation-sessions/create] context resolve failed", contextErr)
     }
 
+    // Pin egress (region + proxy + viewport) so the login cookies captured here
+    // are minted under the same identity the runner reuses for scheduled runs.
+    const pinning = resolveRecorderSessionPinning()
+
     const session = await createBrowserbaseSession({
       contextId: browserbaseContextId,
       persist: true,
+      region: pinning.region,
+      proxies: pinning.proxies,
+      viewport: pinning.viewport,
+      // This is a human-driven login (like scripts/eviivo_login.py): keep the
+      // captcha solver OFF so the person solves any real login challenge; a
+      // scheduled recorded run later leaves solveCaptchas at its default (on).
+      solveCaptchas: false,
       userMetadata: {
         source: "chromie-new-automation",
         userId: user.id,
