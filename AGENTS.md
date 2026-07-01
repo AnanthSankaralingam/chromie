@@ -22,5 +22,10 @@ stamped onto each recorded automation's `browserbase_context_id` so the runner u
 eviivo/gov keep their **dedicated per-scenario** contexts — don't fold them into the identity jar
 (a context reset would wipe every login for that identity).
 
+The recording session pins egress (region + Browserbase proxy + viewport) via
+`resolveRecorderSessionPinning()` (`BROWSERBASE_RECORDER_*`, proxies default ON, viewport
+`1920x1080`). These MUST match the runner's `resolve_session_pinning("recorder")` env or the login
+cookies captured during recording get rejected on scheduled runs.
+
 Reliability (IP/fingerprint pinning, captcha handling, `/login`→dashboard reload) is handled
 runner-side — see the `chromie-runner` / `chromie-tools` rules; don't reinvent it here.
