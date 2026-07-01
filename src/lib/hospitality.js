@@ -1,6 +1,6 @@
-import { resolveScheduleFieldsFromBody } from "@/lib/automation-schedule-sync"
+import { resolveScheduleFieldsFromBody } from "@/lib/workflow/automation-schedule-sync"
 import { createBrowserbaseContext } from "@/lib/browserbase"
-import { EVIIVO_DATA_PULL_SCENARIO_ID, defaultParamsForScenario } from "@/lib/workflow-automations"
+import { EVIIVO_DATA_PULL_SCENARIO_ID, defaultParamsForScenario } from "@/lib/workflow/workflow-automations"
 
 export const DEFAULT_HOSPITALITY_TIMEZONE = "UTC"
 

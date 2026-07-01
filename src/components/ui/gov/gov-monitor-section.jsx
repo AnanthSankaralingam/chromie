@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/gov/gov-gate-cards"
 import {
   GOV_SAM_SCENARIO_IDS,
-} from "@/lib/workflow-automations"
+} from "@/lib/workflow/workflow-automations"
 import SamMonitorScheduleCard from "@/components/ui/gov/sam-monitor-schedule-card"
 
 const AutomationAuditSection = dynamic(

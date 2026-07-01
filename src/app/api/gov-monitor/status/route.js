@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { getGovProfileForUser } from "@/lib/gov-profiles"
-import { getGovMonitorStatus } from "@/lib/gov-monitor-bootstrap"
+import { getGovProfileForUser } from "@/lib/gov/gov-profiles"
+import { getGovMonitorStatus } from "@/lib/gov/gov-monitor-bootstrap"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const GET = withAuth(async ({ supabase, user }) => {

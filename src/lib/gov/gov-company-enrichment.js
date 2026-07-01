@@ -1,14 +1,14 @@
 import { isIP } from "node:net"
-import { normalizeGovSearchKeywords } from "@/lib/gov-profiles"
+import { normalizeGovSearchKeywords } from "@/lib/gov/gov-profiles"
 import {
   companyNameFromDomain,
   isValidDomain,
   normalizeDomain,
-} from "@/lib/gov-domain"
+} from "@/lib/gov/gov-domain"
 import {
   SBIR_TECH_MARKETPLACE_CATEGORIES,
   normalizeSbirCategories,
-} from "@/lib/gov-sbir-categories"
+} from "@/lib/gov/gov-sbir-categories"
 import { OpenAIAdapter } from "@/lib/services/adapters/openai-adapter"
 
 export {
@@ -18,7 +18,7 @@ export {
   isValidDomain,
   normalizeDomain,
   normalizeEmail,
-} from "@/lib/gov-domain"
+} from "@/lib/gov/gov-domain"
 
 const PRIVATE_IPV4_RANGES = [
   /^10\./,

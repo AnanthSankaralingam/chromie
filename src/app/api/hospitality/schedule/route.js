@@ -3,7 +3,7 @@ import { withAuth } from "@/lib/api/with-auth"
 import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
-} from "@/lib/automation-schedule-sync"
+} from "@/lib/workflow/automation-schedule-sync"
 import {
   ensureHospitalityAutomation,
   getHospitalityProfileForUser,

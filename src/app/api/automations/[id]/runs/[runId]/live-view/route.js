@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { getSessionLiveViewUrl, isBrowserbaseDashboardUrl } from "@/lib/browserbase"
-import { getAccessibleWorkflowRun } from "@/lib/workflow-run-access"
+import { getAccessibleWorkflowRun } from "@/lib/workflow/workflow-run-access"
 
 /** @deprecated Prefer GET .../session-view — this route never returns dashboard URLs. */
 export const GET = withAuth(async ({ supabase, user, params }) => {

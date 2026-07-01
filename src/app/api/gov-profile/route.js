@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { refreshGovAutomationParamsForProfile } from "@/lib/gov-automation-sync"
-import { bootstrapGovMonitor } from "@/lib/gov-monitor-bootstrap"
-import { getGovProfileForUser, sanitizeGovProfilePatch } from "@/lib/gov-profiles"
+import { refreshGovAutomationParamsForProfile } from "@/lib/gov/gov-automation-sync"
+import { bootstrapGovMonitor } from "@/lib/gov/gov-monitor-bootstrap"
+import { getGovProfileForUser, sanitizeGovProfilePatch } from "@/lib/gov/gov-profiles"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const GET = withAuth(async ({ supabase, user }) => {

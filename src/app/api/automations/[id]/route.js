@@ -3,10 +3,10 @@ import { withAuth } from "@/lib/api/with-auth"
 import {
   resolveScheduleFieldsFromBody,
   syncAndPersistAutomationSchedule,
-} from "@/lib/automation-schedule-sync"
-import { deleteAutomationSchedules } from "@/lib/workflow-schedule"
-import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow-automations"
-import { companyDomainFromEmail } from "@/lib/gov-domain"
+} from "@/lib/workflow/automation-schedule-sync"
+import { deleteAutomationSchedules } from "@/lib/workflow/workflow-schedule"
+import { EMAIL_DELIVERY_SCENARIO_IDS } from "@/lib/workflow/workflow-automations"
+import { companyDomainFromEmail } from "@/lib/gov/gov-domain"
 
 async function getOwnedAutomation(supabase, userId, id) {
   const { data, error } = await supabase

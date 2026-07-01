@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/forms-and-input/input"
 import { FilmGrain } from "@/components/ui/landing/landing-motion"
 import AuthModal from "@/components/ui/modals/modal-auth"
-import { EVIIVO_DATA_PULL_SCENARIO_ID } from "@/lib/workflow-automations"
+import { EVIIVO_DATA_PULL_SCENARIO_ID } from "@/lib/workflow/workflow-automations"
 import { Play, RefreshCw, Save } from "lucide-react"
 
 function countLabel(counts, key) {

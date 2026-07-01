@@ -1,5 +1,5 @@
 import { getReplayMetadata, getSessionLogs } from "@/lib/browserbase"
-import { getSessionRecording, stopSessionRecording } from "@/lib/session-recorder"
+import { getSessionRecording, stopSessionRecording } from "@/lib/new-automation/session-recorder"
 
 const MAX_ACTIVITY_ITEMS = 120
 
@@ -211,27 +211,11 @@ function actionFromLog(log, index) {
   }
 
   if (method === "Runtime.consoleAPICalled") {
-    return {
-      index,
-      type: "console",
-      label: `Console ${payload.type || "message"}`,
-      detail: eventText(log),
-      pageId: log?.pageId ?? null,
-      timestamp,
-    }
+    return null
   }
 
   if (method === "Log.entryAdded") {
-    const entry = payload.entry || payload
-    return {
-      index,
-      type: entry.level === "error" ? "error" : "console",
-      label: entry.level ? `Browser ${entry.level}` : "Browser log",
-      detail: firstString(entry.text, entry.url, eventText(log)),
-      url: entry.url || null,
-      pageId: log?.pageId ?? null,
-      timestamp,
-    }
+    return null
   }
 
   if (/exception|error|failed/i.test(method)) {

@@ -7,7 +7,7 @@ import {
   classifyPostAuthDestination,
   explicitPostAuthDestination,
   resolveGovHomePath,
-} from "@/lib/gov-auth-redirect"
+} from "@/lib/gov/gov-auth-redirect"
 
 function AuthHandlerContent() {
   const { supabase, session, isLoading } = useSession()

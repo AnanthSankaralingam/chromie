@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { invokeWorkflowLambda } from "@/lib/workflow-lambda"
+import { invokeWorkflowLambda } from "@/lib/workflow/workflow-lambda"
 
 export const POST = withAuth(async ({ supabase, user, params }) => {
   const { id } = await params

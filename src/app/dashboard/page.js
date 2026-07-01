@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { resolveGovHomePath } from "@/lib/gov-auth-redirect"
+import { resolveGovHomePath } from "@/lib/gov/gov-auth-redirect"
 
 export const metadata = {
   title: "Dashboard",

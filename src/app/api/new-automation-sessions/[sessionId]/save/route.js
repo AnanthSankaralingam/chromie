@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
-import { companyDomainFromEmail } from "@/lib/gov-domain"
+import { companyDomainFromEmail } from "@/lib/gov/gov-domain"
 
 /** Scenario id for automations captured via the self-serve /new recorder. */
 const NEW_AUTOMATION_SCENARIO_ID = "custom_recorded_automation"

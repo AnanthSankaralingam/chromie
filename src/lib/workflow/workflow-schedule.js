@@ -12,8 +12,8 @@ import {
 import {
   hasWorkflowAwsCredentials,
   requireWorkflowAwsCredentials,
-} from "@/lib/workflow-aws-config"
-import { buildCronExpressions } from "@/lib/workflow-schedule-cron"
+} from "@/lib/workflow/workflow-aws-config"
+import { buildCronExpressions } from "@/lib/workflow/workflow-schedule-cron"
 
 function schedulerClient() {
   const region = process.env.AWS_REGION || "us-east-1"
