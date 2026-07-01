@@ -1,6 +1,6 @@
 ---
 description: Building dashboard features that need Browserbase persisted browser auth (Contexts) — how to provision and store a stable context id
-globs: **/src/lib/hospitality.js,**/src/lib/workflow-automations.js,**/*browserbase*.{js,ts,jsx,tsx}
+globs: **/src/lib/hospitality.js,**/src/lib/workflow-automations.js,**/*browserbase*.{js,ts,jsx,tsx},**/src/lib/new-automation/recording-context.js,**/src/app/api/new-automation-sessions/**/route.js
 alwaysApply: false
 ---
 
@@ -14,6 +14,12 @@ and store it; auth reliability is handled runner-side (see below).
 - Reuse-or-create a **stable** context id per automation. Follow the `ensureBrowserbaseContextId` pattern: reuse `existingAutomation.browserbase_context_id` if present, else `createBrowserbaseContext()`. Never lazily create a new context on each run/save — inconsistent ids silently break persistence (the next run starts logged out).
 - Persist it on the `automations` row as `browserbase_context_id` at create/ensure time (see `ensureHospitalityAutomation`). The runner mirrors it to `workflow_browser_contexts`; both must agree.
 - Add the new scenario to the same provisioning path so its automation gets a context id too.
+
+## Recorder (`/new`) context is identity-level (company-or-user), frozen on the profile
+- The self-serve recorder session (`POST /api/new-automation-sessions`) attaches a persisted context so third-party logins survive. The id is **frozen on `profiles.browserbase_context_id`** the first time it's needed: a corporate user (work-email domain) inherits the **earliest teammate's** context for that domain; a consumer/free-email user gets their own. See `ensureProfileBrowserbaseContextId` in `src/lib/new-automation/recording-context.js`.
+- Provision with the **service role** — corporate teammates live in other users' `profiles` rows that per-user RLS hides. Uses the **one** helper (`createBrowserbaseContext`); no separate context table.
+- The session runs with `browserSettings.context = { id, persist: true }` (see `createBrowserbaseSession`). On save the same id is stamped onto `automations.browserbase_context_id`, so the runner's `resolve_browserbase_context_id` (per-automation column has precedence) uses it directly and never touches the shared per-scenario `workflow_browser_contexts`.
+- **Scope:** only `/new` custom/recorded automations use the identity context. eviivo/gov keep their **dedicated per-scenario** contexts (own reset/pinning lifecycle) — do NOT fold them into the identity jar, or a context reset would wipe every login for that identity.
 
 ## Know this
 - A Context persists **cookies + localStorage only — NOT sessionStorage**. A freshly created context is an **empty cookie jar**: automated runs will NOT be authenticated until a human completes the first login once via Live View (runner's `scripts/eviivo_login.py`). Build the UX to surface/allow that first login, and don't treat "context created" as "logged in".

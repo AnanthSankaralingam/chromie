@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api/with-auth"
 import { companyDomainFromEmail } from "@/lib/gov/gov-domain"
+import {
+  NEW_AUTOMATION_SCENARIO_ID,
+  ensureProfileBrowserbaseContextId,
+} from "@/lib/new-automation/recording-context"
+import { createServiceClient } from "@/lib/supabase/service"
 
-/** Scenario id for automations captured via the self-serve /new recorder. */
-const NEW_AUTOMATION_SCENARIO_ID = "custom_recorded_automation"
 const MAX_ITEMS = 500
 
 function toArray(value) {
@@ -34,13 +37,32 @@ export const POST = withAuth(async ({ request, supabase, user, params }) => {
   // Consumer providers (gmail.com, etc.) return null → stays private to creator.
   const companyId = companyDomainFromEmail(user.email)
 
+  // Stamp the identity-level context (frozen on the profile) onto the row so the
+  // runner uses it directly — never null, so it never falls back to the shared
+  // per-scenario context. This is the same id the recording session used.
+  let browserbaseContextId = null
+  try {
+    const service = createServiceClient()
+    if (service) {
+      const resolved = await ensureProfileBrowserbaseContextId(service, user)
+      browserbaseContextId = resolved.contextId
+    } else {
+      console.warn("[new-automation-sessions/save] service client unavailable; no persisted context")
+      browserbaseContextId = String(body.browserbaseContextId || "").trim() || null
+    }
+  } catch (contextErr) {
+    console.warn("[new-automation-sessions/save] context resolve failed", contextErr)
+    browserbaseContextId = String(body.browserbaseContextId || "").trim() || null
+  }
+
   // Everything the recorder captured lives in `params` to keep the table lean;
-  // only `company_id` needs to be a real column (for the RLS policy).
+  // only `company_id` and `browserbase_context_id` need to be real columns.
   const { data, error } = await supabase
     .from("automations")
     .insert({
       user_id: user.id,
       company_id: companyId,
+      browserbase_context_id: browserbaseContextId,
       name,
       scenario_id: NEW_AUTOMATION_SCENARIO_ID,
       params: {
@@ -62,5 +84,5 @@ export const POST = withAuth(async ({ request, supabase, user, params }) => {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ automation: data, companyId })
+  return NextResponse.json({ automation: data, companyId, browserbaseContextId })
 })

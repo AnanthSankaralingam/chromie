@@ -55,10 +55,11 @@ export async function getSessionLiveViewUrl(sessionId) {
   return data.debuggerFullscreenUrl || data.debuggerUrl || null
 }
 
-export async function createBrowserbaseSession({ userMetadata } = {}) {
+export async function createBrowserbaseSession({ userMetadata, contextId, persist = true } = {}) {
   const apiKey = requireApiKey()
   const projectId = process.env.BROWSERBASE_PROJECT_ID?.trim()
   const metadata = cleanUserMetadata(userMetadata)
+  const context = String(contextId || "").trim()
   const body = {
     ...(projectId ? { projectId } : {}),
     timeout: SESSION_TIMEOUT_SECONDS,
@@ -67,6 +68,9 @@ export async function createBrowserbaseSession({ userMetadata } = {}) {
       recordSession: true,
       logSession: true,
       viewport: { width: 1440, height: 900 },
+      // Persisted login: restore cookies/localStorage from the context and, with
+      // persist:true, save whatever the user logs into back to it for next time.
+      ...(context ? { context: { id: context, persist: Boolean(persist) } } : {}),
     },
     ...(metadata ? { userMetadata: metadata } : {}),
   }
