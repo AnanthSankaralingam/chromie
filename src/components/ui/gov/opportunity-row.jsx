@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   ACCENT,
   LABEL_CLASS,
@@ -14,6 +15,38 @@ import {
   getComplianceChecklist,
 } from "@/components/ui/gov/opportunity-utils"
 
+function normalizeTypicalWinners(value) {
+  if (!value || typeof value !== "object") return null
+  return {
+    ...value,
+    winners: Array.isArray(value.winners) ? value.winners : [],
+  }
+}
+
+function formatMoney(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return "$0"
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+    notation: n >= 1_000_000 ? "compact" : "standard",
+  }).format(n)
+}
+
+function confidenceTone(confidence) {
+  if (confidence === "strong") return "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
+  if (confidence === "medium") return "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+  return "border-white/15 bg-white/[0.03] text-zinc-400"
+}
+
+function confidenceLabel(confidence) {
+  if (confidence === "strong") return "Strong match"
+  if (confidence === "medium") return "Likely adjacent"
+  if (confidence === "broad") return "Broad market"
+  return "Unverified"
+}
+
 function SourceBadge({ source }) {
   const label = source === "sam_gov" ? "SAM.gov" : source.replace(/_/g, " ")
   return (
@@ -23,7 +56,121 @@ function SourceBadge({ source }) {
   )
 }
 
-export default function OpportunityRow({ run, expanded, onToggle }) {
+function TypicalWinnersPanel({ run, expanded, allowFetch }) {
+  const [typicalWinners, setTypicalWinners] = useState(() =>
+    normalizeTypicalWinners(run.analysis_payload?.typical_winners),
+  )
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    setTypicalWinners(normalizeTypicalWinners(run.analysis_payload?.typical_winners))
+    setError("")
+  }, [run.id, run.analysis_payload?.typical_winners])
+
+  useEffect(() => {
+    if (!expanded || !allowFetch || typicalWinners || loading || error) return
+
+    let cancelled = false
+    async function loadTypicalWinners() {
+      setLoading(true)
+      setError("")
+      try {
+        const res = await fetch(`/api/gov-runs/${encodeURIComponent(run.id)}/typical-winners`)
+        const json = await res.json().catch(() => ({}))
+        if (cancelled) return
+        if (!res.ok) {
+          setError(json.error || "Could not load historical winners.")
+          return
+        }
+        setTypicalWinners(normalizeTypicalWinners(json.typical_winners))
+      } catch (err) {
+        console.error("[opportunity-row] typical winners failed", err)
+        if (!cancelled) setError("Could not load historical winners.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadTypicalWinners()
+    return () => {
+      cancelled = true
+    }
+  }, [allowFetch, error, expanded, loading, run.id, typicalWinners])
+
+  if (!allowFetch && !typicalWinners) return null
+
+  const winners = typicalWinners?.winners || []
+
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className={LABEL_CLASS}>Likely competitors</p>
+        {typicalWinners?.lookback_years ? (
+          <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+            Last {typicalWinners.lookback_years} years
+          </span>
+        ) : null}
+        {typicalWinners?.confidence ? (
+          <span
+            className={`inline-flex border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${confidenceTone(typicalWinners.confidence)}`}
+          >
+            {confidenceLabel(typicalWinners.confidence)}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs leading-5 text-zinc-500">
+        Historical federal award winners from USASpending/FPDS records matched against this
+        opportunity&apos;s PSC, NAICS, agency, and keyword signals.
+      </p>
+      {typicalWinners?.match_basis?.length ? (
+        <p className="mt-1 text-xs text-zinc-600">
+          Match basis: {typicalWinners.match_basis.join(" · ")}
+        </p>
+      ) : null}
+
+      {loading ? <p className="mt-2 text-xs text-zinc-500">Loading winner history…</p> : null}
+      {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
+
+      {!loading && !error && typicalWinners && winners.length === 0 ? (
+        <p className="mt-2 text-xs text-zinc-500">
+          {typicalWinners.reason || "No matching award history found."}
+        </p>
+      ) : null}
+
+      {winners.length > 0 ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {winners.map((winner) => (
+            <div key={winner.recipient_name} className="border border-white/10 bg-white/[0.03] p-3">
+              <p className="truncate text-sm font-semibold text-white">{winner.recipient_name}</p>
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-500">
+                <span>{formatMoney(winner.total_award_amount)} won</span>
+                <span>{winner.award_count} awards</span>
+                <span>{formatMoney(winner.average_award_amount)} avg</span>
+              </div>
+              {winner.agencies?.length ? (
+                <p className="mt-2 text-xs text-zinc-500">
+                  Common agencies: {winner.agencies.map((agency) => agency.name).join(", ")}
+                </p>
+              ) : null}
+              {winner.sample_awards?.[0] ? (
+                <p className="mt-2 line-clamp-2 text-xs text-zinc-600">
+                  Sample award: {winner.sample_awards[0].award_id || "unknown"}{" "}
+                  {winner.sample_awards[0].psc_code ? `· PSC ${winner.sample_awards[0].psc_code}` : ""}
+                  {winner.sample_awards[0].naics_code
+                    ? ` · NAICS ${winner.sample_awards[0].naics_code}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+export default function OpportunityRow({ run, expanded, onToggle, allowWinnerFetch = true }) {
   const fitLabel = formatFitScore(run.fit_score)
   const complianceChecklist = getComplianceChecklist(run.analysis_payload)
   const responseFormatted = formatOpportunityDate(run.response_date)
@@ -112,6 +259,8 @@ export default function OpportunityRow({ run, expanded, onToggle }) {
               </ol>
             </div>
           ) : null}
+
+          <TypicalWinnersPanel run={run} expanded={expanded} allowFetch={allowWinnerFetch} />
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {run.source_url ? (
