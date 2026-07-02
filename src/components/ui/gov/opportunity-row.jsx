@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import {
   ACCENT,
   LABEL_CLASS,
@@ -15,7 +14,7 @@ import {
   getComplianceChecklist,
 } from "@/components/ui/gov/opportunity-utils"
 
-function normalizeTypicalWinners(value) {
+function normalizeLikelyCompetitors(value) {
   if (!value || typeof value !== "object") return null
   return {
     ...value,
@@ -56,66 +55,26 @@ function SourceBadge({ source }) {
   )
 }
 
-function TypicalWinnersPanel({ run, expanded, allowFetch }) {
-  const [typicalWinners, setTypicalWinners] = useState(() =>
-    normalizeTypicalWinners(run.analysis_payload?.typical_winners),
-  )
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+function LikelyCompetitorsPanel({ run }) {
+  const likelyCompetitors = normalizeLikelyCompetitors(run.likely_competitors)
+  if (!likelyCompetitors) return null
 
-  useEffect(() => {
-    setTypicalWinners(normalizeTypicalWinners(run.analysis_payload?.typical_winners))
-    setError("")
-  }, [run.id, run.analysis_payload?.typical_winners])
-
-  useEffect(() => {
-    if (!expanded || !allowFetch || typicalWinners || loading || error) return
-
-    let cancelled = false
-    async function loadTypicalWinners() {
-      setLoading(true)
-      setError("")
-      try {
-        const res = await fetch(`/api/gov-runs/${encodeURIComponent(run.id)}/typical-winners`)
-        const json = await res.json().catch(() => ({}))
-        if (cancelled) return
-        if (!res.ok) {
-          setError(json.error || "Could not load historical winners.")
-          return
-        }
-        setTypicalWinners(normalizeTypicalWinners(json.typical_winners))
-      } catch (err) {
-        console.error("[opportunity-row] typical winners failed", err)
-        if (!cancelled) setError("Could not load historical winners.")
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadTypicalWinners()
-    return () => {
-      cancelled = true
-    }
-  }, [allowFetch, error, expanded, loading, run.id, typicalWinners])
-
-  if (!allowFetch && !typicalWinners) return null
-
-  const winners = typicalWinners?.winners || []
+  const winners = likelyCompetitors.winners || []
 
   return (
     <div className="mb-4">
       <div className="flex flex-wrap items-center gap-2">
         <p className={LABEL_CLASS}>Likely competitors</p>
-        {typicalWinners?.lookback_years ? (
+        {likelyCompetitors.lookback_years ? (
           <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
-            Last {typicalWinners.lookback_years} years
+            Last {likelyCompetitors.lookback_years} years
           </span>
         ) : null}
-        {typicalWinners?.confidence ? (
+        {likelyCompetitors.confidence ? (
           <span
-            className={`inline-flex border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${confidenceTone(typicalWinners.confidence)}`}
+            className={`inline-flex border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${confidenceTone(likelyCompetitors.confidence)}`}
           >
-            {confidenceLabel(typicalWinners.confidence)}
+            {confidenceLabel(likelyCompetitors.confidence)}
           </span>
         ) : null}
       </div>
@@ -123,18 +82,15 @@ function TypicalWinnersPanel({ run, expanded, allowFetch }) {
         Historical federal award winners from USASpending/FPDS records matched against this
         opportunity&apos;s PSC, NAICS, agency, and keyword signals.
       </p>
-      {typicalWinners?.match_basis?.length ? (
+      {likelyCompetitors.match_basis?.length ? (
         <p className="mt-1 text-xs text-zinc-600">
-          Match basis: {typicalWinners.match_basis.join(" · ")}
+          Match basis: {likelyCompetitors.match_basis.join(" · ")}
         </p>
       ) : null}
 
-      {loading ? <p className="mt-2 text-xs text-zinc-500">Loading winner history…</p> : null}
-      {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
-
-      {!loading && !error && typicalWinners && winners.length === 0 ? (
+      {winners.length === 0 ? (
         <p className="mt-2 text-xs text-zinc-500">
-          {typicalWinners.reason || "No matching award history found."}
+          {likelyCompetitors.reason || "No matching award history found."}
         </p>
       ) : null}
 
@@ -170,7 +126,7 @@ function TypicalWinnersPanel({ run, expanded, allowFetch }) {
   )
 }
 
-export default function OpportunityRow({ run, expanded, onToggle, allowWinnerFetch = true }) {
+export default function OpportunityRow({ run, expanded, onToggle }) {
   const fitLabel = formatFitScore(run.fit_score)
   const complianceChecklist = getComplianceChecklist(run.analysis_payload)
   const responseFormatted = formatOpportunityDate(run.response_date)
@@ -260,7 +216,7 @@ export default function OpportunityRow({ run, expanded, onToggle, allowWinnerFet
             </div>
           ) : null}
 
-          <TypicalWinnersPanel run={run} expanded={expanded} allowFetch={allowWinnerFetch} />
+          <LikelyCompetitorsPanel run={run} />
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {run.source_url ? (
