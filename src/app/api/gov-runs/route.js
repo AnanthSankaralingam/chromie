@@ -18,7 +18,7 @@ export const GET = withAuth(async ({ request, supabase, user }) => {
     let query = supabase
       .from("gov_runs")
       .select(
-        "id, title, agency, customer_name, source, source_ref, source_url, contract_summary, published_date, response_date, fit_score, fit_rationale, profile_fit_verified, analysis_payload, scenario_id, created_at, updated_at",
+        "id, title, agency, customer_name, source, source_ref, source_url, contract_summary, published_date, response_date, fit_score, fit_rationale, profile_fit_verified, analysis_payload, likely_competitors, scenario_id, created_at, updated_at",
       )
       .eq("gov_profile_id", govProfile.id)
       .order("fit_score", { ascending: false, nullsFirst: false })

@@ -16,7 +16,7 @@ async function fetchAllGovRuns(service, govProfileId) {
     const { data, error } = await service
       .from("gov_runs")
       .select(
-        "id, title, agency, customer_name, source, source_ref, source_url, contract_summary, published_date, response_date, fit_score, fit_rationale, profile_fit_verified, analysis_payload, created_at, updated_at",
+        "id, title, agency, customer_name, source, source_ref, source_url, contract_summary, published_date, response_date, fit_score, fit_rationale, profile_fit_verified, analysis_payload, likely_competitors, created_at, updated_at",
       )
       .eq("gov_profile_id", govProfileId)
       .order("fit_score", { ascending: false, nullsFirst: false })
